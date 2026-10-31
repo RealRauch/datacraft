@@ -69,6 +69,7 @@ Date/time entries in the four doc files always use **ISO 8601** `YYYY-MM-DDTHH:m
 - Consistent, short commit messages (imperative, English, lowercase, e.g. `feat: parse jet page headers`).
 - Test-first chain auditable in the log: new tests first in their own `test(scope): …` commit (suite RED; failure evidence in the commit message or step note), then `feat(scope): …` with the implementation.
 - If a commit fails (hooks): fix the error and create a new commit — do not amend.
+- **Phase-end merge (binding):** work sequentially on `main`; if a feature branch was used, it merges back to `main` at phase end (`--no-ff` checkpoint merge with a phase summary message), and fully merged branches are deleted. Open (blocked) items survive the merge via `BACKLOG.md`.
 
 ## 5. Verification before completion
 
