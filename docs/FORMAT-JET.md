@@ -118,9 +118,26 @@ num_cols u16 · num_idx u32 · num_real_idx u32 · used_pages u32 · free_pages 
 then `num_real_idx` × 12 bytes, then `num_cols` × 25-byte column descriptors
 (`type u8, unknown u32, col_num u16, var_index u16, col_num u16, misc u16,
 misc_ext u16, flags u8, misc_flags u8, unknown u32, offset_F u16, len u16`),
-then per column a u16 length + UCS-2LE name, then the index blocks (52 bytes
-per real index, 28 per logical index) and their UCS-2 names, then per-variable
-column usage-map pointers terminated by `0xFFFF`.
+then per column a u16 **byte** length + UCS-2LE name (the length field counts
+bytes, not characters — verified against real files), then the index blocks
+(52 bytes per real index, 28 per logical index) and their UCS-2 names (byte
+lengths as well), then per-variable column usage-map pointers terminated by
+`0xFFFF` (real files sometimes end the block without the terminator — treat
+running out of bytes as the end).
+
+## Open: real-row tail semantics (BACKLOG T2)
+
+Synthetic rows decode perfectly; real Jet4 rows expose a tail discrepancy the
+synthetic model does not reproduce. Evidence gathered on a real Access 2000
+fixture (jackcess `testV2000.mdb`): catalog TDEF decodes perfectly (17 columns,
+types/flags/var-indexes all plausible, e.g. Connect=Memo j=3, Name=Text j=0,
+Type=Int2 fixed); rows parse with num_cols=17, var_len=11; var data region is
+consistent (Name at 32, Owner at 44, empty slots pointing at eod); but the
+null-mask bytes read as `[ff 00 00]` where descriptor-order semantics expect
+`[5c 28 01]`, and var_table entries read 50/52 (> eod). The real tail field
+order (var_table / eod / var_len / mask) and/or mask bit semantics differ from
+the synthetic model. Resolution path: focused hex study of one row with known
+content + CI oracle cross-check (mdb-export).
 
 ## Strategy notes (DataCraft decisions)
 

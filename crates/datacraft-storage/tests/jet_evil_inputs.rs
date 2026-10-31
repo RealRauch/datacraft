@@ -99,6 +99,7 @@ fn compressed_text_with_mode_switches_decodes() {
     let mut file = file_shell(3);
     write_tdef(&mut file, 1, 1, 0x4E, &columns);
     // Patch the Name column's misc_flags to 0x01 (compressed unicode).
+    // TDEF on page 1: block base = PAGE + (PAGE - block_len).
     let name_desc = PAGE + 8 + 55 + 25;
     file[name_desc + 16] = 0x01;
 
@@ -247,7 +248,7 @@ fn lval_hostile_pages_fail_precisely() {
     support::write_data_page(&mut file, 1, 0, &[]);
     let err = lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8)
         .expect_err("missing record must fail");
-    assert!(err.to_string().contains("no record 0"), "{err}");
+    assert!(err.to_string().contains("no usable record 0"), "{err}");
 
     // Single-LVAL record shorter than the declared memo length.
     let mut file = file_shell(2);
@@ -332,4 +333,101 @@ fn hostile_fixed_and_memo_lengths_fail_cleanly() {
     let reader = Jet4TableReader::new(file).expect("reader");
     let err = reader.read_table(1).expect_err("5-byte header must fail");
     assert!(err.to_string().contains("12-byte header"), "{err}");
+}
+
+#[test]
+fn overflow_error_paths_fail_precisely() {
+    // Overflow slot near the page end whose 4-byte pointer names page 999 —
+    // far beyond the file (PageOutOfRange through the pointer).
+    let mut file = file_shell(3);
+    write_tdef(&mut file, 1, 1, 0x4E, &customers());
+    let base = 2 * PAGE;
+    file[base] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&1u32.to_le_bytes());
+    file[base + 12..base + 14].copy_from_slice(&1u16.to_le_bytes());
+    let slot_pos = 4080usize; // leaves 4 readable bytes in the page
+    file[base + 14..base + 16].copy_from_slice(&(0x4000u16 | slot_pos as u16).to_le_bytes());
+    file[base + slot_pos..base + slot_pos + 4].copy_from_slice(&(999u32 << 8).to_le_bytes());
+    let reader = Jet4TableReader::new(file).expect("reader");
+    let err = reader.read_table(1).expect_err("far overflow must fail");
+    assert!(
+        matches!(err, StorageError::PageOutOfRange { .. }),
+        "{err:?}"
+    );
+
+    // Overflow slot at offset 16 whose pointer names page 1 — the TDEF page.
+    let mut file = file_shell(3);
+    write_tdef(&mut file, 1, 1, 0x4E, &customers());
+    let base = 2 * PAGE;
+    file[base] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&1u32.to_le_bytes());
+    file[base + 12..base + 14].copy_from_slice(&1u16.to_le_bytes());
+    file[base + 14..base + 16].copy_from_slice(&(0x4000u16 | 16).to_le_bytes());
+    file[base + 16..base + 20].copy_from_slice(&(1u32 << 8).to_le_bytes());
+    let reader = Jet4TableReader::new(file).expect("reader");
+    let err = reader.read_table(1).expect_err("tdef target must fail");
+    assert!(
+        matches!(err, StorageError::Corrupt { ref detail, .. } if detail.contains("not a data page")),
+        "unexpected error: {err:?}"
+    );
+}
+
+#[test]
+fn remaining_boundary_arms_fail_precisely() {
+    use datacraft_storage::jet::Jet4TableReader;
+
+    // Header: non-empty first page but zero file size.
+    let mut file = file_shell(1);
+    file.truncate(0x18);
+    let err =
+        datacraft_storage::jet::FileHeader::decode(&file, 0).expect_err("zero file size must fail");
+    assert!(err.to_string().contains("file is empty"), "{err}");
+
+    // Catalog TDEF lacking the Id column: precise error.
+    let mut file = file_shell(3);
+    write_tdef(&mut file, 2, 0, 0x53, &customers());
+    let reader = Jet4TableReader::new(file).expect("reader");
+    let err = reader.catalog().expect_err("catalog without Id must fail");
+    assert!(
+        matches!(err, StorageError::Corrupt { ref detail, .. } if detail.contains("Type column")),
+        "unexpected error: {err:?}"
+    );
+
+    // Overflow slot position beyond the page: "points past the page".
+    let mut file = file_shell(3);
+    write_tdef(&mut file, 1, 1, 0x4E, &customers());
+    let base = 2 * PAGE;
+    file[base] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&1u32.to_le_bytes());
+    file[base + 12..base + 14].copy_from_slice(&1u16.to_le_bytes());
+    file[base + 14..base + 16].copy_from_slice(&(0x4000u16 | 4094).to_le_bytes());
+    let reader = Jet4TableReader::new(file).expect("reader");
+    let err = reader.read_table(1).expect_err("slot past page must fail");
+    assert!(
+        matches!(err, StorageError::Corrupt { ref detail, .. } if detail.contains("points past")),
+        "unexpected error: {err:?}"
+    );
+
+    // Overflow pointer to a page whose slot count is smaller than the row
+    // index: "has no record N".
+    let mut file = file_shell(4);
+    write_tdef(&mut file, 1, 1, 0x4E, &customers());
+    let base = 2 * PAGE;
+    file[base] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&1u32.to_le_bytes());
+    file[base + 12..base + 14].copy_from_slice(&1u16.to_le_bytes());
+    let slot_pos = 4080usize;
+    file[base + 14..base + 16].copy_from_slice(&(0x4000u16 | slot_pos as u16).to_le_bytes());
+    file[base + slot_pos..base + slot_pos + 4].copy_from_slice(&((3u32 << 8) | 5).to_le_bytes());
+    // Page 3: one valid slot (row 0 exists, row 5 does not).
+    let row = build_row(3, &1i32.to_le_bytes(), &["Ada"], &[true, true, true]);
+    write_data_page(&mut file, 3, 1, &[row]);
+    let reader = Jet4TableReader::new(file).expect("reader");
+    let err = reader
+        .read_table(1)
+        .expect_err("missing target row must fail");
+    assert!(
+        matches!(err, StorageError::Corrupt { ref detail, .. } if detail.contains("no record 5")),
+        "unexpected error: {err:?}"
+    );
 }

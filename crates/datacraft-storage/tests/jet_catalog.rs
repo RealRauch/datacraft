@@ -5,12 +5,12 @@
 //! attach only when the Id lands on an independently scanned TDEF page.
 //! Test-first: RED until `catalog()`/`open_table()` exist.
 
-use datacraft_storage::jet::{Jet4TableReader, JetColumn, JetTableDef, JetType};
 use datacraft_storage::StorageError;
+use datacraft_storage::jet::{Jet4TableReader, JetColumn, JetTableDef, JetType};
 
 mod support;
 
-use support::{build_row, file_shell, ucs2, write_data_page, write_tdef, PAGE};
+use support::{build_row, file_shell, ucs2, write_data_page, write_tdef};
 
 /// Builds the catalog table (MSysObjects stand-in): Id/Type/Flags fixed,
 /// Name variable — laid out at page 2 per the format convention.
@@ -38,14 +38,7 @@ fn catalog_file() -> Vec<u8> {
     let mut file = file_shell(6);
     // Page 2: catalog TDEF; page 3: one catalog row pointing at page 4.
     write_tdef(&mut file, 2, 1, 0x53, &catalog_columns());
-    let row = build_row(
-        4,
-        &(4i32.to_le_bytes()), // Id → TDEF page of the user table
-        &["Customers"],
-        &[1i32.to_le_bytes(), 0i32.to_le_bytes()].concat(), // placeholder, replaced below
-    );
-    // build_row lays out fixed columns by list order; the catalog schema has
-    // Id/Type/Flags as fixed and Name as variable, so assemble manually.
+    // Fixed columns Id/Type/Flags, variable Name — assembled manually.
     let row = catalog_row(4, "Customers", 1, 0);
     write_data_page(&mut file, 3, 2, &[row]);
 
@@ -67,7 +60,7 @@ fn catalog_row(id: u32, name: &str, object_type: i32, flags: i32) -> Vec<u8> {
     row.extend_from_slice(&ucs2(name)); // Name (variable)
     let eod = row.len() as u16;
     row.extend_from_slice(&eod.to_le_bytes());
-    row.extend_from_slice(&10u16.to_le_bytes()); // var_table[0]: Name starts at 2+12
+    row.extend_from_slice(&14u16.to_le_bytes()); // var_table[0]: Name starts at 2+12
     row.extend_from_slice(&1u16.to_le_bytes()); // var_len
     row.push(0x0F); // null mask: all four present
     row
@@ -95,6 +88,23 @@ fn stale_catalog_ids_do_not_attach_names() {
     assert_eq!(entries.len(), 2);
     assert_eq!(entries[1].name, "Ghost");
     assert_eq!(entries[1].tdef_page, None);
+    assert_eq!(reader.table_names().expect("names"), ["Customers"]);
+}
+
+#[test]
+fn nameless_catalog_rows_are_skipped() {
+    let mut file = catalog_file();
+    // Row with NULL Name (mask bit cleared) — not a nameable object.
+    let mut null_name = catalog_row(4, "", 1, 0);
+    let mask_at = null_name.len() - 1;
+    null_name[mask_at] &= !0x02; // clear the Name presence bit
+    write_data_page(
+        &mut file,
+        3,
+        2,
+        &[catalog_row(4, "Customers", 1, 0), null_name],
+    );
+    let reader = Jet4TableReader::new(file).expect("reader");
     assert_eq!(reader.table_names().expect("names"), ["Customers"]);
 }
 

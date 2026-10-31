@@ -176,18 +176,29 @@ fn deleted_rows_are_skipped() {
 }
 
 #[test]
-fn overflow_rows_are_rejected_precisely() {
-    let mut file = file_shell(3);
+fn overflow_rows_resolve_through_the_row_pointer() {
+    // Record 0 on page 2 is an overflow slot: its 4 bytes point at page 3
+    // row 0, which carries the actual row bytes.
+    let mut file = file_shell(4);
     write_tdef(&mut file, 1, 1, 0x4E, &customers_columns());
     let row = build_row(3, &1i32.to_le_bytes(), &["Ada"], &[true, true, true]);
-    write_data_page(&mut file, 2, 1, &[row]);
+    write_data_page(&mut file, 3, 1, &[row]);
+    // Real files flag the overflow target with 0x8000 (skipped in iteration).
+    let target_base = 3 * PAGE;
+    let t_off = u16::from_le_bytes([file[target_base + 14], file[target_base + 15]]);
+    file[target_base + 14..target_base + 16].copy_from_slice(&(t_off | 0x8000).to_le_bytes());
+    // Page 2: overflow slot whose pointer names (page 3, row 0).
     let base = 2 * PAGE;
-    let off0 = u16::from_le_bytes([file[base + 14], file[base + 15]]);
-    let flagged = off0 | 0x4000;
-    file[base + 14..base + 16].copy_from_slice(&flagged.to_le_bytes());
+    file[base] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&1u32.to_le_bytes());
+    file[base + 12..base + 14].copy_from_slice(&1u16.to_le_bytes());
+    let slot = 3u32 << 8;
+    file[base + 14..base + 16].copy_from_slice(&(0x4000u16 | slot as u16 & 0x1FFF).to_le_bytes());
+    file[base + 768..base + 772].copy_from_slice(&slot.to_le_bytes());
     let reader = Jet4TableReader::new(file).expect("reader");
-    let err = reader.read_table(1).expect_err("overflow must be rejected");
-    assert!(matches!(err, StorageError::Unsupported { .. }));
+    let table = reader.read_table(1).expect("overflow resolves");
+    assert_eq!(table.rows.len(), 1);
+    assert_eq!(table.rows[0][1], StorageValue::Text("Ada".into()));
 }
 
 #[test]
@@ -370,6 +381,8 @@ fn compressed_text_without_marker_and_with_big_chars() {
     // Without the FF FE marker the payload is plain UCS-2LE even on a
     // compressed-flag column; the Zhe pair exercises the high-byte path.
     let body = ucs2("Ada\u{0416}");
+    // Name descriptor misc_flags: block sits at the page end; block_len =
+    // 55 + 2*25 + names(6+10) + usage(10+2) for Id/Name.
     let name_desc = PAGE + 8 + 55 + 25;
     file[name_desc + 16] = 0x01; // misc_flags: compressed unicode
     let row = raw_var_row(2, &1i32.to_le_bytes(), &body, &[true, true]);
@@ -384,4 +397,60 @@ fn reader_exposes_header() {
     let file = file_shell(1);
     let reader = Jet4TableReader::new(file).expect("reader");
     assert_eq!(reader.header().page_size, 4096);
+}
+
+#[test]
+fn byte_int_float_fixed_columns_decode() {
+    let columns = vec![
+        JetColumn::new("B", JetType::Byte, 0x01, 0, 0, 1),
+        JetColumn::new("I", JetType::Int, 0x01, 0, 1, 2),
+        JetColumn::new("F", JetType::Float, 0x01, 0, 3, 4),
+        JetColumn::new("L", JetType::LongInt, 0x01, 0, 7, 4),
+    ];
+    let mut file = file_shell(3);
+    write_tdef(&mut file, 1, 1, 0x4E, &columns);
+    let mut fixed = Vec::new();
+    fixed.push(0xFFu8); // Byte: -1
+    fixed.extend_from_slice(&(-2i16).to_le_bytes());
+    fixed.extend_from_slice(&1.5f32.to_le_bytes());
+    fixed.extend_from_slice(&(-3i32).to_le_bytes());
+    let row = build_row(4, &fixed, &[], &[true, true, true, true]);
+    write_data_page(&mut file, 2, 1, &[row]);
+    let reader = Jet4TableReader::new(file).expect("reader");
+    let table = reader.read_table(1).expect("table");
+    assert_eq!(table.rows[0][0], StorageValue::Int(255)); // Jet Byte is unsigned
+    assert_eq!(table.rows[0][1], StorageValue::Int(-2));
+    assert_eq!(table.rows[0][2], StorageValue::Float(1.5));
+    assert_eq!(table.rows[0][3], StorageValue::Int(-3));
+}
+
+#[test]
+fn empty_text_variable_slot_yields_empty_string() {
+    let columns = vec![
+        JetColumn::new("Id", JetType::LongInt, 0x01, 0, 0, 4),
+        JetColumn::new("Name", JetType::Text, 0x02, 1, 0, 255),
+    ];
+    let mut file = file_shell(3);
+    write_tdef(&mut file, 1, 1, 0x4E, &columns);
+    // One variable slot with zero length (start == end) — empty text.
+    let row = raw_var_row(2, &1i32.to_le_bytes(), &[], &[true, true]);
+    write_data_page(&mut file, 2, 1, &[row]);
+    let reader = Jet4TableReader::new(file).expect("reader");
+    let table = reader.read_table(1).expect("table");
+    assert_eq!(table.rows[0][1], StorageValue::Text(String::new()));
+}
+
+#[test]
+fn overclaimed_var_entries_read_adjacent_bytes_structurally() {
+    // A row claiming more variable entries than it carries stays in bounds
+    // (the reverse walk reads adjacent mask bytes) and yields structurally
+    // valid values — hostile rows never panic, per the boundary contract.
+    let mut file = file_shell(3);
+    write_tdef(&mut file, 1, 1, 0x4E, &customers_columns());
+    let def = JetTableDef::decode(&file, 1).expect("tdef");
+    let mut row = raw_var_row(3, &1i32.to_le_bytes(), &ucs2("Ada"), &[true, true, true]);
+    let vt_at = row.len() - 1 - 2 - 2;
+    row[vt_at..vt_at + 2].copy_from_slice(&2u16.to_le_bytes()); // claim 2 entries
+    let values = decode_row(&row, &def, &file, PAGE).expect("structurally decodable");
+    assert_eq!(values.len(), 3);
 }

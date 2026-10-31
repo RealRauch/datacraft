@@ -3,6 +3,7 @@
 //! Public format documentation is the only source of knowledge here; the
 //! durable fact record with sources lives in `docs/FORMAT-JET.md`.
 
+pub mod catalog;
 pub mod data_page;
 pub mod header;
 pub mod lval;
@@ -11,6 +12,7 @@ pub mod reader;
 pub mod row;
 pub mod tdef;
 
+pub use catalog::{CATALOG_TDEF_PAGE, CatalogEntry, OBJECT_TYPE_TABLE};
 pub use data_page::DataPage;
 pub use header::{
     ACE_2007_VERSION, ACE_2010_VERSION, ACE_PRODUCT, FileHeader, JET_PRODUCT, JET4_VERSION,

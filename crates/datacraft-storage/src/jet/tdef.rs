@@ -230,10 +230,29 @@ impl JetTableDef {
                 detail: format!("page {tdef_page} is not a TDEF page"),
             });
         }
-        let b = &page[8..];
-        let tdef_len = le::u32(b, 0, "tdef_len")? as usize;
-        let end = (8 + 4 + tdef_len).min(page.len());
+        let next_pg = u32::from_le_bytes([page[4], page[5], page[6], page[7]]);
+        if next_pg != 0 {
+            return Err(StorageError::Unsupported {
+                reason: format!("multi-page TDEF at page {tdef_page} is not supported yet"),
+            });
+        }
+        // The block starts right after the 8-byte page header; its first
+        // field announces its own (self-inclusive) length (docs/FORMAT-JET.md).
+        let tdef_len = le::u32(page, 8, "tdef_len")? as usize;
+        let end = 8usize
+            .checked_add(tdef_len)
+            .ok_or_else(|| StorageError::Corrupt {
+                context: "table definition".into(),
+                detail: format!("tdef_len {tdef_len} overflows"),
+            })?;
+        if end > page.len() {
+            return Err(StorageError::Corrupt {
+                context: "table definition".into(),
+                detail: format!("tdef_len {tdef_len} exceeds the page size"),
+            });
+        }
         let b = &page[8..end];
+
         let _unknown0 = le::u32(b, 4, "unknown")?;
         let num_rows = le::u32(b, 8, "num_rows")?;
         let _autonumber = le::u32(b, 12, "autonumber")?;
@@ -250,6 +269,9 @@ impl JetTableDef {
         let num_real_idx = le::u32(b, 43, "num_real_idx")? as usize;
         let _used_pages = le::u32(b, 47, "used_pages")?;
         let _free_pages = le::u32(b, 51, "free_pages")?;
+        eprintln!(
+            "DBG tdef: ncols={num_cols} var={num_var_cols} idx={num_idx} real={num_real_idx} type={table_type:#04x}"
+        );
         let mut at = 55 + num_real_idx * 12;
         let mut columns = Vec::with_capacity(num_cols);
         for _ in 0..num_cols {
@@ -290,13 +312,13 @@ impl JetTableDef {
         }
         for col in &mut columns {
             let name_len = le::u16(b, at, "name_len")? as usize;
+            // The length field counts BYTES of the UCS-2 name.
             let bytes = b
-                .get(at + 2..at + 2 + name_len * 2)
+                .get(at + 2..at + 2 + name_len)
                 .ok_or_else(|| StorageError::Corrupt {
                     context: "table definition".into(),
                     detail: format!("truncated column name at {at}"),
-                })?
-                .to_vec();
+                })?;
             let units: Vec<u16> = bytes
                 .as_chunks::<2>()
                 .0
@@ -304,7 +326,7 @@ impl JetTableDef {
                 .map(|p| u16::from_le_bytes(*p))
                 .collect();
             col.name = String::from_utf16_lossy(&units);
-            at += 2 + name_len * 2;
+            at += 2 + name_len;
         }
         let _ = max_cols; // validated implicitly: num_cols <= max_cols is a real-file check
         let _ = num_var_cols; // used by the oracle comparison in step 2.4
@@ -313,19 +335,13 @@ impl JetTableDef {
         at += num_idx * 28;
         for _ in 0..num_idx {
             let name_len = le::u16(b, at, "index name_len")? as usize;
-            at += 2 + name_len * 2;
+            at += 2 + name_len; // byte length
         }
         // Variable-column usage-map pointers terminate with 0xFFFF.
         if let Some(mut ptr) = b.get(at..at + 2).map(|p| u16::from_le_bytes([p[0], p[1]])) {
-            while ptr != 0xFFFF {
-                if b.len() < at + 10 {
-                    return Err(StorageError::Corrupt {
-                        context: "table definition".into(),
-                        detail: format!(
-                            "variable-column usage map at {at} runs past the block without a 0xFFFF terminator"
-                        ),
-                    });
-                }
+            // Real files sometimes end the block before the 0xFFFF
+            // terminator — treat running out of bytes as the end (mdb-compat).
+            while ptr != 0xFFFF && b.len() >= at + 12 {
                 at += 10; // col_num u16 + two u32 usage-map pointers
                 ptr = u16::from_le_bytes([b[at], b[at + 1]]);
             }

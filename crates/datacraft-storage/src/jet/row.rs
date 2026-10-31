@@ -1,4 +1,4 @@
-//! Jet4 row decoder (step 2.3, item H6).
+//! Jet4 row decoder (steps 2.3/2.4, item H6).
 //!
 //! Reference: `docs/FORMAT-JET.md` ("Rows", "Text compression", "Memo/OLE").
 //! A row is decoded against its table's [`JetTableDef`]; the null mask drives
@@ -105,20 +105,18 @@ impl RowLayout {
     }
 
     /// Start offset of the row's variable column `j` (var_table is stored in
-    /// reverse order: entry 0 belongs to the last variable column).
-    fn var_start(&self, row: &[u8], j: usize) -> Result<usize, StorageError> {
+    /// reverse order: entry 0 belongs to the last variable column). Always in
+    /// bounds: the largest entry address is `mask_at - 4` by the parse
+    /// invariants, so no bounds check is needed here.
+    fn var_start(&self, row: &[u8], j: usize) -> usize {
         let at = self.table_at + (self.var_len - 1 - j) * 2;
-        let b = row.get(at..at + 2).ok_or_else(|| StorageError::Corrupt {
-            context: "row".into(),
-            detail: format!("truncated var_table entry {j} at {at}"),
-        })?;
-        Ok(u16::from_le_bytes([b[0], b[1]]) as usize)
+        u16::from_le_bytes([row[at], row[at + 1]]) as usize
     }
 
     /// End offset of variable column `j`: start of `j+1`, `eod` for the last.
-    fn var_end(&self, row: &[u8], j: usize) -> Result<usize, StorageError> {
+    fn var_end(&self, row: &[u8], j: usize) -> usize {
         if j + 1 >= self.var_len {
-            Ok(self.eod)
+            self.eod
         } else {
             self.var_start(row, j + 1)
         }
@@ -143,12 +141,11 @@ fn decode_fixed(row: &[u8], col: &JetColumn) -> Result<StorageValue, StorageErro
     decode_bytes(bytes, col)
 }
 
-/// Storage length of a fixed column; booleans occupy no row space (their
-/// value lives in the null mask) and memo/OLE are never fixed.
+/// Storage length of a fixed column; numerics always occupy 17 bytes
+/// regardless of the stored length (booleans never reach byte decoding —
+/// their value lives in the null mask).
 fn fixed_len(col: &JetColumn) -> usize {
     match col.data_type {
-        // Booleans never reach byte decoding (their value lives in the mask);
-        // numerics always occupy 17 bytes regardless of the stored length.
         JetType::Numeric => 17,
         _ => col.len as usize,
     }
@@ -166,8 +163,16 @@ fn decode_variable(
         // Variable column added after this row was written.
         return Ok(StorageValue::Null);
     }
-    let start = layout.var_start(row, j)?;
-    let end = layout.var_end(row, j)?;
+    let start = layout.var_start(row, j);
+    let end = layout.var_end(row, j);
+    if start == end {
+        // Empty variable slot: NULL for long-value columns, empty string for
+        // text (mdb-compat — real rows point empty slots at the eod).
+        return Ok(match col.data_type {
+            JetType::Text => StorageValue::Text(String::new()),
+            _ => StorageValue::Null,
+        });
+    }
     if start > end || end > row.len() {
         return Err(StorageError::Corrupt {
             context: "row".into(),

@@ -62,16 +62,30 @@ pub fn write_tdef(
     }
     for col in columns {
         let name = ucs2(&col.name);
-        block.extend_from_slice(&(col.name.chars().count() as u16).to_le_bytes());
+        block.extend_from_slice(&((col.name.chars().count() * 2) as u16).to_le_bytes()); // UCS-2 byte length
         block.extend_from_slice(&name);
     }
-    let len = block.len() as u32 - 4; // tdef_len covers everything after itself
+    // Variable-column usage-map entries + terminator (real files carry them).
+    for col in columns.iter().filter(|c| !c.is_fixed()) {
+        block.extend_from_slice(&col.column_id.to_le_bytes());
+        block.extend_from_slice(&0u32.to_le_bytes());
+        block.extend_from_slice(&0u32.to_le_bytes());
+    }
+    block.extend_from_slice(&0xFFFFu16.to_le_bytes());
+    let len = block.len() as u32; // tdef_len is self-inclusive
     block[..4].copy_from_slice(&len.to_le_bytes());
 
     let base = tdef_page * PAGE;
     file[base] = PAGE_TYPE_TDEF;
     file[base + 1] = 0x01;
+    file[base + 8..base + 12].copy_from_slice(&(block.len() as u32).to_le_bytes());
     file[base + 8..base + 8 + block.len()].copy_from_slice(&block);
+}
+
+/// Byte offset where the TDEF block of `tdef_page` begins (page end minus
+/// block length — the real-file placement).
+pub fn tdef_block_start(block_len: usize) -> usize {
+    PAGE - block_len
 }
 
 /// Writes a Jet4 data page with the given raw rows (stored back to front).
@@ -189,7 +203,7 @@ pub fn write_tdef_with_indexes(
     }
     for col in columns {
         let name = ucs2(&col.name);
-        block.extend_from_slice(&(col.name.chars().count() as u16).to_le_bytes());
+        block.extend_from_slice(&((col.name.chars().count() * 2) as u16).to_le_bytes()); // UCS-2 byte length
         block.extend_from_slice(&name);
     }
     block.extend_from_slice(&[0u8; 52]); // real-index definition block
@@ -200,11 +214,12 @@ pub fn write_tdef_with_indexes(
     block.extend_from_slice(&0u32.to_le_bytes()); // used pages
     block.extend_from_slice(&0u32.to_le_bytes()); // free pages
     block.extend_from_slice(&0xFFFFu16.to_le_bytes()); // terminator
-    let len = block.len() as u32 - 4;
+    let len = block.len() as u32; // tdef_len is self-inclusive
     block[..4].copy_from_slice(&len.to_le_bytes());
 
     let base = tdef_page * PAGE;
     file[base] = PAGE_TYPE_TDEF;
     file[base + 1] = 0x01;
+    file[base + 8..base + 12].copy_from_slice(&len.to_le_bytes());
     file[base + 8..base + 8 + block.len()].copy_from_slice(&block);
 }

@@ -26,8 +26,8 @@ pub struct JetTableData {
 /// Read-only reader over an in-memory Jet4 file.
 #[derive(Debug)]
 pub struct Jet4TableReader {
-    header: FileHeader,
-    file: Vec<u8>,
+    pub(crate) header: FileHeader,
+    pub(crate) file: Vec<u8>,
 }
 
 impl Jet4TableReader {
@@ -47,6 +47,53 @@ impl Jet4TableReader {
         &self.header
     }
 
+    /// Resolves a record slot, following overflow pointers (bounded depth).
+    fn resolve_record<'a>(
+        &'a self,
+        page: &'a [u8],
+        decoded: &DataPage,
+        i: usize,
+        depth: u8,
+    ) -> Result<&'a [u8], StorageError> {
+        if !decoded.is_overflow(i) {
+            let (start, end) = decoded.record(i);
+            return Ok(&page[start..end]);
+        }
+        if depth >= 4 {
+            return Err(StorageError::Unsupported {
+                reason: "overflow chain deeper than 4 levels".into(),
+            });
+        }
+        let (pos, _, _) = decoded.records[i];
+        let bytes = page
+            .get(pos..pos + 4)
+            .ok_or_else(|| StorageError::Corrupt {
+                context: "data page".into(),
+                detail: format!("overflow slot {i} points past the page"),
+            })?;
+        let pointer = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+        let target_page = pointer >> 8;
+        let row = (pointer & 0xFF) as usize;
+        let target = self.header.page_slice(&self.file, target_page)?;
+        if page_type(target) != PAGE_TYPE_DATA {
+            return Err(StorageError::Corrupt {
+                context: "data page".into(),
+                detail: format!("overflow target page {target_page} is not a data page"),
+            });
+        }
+        let target_decoded = DataPage::decode(target)?;
+        if target_decoded.records.get(row).is_none() {
+            return Err(StorageError::Corrupt {
+                context: "data page".into(),
+                detail: format!(
+                    "overflow target page {target_page} has no record {row} (holds {} slots)",
+                    target_decoded.records.len()
+                ),
+            });
+        }
+        self.resolve_record(target, &target_decoded, row, depth + 1)
+    }
+
     /// Reads the table rooted at `tdef_page`: schema plus all rows.
     pub fn read_table(&self, tdef_page: u32) -> Result<JetTableData, StorageError> {
         let def = JetTableDef::decode(&self.file, tdef_page)?;
@@ -61,7 +108,12 @@ impl Jet4TableReader {
                 continue;
             }
             for i in 0..decoded.records.len() {
-                let record = decoded.record(page, i);
+                // Skipped: deleted rows and overflow targets (both flagged
+                // 0x8000); overflow sources (0x4000) resolve via pointer.
+                if decoded.records[i].2 & 0x8000 != 0 {
+                    continue;
+                }
+                let record = self.resolve_record(page, &decoded, i, 0)?;
                 rows.push(decode_row(record, &def, &self.file, self.header.page_size)?);
             }
         }

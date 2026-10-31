@@ -100,17 +100,17 @@ fn read_record(file: &[u8], page_size: usize, page: u32, row: u16) -> Result<&[u
         });
     }
     let decoded = DataPage::decode(page_bytes)?;
-    decoded
-        .records
-        .get(row as usize)
-        .map(|&(start, end)| &page_bytes[start..end])
-        .ok_or_else(|| StorageError::Corrupt {
+    let slot = decoded.records.get(row as usize);
+    match slot {
+        Some((start, end, _)) => Ok(&page_bytes[*start..*end]),
+        None => Err(StorageError::Corrupt {
             context: "LVAL chain".into(),
             detail: format!(
-                "LVAL page {page} has no record {row} (holds {} records)",
+                "LVAL page {page} has no usable record {row} (holds {} slots)",
                 decoded.records.len()
             ),
-        })
+        }),
+    }
 }
 
 fn take_exact(data: &[u8], len: usize) -> Result<Vec<u8>, StorageError> {

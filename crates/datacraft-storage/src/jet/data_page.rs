@@ -12,10 +12,12 @@ use crate::jet::page::PAGE_TYPE_DATA;
 pub struct DataPage {
     /// TDEF page of the owning table (or raw `"LVAL"` bytes for long-value pages).
     pub owner: u32,
-    /// Records in page order as `(start, end)` byte ranges into the page.
-    /// Deleted rows are **excluded**; overflow rows produce an error in
-    /// [`DataPage::decode`].
-    pub records: Vec<(usize, usize)>,
+    /// Slots in raw order as `(start, end, raw_offset)` — raw indices stay
+    /// stable because overflow pointers name them. Slots flagged `0x8000`
+    /// (deleted rows and overflow targets) are skipped during iteration but
+    /// keep valid coordinates; `0x4000` marks overflow slots holding a
+    /// 4-byte row pointer instead of data.
+    pub records: Vec<(usize, usize, u16)>,
 }
 
 impl DataPage {
@@ -46,17 +48,13 @@ impl DataPage {
         for i in 0..num_rows {
             let at = 14 + i * 2;
             let raw = u16::from_le_bytes([page[at], page[at + 1]]);
-            if raw & 0x4000 != 0 {
-                return Err(StorageError::Unsupported {
-                    reason: format!(
-                        "overflow row pointer on record {i} — overflow pages are not read yet"
-                    ),
-                });
-            }
-            if raw & 0x8000 != 0 {
-                continue; // deleted row
-            }
             let start = (raw & 0x1FFF) as usize;
+            if raw & 0x4000 != 0 {
+                // Overflow slot: holds a 4-byte row pointer instead of data.
+                records.push((start, start + 4, raw));
+                end = start;
+                continue;
+            }
             if start >= end {
                 return Err(StorageError::Corrupt {
                     context: "data page".into(),
@@ -65,15 +63,20 @@ impl DataPage {
                     ),
                 });
             }
-            records.push((start, end));
+            records.push((start, end, raw));
             end = start;
         }
         Ok(Self { owner, records })
     }
 
-    /// Borrows the raw bytes of record `i`.
-    pub fn record<'a>(&self, page: &'a [u8], i: usize) -> &'a [u8] {
-        let (start, end) = self.records[i];
-        &page[start..end]
+    /// Borrows the raw byte range of slot `i`.
+    pub fn record(&self, i: usize) -> (usize, usize) {
+        let (start, end, _) = self.records[i];
+        (start, end)
+    }
+
+    /// Whether slot `i` is an overflow slot (its 4 bytes are a row pointer).
+    pub fn is_overflow(&self, i: usize) -> bool {
+        self.records[i].2 & 0x4000 != 0
     }
 }
