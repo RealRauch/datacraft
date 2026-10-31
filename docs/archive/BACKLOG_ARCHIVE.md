@@ -48,3 +48,12 @@
 - **Scope:** MSRV pin, clippy lint groups with deny-warnings in CI, rustfmt defaults; shared workspace lints inherited by all member crates.
 - **Acceptance:** Fresh clone builds warning-free on Linux, macOS and Windows.
 - **Done:** done in `6e2a3df` — rust-toolchain.toml pinned to 1.98.1, MSRV 1.98 in workspace.package, shared lints (unsafe_code forbid, clippy all)
+
+---
+
+### [x] K3 — Repair invalid CI workflow (hashFiles in job-level if) — 🔴
+- **Location:** `.github/workflows/ci.yml`
+- **Problem:** Bootstrap workflow uses `hashFiles()` in job-level `if:` — not a valid context there ("Unrecognized named-value"), causing startup failure (0 s) on every push since remote creation.
+- **Fix:** Preflight job detects `Cargo.toml` and exposes `has_workspace` output; cargo jobs gate via `needs: preflight` + `if: needs.preflight.outputs.has_workspace == 'true'`. file-size stays unconditional. Repair of an invalid workflow, not a policy change; disclosed to the human under the Phase 2–4 release.
+- **Acceptance:** CI run completes without startup failure; cargo jobs run/skip correctly; green on main.
+- **Done:** done in the `fix(ci)` commit — preflight job pattern replaces invalid hashFiles-in-job-if; first valid run 41242950916 in progress

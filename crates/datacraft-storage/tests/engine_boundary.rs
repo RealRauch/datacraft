@@ -140,6 +140,80 @@ fn flush_is_idempotent_on_the_mock() {
 }
 
 #[test]
+fn insert_with_wrong_arity_is_a_schema_violation() {
+    let mut engine = engine_with_customers();
+    let err = engine
+        .write_rows("Customers", &[RowOp::Insert(vec![StorageValue::Int(9)])])
+        .expect_err("wrong arity must fail");
+    assert!(
+        matches!(err, StorageError::SchemaViolation { ref table, .. } if table == "Customers"),
+        "unexpected error: {err:?}"
+    );
+}
+
+#[test]
+fn update_with_wrong_arity_is_a_schema_violation() {
+    let mut engine = engine_with_customers();
+    let err = engine
+        .write_rows(
+            "Customers",
+            &[RowOp::Update {
+                row: 0,
+                values: vec![StorageValue::Null],
+            }],
+        )
+        .expect_err("wrong arity must fail");
+    assert!(matches!(err, StorageError::SchemaViolation { .. }));
+}
+
+#[test]
+fn update_out_of_range_is_an_error() {
+    let mut engine = engine_with_customers();
+    let err = engine
+        .write_rows(
+            "Customers",
+            &[RowOp::Update {
+                row: 7,
+                values: vec![StorageValue::Null; 3],
+            }],
+        )
+        .expect_err("missing row must fail");
+    assert!(matches!(
+        err,
+        StorageError::OutOfRange {
+            start: 7,
+            row_count: 3,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn delete_out_of_range_is_an_error() {
+    let mut engine = engine_with_customers();
+    let err = engine
+        .write_rows("Customers", &[RowOp::Delete { row: 3 }])
+        .expect_err("missing row must fail");
+    assert!(matches!(
+        err,
+        StorageError::OutOfRange {
+            start: 3,
+            row_count: 3,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn window_at_row_count_yields_an_empty_batch() {
+    let engine = engine_with_customers();
+    let batch = engine
+        .read_rows("Customers", RowRange::at(3, 5))
+        .expect("window starting at row_count is valid");
+    assert_eq!((batch.start_row, batch.rows.len()), (3, 0));
+}
+
+#[test]
 fn error_display_is_precise_and_locatable() {
     let corrupt = StorageError::Corrupt {
         context: "page header".into(),

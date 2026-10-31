@@ -85,3 +85,63 @@ impl From<std::io::Error> for StorageError {
         Self::Io(e)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_arms_name_context_and_detail() {
+        let io = StorageError::Io(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "db file vanished",
+        ));
+        assert!(io.to_string().contains("db file vanished"));
+
+        let unsupported = StorageError::Unsupported {
+            reason: "RC4-encrypted Jet 3 files".into(),
+        };
+        assert!(
+            unsupported
+                .to_string()
+                .contains("RC4-encrypted Jet 3 files")
+        );
+
+        let out_of_range = StorageError::OutOfRange {
+            table: "Customers".into(),
+            start: 5,
+            len: 2,
+            row_count: 3,
+        };
+        let s = out_of_range.to_string();
+        assert!(s.contains("Customers"), "table in display: {s}");
+        assert!(s.contains("5..7"), "window in display: {s}");
+        assert!(s.contains("3 rows"), "row count in display: {s}");
+
+        let violation = StorageError::SchemaViolation {
+            table: "Orders".into(),
+            detail: "2 values but 4 columns".into(),
+        };
+        let s = violation.to_string();
+        assert!(s.contains("Orders"), "table in display: {s}");
+        assert!(
+            s.contains("2 values but 4 columns"),
+            "detail in display: {s}"
+        );
+    }
+
+    #[test]
+    fn io_errors_are_chained_via_source_and_from() {
+        let original = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied");
+        let converted: StorageError = original.into();
+        assert!(matches!(converted, StorageError::Io(_)));
+        let source = std::error::Error::source(&converted).expect("io variant chains the os error");
+        assert!(source.to_string().contains("denied"));
+
+        let corrupt = StorageError::Corrupt {
+            context: "x".into(),
+            detail: "y".into(),
+        };
+        assert!(std::error::Error::source(&corrupt).is_none());
+    }
+}

@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-10-31T22:17
+# BACKLOG.md — Open items (As of: 2026-10-31T22:26
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -9,12 +9,6 @@
 ## 🔴 CRITICAL
 
 > No open items.
-
-### [ ] K3 — Repair invalid CI workflow (hashFiles in job-level if) — 🔴
-- **Location:** `.github/workflows/ci.yml`
-- **Problem:** Bootstrap workflow uses `hashFiles()` in job-level `if:` — not a valid context there ("Unrecognized named-value"), causing startup failure (0 s) on every push since remote creation.
-- **Fix:** Preflight job detects `Cargo.toml` and exposes `has_workspace` output; cargo jobs gate via `needs: preflight` + `if: needs.preflight.outputs.has_workspace == 'true'`. file-size stays unconditional. Repair of an invalid workflow, not a policy change; disclosed to the human under the Phase 2–4 release.
-- **Acceptance:** CI run completes without startup failure; cargo jobs run/skip correctly; green on main.
 
 ---
 
@@ -70,6 +64,12 @@
 
 > No open items.
 
+### [ ] T1 — Boundary coverage below gate — error display arms and mock write-path validations untested — 🔵
+- **Location:** `datacraft-storage/src/error.rs` (6/25 lines), `datacraft-storage/src/mock.rs` (91/104), found by the CI coverage job (run 41242950916) after step 2.1 skipped the llvm-cov re-run locally.
+- **Goal:** Close the coverage gap to >= 95%: Display arms `Io`/`Unsupported`/`OutOfRange`/`SchemaViolation`, `Error::source()`/`From<io::Error>`, and the mock write-path validations (insert/update arity violation, update/delete out-of-range, empty-table window).
+- **Scope:** Contract tests only — no production change. Lesson recorded: the canonical verification set (incl. llvm-cov) runs per step, not per phase.
+- **Acceptance:** `cargo llvm-cov --workspace --exclude datacraft-ui --fail-under-lines 95` exits 0 locally and in CI.
+
 ---
 
 ## ✅ DONE INDEX
@@ -80,3 +80,4 @@
 - H1 — Create Cargo workspace and dependency manifest — done (done in `68aab5f` + `930a289` — workspace with core/storage/ui crates, edition 2024, deps via cargo add (eframe 0.37.0), committed Cargo.lock)
 - H2 — Coverage tooling and exception policy (docs/TESTING.md) — done (done in `16e6c4d` — docs/TESTING.md with exception registry #1 (datacraft-ui crate exclusion; coverage attribute unstable on stable), ci.yml coverage job updated)
 - H3 — Toolchain pinning and lint configuration — done (done in `6e2a3df` — rust-toolchain.toml pinned to 1.98.1, MSRV 1.98 in workspace.package, shared lints (unsafe_code forbid, clippy all))
+- K3 — Repair invalid CI workflow (hashFiles in job-level if) — done (done in the `fix(ci)` commit — preflight job pattern replaces invalid hashFiles-in-job-if; first valid run 41242950916 in progress)
