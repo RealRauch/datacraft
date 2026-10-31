@@ -4,9 +4,58 @@
 //! MCP/JSON-RPC endpoints are thin clients of this crate: every user action
 //! maps to one command, every observable outcome is queryable as serializable
 //! state. See `docs/ARCHITECTURE.md` §5.
-//!
-//! Test-first (step 1.2): the tests below define the object identity scheme
-//! and stay RED until `ObjectKind`/`ObjectId` are implemented.
+
+use serde::{Deserialize, Serialize};
+
+/// Kind of a database object, following the Access object paradigm.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ObjectKind {
+    Table,
+    Query,
+    Form,
+    Report,
+}
+
+impl ObjectKind {
+    /// Lower-case identifier used in deterministic test IDs (e.g. `"table"`).
+    pub fn slug(self) -> &'static str {
+        match self {
+            ObjectKind::Table => "table",
+            ObjectKind::Query => "query",
+            ObjectKind::Form => "form",
+            ObjectKind::Report => "report",
+        }
+    }
+}
+
+/// Stable identifier of a database object (kind + name) — the anchor for
+/// deterministic test IDs and command addressing (ARCHITECTURE §5).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ObjectId {
+    /// Object kind (Table/Query/Form/Report).
+    pub kind: ObjectKind,
+    /// Case-sensitive object name as shown in the navigation pane.
+    pub name: String,
+}
+
+impl ObjectId {
+    /// Creates an object id from kind and name.
+    pub fn new(kind: ObjectKind, name: impl Into<String>) -> Self {
+        Self {
+            kind,
+            name: name.into(),
+        }
+    }
+
+    /// State-independent, deterministic test id, e.g. `node.table.customers`.
+    ///
+    /// Containers compose it (e.g. `navpane.expanded.<id>`,
+    /// `workspace.tab.<id>`) — they derive their IDs, never invent them.
+    pub fn ui_test_id(&self) -> String {
+        format!("node.{}.{}", self.kind.slug(), self.name.to_lowercase())
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -17,6 +66,14 @@ mod tests {
     fn object_id_renders_deterministic_node_test_id() {
         let id = ObjectId::new(ObjectKind::Table, "Customers");
         assert_eq!(id.ui_test_id(), "node.table.customers");
+    }
+
+    #[test]
+    fn object_kind_slugs_are_lower_case_names() {
+        assert_eq!(ObjectKind::Table.slug(), "table");
+        assert_eq!(ObjectKind::Query.slug(), "query");
+        assert_eq!(ObjectKind::Form.slug(), "form");
+        assert_eq!(ObjectKind::Report.slug(), "report");
     }
 
     proptest! {
