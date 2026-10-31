@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-10-31T22:55
+# BACKLOG.md — Open items (As of: 2026-11-01T00:34
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -68,6 +68,12 @@
 ## 🔵 TEST GAPS
 
 > No open items.
+
+### [ ] T2 — Real-row tail semantics — mask bytes and var_table entries disagree with synthetic model — 🔵
+- **Location:** `datacraft-storage/src/jet/row.rs` (RowLayout), real fixture `fixtures/testV2000.mdb`
+- **Goal:** Resolve the real-row tail semantics: on the real Access 2000 fixture the catalog rows decode (num_cols=17, var_len=11, plausible fixed values) but the null mask reads `[ff 00 00]` where descriptor-order semantics expect `[5c 28 01]`, and var_table entries read 50/52 while eod=46 — the real tail field order (var_table/eod/var_len/mask) and/or mask bit semantics differ from the synthetic model.
+- **Scope:** Focused hex study of one known-content row + CI oracle cross-check (mdb-export) per docs/FORMAT-JET.md "Open: real-row tail semantics"; then fix RowLayout, keep synthetic fixtures byte-exact with reality, re-run the oracle comparison to green.
+- **Acceptance:** `DATACRAFT_ORACLE_MDB` oracle test lists tables and matches mdb-export row counts/columns; all gates green; catalog names resolve for the fixture.
 
 ---
 
