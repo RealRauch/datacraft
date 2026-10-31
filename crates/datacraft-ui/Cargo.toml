@@ -12,6 +12,7 @@ name = "datacraft"
 path = "src/main.rs"
 
 [dependencies]
+eframe = "0.37.0"
 
 [lints]
 workspace = true
