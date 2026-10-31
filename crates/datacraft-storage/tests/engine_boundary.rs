@@ -72,7 +72,7 @@ fn schema_lists_tables_in_creation_order() {
     assert_eq!(names, ["Customers", "Orders"]);
     assert_eq!(schema[0].columns[1].name, "Name");
     assert_eq!(schema[0].columns[1].data_type, StorageDataType::Text);
-    assert!(schema[0].columns[0].nullable == false);
+    assert!(!schema[0].columns[0].nullable);
 }
 
 #[test]
@@ -146,11 +146,11 @@ fn error_display_is_precise_and_locatable() {
         detail: "magic bytes mismatch at offset 0".into(),
     };
     let display = corrupt.to_string();
-    assert!(display.contains("page header"), "context in display: {display}");
     assert!(
-        display.contains("offset 0"),
-        "detail in display: {display}"
+        display.contains("page header"),
+        "context in display: {display}"
     );
+    assert!(display.contains("offset 0"), "detail in display: {display}");
     let missing = StorageError::TableNotFound("Foo".into()).to_string();
     assert!(missing.contains("Foo"), "table name in display: {missing}");
 }

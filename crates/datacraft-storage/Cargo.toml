@@ -8,6 +8,7 @@ authors.workspace = true
 description = "StorageEngine trait boundary and pure-Rust Jet/ACE backends for DataCraft"
 
 [dependencies]
+serde = { workspace = true }
 
 [lints]
 workspace = true
