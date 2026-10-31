@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-10-31T22:01
+# BACKLOG.md — Open items (As of: 2026-10-31T22:05
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -35,6 +35,11 @@
 - **Location:** `datacraft-storage/tests/`, `fixtures/`, CI oracle job
 - **Scope:** Reference databases created with MDB Tools tooling only; libmdb invoked in CI/tests as read-only oracle; strict schema + row comparison between our decoder and libmdb output; golden-file round-trip harness for the later write path.
 - **Acceptance:** Oracle comparison green in CI on all three platforms; mismatches fail with byte-level diagnostics.
+
+### [ ] H8 — CLI client as fourth headless command-bus client — 🟠
+- **Location:** new crate `crates/datacraft-cli` (bin `datacraft-cli`), step 9.4
+- **Scope:** Fourth client of the command bus (besides GUI, MCP/JSON-RPC server, test harness): args → `Command` variants → `dispatch()` → human-readable or `--json` output of events and `inspect()` snapshots. No logic — transport only; shares the transport layer with the Phase 9.1 MCP server. Exit codes meaningful and deterministic output for headless tests.
+- **Acceptance:** Every command-bus operation reachable from the shell; round-trip tests assert JSON snapshots; crate rules respected (ui/cli never touch storage directly).
 
 ---
 

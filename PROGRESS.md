@@ -73,6 +73,7 @@
 - **9.1 MCP/JSON-RPC Server Endpoint**
 - **9.2 Headless E2E Test Harness**
 - **9.3 Final Documentation & Release Prep**
+- **9.4 CLI Client (Headless Transport)**
 
 
 
@@ -127,3 +128,4 @@
 | 9.1 | MCP/JSON-RPC Server Endpoint | ⬜ |
 | 9.2 | Headless E2E Test Harness | ⬜ |
 | 9.3 | Final Documentation & Release Prep | ⬜ |
+| 9.4 | CLI Client (Headless Transport) | ⬜ |
