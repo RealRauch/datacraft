@@ -61,12 +61,12 @@ so the bit-for-bit write goal requires our own implementation anyway.
 
 ## Branding
 
-The app icon follows the ArtCraft Crafting Apps icon system: a 512-unit rounded tile,
-**exactly three colours** (ink `#0B0B0C`, paper `#EFE9DC`, DataCraft teal `#0F8B7E`) and
-an engraved creature portrait. The current file is a suite-consistent **placeholder**
-(database cylinder + datasheet); the final engraved-beaver artwork, its composition
-spec and a copy-paste image-generation prompt are in
-[`docs/brand/DATACRAFT-ICON.md`](docs/brand/DATACRAFT-ICON.md). Renders and the Windows
+The app icon follows the **office-symbol** branch of the ArtCraft Crafting Apps
+(WordCraft, GridCraft, DeckCraft): a 512-unit rounded tile, **exactly three colours**
+(ink `#0B0B0C`, paper `#EFE9DC`, DataCraft teal `#0F8B7E`) and a flat paper-and-ink
+object rotated −6°. DataCraft's object is a database cylinder whose front is a
+datasheet. The construction, palette and acceptance checklist are in
+[`docs/brand/DATACRAFT-ICON.md`](docs/brand/DATACRAFT-ICON.md); renders and the Windows
 `.ico` live in [`assets/app-icon/`](assets/app-icon/).
 
 ## License
