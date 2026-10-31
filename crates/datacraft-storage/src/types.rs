@@ -46,6 +46,8 @@ pub enum StorageDataType {
     Binary,
     /// 16-byte replication identifier.
     Guid,
+    /// 96-bit scaled decimal (17-byte storage in the file).
+    Decimal,
     /// ACE multi-value/attachment columns.
     Complex,
 }
@@ -71,6 +73,8 @@ pub enum StorageValue {
     Binary(Vec<u8>),
     /// 16-byte GUID.
     Guid([u8; 16]),
+    /// Scaled decimal value (scale carried by the column schema).
+    Decimal(i128),
 }
 
 /// Definition of one column (name, physical type, nullability).

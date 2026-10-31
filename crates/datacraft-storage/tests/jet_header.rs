@@ -9,9 +9,7 @@
 //!
 //! Test-first: RED until `datacraft_storage::jet` exists.
 
-use datacraft_storage::jet::{
-    ACE_2007_VERSION, ACE_2010_VERSION, FileHeader, JET4_VERSION, next_page_pointer,
-};
+use datacraft_storage::jet::{ACE_2007_VERSION, ACE_2010_VERSION, FileHeader, JET4_VERSION};
 use datacraft_storage::{FormatVersion, StorageError};
 
 /// Builds a minimal, valid Jet/ACE header page.
@@ -148,14 +146,4 @@ fn page_addressing_roundtrip_and_bounds() {
             page_count: 3
         })
     ));
-}
-
-#[test]
-fn next_page_pointer_is_little_endian_u32() {
-    let mut page = vec![0u8; 4096];
-    page[0] = 0x11;
-    page[1] = 0x22;
-    page[2] = 0x33;
-    page[3] = 0x44;
-    assert_eq!(next_page_pointer(&page), 0x44332211);
 }

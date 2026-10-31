@@ -1,0 +1,210 @@
+//! Shared synthetic Jet4 fixture builders for the decoder test suites.
+//! Every helper encodes bytes exactly as documented in `docs/FORMAT-JET.md`.
+
+#![allow(dead_code)]
+
+use datacraft_storage::jet::{JetColumn, PAGE_TYPE_DATA, PAGE_TYPE_TDEF};
+
+pub const PAGE: usize = 4096;
+
+/// Builds a valid Jet4 file shell (header page + `pages` zero pages).
+pub fn file_shell(pages: usize) -> Vec<u8> {
+    let mut file = vec![0u8; PAGE * (pages + 1)];
+    file[0] = 0x00;
+    file[1] = 0x01;
+    file[2] = 0x00;
+    file[3] = 0x00;
+    file[4..20].copy_from_slice(b"Standard Jet DB\0");
+    file[0x14..0x18].copy_from_slice(&0x0000_0001u32.to_le_bytes());
+    file
+}
+
+/// Writes a Jet4 TDEF block at offset 8 of `page`.
+#[allow(clippy::too_many_arguments)]
+pub fn write_tdef(
+    file: &mut [u8],
+    tdef_page: usize,
+    num_rows: u32,
+    table_type: u8,
+    columns: &[JetColumn],
+) {
+    let mut block: Vec<u8> = Vec::new();
+    block.extend_from_slice(&0u32.to_le_bytes()); // tdef_len, patched below
+    block.extend_from_slice(&0u32.to_le_bytes()); // unknown
+    block.extend_from_slice(&num_rows.to_le_bytes());
+    block.extend_from_slice(&0u32.to_le_bytes()); // autonumber
+    block.push(0x01); // autonum flag
+    block.extend_from_slice(&[0u8; 3]);
+    block.extend_from_slice(&0u32.to_le_bytes()); // complex autonumber
+    block.extend_from_slice(&[0u8; 8]); // unknown
+    block.push(table_type);
+    block.extend_from_slice(&(columns.len() as u16).to_le_bytes()); // max_cols
+    let var_cols = columns.iter().filter(|c| !c.is_fixed()).count();
+    block.extend_from_slice(&(var_cols as u16).to_le_bytes());
+    block.extend_from_slice(&(columns.len() as u16).to_le_bytes());
+    block.extend_from_slice(&0u32.to_le_bytes()); // num_idx
+    block.extend_from_slice(&0u32.to_le_bytes()); // num_real_idx
+    block.extend_from_slice(&0u32.to_le_bytes()); // used_pages
+    block.extend_from_slice(&0u32.to_le_bytes()); // free_pages
+    for col in columns {
+        block.push(col.data_type as u8);
+        block.extend_from_slice(&0u32.to_le_bytes()); // unknown
+        block.extend_from_slice(&col.column_id.to_le_bytes());
+        block.extend_from_slice(&col.var_index.unwrap_or(0).to_le_bytes());
+        block.extend_from_slice(&col.column_id.to_le_bytes());
+        block.extend_from_slice(&0u16.to_le_bytes()); // misc (sort order)
+        block.extend_from_slice(&0u16.to_le_bytes()); // misc_ext
+        block.push(col.flags);
+        block.push(0); // misc_flags: uncompressed unicode
+        block.extend_from_slice(&0u32.to_le_bytes()); // unknown
+        block.extend_from_slice(&col.fixed_offset.to_le_bytes());
+        block.extend_from_slice(&col.len.to_le_bytes());
+    }
+    for col in columns {
+        let name = ucs2(&col.name);
+        block.extend_from_slice(&(col.name.chars().count() as u16).to_le_bytes());
+        block.extend_from_slice(&name);
+    }
+    let len = block.len() as u32 - 4; // tdef_len covers everything after itself
+    block[..4].copy_from_slice(&len.to_le_bytes());
+
+    let base = tdef_page * PAGE;
+    file[base] = PAGE_TYPE_TDEF;
+    file[base + 1] = 0x01;
+    file[base + 8..base + 8 + block.len()].copy_from_slice(&block);
+}
+
+/// Writes a Jet4 data page with the given raw rows (stored back to front).
+pub fn write_data_page(file: &mut [u8], page: usize, tdef_page: u32, rows: &[Vec<u8>]) {
+    let base = page * PAGE;
+    file[base] = PAGE_TYPE_DATA;
+    file[base + 1] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&tdef_page.to_le_bytes());
+    file[base + 12..base + 14].copy_from_slice(&(rows.len() as u16).to_le_bytes());
+    let mut offset = PAGE;
+    for (i, row) in rows.iter().enumerate() {
+        offset -= row.len();
+        file[base + offset..base + offset + row.len()].copy_from_slice(row);
+        file[base + 14 + i * 2..base + 16 + i * 2].copy_from_slice(&(offset as u16).to_le_bytes());
+    }
+}
+
+/// Builds a Jet4 row: fixed values, variable values (UCS-2LE text), null
+/// mask. `null_mask_bits` holds one bool per column: `true` = non-null (or
+/// the bit value for boolean columns).
+pub fn build_row(
+    num_cols: u16,
+    fixed: &[u8],
+    var_values: &[&str],
+    null_mask_bits: &[bool],
+) -> Vec<u8> {
+    let encoded: Vec<Vec<u8>> = var_values.iter().map(|v| ucs2(v)).collect();
+    let refs: Vec<&[u8]> = encoded.iter().map(|v| v.as_slice()).collect();
+    raw_var_row_n(num_cols, fixed, &refs, null_mask_bits)
+}
+
+/// Raw-variable variant of [`build_row`]: variable sections are opaque bytes
+/// (memo headers are binary structures, not text).
+pub fn raw_var_row(num_cols: u16, fixed: &[u8], var: &[u8], null_mask_bits: &[bool]) -> Vec<u8> {
+    raw_var_row_n(num_cols, fixed, &[var], null_mask_bits)
+}
+
+fn raw_var_row_n(num_cols: u16, fixed: &[u8], vars: &[&[u8]], null_mask_bits: &[bool]) -> Vec<u8> {
+    let mut row: Vec<u8> = Vec::new();
+    row.extend_from_slice(&num_cols.to_le_bytes());
+    row.extend_from_slice(fixed);
+    for var in vars {
+        row.extend_from_slice(var);
+    }
+    let eod = row.len() as u16;
+    row.extend_from_slice(&eod.to_le_bytes());
+    // var_table: reverse order — entry 0 is the offset of the LAST var column.
+    let mut starts: Vec<u16> = Vec::new();
+    let mut pos = 2u16 + fixed.len() as u16;
+    for var in vars {
+        starts.push(pos);
+        pos += var.len() as u16;
+    }
+    for start in starts.iter().rev() {
+        row.extend_from_slice(&start.to_le_bytes());
+    }
+    row.extend_from_slice(&(vars.len() as u16).to_le_bytes());
+    let mask_len = (num_cols as usize).div_ceil(8);
+    let mut mask = vec![0u8; mask_len];
+    for (i, non_null) in null_mask_bits.iter().enumerate() {
+        if *non_null {
+            mask[i / 8] |= 1 << (i % 8);
+        }
+    }
+    row.extend_from_slice(&mask);
+    row
+}
+
+/// Encodes a string as UCS-2LE (memo payloads are text in column encoding).
+pub fn ucs2(text: &str) -> Vec<u8> {
+    text.encode_utf16().flat_map(u16::to_le_bytes).collect()
+}
+
+/// Writes a Jet4 TDEF that carries one real and one logical index plus a
+/// variable-column usage-map entry — exercises the full index-skip path.
+pub fn write_tdef_with_indexes(
+    file: &mut [u8],
+    tdef_page: usize,
+    num_rows: u32,
+    columns: &[JetColumn],
+) {
+    let mut block: Vec<u8> = Vec::new();
+    block.extend_from_slice(&0u32.to_le_bytes()); // tdef_len, patched below
+    block.extend_from_slice(&0u32.to_le_bytes()); // unknown
+    block.extend_from_slice(&num_rows.to_le_bytes());
+    block.extend_from_slice(&0u32.to_le_bytes()); // autonumber
+    block.push(0x01);
+    block.extend_from_slice(&[0u8; 3]);
+    block.extend_from_slice(&0u32.to_le_bytes()); // complex autonumber
+    block.extend_from_slice(&[0u8; 8]);
+    block.push(0x4E); // table_type: user table
+    block.extend_from_slice(&(columns.len() as u16).to_le_bytes()); // max_cols
+    let var_cols = columns.iter().filter(|c| !c.is_fixed()).count() as u16;
+    block.extend_from_slice(&var_cols.to_le_bytes());
+    block.extend_from_slice(&(columns.len() as u16).to_le_bytes());
+    block.extend_from_slice(&1u32.to_le_bytes()); // num_idx
+    block.extend_from_slice(&1u32.to_le_bytes()); // num_real_idx
+    block.extend_from_slice(&0u32.to_le_bytes()); // used_pages
+    block.extend_from_slice(&0u32.to_le_bytes()); // free_pages
+    // Real-index pre-block: 12 bytes per real index.
+    block.extend_from_slice(&[0u8; 12]);
+    for col in columns {
+        block.push(col.data_type as u8);
+        block.extend_from_slice(&0u32.to_le_bytes());
+        block.extend_from_slice(&col.column_id.to_le_bytes());
+        block.extend_from_slice(&col.var_index.unwrap_or(0).to_le_bytes());
+        block.extend_from_slice(&col.column_id.to_le_bytes());
+        block.extend_from_slice(&0u16.to_le_bytes());
+        block.extend_from_slice(&0u16.to_le_bytes());
+        block.push(col.flags);
+        block.push(0);
+        block.extend_from_slice(&0u32.to_le_bytes());
+        block.extend_from_slice(&col.fixed_offset.to_le_bytes());
+        block.extend_from_slice(&col.len.to_le_bytes());
+    }
+    for col in columns {
+        let name = ucs2(&col.name);
+        block.extend_from_slice(&(col.name.chars().count() as u16).to_le_bytes());
+        block.extend_from_slice(&name);
+    }
+    block.extend_from_slice(&[0u8; 52]); // real-index definition block
+    block.extend_from_slice(&[0u8; 28]); // logical-index definition block
+    block.extend_from_slice(&6u16.to_le_bytes());
+    block.extend_from_slice(&ucs2("ByName")); // index name
+    block.extend_from_slice(&1u16.to_le_bytes()); // variable column id
+    block.extend_from_slice(&0u32.to_le_bytes()); // used pages
+    block.extend_from_slice(&0u32.to_le_bytes()); // free pages
+    block.extend_from_slice(&0xFFFFu16.to_le_bytes()); // terminator
+    let len = block.len() as u32 - 4;
+    block[..4].copy_from_slice(&len.to_le_bytes());
+
+    let base = tdef_page * PAGE;
+    file[base] = PAGE_TYPE_TDEF;
+    file[base + 1] = 0x01;
+    file[base + 8..base + 8 + block.len()].copy_from_slice(&block);
+}
