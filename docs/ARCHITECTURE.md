@@ -191,11 +191,14 @@ Field properties (Input Mask, Format, Default Value, Validation Rule/Text,
 Required, Allow Zero Length, Indexed, Caption) are modeled as a typed property
 map with Access-compatible semantics — validated per type in Phase 3.
 
-**Open decision (tracked in BACKLOG):** persistence of the form/report design
-layer. Real `.accdb` files store forms/reports in binary system tables; for
-Phases 5–8 DataCraft persists its design layer in an own, versioned,
-serde-based document, embedded next to the database file. Long-term native
-embedding is decided when the ACE write path exists.
+**Decision record (ADR-1, 2026-10-31 — resolves BACKLOG item M1):** persistence
+of the form/report design layer. Real `.accdb` files store forms/reports in
+binary system tables; until the ACE write path exists, DataCraft persists its
+design layer (forms, reports, control layouts, UI state) in an **own,
+versioned sidecar document** (serde JSON, `.datacraft` next to the database
+file, schema version field, forward-migration rule). Native accdb embedding
+becomes available only when the ACE writer lands; the sidecar format stays the
+portable fallback and is what MCP agents script against.
 
 ## 8. Rendering & performance
 
@@ -270,3 +273,17 @@ datacraft/
 | 7 — QBE Query Builder | relationship mapper, QBE grid, query engine |
 | 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime |
 | 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, release prep |
+
+## 14. Compatibility scope & VBA — decision record
+
+**Decision record (ADR-2, 2026-10-31):** compatibility is bought ring by ring —
+expression service → query engine → macros → forms runtime — and DataCraft
+implements **no VBA interpreter or runtime**. VBA is extracted, displayed and
+statically analyzed only; byte-compatible VBA execution is out of scope with a
+defined re-evaluation gate. Ring model, rationale and gate: `docs/ROADMAP.md`
+§2–§5.
+
+**Decision record (ADR-3, 2026-10-31):** no own scripting language. Automation
+is command-bus-first (headless JSON-RPC/MCP + CLI); an embedded *existing*
+sandboxed language behind a reserved, unimplemented `ScriptEngine` trait is a
+post-Ring-4 decision — never a custom DSL (`docs/ROADMAP.md` §4).

@@ -42,6 +42,13 @@ pub enum StorageError {
         /// Concrete violation detail.
         detail: String,
     },
+    /// A page number beyond the end of the file.
+    PageOutOfRange {
+        /// Requested page number (0-based).
+        page: u32,
+        /// Number of pages the file actually holds.
+        page_count: usize,
+    },
 }
 
 impl fmt::Display for StorageError {
@@ -66,6 +73,12 @@ impl fmt::Display for StorageError {
             ),
             Self::SchemaViolation { table, detail } => {
                 write!(f, "schema violation on table {table}: {detail}")
+            }
+            Self::PageOutOfRange { page, page_count } => {
+                write!(
+                    f,
+                    "page {page} beyond end of file (file has {page_count} pages)"
+                )
             }
         }
     }
@@ -128,6 +141,14 @@ mod tests {
             s.contains("2 values but 4 columns"),
             "detail in display: {s}"
         );
+
+        let page = StorageError::PageOutOfRange {
+            page: 7,
+            page_count: 3,
+        };
+        let s = page.to_string();
+        assert!(s.contains("page 7"), "page in display: {s}");
+        assert!(s.contains("3 pages"), "page count in display: {s}");
     }
 
     #[test]

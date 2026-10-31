@@ -4,6 +4,7 @@
 
 pub mod engine;
 pub mod error;
+pub mod jet;
 pub mod mock;
 pub mod types;
 

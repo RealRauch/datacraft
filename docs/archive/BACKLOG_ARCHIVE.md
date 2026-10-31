@@ -57,3 +57,20 @@
 - **Fix:** Preflight job detects `Cargo.toml` and exposes `has_workspace` output; cargo jobs gate via `needs: preflight` + `if: needs.preflight.outputs.has_workspace == 'true'`. file-size stays unconditional. Repair of an invalid workflow, not a policy change; disclosed to the human under the Phase 2–4 release.
 - **Acceptance:** CI run completes without startup failure; cargo jobs run/skip correctly; green on main.
 - **Done:** done in the `fix(ci)` commit — preflight job pattern replaces invalid hashFiles-in-job-if; first valid run 41242950916 in progress
+
+---
+
+### [x] T1 — Boundary coverage below gate — error display arms and mock write-path validations untested — 🔵
+- **Location:** `datacraft-storage/src/error.rs` (6/25 lines), `datacraft-storage/src/mock.rs` (91/104), found by the CI coverage job (run 41242950916) after step 2.1 skipped the llvm-cov re-run locally.
+- **Goal:** Close the coverage gap to >= 95%: Display arms `Io`/`Unsupported`/`OutOfRange`/`SchemaViolation`, `Error::source()`/`From<io::Error>`, and the mock write-path validations (insert/update arity violation, update/delete out-of-range, empty-table window).
+- **Scope:** Contract tests only — no production change. Lesson recorded: the canonical verification set (incl. llvm-cov) runs per step, not per phase.
+- **Acceptance:** `cargo llvm-cov --workspace --exclude datacraft-ui --fail-under-lines 95` exits 0 locally and in CI.
+- **Done:** done in `2084be0` — contract+colocated tests close gap; coverage 81.92% -> 98.17%; found by CI gate (run 41242950916), lesson: canonical verification set runs per step
+
+---
+
+### [x] M1 — Decide persistence format of the form/report design layer — 🟡
+- **Location:** `docs/ARCHITECTURE.md` §7, `datacraft-core` (Phases 5–8)
+- **Scope:** Real `.accdb` files store forms/reports in binary system tables. DataCraft persists its design layer (forms, reports, control layouts) for Phases 5–8 in an own versioned serde document next to the database file; the long-term option (native embedding into accdb-compatible storage once the ACE write path exists) must be decided before Phase 8 data binding is finalized.
+- **Acceptance:** Written decision record (ADR in ARCHITECTURE.md) covering: file format + versioning of the design document, migration path to native embedding, impact on bit-for-bit write compatibility.
+- **Done:** decided 2026-10-31 via ADR-1 in docs/ARCHITECTURE.md §7 (human offline, default ratified by blanket phase 3-9 release): versioned .datacraft sidecar (serde JSON) for phases 5-8; native accdb embedding only after ACE writer
