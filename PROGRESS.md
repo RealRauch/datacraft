@@ -96,7 +96,7 @@
 | 1.2 | Cargo Workspace & Dependencies | ✅ |
 | 1.3 | CI Pipeline & Quality Gates | ✅ |
 | 1.4 | Phase 1 Quality Gate Review | ✅ |
-| 2.1 | StorageEngine Trait Boundary | ⬜ |
+| 2.1 | StorageEngine Trait Boundary | ✅ |
 | 2.2 | Jet Page Layer & File Header Decoder | ⬜ |
 | 2.3 | Table Definition & Data Decoder | ⬜ |
 | 2.4 | libmdb Test Oracle & Golden-File Tests | ⬜ |
