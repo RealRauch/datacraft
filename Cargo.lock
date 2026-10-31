@@ -797,6 +797,7 @@ name = "datacraft-ui"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "image",
 ]
 
 [[package]]
