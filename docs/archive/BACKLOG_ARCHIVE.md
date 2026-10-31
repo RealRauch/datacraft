@@ -8,3 +8,43 @@
 *(empty)*
 
 ---
+
+---
+
+### [x] K1 — Initialize git repository with GitHub Actions quality gates — 🔴
+- **Location:** `.github/workflows/ci.yml`, `.gitignore`, repo root
+- **Scope:** Git repository on `main`; CI jobs: rustfmt, clippy (deny warnings), cross-platform test matrix (Linux/macOS/Windows), coverage gate (`cargo-llvm-cov --fail-under-lines 95`), file-size gate (all `.rs` files < 500 lines). Cargo-dependent jobs guarded by `hashFiles('Cargo.toml')` until the workspace exists.
+- **Acceptance:** Workflow file committed; file-size gate runs on every push; all five quality gates documented in the README.
+- **Done:** done in `db6e6d5` — workflow with fmt/clippy/test-matrix/coverage/file-size jobs; cargo jobs guarded until workspace; amended in 6e2a3df (foreign .tmp-brand files unstaged)
+
+---
+
+### [x] K2 — Author architecture blueprint (docs/ARCHITECTURE.md) — 🔴
+- **Location:** `docs/ARCHITECTURE.md`
+- **Scope:** Clean-room principles; core/shell split (headless command API vs. thin egui projection); `StorageEngine` trait boundary with a pure-Rust Jet/ACE backend and libmdb strictly as CI test oracle (decision 2026-10-31); MCP/JSON-RPC readiness; deterministic test-ID scheme; module layout honoring the 500-line limit.
+- **Acceptance:** All five project principles mapped to concrete mechanisms; decision record for the storage layer included.
+- **Done:** done in `f28165d` — docs/ARCHITECTURE.md: principles→mechanisms, crate graph, command API, storage decision record, phase mapping
+
+---
+
+### [x] H1 — Create Cargo workspace and dependency manifest — 🟠
+- **Location:** `Cargo.toml` (workspace), member crates `datacraft-core`, `datacraft-storage`, `datacraft-ui`
+- **Scope:** Workspace layout with lints inheritance; deps: `eframe`/`egui` (UI), `serde`/`serde_json`, `proptest` (dev); FFI limited to the test oracle (libmdb, dev/CI only); committed `Cargo.lock` (application).
+- **Acceptance:** `cargo check` and `cargo test` pass on all three platforms; module skeleton below the 500-line limit.
+- **Done:** done in `68aab5f` + `930a289` — workspace with core/storage/ui crates, edition 2024, deps via cargo add (eframe 0.37.0), committed Cargo.lock
+
+---
+
+### [x] H2 — Coverage tooling and exception policy (docs/TESTING.md) — 🟠
+- **Location:** `docs/TESTING.md`, CI coverage job
+- **Scope:** `cargo-llvm-cov` configuration; documented `#[coverage(off)]` exception registry (only `main` and trivial egui glue, each with justification); test strategy: colocated unit tests, table-driven parser tests, proptest round-trips, golden-file tests.
+- **Acceptance:** Coverage job green at >= 95% lines; every exception listed with justification.
+- **Done:** done in `16e6c4d` — docs/TESTING.md with exception registry #1 (datacraft-ui crate exclusion; coverage attribute unstable on stable), ci.yml coverage job updated
+
+---
+
+### [x] H3 — Toolchain pinning and lint configuration — 🟠
+- **Location:** `rust-toolchain.toml`, `Cargo.toml` (`[workspace.lints]`)
+- **Scope:** MSRV pin, clippy lint groups with deny-warnings in CI, rustfmt defaults; shared workspace lints inherited by all member crates.
+- **Acceptance:** Fresh clone builds warning-free on Linux, macOS and Windows.
+- **Done:** done in `6e2a3df` — rust-toolchain.toml pinned to 1.98.1, MSRV 1.98 in workspace.package, shared lints (unsafe_code forbid, clippy all)

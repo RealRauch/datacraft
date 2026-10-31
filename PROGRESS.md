@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 1 — Blueprint & Skeleton
-
-**Scope (Steps):**
-
-- **1.1 Architecture Blueprint**
-- **1.2 Cargo Workspace & Dependencies**
-- **1.3 CI Pipeline & Quality Gates**
-- **1.4 Phase 1 Quality Gate Review**
 ### Phase 2 — Storage Engine Core (Pure Rust)
 
 **Scope (Steps):**
@@ -100,9 +92,9 @@
 |---|------|--------|
 | 0.1 | Repository Bootstrap | ✅ |
 | 1.1 | Architecture Blueprint | ✅ |
-| 1.2 | Cargo Workspace & Dependencies | 🔄 |
-| 1.3 | CI Pipeline & Quality Gates | ⬜ |
-| 1.4 | Phase 1 Quality Gate Review | ⬜ |
+| 1.2 | Cargo Workspace & Dependencies | ✅ |
+| 1.3 | CI Pipeline & Quality Gates | ✅ |
+| 1.4 | Phase 1 Quality Gate Review | ✅ |
 | 2.1 | StorageEngine Trait Boundary | ⬜ |
 | 2.2 | Jet Page Layer & File Header Decoder | ⬜ |
 | 2.3 | Table Definition & Data Decoder | ⬜ |

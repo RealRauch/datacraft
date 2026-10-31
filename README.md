@@ -7,8 +7,25 @@ DataCraft follows the ArtCraft ecosystem philosophy: lightweight, ultra-fast,
 written in idiomatic Rust, and designed to be operated by humans **and** AI
 agents (MCP / headless JSON-RPC).
 
-> **Status:** Phase 1 (Blueprint & Skeleton) in progress — see [BACKLOG.md](BACKLOG.md)
-> and [PROGRESS.md](PROGRESS.md).
+> **Status:** Phase 1 (Blueprint & Skeleton) complete — Phase 2 (Storage Engine
+> Core) is next. See [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md).
+
+## Quick start
+
+Requires the Rust toolchain pinned in `rust-toolchain.toml` (rustup installs it
+automatically on build).
+
+```bash
+cargo run -p datacraft-ui        # opens the Phase 1 shell window
+cargo test --workspace           # runs the test suite
+cargo llvm-cov --workspace --exclude datacraft-ui \
+  --lcov --output-path lcov.info --fail-under-lines 95   # coverage gate
+```
+
+Crate layout: `crates/datacraft-core` (headless domain/commands),
+`crates/datacraft-storage` (Jet/ACE engine, Phase 2),
+`crates/datacraft-ui` (eframe desktop shell). Architecture:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Guiding principles
 
