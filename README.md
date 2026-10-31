@@ -47,6 +47,7 @@ Crate layout: `crates/datacraft-core` (headless domain/commands),
 |------|-------------|
 | Test coverage > 95 % | `cargo-llvm-cov --fail-under-lines 95` |
 | Source files < 500 lines | CI job fails on any `.rs` file ≥ 500 lines |
+| **No technical debt** | CI scan: no `TODO`/`FIXME`/`HACK`/`XXX` in tracked files |
 | Formatting & lints | `rustfmt --check`, `clippy -D warnings` |
 | Cross-platform tests | Matrix: ubuntu-latest, windows-latest, macos-latest |
 
@@ -57,6 +58,16 @@ The Jet/ACE read **and** write paths are implemented **in pure Rust**
 **only as a test-time oracle in CI** to cross-check our parser — it is not a
 runtime dependency. Rationale: libmdb cannot write Access-compatible files,
 so the bit-for-bit write goal requires our own implementation anyway.
+
+## Branding
+
+The app icon follows the ArtCraft Crafting Apps icon system: a 512-unit rounded tile,
+**exactly three colours** (ink `#0B0B0C`, paper `#EFE9DC`, DataCraft teal `#0F8B7E`) and
+an engraved creature portrait. The current file is a suite-consistent **placeholder**
+(database cylinder + datasheet); the final engraved-beaver artwork, its composition
+spec and a copy-paste image-generation prompt are in
+[`docs/brand/DATACRAFT-ICON.md`](docs/brand/DATACRAFT-ICON.md). Renders and the Windows
+`.ico` live in [`assets/app-icon/`](assets/app-icon/).
 
 ## License
 

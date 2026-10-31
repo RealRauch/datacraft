@@ -72,10 +72,21 @@ jobs:
           path: lcov.info
 
   file-size:
-    name: Source files < 500 lines
+    name: Hygiene gates (< 500 lines, no debt markers)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Enforce no technical-debt markers (TODO/FIXME/HACK/XXX)
+        run: |
+          set -euo pipefail
+          # Exclusions are the rule's own definition sites (PLAYBOOK §5, README
+          # quality-gates table, this job) — everything else is fully scanned.
+          if git grep -nIE '\b(TODO|FIXME|HACK|XXX)\b' -- \
+              . ':(exclude).github/workflows/ci.yml' ':(exclude)docs/PLAYBOOK.md' ':(exclude)README.md'; then
+            echo "::error::Technical-debt markers found — rule 'no technical debt' (docs/PLAYBOOK.md §5)"
+            exit 1
+          fi
+          echo "OK: no technical-debt markers in tracked files."
       - name: Enforce 500-line limit on Rust sources
         run: |
           set -euo pipefail
