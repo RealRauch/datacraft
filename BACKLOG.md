@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-10-31T22:05
+# BACKLOG.md — Open items (As of: 2026-10-31T22:10
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -33,8 +33,8 @@
 
 ### [ ] H7 — libmdb test oracle integration and golden-file suite — 🟠
 - **Location:** `datacraft-storage/tests/`, `fixtures/`, CI oracle job
-- **Scope:** Reference databases created with MDB Tools tooling only; libmdb invoked in CI/tests as read-only oracle; strict schema + row comparison between our decoder and libmdb output; golden-file round-trip harness for the later write path.
-- **Acceptance:** Oracle comparison green in CI on all three platforms; mismatches fail with byte-level diagnostics.
+- **Scope (revised 2026-10-31, human decision):** libmdb oracle runs **in CI only** — ubuntu (apt `mdbtools`) and macOS (brew), no local Windows oracle; local verification relies on committed golden-file fixtures (created with MDB Tools tooling only). Strict schema + row comparison between our decoder and libmdb output; golden-file round-trip harness for the later write path. The CI system-deps step is High-class (within released H7 scope, flagged at the step).
+- **Acceptance:** Oracle comparison green in CI on ubuntu + macOS; mismatches fail with byte-level diagnostics; local suite passes with golden files only.
 
 ### [ ] H8 — CLI client as fourth headless command-bus client — 🟠
 - **Location:** new crate `crates/datacraft-cli` (bin `datacraft-cli`), step 9.4
