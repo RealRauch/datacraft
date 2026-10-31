@@ -1,6 +1,6 @@
 # Project tracking: DataCraft
 
-> Source method: `docs/PLAYBOOK.md` (verbatim)
+> Source method: `docs/PLAYBOOK.md` (project-adapted)
 > Progress file — updated after every step.
 > Legend: ⬜ open · 🔄 in progress · ✅ done · ⛔ blocked
 
