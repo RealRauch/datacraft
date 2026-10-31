@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-10-31T22:26
+# BACKLOG.md — Open items (As of: 2026-10-31T22:55
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -33,13 +33,18 @@
 
 ### [ ] H7 — libmdb test oracle integration and golden-file suite — 🟠
 - **Location:** `datacraft-storage/tests/`, `fixtures/`, CI oracle job
-- **Scope (revised 2026-10-31, human decision):** libmdb oracle runs **in CI only** — ubuntu (apt `mdbtools`) and macOS (brew), no local Windows oracle; local verification relies on committed golden-file fixtures (created with MDB Tools tooling only). Strict schema + row comparison between our decoder and libmdb output; golden-file round-trip harness for the later write path. The CI system-deps step is High-class (within released H7 scope, flagged at the step).
-- **Acceptance:** Oracle comparison green in CI on ubuntu + macOS; mismatches fail with byte-level diagnostics; local suite passes with golden files only.
+- **Scope (revised 2026-10-31, human decisions):** libmdb oracle runs **in CI only** — ubuntu (apt `mdbtools`) and macOS (brew), no local Windows oracle. Oracle compares our decoder against **real `.mdb` sample databases pinned from a public source** (test data, not code — MDB Tools cannot create databases); local Windows verification relies on synthetic fixtures built by our own test helpers. Strict schema + row comparison; golden-file round-trip harness for the later write path. Encrypted/password-protected databases are detected and rejected with `Unsupported` (no decryption). The CI system-deps step is High-class (within released H7 scope, flagged at the step).
+- **Acceptance:** Oracle comparison green in CI on ubuntu + macOS against pinned real fixtures; mismatches fail with byte-level diagnostics; local suite passes with synthetic fixtures only.
 
 ### [ ] H8 — CLI client as fourth headless command-bus client — 🟠
 - **Location:** new crate `crates/datacraft-cli` (bin `datacraft-cli`), step 9.4
 - **Scope:** Fourth client of the command bus (besides GUI, MCP/JSON-RPC server, test harness): args → `Command` variants → `dispatch()` → human-readable or `--json` output of events and `inspect()` snapshots. No logic — transport only; shares the transport layer with the Phase 9.1 MCP server. Exit codes meaningful and deterministic output for headless tests.
 - **Acceptance:** Every command-bus operation reachable from the shell; round-trip tests assert JSON snapshots; crate rules respected (ui/cli never touch storage directly).
+
+### [ ] H9 — Jet4 writer workstream (create tables, write rows) — 🟠
+- **Location:** `datacraft-storage/src/jet/` (writer), post-Phase-4 workstream
+- **Scope:** Jet4 write milestone from ARCHITECTURE §6 (create tables, insert/update rows, usage-map allocation, index maintenance deferred). UI write commands route to `InMemoryEngine` until this lands; then the `Jet4Backend` gains write capability. Bit-for-bit goal: writes must open without repair prompts in MS Access — proven by golden round-trips + oracle.
+- **Acceptance:** Access opens written files without repair; decode(encode(decode(x))) == decode(x) over fixtures; write-path coverage >= gate.
 
 ---
 
@@ -47,16 +52,16 @@
 
 > No open items.
 
-### [ ] M1 — Decide persistence format of the form/report design layer — 🟡
-- **Location:** `docs/ARCHITECTURE.md` §7, `datacraft-core` (Phases 5–8)
-- **Scope:** Real `.accdb` files store forms/reports in binary system tables. DataCraft persists its design layer (forms, reports, control layouts) for Phases 5–8 in an own versioned serde document next to the database file; the long-term option (native embedding into accdb-compatible storage once the ACE write path exists) must be decided before Phase 8 data binding is finalized.
-- **Acceptance:** Written decision record (ADR in ARCHITECTURE.md) covering: file format + versioning of the design document, migration path to native embedding, impact on bit-for-bit write compatibility.
-
 ---
 
 ## 🟢 LOW
 
 > No open items.
+
+### [ ] L1 — Jet 3 (Access 97) read support — 🟢
+- **Location:** `datacraft-storage/src/jet/`
+- **Scope:** Jet 3 (Access 97) read support: 2048-byte pages, codepage-based text (no UTF-16), Jet3 TDEF layout. Deferred per default decision 2026-10-31 — Jet4 and ACE read paths come first; Jet3 files are detected via the version dword and rejected with a precise `Unsupported` error until this item lands.
+- **Acceptance:** A Jet3 fixture decodes to schema + rows through the same `StorageEngine` boundary.
 
 ---
 
@@ -76,3 +81,4 @@
 - H3 — Toolchain pinning and lint configuration — done (done in `6e2a3df` — rust-toolchain.toml pinned to 1.98.1, MSRV 1.98 in workspace.package, shared lints (unsafe_code forbid, clippy all))
 - K3 — Repair invalid CI workflow (hashFiles in job-level if) — done (done in the `fix(ci)` commit — preflight job pattern replaces invalid hashFiles-in-job-if; first valid run 41242950916 in progress)
 - T1 — Boundary coverage below gate — error display arms and mock write-path validations untested — done (done in `2084be0` — contract+colocated tests close gap; coverage 81.92% -> 98.17%; found by CI gate (run 41242950916), lesson: canonical verification set runs per step)
+- M1 — Decide persistence format of the form/report design layer — done (decided 2026-10-31 via ADR-1 in docs/ARCHITECTURE.md §7 (human offline, default ratified by blanket phase 3-9 release): versioned .datacraft sidecar (serde JSON) for phases 5-8; native accdb embedding only after ACE writer)

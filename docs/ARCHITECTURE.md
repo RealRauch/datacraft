@@ -191,11 +191,14 @@ Field properties (Input Mask, Format, Default Value, Validation Rule/Text,
 Required, Allow Zero Length, Indexed, Caption) are modeled as a typed property
 map with Access-compatible semantics — validated per type in Phase 3.
 
-**Open decision (tracked in BACKLOG):** persistence of the form/report design
-layer. Real `.accdb` files store forms/reports in binary system tables; for
-Phases 5–8 DataCraft persists its design layer in an own, versioned,
-serde-based document, embedded next to the database file. Long-term native
-embedding is decided when the ACE write path exists.
+**Decision record (ADR-1, 2026-10-31 — resolves BACKLOG item M1):** persistence
+of the form/report design layer. Real `.accdb` files store forms/reports in
+binary system tables; until the ACE write path exists, DataCraft persists its
+design layer (forms, reports, control layouts, UI state) in an **own,
+versioned sidecar document** (serde JSON, `.datacraft` next to the database
+file, schema version field, forward-migration rule). Native accdb embedding
+becomes available only when the ACE writer lands; the sidecar format stays the
+portable fallback and is what MCP agents script against.
 
 ## 8. Rendering & performance
 
