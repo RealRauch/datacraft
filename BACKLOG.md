@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-10-31T22:10
+# BACKLOG.md — Open items (As of: 2026-10-31T22:17
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -9,6 +9,12 @@
 ## 🔴 CRITICAL
 
 > No open items.
+
+### [ ] K3 — Repair invalid CI workflow (hashFiles in job-level if) — 🔴
+- **Location:** `.github/workflows/ci.yml`
+- **Problem:** Bootstrap workflow uses `hashFiles()` in job-level `if:` — not a valid context there ("Unrecognized named-value"), causing startup failure (0 s) on every push since remote creation.
+- **Fix:** Preflight job detects `Cargo.toml` and exposes `has_workspace` output; cargo jobs gate via `needs: preflight` + `if: needs.preflight.outputs.has_workspace == 'true'`. file-size stays unconditional. Repair of an invalid workflow, not a policy change; disclosed to the human under the Phase 2–4 release.
+- **Acceptance:** CI run completes without startup failure; cargo jobs run/skip correctly; green on main.
 
 ---
 

@@ -9,10 +9,21 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  preflight:
+    name: Detect workspace
+    runs-on: ubuntu-latest
+    outputs:
+      has_workspace: ${{ steps.detect.outputs.has_workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        run: echo "has_workspace=$([ -f Cargo.toml ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   fmt:
     name: Formatting (rustfmt)
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('Cargo.toml') != '' }}
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
     steps:
       - uses: actions/checkout@v4
       - run: rustup component add rustfmt
@@ -21,7 +32,8 @@ jobs:
   clippy:
     name: Lints (clippy, deny warnings)
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('Cargo.toml') != '' }}
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
     steps:
       - uses: actions/checkout@v4
       - run: rustup component add clippy
@@ -30,7 +42,8 @@ jobs:
   test:
     name: Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    if: ${{ hashFiles('Cargo.toml') != '' }}
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +55,8 @@ jobs:
   coverage:
     name: Coverage gate (>= 95% lines)
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('Cargo.toml') != '' }}
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
     steps:
       - uses: actions/checkout@v4
       - run: rustup component add llvm-tools-preview
