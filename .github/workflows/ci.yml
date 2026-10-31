@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: Formatting (rustfmt)
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('Cargo.toml') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: Lints (clippy, deny warnings)
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('Cargo.toml') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add clippy
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    if: ${{ hashFiles('Cargo.toml') != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --workspace --all-features
+
+  coverage:
+    name: Coverage gate (>= 95% lines)
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('Cargo.toml') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - run: cargo llvm-cov --workspace --lcov --output-path lcov.info --fail-under-lines 95
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-lcov
+          path: lcov.info
+
+  file-size:
+    name: Source files < 500 lines
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce 500-line limit on Rust sources
+        run: |
+          set -euo pipefail
+          oversized=$(find . -name '*.rs' -not -path './target/*' -not -path './.git/*' -exec wc -l {} \; | awk '$1 >= 500 {print $2}')
+          if [ -n "$oversized" ]; then
+            echo "::error::Rust source files with 500 or more lines:"
+            echo "$oversized"
+            exit 1
+          fi
+          echo "OK: all Rust source files are below the 500-line limit."
