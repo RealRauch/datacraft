@@ -6,3 +6,6 @@ lcov.info
 # OS artifacts
 .DS_Store
 Thumbs.db
+
+# Scratch/branding workspace (not project files)
+.tmp-brand/

@@ -1,0 +1,17 @@
+[package]
+name = "datacraft-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "DataCraft desktop shell (eframe/egui)"
+
+[[bin]]
+name = "datacraft"
+path = "src/main.rs"
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,4 @@
+# Pinned toolchain (H3) — reproducible builds on Linux, macOS and Windows.
+# The MSRV is declared separately in [workspace.package] `rust-version`.
+[toolchain]
+channel = "1.98.1"
