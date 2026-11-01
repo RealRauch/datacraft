@@ -1,8 +1,10 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T19:43
+# BACKLOG.md — Open items (As of: 2026-11-01T22:27
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
 > Working order: sequential by priority (🔴 → 🟠 → 🟡 → 🟢 → 🔵), each item test-first, commit per item.
+
+> **Model references** (`model:` lines) point at `storytold/wordcraft` @ `fd7f662` (2026-11-01); the named paths and values are verified against that revision.
 
 ---
 
@@ -17,13 +19,13 @@
 > No open items.
 
 ### [ ] U1 — Theme rebase: WordCraft-style neutral tokens, Teal accent — 🟠
-- **Location:** `crates/datacraft-ui/src/theme.rs` (token system), paint sites referencing theme constants; ADR-6 in `docs/ARCHITECTURE.md` §15; model: WordCraft `crates/ui-egui/src/theme.rs`
-- **Approach:** token-based theme adopting the model's **neutral** system: chrome/title bar `#F0F0F0`, ribbon `#F9F9F9`, canvas `#E6E6E6`, panel `#FAFAFA`, text `#242424`/`#616161`/`#A8A8A8`, borders `#E1E1E1`/`#C8C8C8`, hover `#E6E6E6`, pressed `#D6D6D6`. **The accent family stays DataCraft teal and is derived from it — no accent colour is copied from the model (its blue is explicitly rejected):** accent `#0F8B7E`, accent_text `#0B6B60`, checked/selection `#DCE9E4` (existing TEAL_WASH), on_accent `#F8F4EA` (ON_TEAL). Geometry from the model: item_spacing (6,4), button_padding (8,3), corner radii windows 8 / menus 6 / widgets 4, 1 px strokes. The derivation rule ("accent tokens are teal derivatives, never the model's blue") is pinned by a unit test.
+- **Location:** `crates/datacraft-ui/src/theme.rs` (token system), paint sites referencing theme constants; ADR-6 in `docs/ARCHITECTURE.md` §15; model: WordCraft `crates/ui-egui/src/theme.rs` @ `fd7f662`
+- **Approach:** token-based theme adopting the model's **neutral** system: chrome/title bar `#F0F0F0`, ribbon `#F9F9F9`, canvas `#E6E6E6`, panel `#FAFAFA`, text `#242424`/`#616161`/`#A8A8A8`, borders `#E1E1E1`/`#C8C8C8`, hover `#E6E6E6`, pressed `#D6D6D6`. **The accent family stays DataCraft teal and is derived from it — no accent colour is copied from the model (its blue `#3B5BDB` is explicitly rejected):** accent `#0F8B7E`, accent_text `#0B6B60`, checked/selection `#DCE9E4` (existing TEAL_WASH), on_accent `#F8F4EA` (ON_TEAL). Geometry from the model: item_spacing (6,4), button_padding (8,3), corner radii windows 8 / menus 6 / widgets 4, 1 px strokes. The derivation rule ("accent tokens are teal derivatives, never the model's blue") is pinned by a unit test. Verified at `fd7f662`: every colour and geometry value above matches the model exactly, and the model keeps them in a `Tokens` struct with `light()`/`dark()`. Its token set is larger (`tab_strip`, `status_bar`, `input_border`, `nav`) — the list above is the required minimum; add a slot only when a region needs it.
 - **Acceptance:** all four regions render from tokens; accent-token test green (teal derivatives only); the brand icon's teal still matches the UI accent; before/after screenshots reviewed in the phase gate; canonical verification set green.
 
 ### [ ] U2 — Typography: Inter + type rungs — 🟠
-- **Location:** `assets/fonts/` (neu: Inter-Regular/-Medium/-SemiBold TTF, JetBrainsMono-Regular optional — OFL, attribution file), `crates/datacraft-ui/src/theme.rs` (font definitions); model: WordCraft `theme.rs` font setup
-- **Approach:** embed the fonts via `include_bytes!` and register families like the model: proportional Inter first (egui defaults stay as fallback), named families `"medium"`/`"semibold"` (InterMedium/InterSemiBold → Inter → egui defaults), mono for the SQL editor. Type rungs: Chrome 12.5 px (tracking −0.012 em), Control 11.5 px, Caption 11.0 px (+0.018 em); egui styles Body/Button 12.5, Small 10.5, Heading 17 semibold. **New font assets = Medium content gate** (license/attribution required before landing).
+- **Location:** `assets/fonts/` (neu: Inter-Regular/-Medium/-SemiBold TTF, JetBrainsMono-Regular for Mono — OFL, attribution file), `crates/datacraft-ui/src/theme.rs` (font definitions); model: WordCraft `theme.rs` font setup @ `fd7f662`
+- **Approach:** embed the fonts via `include_bytes!` and register families like the model: proportional Inter first (egui defaults stay as fallback), named families `"medium"`/`"semibold"` (InterMedium/InterSemiBold → Inter → egui defaults), mono for the SQL editor. Type rungs: Chrome 12.5 px (tracking −0.012 em), Control 11.5 px, Caption 11.0 px (+0.018 em); egui styles Body/Button 12.5, Small 10.5, Heading 17 semibold. **New font assets = Medium content gate** (license/attribution required before landing). Verified at `fd7f662`: the model registers exactly these three Inter files plus `SourceSans3-Regular.ttf` (appended behind Inter in every family) and `JetBrainsMono-Regular.ttf` (Monospace); DataCraft deliberately skips Source Sans 3 — egui's default faces are the fallback instead.
 - **Acceptance:** all four regions use the rung scale; German strings lay out without truncation (gate check against I3's catalog); licences recorded in an attribution file; canonical verification set green.
 
 ---
@@ -57,28 +59,28 @@
 - **Acceptance:** opening the Northwind fixture yields `native_queries` empty plus a visible `native_queries_error` containing "attribute code 12"; `inspect()` carries it; a database with decodable queries has no error; canonical verification set green.
 
 ### [ ] U3 — Original vector iconography (ribbon, nav pane, tabs) — 🟡
-- **Location:** `crates/datacraft-ui/src/icons.rs` (neu, reines Painter-Modul), `ribbon.rs`, `nav_pane.rs`, `workspace.rs`; model: WordCraft `crates/ui-egui/src/icons.rs`
-- **Approach:** original egui vector painter functions per icon (open/save/close/table/query/form/report/relationships/SQL/design …), mapped from the existing stable ids (ribbon action ids, `ObjectKind`) — never invented keys. Monochrome ink strokes with teal accents, no external image assets (clean-room and asset-free besides fonts).
+- **Location:** `crates/datacraft-ui/src/icons.rs` (neu, reines Painter-Modul), `ribbon.rs`, `nav_pane.rs`, `workspace.rs`; model: WordCraft `crates/ui-egui/src/icons.rs` @ `fd7f662`
+- **Approach:** one name-keyed painter dispatcher — `paint(painter, rect, name, ink, accent)` with section sub-dispatchers, the model's shape (~280 icon cases in ~7 functions) — for the icons the UI needs (open/save/close/table/query/form/report/relationships/SQL/design …), mapped from the existing stable ids (ribbon action ids, `ObjectKind`) — never invented keys. Monochrome ink strokes with teal accents, no external image assets (clean-room and asset-free besides fonts).
 - **Acceptance:** every ribbon action, nav-pane object kind and document tab shows an icon; all icons live in one module and are painted at paint time; label-based addressing stays intact (kittest-ready, coordinate with T5); canonical verification set green.
 
 ### [ ] U4 — Dark mode: Appearance Light/Dark/System — 🟡
-- **Location:** `crates/datacraft-ui/src/theme.rs` (dark token set + `Appearance`), `settings.rs` (I4) for persistence; model: WordCraft `desktop_theme.rs`/`theme.rs`; ADR-6
-- **Approach:** `Appearance { Light, Dark, System }` (default `System`) — both palettes installed per frame and egui picks by OS preference, exactly like the model. **Dark accents use the teal pendant (≈ `#3FA799`, dark on-accent ink), never the model's light blue.** WCAG contrast tests (4.5:1 text on accent, 3:1 borders) against the teal variants; unknown persisted appearance values fall back to the default.
+- **Location:** `crates/datacraft-ui/src/theme.rs` (dark token set + `Appearance`), `settings.rs` (I4) for persistence; model: WordCraft `desktop_theme.rs`/`theme.rs` @ `fd7f662`; ADR-6
+- **Approach:** `Appearance { Light, Dark, System }` (default `System`) — both palettes are installed at theme-apply time (`set_visuals_of(Theme::Light/Dark)`), the token set is picked per frame from `ctx.global_style().visuals.dark_mode`, and the theme preference follows the setting, exactly like the model. **Dark accents use the teal pendant (≈ `#3FA799`, dark on-accent ink), never the model's light blue (`#7A93F0`).** WCAG contrast tests (4.5:1 text on accent, 3:1 borders) against the teal variants; unknown persisted appearance values fall back to the default. Linux caveat: `system_theme` is `None` there, so the model polls the XDG desktop portal's `color-scheme` every 4 s (`desktop_theme.rs`) — without that the "System follows OS live" acceptance fails on Linux.
 - **Acceptance:** System mode follows OS appearance live; persistence via `ui.json` (I4); contrast tests green for both palettes; canonical verification set green.
 
 ### [ ] U5 — Contextual ribbon tabs + „Views" split-button — 🟡
 - **Location:** `crates/datacraft-core/src/ribbon.rs`, `command.rs`, `state.rs`, `snapshot.rs` (SetTabMode — Domänenzustand); `crates/datacraft-ui/src/ribbon.rs`, `workspace.rs`
-- **Approach:** the Home ribbon gains a "Views" group with a View split-button switching the active tab's mode (Datasheet/Design per object kind) — the Access convention, replacing the tab-strip toggle which is removed. When an object tab is active, contextual tabs (e.g. "Table Tools") render after "Database Tools", spec-driven from core. `tab_mode` moves from the UI-local HashMap into core state (`SetTabMode` command + `TabSnapshot.mode`) so agents see and drive it — this is document state, **not** a UI setting (ADR-4 boundary respected).
+- **Approach:** the Home ribbon gains a "Views" group with a View split-button switching the active tab's mode (Datasheet/Design per object kind) — the Access convention, replacing the tab-strip toggle which is removed. When an object tab is active, contextual tabs (e.g. "Table Tools") render after "Database Tools", spec-driven from core. `tab_mode` moves from the UI-local HashMap into core state (`SetTabMode` command + `TabSnapshot.mode`) so agents see and drive it — this is document state, **not** a UI setting (ADR-4 boundary respected). Model evidence at `fd7f662`: the model's `ribbon.rs` renders `contextual_tabs(...)` (Table Design, Picture Format, Shape Format, Chart Design) — confirmed. The Views split-button has no counterpart in the model; it is the Access convention.
 - **Acceptance:** mode switch only via the Views button; snapshot exposes per-tab mode; contextual tabs appear per active kind; ribbon seam test updated; headless wire tests for `SetTabMode`; canonical verification set green.
 
 ### [ ] U6 — Quick Access Toolbar — 🟡
-- **Location:** `crates/datacraft-ui/src/ribbon.rs` (QAT strip), `crates/datacraft-core/src/ribbon.rs` (QAT spec entries)
-- **Approach:** a compact top strip per the Access QAT convention, spec-driven from core like every ribbon region, starting with Save Design. Undo/Redo entries are declared but rendered disabled until the command bus gains a history (explicitly out of scope here; follow-up item owns them). QAT buttons dispatch exactly the same commands as their ribbon counterparts.
+- **Location:** `crates/datacraft-ui/src/ribbon.rs` (QAT strip), `crates/datacraft-core/src/ribbon.rs` (QAT spec entries); model: WordCraft `crates/ui-egui/src/chrome.rs` @ `fd7f662`
+- **Approach:** a compact top strip per the Access QAT convention, spec-driven from core like every ribbon region, starting with Save Design. Undo/Redo entries are declared but rendered disabled until the command bus gains a history (explicitly out of scope here; follow-up item owns them). QAT buttons dispatch exactly the same commands as their ribbon counterparts. Model evidence at `fd7f662`: the model's `chrome.rs` builds title bar + QAT + status bar, and its QAT entries are command ids with numeric keytips.
 - **Acceptance:** QAT renders and dispatches Save; Undo/Redo render disabled with a tooltip naming the follow-up; test ids per convention; canonical verification set green.
 
 ### [ ] U7 — File backstage page — 🟡
-- **Location:** `crates/datacraft-ui/src/backstage.rs` (neu), `workspace.rs`/`ribbon.rs`, `settings.rs` (I4) für Recent; model: WordCraft `crates/ui-egui/src/backstage/`
-- **Approach:** activating the File tab renders a full-page backstage view (Open, Close Database, Recent Databases once I4 lands, New Table flow entry) instead of a ribbon tab with inline path inputs; the path TextEdits leave the ribbon. Every flow dispatches the same single commands as today.
+- **Location:** `crates/datacraft-ui/src/backstage.rs` (neu), `workspace.rs`/`ribbon.rs`, `settings.rs` (I4) für Recent; model: WordCraft `crates/ui-egui/src/backstage.rs` @ `fd7f662` (the sibling `backstage/` directory holds only tests)
+- **Approach:** activating the File tab renders a full-page backstage view (Open, Close Database, Recent Databases once I4 lands, New Table flow entry) instead of a ribbon tab with inline path inputs; the path TextEdits leave the ribbon. Every flow dispatches the same single commands as today. The model's pages are Home/New, Open, Info, Recover, Save, Save As, Print, Export, Close, Options, About — no Share/Account page; DataCraft's smaller set is a deliberate subset.
 - **Acceptance:** open/close flows work from the backstage (one command each); the File tab shows the backstage page; test ids per convention; canonical verification set green.
 
 ### [ ] U8 — Datasheet UX: column resize, header sort, row shading — 🟡
@@ -87,9 +89,15 @@
 - **Acceptance:** columns resize by drag; header sort dispatches one command per action; grid math unit-tested in core; canonical verification set green.
 
 ### [ ] U9 — Nav pane: category dropdown, context menu, group sort — 🟡
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs`; pure ordering helpers in core; model: WordCraft `panes.rs` patterns
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs`; pure ordering helpers in core; behaviour model: Access. WordCraft `crates/ui-egui/src/panes.rs` @ `fd7f662` supplies only task-pane chrome (collapse/indent) — it has no categories, context menu or group sort, so it is not the behaviour model here.
 - **Approach:** the "All Access Objects" label becomes a (single-entry) category dropdown per the Access convention; objects are opened/deleted via a context menu (Open/Design/Delete), replacing the always-visible ✕ button; group headers gain a sort menu (name/type) implemented as a pure ordering function over the snapshot-derived list.
 - **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
+
+### [ ] U13 — ui.json hardening: atomic save + full window geometry — 🟡
+- **Location:** `crates/datacraft-ui/src/settings.rs` (`save`, window geometry), `app.rs` (capture); model: WordCraft `apps/wordcraft/src/main.rs` (`write_prefs`), `crates/ui-egui/src/window_geometry.rs` @ `fd7f662`
+- **Problem:** `Settings::save` uses `std::fs::write`, so a crash mid-write leaves `ui.json` truncated (the defaults recover, but the settings are lost); the stored geometry is the inner size only, so position and maximized state are not restored and a window can reopen off-screen after a monitor change.
+- **Approach:** write to a sibling temporary file and rename it over the target (the model's `write_prefs`); extend the stored geometry to position + maximized, clamp it against the visible monitors and drop implausible values (the model's `WindowGeometry::sanitized`/`rescue_position` pattern).
+- **Acceptance:** an interrupted write leaves the previous file intact; position and maximized state round-trip across restarts; a saved off-screen position is rescued onto a visible monitor; corrupt/partial files still fall back to defaults; canonical verification set green.
 
 ---
 
@@ -105,7 +113,7 @@
 
 ### [ ] U10 — Tabs: middle-click close, context menu — 🟢
 - **Location:** `crates/datacraft-ui/src/workspace.rs`, `crates/datacraft-core/src/command.rs` (CloseAllTabs/CloseOtherTabs)
-- **Approach:** middle-click closes a tab; a right-click menu offers Close / Close Others / Close All — the latter two as new bus commands (one command per action, no UI-side loops over tabs), matching the §3 principle that every GUI action is exactly one command. Kind icons ride in with U3.
+- **Approach:** middle-click closes a tab; a right-click menu offers Close / Close Others / Close All — the latter two as new bus commands (one command per action, no UI-side loops over tabs), matching the §3 principle that every GUI action is exactly one command. Kind icons ride in with U3. No WordCraft counterpart: the model's desktop keeps one native window per document (`crates/ui-egui/src/windows.rs` @ `fd7f662`), with no document tab strip — the tabbed workspace is the Access convention.
 - **Acceptance:** all three actions dispatch commands; headless wire tests for the new commands; test ids per convention; canonical verification set green.
 
 ### [ ] U11 — Window title & status-bar conventions — 🟢
@@ -114,8 +122,8 @@
 - **Acceptance:** the title reflects the open database and clears on close; localized in both languages; the status indicator renders its disabled state; canonical verification set green.
 
 ### [ ] U12 — Keyboard: shortcuts & ribbon key tips — 🟢
-- **Location:** `crates/datacraft-ui/src/` (new input handling in shell.rs or a small keys.rs), `ribbon.rs` (key tip overlay); model: WordCraft `crates/ui-egui/src/keytips.rs`
-- **Approach:** Ctrl+S (Save Design), Ctrl+W (Close Tab), Esc (cancel cell edit / close menu) mapped to the same single commands as their buttons; Alt reveals ribbon key tips rendered from the spec ids (never invented labels). Keyboard documentation rides with M6's README accuracy pass, not here.
+- **Location:** `crates/datacraft-ui/src/` (new input handling in shell.rs or a small keys.rs), `ribbon.rs` (key tip overlay); model: WordCraft `crates/ui-egui/src/keytips.rs` @ `fd7f662`
+- **Approach:** Ctrl+S (Save Design), Ctrl+W (Close Tab), Esc (cancel cell edit / close menu) mapped to the same single commands as their buttons; Alt reveals ribbon key tips rendered from the spec ids (never invented labels). Keyboard documentation rides with M6's README accuracy pass, not here. Scope guard at `fd7f662`: the model's keytips are a four-phase state machine (Tabs → Commands → Legacy → Backstage) including Word-2003 sequences and numeric QAT badges; DataCraft takes only the Tabs and Commands phases.
 - **Acceptance:** shortcuts dispatch one command each; key tips visible after Alt and match the spec; headless-testable where egui permits (coordinate with T5); canonical verification set green.
 
 ---

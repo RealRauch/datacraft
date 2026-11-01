@@ -321,6 +321,11 @@ post-Ring-4 decision — never a custom DSL (`docs/ROADMAP.md` §4).
 
 ## 15. Localization, settings & look — decision record
 
+**Upstream model reference (2026-11-01):** the WordCraft citations in this
+section and in the backlog point at `storytold/wordcraft` @ `fd7f662`; the
+named paths, colours, type rungs and mechanics were verified against that
+revision.
+
 **Decision record (ADR-4, 2026-11-01): UI localization lives entirely in the
 UI layer.** UI settings — the display language first among them — never write
 into other areas of the app: `datacraft-core`, the `.datacraft` sidecar and
@@ -343,7 +348,14 @@ settings file sits at `<platform config dir>/datacraft/ui.json` (serde JSON,
 config dir resolved without a new dependency), stores language and window
 geometry now and appearance later, and treats unknown values as defaults
 instead of failing. Precedence: explicit setting > `DATACRAFT_LANGUAGE` >
-system detection > auto.
+system detection > auto. Writes are atomic by decision — a sibling temporary
+file renamed over the target, so an interrupted save can never truncate the
+file; the current implementation still writes in place, and BACKLOG U13
+closes that gap. The stored geometry is the inner window size; position,
+maximized state and off-screen rescue follow with U13. The language switcher
+sits in the File ribbon group for now because no Options dialog exists yet;
+it moves into the backstage with U7, whereas the model keeps it under
+File ▸ Options ▸ Interface language.
 
 **Decision record (ADR-6, 2026-11-01): the look rebase adopts the WordCraft
 neutral system; the accent family stays DataCraft teal.** Neutral tokens,
@@ -355,7 +367,18 @@ accent-adjacent token (accent, accent_text, checked/selection, hover wash,
 on_accent, and the dark-mode pendants) derives from the brand teal
 `#0F8B7E`. Dark mode ships as `Appearance { Light, Dark, System }` (default
 System) with WCAG contrast tests against the teal variants. Fonts are openly
-licensed (OFL) and attributed.
+licensed (OFL) and attributed. Verified @ `fd7f662`: the model keeps its
+palette in a `Tokens` struct with `light()`/`dark()`, and its accent is
+`#3B5BDB` (`accent_text` `#2B47B5`; dark `#7A93F0`/`#9CB0F5`) — the blue this
+rule rejects. Its token set is larger (`tab_strip`, `status_bar`,
+`input_border`, `nav`); DataCraft requires the neutral and accent-adjacent
+tokens named above and adds a slot only when a region needs it. Typography:
+the model registers Inter Regular/Medium/SemiBold, JetBrains Mono for
+monospace and Source Sans 3 as a fallback behind Inter; DataCraft keeps
+Inter + JetBrains Mono and lets egui's faces be the fallback. `Appearance` is
+installed with `set_visuals_of(Theme::Light/Dark)` and the tokens are picked
+per frame from `visuals.dark_mode`; on Linux, where `system_theme` is `None`,
+the model polls the XDG desktop portal every 4 s.
 
 **Implemented scope (Phase 18, 2026-11-01):** the UI surface is localized —
 `crates/datacraft-ui/src/i18n.rs` provides `t()`/`tr()`/`plural()` over the
@@ -384,4 +407,11 @@ saves immediately, geometry is captured per frame and saved on exit.
 Language resolution is an explicit startup step (setting >
 `DATACRAFT_LANGUAGE` > detection) — `t()` renders English until it runs,
 which keeps headless tests independent of the host locale. The sidecar,
-core and wire remain untouched by the settings path.
+core and wire remain untouched by the settings path. Two deltas from the
+model are recorded rather than hidden: the write is a plain write (the model
+writes a temporary file and renames it) and the stored geometry is the inner
+size only (the model keeps position and maximized state and rescues
+off-screen windows) — both under BACKLOG U13. The switcher sits in the File
+ribbon group because no Options dialog exists yet; it moves into the
+backstage with U7, while the model keeps it under
+File ▸ Options ▸ Interface language.
