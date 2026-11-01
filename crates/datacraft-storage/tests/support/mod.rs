@@ -239,3 +239,100 @@ pub fn oracle_fixture() -> Option<std::path::PathBuf> {
         .join(&raw);
     workspace.exists().then_some(workspace)
 }
+
+/// Builds a hermetic Jet4 database with a working (empty) MSysObjects
+/// catalog: page 1 global free map, page 2 catalog TDEF, page 3 catalog
+/// usage page. Built with the crate's own encoders (dogfooding).
+pub fn synthetic_catalog_db() -> Vec<u8> {
+    use datacraft_storage::jet::encode::{build_table_def, encode_tdef};
+    use datacraft_storage::jet::usage_map::UsageMap;
+    use datacraft_storage::jet::{JetType, page_type};
+
+    let columns = vec![
+        named(JetColumn::new("Id", JetType::LongInt, 0x03, 0, 0, 4), None),
+        named(
+            JetColumn::new("ParentId", JetType::LongInt, 0x03, 1, 4, 4),
+            None,
+        ),
+        named(
+            JetColumn::new("Name", JetType::Text, 0x02, 2, 0, 60),
+            Some(0),
+        ),
+        named(JetColumn::new("Type", JetType::Int, 0x03, 3, 12, 2), None),
+        named(
+            JetColumn::new("DateCreate", JetType::DateTime, 0x03, 4, 14, 8),
+            None,
+        ),
+        named(
+            JetColumn::new("DateUpdate", JetType::DateTime, 0x03, 5, 22, 8),
+            None,
+        ),
+        named(
+            JetColumn::new("Owner", JetType::Binary, 0x32, 6, 0, 510),
+            Some(1),
+        ),
+        named(
+            JetColumn::new("Flags", JetType::LongInt, 0x03, 7, 30, 4),
+            None,
+        ),
+    ];
+    let used = 3u32 << 8;
+    let def = build_table_def(0x53, 0, &columns, used, used | 1);
+
+    let mut file = file_shell(3);
+    // Page 1: global free map — pages 0..4 allocated, 4..511 free.
+    let mut bitmap = vec![0u8; 64];
+    for page in 4..64 * 8 {
+        bitmap[page as usize / 8] |= 1 << (page % 8);
+    }
+    write_data_like(
+        &mut file,
+        1,
+        1,
+        &[UsageMap {
+            start_page: 0,
+            bitmap,
+        }
+        .encode_row()],
+    );
+    // Page 2: catalog TDEF (no chain), page 3: its usage page.
+    let block = encode_tdef(&def);
+    let base = 2 * PAGE;
+    file[base] = PAGE_TYPE_TDEF;
+    file[base + 1] = 0x01;
+    let len = block.len() as u32;
+    file[base + 8..base + 12].copy_from_slice(&len.to_le_bytes());
+    file[base + 8..base + 8 + block.len()].copy_from_slice(&block);
+    let empty = UsageMap {
+        start_page: 0,
+        bitmap: vec![0u8; 8],
+    }
+    .encode_row();
+    write_data_like(&mut file, 3, 0, &[empty.clone(), empty]);
+    debug_assert_eq!(page_type(&file[PAGE..2 * PAGE]), 0x01);
+    file
+}
+
+/// Overrides a column's variable index (dense among variable columns).
+fn named(mut col: JetColumn, var: Option<u16>) -> JetColumn {
+    col.var_index = var;
+    col
+}
+
+/// Writes a data page with pre-encoded rows (back-to-front layout).
+fn write_data_like(file: &mut [u8], page: usize, owner: u32, rows: &[Vec<u8>]) {
+    let base = page * PAGE;
+    file[base] = 0x01;
+    file[base + 1] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&owner.to_le_bytes());
+    file[base + 12..base + 14].copy_from_slice(&(rows.len() as u16).to_le_bytes());
+    let mut end = PAGE;
+    for (i, row) in rows.iter().enumerate() {
+        let start = end - row.len();
+        file[base + start..base + start + row.len()].copy_from_slice(row);
+        file[base + 14 + i * 2..base + 16 + i * 2].copy_from_slice(&(start as u16).to_le_bytes());
+        end = start;
+    }
+    let free = end - (14 + 2 * rows.len());
+    file[base + 2..base + 4].copy_from_slice(&(free as u16).to_le_bytes());
+}

@@ -50,9 +50,13 @@ pub fn encode_row(values: &[StorageValue], def: &JetTableDef) -> Result<Vec<u8>,
 
     let mut fixed = vec![0u8; fixed_size];
     let mut var_data: Vec<u8> = Vec::new();
-    let mut var_starts: Vec<usize> = Vec::new();
     let mut mask = vec![0u8; num_cols.div_ceil(8)];
 
+    // Every variable column gets a slot (NULLs take empty slots) — real
+    // rows carry var_len for the full variable-column count, and the
+    // decoder indexes slots by the column's var_index.
+    let mut var_slots: Vec<(u16, usize)> = Vec::new();
+    let mut sequential = 0u16;
     for (col, value) in def.columns.iter().zip(values) {
         let id = col.column_id as usize;
         if col.data_type == JetType::Bool {
@@ -65,30 +69,37 @@ pub fn encode_row(values: &[StorageValue], def: &JetTableDef) -> Result<Vec<u8>,
             }
             continue;
         }
-        if matches!(value, StorageValue::Null) {
-            continue; // mask bit stays 0
-        }
-        mask[id / 8] |= 1 << (id % 8);
         if col.is_fixed() {
-            write_fixed(&mut fixed, col, value)?;
+            if !matches!(value, StorageValue::Null) {
+                mask[id / 8] |= 1 << (id % 8);
+                write_fixed(&mut fixed, col, value)?;
+            }
         } else {
-            var_starts.push(var_data.len());
-            append_variable(&mut var_data, col, value)?;
+            let start = var_data.len();
+            if !matches!(value, StorageValue::Null) {
+                mask[id / 8] |= 1 << (id % 8);
+                append_variable(&mut var_data, col, value)?;
+            }
+            let index = col.var_index.unwrap_or(sequential);
+            var_slots.push((index, start));
+            sequential += 1;
         }
     }
 
     let eod = 2 + fixed_size + var_data.len();
-    let mut row = Vec::with_capacity(eod + 2 + var_starts.len() * 2 + 2 + mask.len());
+    let mut row = Vec::with_capacity(eod + 2 + var_slots.len() * 2 + 2 + mask.len());
     row.extend_from_slice(&(num_cols as u16).to_le_bytes());
     row.extend_from_slice(&fixed);
     row.extend_from_slice(&var_data);
     row.extend_from_slice(&(eod as u16).to_le_bytes());
-    // var_table is stored in reverse order (entry 0 = last variable column).
-    for start in var_starts.iter().rev() {
+    // var_table is stored in reverse var order (entry 0 = the LAST
+    // variable column), so write starts descending by var_index.
+    var_slots.sort_by_key(|(index, _)| *index);
+    for (_, start) in var_slots.iter().rev() {
         let at = start + 2 + fixed_size;
         row.extend_from_slice(&(at as u16).to_le_bytes());
     }
-    row.extend_from_slice(&(var_starts.len() as u16).to_le_bytes());
+    row.extend_from_slice(&(var_slots.len() as u16).to_le_bytes());
     row.extend_from_slice(&mask);
     Ok(row)
 }
@@ -115,13 +126,14 @@ fn write_fixed(
             context: "row encode".into(),
             detail: format!("fixed offset {} exceeds the fixed area", at),
         })?;
-    let bytes = fixed_bytes(col, value)?;
+    let bytes = scalar_bytes(col, value)?;
     slot.copy_from_slice(&bytes);
     Ok(())
 }
 
-/// Fixed storage bytes (length always equals `fixed_len(col)`).
-fn fixed_bytes(col: &JetColumn, value: &StorageValue) -> Result<Vec<u8>, StorageError> {
+/// Scalar storage bytes, identical in fixed and variable slots (real tables
+/// store e.g. LongInt in variable slots — fixture nav-pane tables).
+fn scalar_bytes(col: &JetColumn, value: &StorageValue) -> Result<Vec<u8>, StorageError> {
     let out = match (col.data_type, value) {
         (JetType::Byte, StorageValue::Int(i)) => vec![*i as u8],
         (JetType::Int, StorageValue::Int(i)) => (*i as i16).to_le_bytes().to_vec(),
@@ -152,7 +164,8 @@ fn encode_numeric(value: i128) -> Vec<u8> {
     out
 }
 
-/// Variable-column payload (slot bytes) for one value.
+/// Variable-column payload (slot bytes) for one value: long-value/text
+/// forms plus any scalar type (variable LongInt columns are real).
 fn append_variable(
     var_data: &mut Vec<u8>,
     col: &JetColumn,
@@ -173,7 +186,9 @@ fn append_variable(
             out.extend_from_slice(b);
             out
         }
-        _ => return Err(type_error(col, value)),
+        // Scalars can live in variable slots; mismatches surface from
+        // scalar_bytes as a precise type error.
+        _ => scalar_bytes(col, value)?,
     };
     var_data.extend_from_slice(&payload);
     Ok(())

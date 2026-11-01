@@ -81,36 +81,29 @@ impl Jet4Writer {
 
         // 3. Catalog row (append into MSysObjects).
         let now = now_as_ole_date();
-        self.insert_row(
-            CATALOG_TDEF,
-            &Self::catalog_row_values(tdef_page, name, now),
-        )?;
+        let catalog_def = JetTableDef::decode(&self.file, CATALOG_TDEF)?;
+        let values = Self::catalog_row(&catalog_def, tdef_page, name, now);
+        self.insert_row(CATALOG_TDEF, &values)?;
         Ok(tdef_page)
     }
 
-    /// MSysObjects column values for a new user table, in column-id order
-    /// (Id, ParentId, Name, Type, DateCreate, DateUpdate, Owner, Flags,
-    /// then the remaining columns NULL).
-    fn catalog_row_values(tdef_page: u32, name: &str, now: f64) -> Vec<StorageValue> {
-        vec![
-            StorageValue::Int(i64::from(tdef_page)),         // Id
-            StorageValue::Int(TABLES_CONTAINER_ID),          // ParentId
-            StorageValue::Text(name.to_owned()),             // Name
-            StorageValue::Int(1),                            // Type = table
-            StorageValue::DateTime(now),                     // DateCreate
-            StorageValue::DateTime(now),                     // DateUpdate
-            StorageValue::Binary(USER_TABLE_OWNER.to_vec()), // Owner
-            StorageValue::Int(0),                            // Flags
-            StorageValue::Null,                              // Database
-            StorageValue::Null,                              // Connect
-            StorageValue::Null,                              // ForeignName
-            StorageValue::Null,                              // RmtInfoShort
-            StorageValue::Null,                              // RmtInfoLong
-            StorageValue::Null,                              // Lv
-            StorageValue::Null,                              // LvProp (see module docs)
-            StorageValue::Null,                              // LvModule
-            StorageValue::Null,                              // LvExtra
-        ]
+    /// MSysObjects column values for a new user table, driven by the
+    /// catalog's actual definition (column-name keyed — robust against
+    /// catalogs with more or fewer columns; unknown columns stay NULL).
+    fn catalog_row(def: &JetTableDef, tdef_page: u32, name: &str, now: f64) -> Vec<StorageValue> {
+        def.columns
+            .iter()
+            .map(|col| match col.name.as_str() {
+                "Id" => StorageValue::Int(i64::from(tdef_page)),
+                "ParentId" => StorageValue::Int(TABLES_CONTAINER_ID),
+                "Name" => StorageValue::Text(name.to_owned()),
+                "Type" => StorageValue::Int(1),
+                "DateCreate" | "DateUpdate" => StorageValue::DateTime(now),
+                "Owner" => StorageValue::Binary(USER_TABLE_OWNER.to_vec()),
+                "Flags" => StorageValue::Int(0),
+                _ => StorageValue::Null, // LvProp etc. (see module docs)
+            })
+            .collect()
     }
 
     /// Appends one row to the table rooted at `tdef_page`, reusing a page

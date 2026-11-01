@@ -268,3 +268,26 @@ Access `Table2`–`Table4`) — identical shape:
 - **Data-page offset table order**: sorted by **descending offset** — the
   physically lowest row is the offset table's LAST entry; appends extend
   the table and place the row between the offset table and the lowest row.
+
+## Writer round-trip facts (verified 2026-11-01, step 10.3)
+
+Verified by `decode(encode(decode(x))) == decode(x)` over **155 rows across
+12 tables** of the Access-written fixture (`jet_writer_roundtrip.rs`):
+
+- `var_len` counts **all** variable columns of the schema; NULL variable
+  columns occupy an empty slot (the null mask distinguishes NULL from
+  empty-string). Writing fewer slots breaks the var_index addressing.
+- **Scalar types can be stored in variable slots** — the fixture's nav-pane
+  tables store `LongInt` (and other scalars) with the FIXED flag cleared.
+  The encoder emits identical bytes in both slot kinds.
+- Fixed `Binary` columns store exactly their descriptor length (padded
+  values round-trip byte-exact).
+- Writer divergences from real writers (documented, functionally
+  transparent to readers): memo/OLE values are written in the **inline**
+  long-value form instead of LVAL pages; new catalog rows carry **NULL
+  LvProp** instead of a property pack; text is stored uncompressed unless
+  the column demands the compressed form.
+- **Manual gate item (cannot run in CI):** "Access opens the written file
+  without repair prompts" requires a real Access check on the golden files
+  — executable proxies in CI: our decoder + `mdb-export` both read the
+  written files (the oracle test runs on ubuntu/macOS CI).
