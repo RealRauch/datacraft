@@ -24,6 +24,7 @@ pub mod report;
 pub mod report_preview;
 pub mod reports;
 pub mod ribbon;
+pub mod row_edit;
 pub mod schema;
 pub mod snapshot;
 pub mod sql_engine;

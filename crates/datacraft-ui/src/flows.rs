@@ -6,6 +6,7 @@ use datacraft_core::ObjectKind;
 use datacraft_core::command::Command;
 use datacraft_core::event::Event;
 use datacraft_core::form::ControlDef;
+use datacraft_core::ids::TabId;
 
 use crate::app::App;
 
@@ -144,6 +145,43 @@ impl App {
                 ))
             }
             ObjectKind::Table | ObjectKind::Query => None,
+        }
+    }
+
+    /// Inserts the buffered new-record row of a datasheet tab (step 11.7).
+    /// Cell parsing errors land in the status bar; a successful insert
+    /// clears the buffer so the next record starts empty.
+    pub fn insert_new_row(&mut self, tab_id: TabId, table: &str) -> bool {
+        let parsed = self.table_definition(table).map(|definition| {
+            let cells = self.new_row_cells(tab_id, definition.fields.len());
+            (
+                definition.name.clone(),
+                datacraft_core::row_edit::row_values(&definition.fields, &cells),
+            )
+        });
+        let Some((canonical, parsed)) = parsed else {
+            self.last_error = Some(format!("table {table:?} not found"));
+            return false;
+        };
+        let values = match parsed {
+            Ok(values) => values,
+            Err(reason) => {
+                self.last_error = Some(reason);
+                return false;
+            }
+        };
+        let events = self.dispatch(Command::InsertRow {
+            table: canonical,
+            values,
+        });
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::RowInserted { .. }))
+        {
+            self.clear_new_row(tab_id);
+            true
+        } else {
+            false
         }
     }
 

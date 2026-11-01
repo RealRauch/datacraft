@@ -49,6 +49,41 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         app.set_record_cursor(tab.id, row_idx, row_count);
     });
     ui.label(egui::RichText::new(format!("{row_count} rows")).small());
+    new_row_ui(app, tab, &columns, ui);
+}
+
+/// The datasheet's new-record row (step 11.7): one text cell per column,
+/// marked with the Access asterisk. "Add record" parses the cells and
+/// inserts through the bus; failures land in the status bar.
+fn new_row_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &mut egui::Ui) {
+    ui.separator();
+    let mut cells = app.new_row_cells(tab.id, columns.len());
+    let mut add = false;
+    egui::ScrollArea::horizontal()
+        .id_salt(format!("datasheet.newrow.{}", tab.ui_test_id))
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.add_space(SELECTOR_WIDTH);
+                ui.label(egui::RichText::new("*").strong());
+                for (index, cell) in cells.iter_mut().enumerate() {
+                    ui.add_sized(
+                        [DEFAULT_COLUMN_WIDTH, 22.0],
+                        egui::TextEdit::singleline(cell).hint_text(&columns[index]),
+                    );
+                }
+            });
+        });
+    ui.horizontal(|ui| {
+        ui.add_space(SELECTOR_WIDTH);
+        if ui.button("Add record").clicked() {
+            add = true;
+        }
+        ui.weak("Empty cells are Null; AutoNumber assigns itself.");
+    });
+    app.set_new_row_cells(tab.id, cells);
+    if add {
+        app.insert_new_row(tab.id, &tab.object_name);
+    }
 }
 
 /// Renders the result grid of one query tab (Datasheet mode).

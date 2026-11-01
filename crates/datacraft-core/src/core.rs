@@ -125,6 +125,17 @@ impl Core {
         self.port.read_rows(table, range)
     }
 
+    /// The open database's table definition (the datasheet's new-record
+    /// row and the designers need domain kinds, not the projection).
+    pub fn table_definition(&self, table: &str) -> Option<&crate::schema::TableDef> {
+        self.state
+            .database
+            .as_ref()?
+            .tables
+            .iter()
+            .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
+    }
+
     /// Applies one command; returns the observable outcomes in order.
     pub fn dispatch(&mut self, command: Command) -> Vec<Event> {
         match command {

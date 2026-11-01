@@ -235,6 +235,55 @@ mod tests {
     }
 
     #[test]
+    fn the_datasheet_new_row_inserts_through_the_bus() {
+        use datacraft_core::ObjectId;
+        use datacraft_core::ObjectKind;
+        use datacraft_core::command::Command;
+        use datacraft_core::schema::{
+            AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
+        };
+
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(Command::OpenDatabase {
+            path: "memory.mock".into(),
+        });
+        app.dispatch(Command::CreateTable {
+            definition: TableDef::new(
+                "Customers",
+                vec![
+                    FieldDef::new("id", FieldKind::AutoNumber(AutoKind::LongInteger)),
+                    FieldDef::new("name", FieldKind::Text { max_len: 20 }),
+                    FieldDef::new("score", FieldKind::Number(NumericKind::Double)),
+                ],
+            ),
+        });
+        app.dispatch(Command::OpenObject(ObjectId::new(
+            ObjectKind::Table,
+            "Customers",
+        )));
+        let tab = app.snapshot().tabs[0].id;
+
+        // The buffer pads to the column count.
+        assert_eq!(app.new_row_cells(tab, 3), vec!["", "", ""]);
+        app.set_new_row_cells(tab, vec![String::new(), "Ada".into(), "1.5".into()]);
+        assert!(app.insert_new_row(tab, "Customers"));
+        let rows = app.rows_for(tab).expect("rows reloaded");
+        assert_eq!(rows[0][1], FieldValue::Text("Ada".into()));
+        assert_eq!(rows[0][2], FieldValue::Float(1.5));
+        assert_eq!(app.new_row_cells(tab, 3), vec!["", "", ""]);
+
+        // A mistyped cell names the field instead of inserting.
+        app.set_new_row_cells(tab, vec![String::new(), "Grace".into(), "abc".into()]);
+        assert!(!app.insert_new_row(tab, "Customers"));
+        assert!(
+            app.last_error().unwrap_or_default().contains("\"score\""),
+            "{:?}",
+            app.last_error()
+        );
+        assert_eq!(app.rows_for(tab).map(Vec::len), Some(1));
+    }
+
+    #[test]
     fn dispatch_refreshes_the_snapshot() {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(datacraft_core::command::Command::ToggleNavPane);

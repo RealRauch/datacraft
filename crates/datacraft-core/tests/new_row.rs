@@ -54,18 +54,18 @@ fn core_with_table() -> Core {
 
 fn cells() -> Vec<String> {
     vec![
-        String::new(),           // AutoNumber stays empty
-        "Ada".into(),            // name
-        "first row".into(),      // note
-        "255".into(),            // small (Byte)
-        "-2147483648".into(),    // big (Long Integer)
-        "1.5".into(),            // ratio
-        "12.34".into(),          // amount (Decimal 6,2)
-        "99.9999".into(),        // price (Currency)
-        "1970-01-01 12:00".into(), // when
-        "yes".into(),            // active
+        String::new(),                                 // AutoNumber stays empty
+        "Ada".into(),                                  // name
+        "first row".into(),                            // note
+        "255".into(),                                  // small (Byte)
+        "-2147483648".into(),                          // big (Long Integer)
+        "1.5".into(),                                  // ratio
+        "12.34".into(),                                // amount (Decimal 6,2)
+        "99.9999".into(),                              // price (Currency)
+        "1970-01-01 12:00".into(),                     // when
+        "yes".into(),                                  // active
         "00112233-4455-6677-8899-aabbccddeeff".into(), // tag
-        String::new(),           // photo stays Null
+        String::new(),                                 // photo stays Null
     ]
 }
 
@@ -146,6 +146,35 @@ fn decimal_cells_scale_and_reject_excess_precision() {
 }
 
 #[test]
+fn malformed_number_cells_are_rejected() {
+    let decimal = FieldKind::Number(NumericKind::Decimal {
+        precision: 6,
+        scale: 2,
+    });
+    assert!(parse_value(&decimal, "abc").is_err());
+    assert!(parse_value(&decimal, "1.2.3").is_err());
+    assert_eq!(parse_value(&decimal, ".5"), Ok(FieldValue::Decimal(50)));
+    let whole = FieldKind::Number(NumericKind::Decimal {
+        precision: 6,
+        scale: 0,
+    });
+    assert_eq!(parse_value(&whole, "7"), Ok(FieldValue::Decimal(7)));
+}
+
+#[test]
+fn malformed_time_cells_are_rejected() {
+    let kind = FieldKind::DateTime;
+    for text in [
+        "2020-01-01 12",
+        "2020-01-01 12:60",
+        "2020-01-01 12:00:60",
+        "2020-01-01 12:00:00:00",
+    ] {
+        assert!(parse_value(&kind, text).is_err(), "{text}");
+    }
+}
+
+#[test]
 fn currency_cells_scale_to_four_decimals() {
     assert_eq!(
         parse_value(&FieldKind::Currency, "12.34"),
@@ -184,7 +213,9 @@ fn date_cells_use_the_ole_automation_epoch() {
     );
     assert_eq!(
         parse_value(&kind, "1899-12-30T06:30:30"),
-        Ok(FieldValue::DateTime((6.0 * 3600.0 + 30.0 * 60.0 + 30.0) / 86_400.0))
+        Ok(FieldValue::DateTime(
+            (6.0 * 3600.0 + 30.0 * 60.0 + 30.0) / 86_400.0
+        ))
     );
 }
 
@@ -206,10 +237,18 @@ fn date_cells_reject_impossible_dates_and_times() {
 fn boolean_cells_accept_the_access_spellings() {
     let kind = FieldKind::Boolean { tri_state: false };
     for text in ["true", "TRUE", "yes", "y", "1", "on", "-1"] {
-        assert_eq!(parse_value(&kind, text), Ok(FieldValue::Boolean(true)), "{text}");
+        assert_eq!(
+            parse_value(&kind, text),
+            Ok(FieldValue::Boolean(true)),
+            "{text}"
+        );
     }
     for text in ["false", "no", "n", "0", "off"] {
-        assert_eq!(parse_value(&kind, text), Ok(FieldValue::Boolean(false)), "{text}");
+        assert_eq!(
+            parse_value(&kind, text),
+            Ok(FieldValue::Boolean(false)),
+            "{text}"
+        );
     }
     assert!(parse_value(&kind, "maybe").is_err());
 }
@@ -225,25 +264,19 @@ fn guid_cells_accept_braced_and_plain_forms() {
         Ok(expected.clone())
     );
     assert_eq!(
-        parse_value(
-            &FieldKind::Guid,
-            "{00112233-4455-6677-8899-AABBCCDDEEFF}"
-        ),
+        parse_value(&FieldKind::Guid, "{00112233-4455-6677-8899-AABBCCDDEEFF}"),
         Ok(expected)
     );
     assert!(parse_value(&FieldKind::Guid, "00112233").is_err());
-    assert!(
-        parse_value(&FieldKind::Guid, "zz112233-4455-6677-8899-aabbccddeeff").is_err()
-    );
+    assert!(parse_value(&FieldKind::Guid, "zz112233-4455-6677-8899-aabbccddeeff").is_err());
 }
 
 #[test]
 fn binary_and_autonumber_cells_refuse_user_input() {
-    let reason = parse_value(&FieldKind::Binary(BinaryKind::OleObject), "abc")
-        .expect_err("binary");
+    let reason = parse_value(&FieldKind::Binary(BinaryKind::OleObject), "abc").expect_err("binary");
     assert!(reason.contains("binary"), "{reason}");
-    let reason = parse_value(&FieldKind::AutoNumber(AutoKind::LongInteger), "7")
-        .expect_err("autonumber");
+    let reason =
+        parse_value(&FieldKind::AutoNumber(AutoKind::LongInteger), "7").expect_err("autonumber");
     assert!(reason.contains("engine-assigned"), "{reason}");
 }
 

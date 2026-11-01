@@ -59,6 +59,8 @@ pub struct App {
     pub(crate) last_error: Option<String>,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
     pub sidecar_path: String,
+    /// Buffered cells of the datasheet's new-record row per table tab.
+    new_row: HashMap<TabId, Vec<String>>,
 }
 
 /// View mode of a document tab (presentation state).
@@ -96,6 +98,7 @@ impl App {
             sql_error: None,
             last_error: None,
             sidecar_path: String::new(),
+            new_row: HashMap::new(),
         }
     }
 
@@ -150,6 +153,30 @@ impl App {
     /// Query result of one query tab (cached; `None` until run).
     pub fn results_for(&self, tab_id: TabId) -> Option<&QueryResult> {
         self.results.get(&tab_id)
+    }
+
+    /// Buffered cells of a datasheet's new-record row, padded to the
+    /// table's column count (step 11.7).
+    pub fn new_row_cells(&self, tab_id: TabId, columns: usize) -> Vec<String> {
+        let mut cells = self.new_row.get(&tab_id).cloned().unwrap_or_default();
+        cells.resize(columns, String::new());
+        cells
+    }
+
+    /// Stores the edited new-record cells of a datasheet tab.
+    pub fn set_new_row_cells(&mut self, tab_id: TabId, cells: Vec<String>) {
+        self.new_row.insert(tab_id, cells);
+    }
+
+    /// Clears the buffered new-record cells of a datasheet tab (after a
+    /// successful insert).
+    pub fn clear_new_row(&mut self, tab_id: TabId) {
+        self.new_row.remove(&tab_id);
+    }
+
+    /// Domain definition of a table (the new-record row needs field kinds).
+    pub fn table_definition(&self, table: &str) -> Option<&datacraft_core::schema::TableDef> {
+        self.core.table_definition(table)
     }
 
     /// Rendered snapshot (read-only; the panels never mutate it).
@@ -289,6 +316,7 @@ impl App {
         {
             self.rows.clear();
             self.previews.clear();
+            self.new_row.clear();
         }
         if events.iter().any(|e| {
             matches!(
