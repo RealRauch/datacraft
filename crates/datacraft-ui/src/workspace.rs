@@ -23,13 +23,20 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
     let empty = app.snapshot().tabs.is_empty();
     let no_database = app.snapshot().database.is_none();
     if empty {
-        ui.centered_and_justified(|ui| {
-            if no_database {
-                ui.weak(t("Open a database from the File ribbon tab."));
-            } else {
-                ui.weak(t("No open documents"));
-            }
-        });
+        // The empty workspace still paints the canvas token — without this
+        // the window's clear colour shows through (found in the Phase 20
+        // gate, BACKLOG F3).
+        egui::CentralPanel::default()
+            .frame(egui::Frame::central_panel(ui.style()).fill(tokens.canvas))
+            .show(ui, |ui| {
+                ui.centered_and_justified(|ui| {
+                    if no_database {
+                        ui.weak(t("Open a database from the File ribbon tab."));
+                    } else {
+                        ui.weak(t("No open documents"));
+                    }
+                });
+            });
         return;
     }
 
