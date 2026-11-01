@@ -215,3 +215,28 @@ fn next_free_name(used: Vec<String>, prefix: &str) -> String {
         .find(|name| !used.contains(&name.to_lowercase()))
         .unwrap_or_else(|| prefix.to_owned())
 }
+
+/// Status-bar notice for successful design-document operations.
+pub(crate) fn notice_for(events: &[Event]) -> Option<String> {
+    events.iter().find_map(|event| match event {
+        Event::DesignDocumentSaved { path } => Some(tr(
+            "Design saved to {path}",
+            &[("path", &path.display().to_string())],
+        )),
+        Event::DesignDocumentLoaded {
+            path,
+            forms,
+            queries,
+            reports,
+        } => Some(tr(
+            "Design loaded from {path} ({forms} forms, {queries} queries, {reports} reports)",
+            &[
+                ("path", &path.display().to_string()),
+                ("forms", &forms.to_string()),
+                ("queries", &queries.to_string()),
+                ("reports", &reports.to_string()),
+            ],
+        )),
+        _ => None,
+    })
+}

@@ -184,6 +184,53 @@ pub fn default_path() -> Option<PathBuf> {
     default_path_on(platform(), &|name| std::env::var_os(name))
 }
 
+impl crate::app::App {
+    /// Attaches the UI settings file (the composition root sets this).
+    pub fn set_settings_path(&mut self, path: Option<PathBuf>) {
+        self.settings_path = path;
+    }
+
+    /// Applies persisted settings at startup: the stored language choice
+    /// beats the environment and system detection (ADR-5).
+    pub fn apply_settings(&mut self, settings: Settings) {
+        self.settings = settings;
+        crate::i18n::init_language(self.language_setting().lang());
+    }
+
+    /// Current language choice.
+    pub fn language_setting(&self) -> LanguageSetting {
+        self.settings.language
+    }
+
+    /// Switches the UI language live and persists the choice (ADR-5).
+    pub fn set_language_setting(&mut self, setting: LanguageSetting) {
+        self.settings.language = setting;
+        crate::i18n::init_language(setting.lang());
+        if let Err(reason) = self.persist_settings() {
+            self.last_error = Some(crate::i18n::tr(
+                "Settings could not be saved: {reason}",
+                &[("reason", &reason.to_string())],
+            ));
+        }
+    }
+
+    /// Writes the settings file; `Ok(())` when none is attached.
+    pub fn persist_settings(&self) -> std::io::Result<()> {
+        match &self.settings_path {
+            Some(path) => self.settings.save(path),
+            None => Ok(()),
+        }
+    }
+
+    /// Records the current viewport size for the next save.
+    pub(crate) fn capture_window_size(&mut self, ctx: &eframe::egui::Context) {
+        let size = ctx.input(|input| input.viewport().inner_rect.map(|rect| rect.size()));
+        if let Some(size) = size {
+            self.settings.set_window(size.x, size.y);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

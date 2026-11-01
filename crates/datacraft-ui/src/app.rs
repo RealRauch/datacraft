@@ -68,9 +68,9 @@ pub struct App {
     /// step 17.2).
     pub vba_search: String,
     /// UI-owned settings (ADR-5); persisted only when a path is attached.
-    settings: crate::settings::Settings,
+    pub(crate) settings: crate::settings::Settings,
     /// Path of `ui.json`; `None` keeps settings session-only (tests).
-    settings_path: Option<std::path::PathBuf>,
+    pub(crate) settings_path: Option<std::path::PathBuf>,
 }
 
 /// View mode of a document tab (presentation state).
@@ -117,51 +117,6 @@ impl App {
         }
     }
 
-    /// Attaches the UI settings file (the composition root sets this).
-    pub fn set_settings_path(&mut self, path: Option<std::path::PathBuf>) {
-        self.settings_path = path;
-    }
-
-    /// Applies persisted settings at startup: the stored language choice
-    /// beats the environment and system detection (ADR-5).
-    pub fn apply_settings(&mut self, settings: crate::settings::Settings) {
-        self.settings = settings;
-        crate::i18n::init_language(self.language_setting().lang());
-    }
-
-    /// Current language choice.
-    pub fn language_setting(&self) -> crate::settings::LanguageSetting {
-        self.settings.language
-    }
-
-    /// Switches the UI language live and persists the choice (ADR-5).
-    pub fn set_language_setting(&mut self, setting: crate::settings::LanguageSetting) {
-        self.settings.language = setting;
-        crate::i18n::init_language(setting.lang());
-        if let Err(reason) = self.persist_settings() {
-            self.last_error = Some(crate::i18n::tr(
-                "Settings could not be saved: {reason}",
-                &[("reason", &reason.to_string())],
-            ));
-        }
-    }
-
-    /// Writes the settings file; `Ok(())` when none is attached.
-    pub fn persist_settings(&self) -> std::io::Result<()> {
-        match &self.settings_path {
-            Some(path) => self.settings.save(path),
-            None => Ok(()),
-        }
-    }
-
-    /// Records the current viewport size for the next save.
-    pub(crate) fn capture_window_size(&mut self, ctx: &eframe::egui::Context) {
-        let size = ctx.input(|input| input.viewport().inner_rect.map(|rect| rect.size()));
-        if let Some(size) = size {
-            self.settings.set_window(size.x, size.y);
-        }
-    }
-
     /// Applies one command and refreshes the rendered snapshot and caches.
     pub fn dispatch(&mut self, command: Command) -> Vec<Event> {
         let events = self.core.dispatch(command);
@@ -173,7 +128,7 @@ impl App {
         self.last_notice = if self.last_error.is_some() {
             None
         } else {
-            notice_for(&events)
+            crate::flows::notice_for(&events)
         };
         // Password flow (step 16.2, M5) lives in `password_prompt.rs`.
         self.handle_password_events(&events);
@@ -509,29 +464,4 @@ impl App {
             }
         }
     }
-}
-
-/// Status-bar notice for successful design-document operations.
-fn notice_for(events: &[Event]) -> Option<String> {
-    events.iter().find_map(|event| match event {
-        Event::DesignDocumentSaved { path } => Some(crate::i18n::tr(
-            "Design saved to {path}",
-            &[("path", &path.display().to_string())],
-        )),
-        Event::DesignDocumentLoaded {
-            path,
-            forms,
-            queries,
-            reports,
-        } => Some(crate::i18n::tr(
-            "Design loaded from {path} ({forms} forms, {queries} queries, {reports} reports)",
-            &[
-                ("path", &path.display().to_string()),
-                ("forms", &forms.to_string()),
-                ("queries", &queries.to_string()),
-                ("reports", &reports.to_string()),
-            ],
-        )),
-        _ => None,
-    })
 }
