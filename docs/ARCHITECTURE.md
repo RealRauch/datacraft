@@ -170,7 +170,10 @@ No Jet/ACE-specific types leak across this boundary — the core works against
 
 **Format milestones:** JET4 (`.mdb`) read → ACE (`.accdb`) read → JET4 write →
 ACE write. Each milestone: spec → decoder/encoder → proptest round-trip →
-golden files → oracle comparison.
+golden files → oracle comparison. Landed so far: Jet4 read, Jet3 (Access 97)
+read, embedded-OLE columns (fixed 0x11 long binary), and the Jet4 writer core
+(tables + rows, usage-map-consistent; Phase 10) — update/delete, LVAL-chain
+writes and the Access-repair gate are the remaining write-path work.
 
 ## 7. Domain data model (preview of Phase 3)
 

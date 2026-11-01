@@ -129,11 +129,11 @@ any code embedded in database files without explicit user consent/permissions.
 
 | # | Milestone | Unlocks | Status |
 |---|-----------|---------|--------|
-| M0 | Storage read milestones (Jet4 → ACE) | everything | 🔄 Phase 2 |
+| M0 | Storage read milestones (Jet4 → ACE) | everything | 🔄 Phase 2 (Jet3 read landed in Phase 10) |
 | M1 | Expression service (Ring 1) | queries, macros, forms, validation | ⬜ to be phased |
-| M2 | Query engine + QBE (Ring 2) | real app behavior | ⬜ Phase 7 |
-| M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | ⬜ H9 |
-| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ⬜ Phase 8 |
+| M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 |
+| M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | 🔄 Jet4 writer landed in Phase 10 (create tables + insert rows; update/delete, LVAL chains and the Access-repair gate follow) |
+| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview; grouped/aggregate bands await M1) |
 | M5 | Macros (Ring 3) | unattended app logic | ⬜ to be phased |
 | M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ⬜ incremental with storage milestones |
 | M7 | `ScriptEngine` trait hook in core (unimplemented) + engine decision | stage-2 scripting when the §4 gate opens | ⬜ gated (Ring 4 + demand) |
@@ -142,7 +142,7 @@ any code embedded in database files without explicit user consent/permissions.
 Ordering notes:
 
 - M1 is the keystone and deliberately front-loaded — every later ring consumes
-  it. It has no natural owner in the Phase 2–9 plan yet; give it a phase when
+  it. It has no natural owner in the Phase 2–10 plan yet; give it a phase when
   Phase 3 planning starts.
 - M5 has no hard dependency on M4 (only on M1) and can be pulled earlier if
   user feedback rewards it.

@@ -68,13 +68,15 @@ _By the ArtCraft team._
 
 | Area | Highlights |
 | --- | --- |
-| **Storage — Jet4 read** | `StorageEngine` trait boundary; Jet page layer and file-header decoder; table definition (TDEF) and data (TDAT) decoders; golden-file tests against committed fixtures; every parse cross-checked against the libmdb oracle in CI |
+| **Storage — Jet3/Jet4 read** | `StorageEngine` trait boundary; Jet page layer and file-header decoder; TDEF/TDAT decoders for Jet4 (unicode/compression) and Jet3 (CP1252); embedded OLE columns (fixed 0x11 long binary) decode; golden-file tests against sha256-pinned fixtures; every parse cross-checked against the libmdb oracle in CI |
+| **Storage — Jet4 write** | clean-room writer core: usage-map-consistent page allocation (global free map + per-table used/free maps, black-box verified against real Access files), table creation with catalog rows, row insertion with free-map page reuse; decode∘encode∘decode round-trips and an `mdb-export`-reads-our-files oracle test |
 | **Domain model & schema** | Access field kinds (Short Text … OLE/Attachment) with typed properties and validation semantics; versioned `.datacraft` schema document (serde, migration ladder) per ADR-1 |
 | **Headless command bus** | Total reducer (`dispatch` → deterministic events, failures as `Failed` events), serializable `inspect()` snapshots, deterministic test IDs, JSON-RPC 2.0 codec with full error semantics — GUI and agents speak the same language |
 | **Desktop shell** | Four-region egui shell (spec-driven ribbon, snapshot-driven navigation pane with click-to-open, tabbed workspace with close/activate, status bar) — all strings and logic computed in core, paint code renders only |
 | **Datasheet & design view** | Real fixture databases open through the composition root; virtualized datasheet over cached rows with Access-style cell rendering; read-only design grid with Access type names and a full property sheet |
 | **Headless automation** | `datacraft-mcp` — a stdio JSON-RPC 2.0 endpoint agents spawn; the headless E2E harness drives the full stack over the wire against real fixtures; `datacraft-cli` (open/exec/repl) as the fourth command-bus client with deterministic exit codes |
 | **Forms** | WYSIWYG designer with snap-to-grid drag, the Access toolbox palette (Label/Text Box/Check Box/Combo Box/Button/Subform), whitelisted data binding, runtime record navigation, and sidecar persistence (versioned .datacraft, database-name checked) |
+| **Reports** | print-geometry designer (A4 page with margin guides) sharing the form canvas; print-preview runtime paginating over source rows (one page per record; grouped/aggregate bands land with the expression service) |
 | **Relationships & QBE** | Relationship mapper window fed by MSysRelationships through the port; Access-style QBE grid (table/field/sort/show/criteria rows, schema-whitelisted, persisted in the sidecar); in-memory query engine with typed predicate coercion, AND/OR composition and stable multi-key sorts — no SQL parser |
 | **CI quality gates** | Coverage ≥ 95 % lines, every `.rs` file < 500 lines, zero `TODO`/`FIXME`/`HACK`/`XXX`, `rustfmt --check`, `clippy -D warnings`, test matrix on ubuntu-latest, windows-latest, macos-latest |
 | **Docs & process** | Architecture blueprint, Jet/ACE binary-format knowledge base, testing policy and the clean-room playbook |
@@ -115,7 +117,7 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 | Layer | Crate | Job |
 | --- | --- | --- |
 | core | `datacraft-core` | domain model, schema, command bus, query engine, application state, snapshots, JSON-RPC transport (Phases 3–4, 7) |
-| storage | `datacraft-storage` | `StorageEngine` trait, pure-Rust Jet/ACE backends + `StoragePort` adapter, libmdb oracle (`cfg(test)` only) (Phase 2+) |
+| storage | `datacraft-storage` | `StorageEngine` trait, pure-Rust Jet3/Jet4 read + Jet4 write backends, `StoragePort` adapter, libmdb oracle (`cfg(test)` only) (Phase 2, 10) |
 | ui | `datacraft-ui` | eframe/egui desktop shell (`datacraft`) and the MCP endpoint binary (`datacraft-mcp`) (Phase 5+) |
 | cli | `datacraft-cli` | the fourth command-bus client — binary `datacraft-cli` (Phase 9) |
 
@@ -138,7 +140,7 @@ is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Roadmap
 
-Nine phases take DataCraft from skeleton to release:
+Ten phases take DataCraft from skeleton to release:
 
 | Phase | Delivers | Status |
 | --- | --- | --- |
@@ -149,8 +151,9 @@ Nine phases take DataCraft from skeleton to release:
 | 5 — UI Skeleton (egui) | app shell, ribbon, navigation pane, tabbed workspace | ✅ |
 | 6 — Datasheet & Design View | shared grid core, datasheet, table design view | ✅ |
 | 7 — QBE Query Builder | relationship mapper, QBE grid, query engine | ✅ |
-| 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime | ✅ (reports: H31) |
+| 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime | ✅ |
 | 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep | ✅ |
+| 10 — Jet4 Writer, Reports & Release | Jet4 writer workstream, Jet3 read, report designer + print preview, fixture pin integrity | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA

@@ -201,8 +201,10 @@ Evidence (hex study on both fixture variants, hashes per
   post-header payloads and keeps `tdef_len` (self-inclusive) as the parse
   bound. Chain cycles and non-TDEF chain members are precise `Corrupt`
   errors. (Found via the Access-rewritten fixture variant — Table2.)
-- **Writes are `Unsupported`** through the port adapter until the writer
-  workstream (BACKLOG H9) lands; the adapter is read-only by design.
+- **Writes** run through the clean-room writer (BACKLOG H9, Phase 10):
+  create tables + insert rows on Jet4/ACE with usage-map-consistent
+  allocation — see "Usage maps (writer)" below. Update/delete rows and
+  LVAL-chain writes follow.
 
 ## Usage maps (writer — verified 2026-11-01, step 10.1)
 
