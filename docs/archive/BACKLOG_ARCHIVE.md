@@ -238,3 +238,27 @@
 - **Scope:** Read-only table design view: Access-style kind display names (Short Text, Long Text, Byte/Integer/Long Integer/Single/Double/Decimal, Date/Time, Currency, AutoNumber flavors, Yes/No, OLE Object/Attachment, GUID) computed in core and carried on the snapshot; the UI renders a design grid (field name / data type / summary) per table tab with a per-tab Datasheet|Design mode toggle and a selected-field property panel. Design-time schema EDITING (add/rename/drop fields, save) needs the write path and is deferred to H9.
 - **Acceptance:** Kind-display contract tests per kind (incl. decimal precision/scale in the size column); snapshot carries kind_display; UI renders grid + properties; canonical verification set green.
 - **Done:** step 6.3 (core 3e6fe9a, ui 06c2982); design-time schema editing deferred to H9 (documented in the UI)
+
+---
+
+### [x] H25 — Relationship mapper pane — port relationships and canvas — 🟠
+- **Location:** `datacraft-core/src/port.rs` (Relationship + relationships()), `datacraft-storage/src/port_adapter.rs` (MSysRelationships read), `datacraft-ui/src/relationships.rs`
+- **Scope:** Relationship mapper: the port exposes `relationships() -> Vec<Relationship { table, column, related_table, related_column }>`; the Jet4 adapter reads MSysRelationships through the existing row decode (system tables are readable data, only filtered from the user catalog); the core state caches them on open; the UI pane draws table boxes with connection lines (canvas painting, no logic) and lists relationships textually.
+- **Acceptance:** Adapter contract test against the fixture (Relationships rows map or the absence is precise); relationships survive the snapshot; UI pane renders; canonical verification set green.
+- **Done:** step 7.1 (feat a7e2a6f)
+
+---
+
+### [x] H26 — QBE grid — query model, commands, sidecar persistence — 🟠
+- **Location:** `datacraft-core/src/query.rs` (QueryDef, QBE model, SetQbeCell commands), `datacraft-core/src/schema/document.rs` (queries in the sidecar, serde(default)), `datacraft-ui/src/qbe.rs`
+- **Scope:** QBE model per decision default 7 (no SQL parser): `QueryDef { name, table, fields: Vec<QbeField { name, shown, sort, criteria: Vec<String> }> }`; Command::CreateQuery + Command::SetQbeCell { row (Field/Sort/Show/Criteria(n)), col, value } with whitelist validation (field names must exist in the source table, LESSONS #5); queries persist in the sidecar document (SchemaDocument.queries, serde default — additive v1); queries appear in the snapshot and nav pane; the QBE grid renders as a document tab with editable cells dispatching SetQbeCell; Create > Query Design ribbon action enables.
+- **Acceptance:** Model contract tests (creation, cell edits across row kinds, whitelist rejection, sidecar round-trip with queries); snapshot/nav carriage; QBE grid renders and dispatches; canonical verification set green.
+- **Done:** step 7.2 (feat 7cb66ba)
+
+---
+
+### [x] H27 — Query engine integration — predicates, execution, result view — 🟠
+- **Location:** `datacraft-core/src/query_engine.rs` (execution), `datacraft-core/src/core.rs` (run_query + RunQuery command), `datacraft-ui/src/datasheet.rs` (result view for query tabs)
+- **Scope:** In-memory query execution (decision default 7): criteria strings parse to predicates (comparison ops =/<>/< <=/> >= with typed literal coercion per column kind, plain value = equality); execution = read source rows through the port, filter (AND across columns, OR within a column's criteria), project shown columns, sort by sort columns (stable, asc/desc); identifier whitelist enforced at parse (unknown field/operator -> precise error). `Core::run_query(name) -> Result<QueryResult, PortError-ish>`; Command::RunQuery validates and emits QueryRan { rows }; query tabs render results as a datasheet-style grid (test ids result.<query>.cell.<row>.<col>).
+- **Acceptance:** Engine contract tests (typed comparisons incl. text/number coercion errors, AND/OR composition, projection, asc/desc stable sort, empty result, unknown identifiers); RunQuery observability; canonical verification set green.
+- **Done:** step 7.3 (feat ec62b7b)

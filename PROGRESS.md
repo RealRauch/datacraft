@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 7 — QBE Query Builder
-
-**Scope (Steps):**
-
-- **7.1 Relationship Mapper Pane**
-- **7.2 QBE Grid**
-- **7.3 Query Engine Integration**
-- **7.4 Phase 7 Quality Gate Review**
 ### Phase 8 — Form & Report Canvas
 
 **Scope (Steps):**
@@ -76,10 +68,10 @@
 | 6.2 | Datasheet View & Record Navigation | ✅ |
 | 6.3 | Table Design View | ✅ |
 | 6.4 | Phase 6 Quality Gate Review | ✅ |
-| 7.1 | Relationship Mapper Pane | ⬜ |
-| 7.2 | QBE Grid | ⬜ |
-| 7.3 | Query Engine Integration | ⬜ |
-| 7.4 | Phase 7 Quality Gate Review | ⬜ |
+| 7.1 | Relationship Mapper Pane | ✅ |
+| 7.2 | QBE Grid | ✅ |
+| 7.3 | Query Engine Integration | ✅ |
+| 7.4 | Phase 7 Quality Gate Review | ✅ |
 | 8.1 | WYSIWYG Canvas & Snap-to-Grid | ⬜ |
 | 8.2 | Access Control Types | ⬜ |
 | 8.3 | Form Runtime & Data Binding | ⬜ |

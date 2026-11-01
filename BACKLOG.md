@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T03:12
+# BACKLOG.md — Open items (As of: 2026-11-01T03:33
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -94,3 +94,6 @@
 - H21 — Compose the real Jet4Port in the UI binary (composition root) — done (step 6.2 (feat 8410069): App::new takes the port; main.rs composes Jet4Port as the documented composition root)
 - H23 — Datasheet view — port read_rows, row mapping, real composition — done (step 6.2 (tests 704fc10/e606a07/2a7d3be, feats 8b97c26/8410069))
 - H24 — Table design view — read-only design grid and kind display names — done (step 6.3 (core 3e6fe9a, ui 06c2982); design-time schema editing deferred to H9 (documented in the UI))
+- H25 — Relationship mapper pane — port relationships and canvas — done (step 7.1 (feat a7e2a6f))
+- H26 — QBE grid — query model, commands, sidecar persistence — done (step 7.2 (feat 7cb66ba))
+- H27 — Query engine integration — predicates, execution, result view — done (step 7.3 (feat ec62b7b))
