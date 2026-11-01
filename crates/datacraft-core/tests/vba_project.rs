@@ -182,3 +182,18 @@ fn analyze_vba_returns_the_headless_analysis_over_the_bus() {
         [Event::Failed { reason }] if reason.contains("no VBA project")
     ));
 }
+
+#[test]
+fn analyze_vba_reports_the_extraction_failure_precisely() {
+    let mut port = MockPort::new();
+    port.with_vba_error("VBA dir stream is corrupt");
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("broken.accdb"),
+        password: None,
+    });
+    assert!(matches!(
+        core.dispatch(Command::AnalyzeVba).as_slice(),
+        [Event::Failed { reason }] if reason.contains("dir stream")
+    ));
+}
