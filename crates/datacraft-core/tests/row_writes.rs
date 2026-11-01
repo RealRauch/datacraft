@@ -9,9 +9,7 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::port::{MockPort, RowRange};
-use datacraft_core::schema::{
-    AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 
 fn customers() -> TableDef {
     TableDef::new(
@@ -117,7 +115,7 @@ fn changing_an_autonumber_is_rejected() {
             FieldValue::Float(1.5),
         ],
     )));
-    assert!(reason.contains("autonumber"), "{reason}");
+    assert!(reason.to_lowercase().contains("autonumber"), "{reason}");
     assert!(reason.contains("\"id\""), "{reason}");
     assert_eq!(rows(&core)[0][0], FieldValue::Integer(1));
 }
@@ -227,4 +225,50 @@ fn row_write_commands_round_trip_through_json() {
         let back: Command = serde_json::from_str(&json).expect("deserialize command");
         assert_eq!(back, command);
     }
+}
+
+#[test]
+fn update_and_delete_report_missing_database_and_tables() {
+    let mut core = Core::new(Box::new(MockPort::with_tables(vec![customers()])));
+    let values = vec![
+        FieldValue::Integer(1),
+        FieldValue::Text("Ada".into()),
+        FieldValue::Float(1.5),
+    ];
+    let reason = failure(&core.dispatch(update(0, values.clone())));
+    assert!(reason.contains("no database"), "{reason}");
+    let reason = failure(&core.dispatch(Command::DeleteRow {
+        table: "Customers".into(),
+        row: 0,
+    }));
+    assert!(reason.contains("no database"), "{reason}");
+
+    core.dispatch(Command::OpenDatabase {
+        path: "memory.mock".into(),
+    });
+    let reason = failure(&core.dispatch(Command::UpdateRow {
+        table: "Ghost".into(),
+        row: 0,
+        values: values.clone(),
+    }));
+    assert!(reason.contains("not found"), "{reason}");
+    let reason = failure(&core.dispatch(Command::DeleteRow {
+        table: "Ghost".into(),
+        row: 0,
+    }));
+    assert!(reason.contains("not found"), "{reason}");
+}
+
+#[test]
+fn a_row_index_at_the_end_is_out_of_range() {
+    let mut core = core_with_rows();
+    let reason = failure(&core.dispatch(update(
+        2,
+        vec![
+            FieldValue::Integer(1),
+            FieldValue::Text("Ada".into()),
+            FieldValue::Float(1.5),
+        ],
+    )));
+    assert!(reason.contains("out of range"), "{reason}");
 }

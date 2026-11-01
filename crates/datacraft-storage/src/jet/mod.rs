@@ -15,6 +15,7 @@ pub mod row;
 pub mod tdef;
 pub mod usage_map;
 pub mod writer;
+pub mod writer_rows;
 pub mod writer_tables;
 
 pub use catalog::{CATALOG_TDEF_PAGE, CatalogEntry, OBJECT_TYPE_TABLE};

@@ -201,6 +201,8 @@ impl Core {
             Command::CreateTable { definition } => self.create_table(definition),
             Command::DropTable { table } => self.drop_table(&table),
             Command::InsertRow { table, values } => self.insert_row(&table, &values),
+            Command::UpdateRow { table, row, values } => self.update_row(&table, row, &values),
+            Command::DeleteRow { table, row } => self.delete_row(&table, row),
             Command::OpenObject(object) => self.open_object(object),
             Command::CloseTab { tab_id } => self.close_tab(tab_id),
             Command::SetActiveTab { tab_id } => self.set_active_tab(tab_id),

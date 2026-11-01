@@ -132,6 +132,16 @@ pub trait StoragePort {
     /// Appends one row (positional values, arity must match the table).
     /// `Null` on an AutoNumber field means "engine-assigned".
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError>;
+    /// Replaces the row at `row` (zero-based live-row index) with `values`
+    /// (step 11.10, H40). AutoNumber values are preserved by the caller.
+    fn update_row(
+        &mut self,
+        table: &str,
+        row: usize,
+        values: &[FieldValue],
+    ) -> Result<(), PortError>;
+    /// Deletes the row at `row` (zero-based live-row index).
+    fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError>;
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
 }
@@ -221,6 +231,24 @@ impl MockPort {
     pub fn with_write_failure(&mut self, detail: impl Into<String>) -> &mut Self {
         self.write_fail = Some(detail.into());
         self
+    }
+
+    /// Resolves a table definition case-insensitively.
+    fn table_def(&self, table: &str) -> Result<&TableDef, PortError> {
+        self.tables
+            .iter()
+            .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))
+    }
+}
+
+/// Out-of-range error for a single addressed row.
+fn out_of_range(table: &str, row: usize, row_count: usize) -> PortError {
+    PortError::OutOfRange {
+        table: table.to_owned(),
+        start: row,
+        len: 1,
+        row_count,
     }
 }
 
@@ -324,6 +352,65 @@ impl StoragePort for MockPort {
         Ok(())
     }
 
+    fn update_row(
+        &mut self,
+        table: &str,
+        row: usize,
+        values: &[FieldValue],
+    ) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        let def = self.table_def(table)?.clone();
+        if values.len() != def.fields.len() {
+            return Err(PortError::WriteFailed {
+                detail: format!(
+                    "update {:?}: expected {} values, found {}",
+                    def.name,
+                    def.fields.len(),
+                    values.len()
+                ),
+            });
+        }
+        let rows = self
+            .rows
+            .iter_mut()
+            .find(|(key, _)| key.eq_ignore_ascii_case(&def.name))
+            .map(|(_, rows)| rows);
+        let Some(rows) = rows else {
+            return Err(out_of_range(table, row, 0));
+        };
+        let Some(target) = rows.get_mut(row) else {
+            return Err(out_of_range(table, row, rows.len()));
+        };
+        *target = values.to_vec();
+        Ok(())
+    }
+
+    fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        let def = self.table_def(table)?.clone();
+        let rows = self
+            .rows
+            .iter_mut()
+            .find(|(key, _)| key.eq_ignore_ascii_case(&def.name))
+            .map(|(_, rows)| rows);
+        let Some(rows) = rows else {
+            return Err(out_of_range(table, row, 0));
+        };
+        if row >= rows.len() {
+            return Err(out_of_range(table, row, rows.len()));
+        }
+        rows.remove(row);
+        Ok(())
+    }
+
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
         Ok(self.relationships.clone())
     }
@@ -359,6 +446,61 @@ mod tests {
         assert!(matches!(
             port.insert_row("T", &[FieldValue::Integer(1)]),
             Err(PortError::WriteFailed { .. })
+        ));
+        assert!(matches!(
+            port.update_row("T", 0, &[FieldValue::Integer(1)]),
+            Err(PortError::WriteFailed { .. })
+        ));
+        assert!(matches!(
+            port.delete_row("T", 0),
+            Err(PortError::WriteFailed { .. })
+        ));
+    }
+
+    /// The mock applies row operations by live-row index and reports
+    /// precise bounds and arity failures.
+    #[test]
+    fn mock_row_operations_cover_bounds_and_arity() {
+        let mut port = MockPort::with_tables(vec![table()]);
+        port.with_row_data("T", vec![vec![FieldValue::Integer(1)]]);
+        port.update_row("t", 0, &[FieldValue::Integer(2)])
+            .expect("case-insensitive update");
+        port.open(std::path::Path::new("memory.mock"))
+            .expect("open the mock");
+        assert_eq!(
+            port.read_rows("T", RowRange { start: 0, len: 1 })
+                .expect("row stored"),
+            vec![vec![FieldValue::Integer(2)]]
+        );
+
+        assert!(matches!(
+            port.update_row("T", 0, &[]),
+            Err(PortError::WriteFailed { .. })
+        ));
+        assert!(matches!(
+            port.update_row("T", 3, &[FieldValue::Integer(3)]),
+            Err(PortError::OutOfRange { .. })
+        ));
+        assert!(matches!(
+            port.delete_row("T", 3),
+            Err(PortError::OutOfRange { .. })
+        ));
+        port.delete_row("T", 0).expect("delete the only row");
+        assert!(
+            port.read_rows("T", RowRange { start: 0, len: 1 })
+                .expect("empty table reads")
+                .is_empty()
+        );
+
+        // A table without a row entry behaves like an empty table.
+        let mut empty = MockPort::with_tables(vec![table()]);
+        assert!(matches!(
+            empty.update_row("T", 0, &[FieldValue::Integer(1)]),
+            Err(PortError::OutOfRange { .. })
+        ));
+        assert!(matches!(
+            empty.delete_row("T", 0),
+            Err(PortError::OutOfRange { .. })
         ));
     }
 

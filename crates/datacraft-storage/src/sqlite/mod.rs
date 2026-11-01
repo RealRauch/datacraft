@@ -190,6 +190,99 @@ impl StoragePort for SqlitePort {
         Ok(out)
     }
 
+    fn update_row(
+        &mut self,
+        table: &str,
+        row: usize,
+        values: &[FieldValue],
+    ) -> Result<(), PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
+        let def = self
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(table))
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?
+            .clone();
+        if values.len() != def.fields.len() {
+            return Err(PortError::WriteFailed {
+                detail: format!(
+                    "update {:?}: expected {} values, found {}",
+                    def.name,
+                    def.fields.len(),
+                    values.len()
+                ),
+            });
+        }
+        // AutoNumber columns keep their engine-assigned value.
+        let mut assignments = Vec::new();
+        let mut params = Vec::new();
+        for (field, value) in def.fields.iter().zip(values) {
+            if matches!(field.kind, FieldKind::AutoNumber(_)) {
+                continue;
+            }
+            params.push(sql_value(&field.kind, value));
+            assignments.push(format!("{} = ?{}", quote_ident(&field.name), params.len()));
+        }
+        if assignments.is_empty() {
+            // Only AutoNumber columns: verify the row exists.
+            let count = count_rows(conn, &def.name)?;
+            return if row < count {
+                Ok(())
+            } else {
+                Err(out_of_range(table, row, count))
+            };
+        }
+        params.push(rusqlite::types::Value::Integer(
+            i64::try_from(row).unwrap_or(i64::MAX),
+        ));
+        let sql = format!(
+            "UPDATE {} SET {} WHERE rowid = (SELECT rowid FROM {} ORDER BY rowid LIMIT 1 OFFSET ?{})",
+            quote_ident(&def.name),
+            assignments.join(", "),
+            quote_ident(&def.name),
+            params.len()
+        );
+        let affected = conn
+            .execute(&sql, rusqlite::params_from_iter(params))
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("update of {:?} failed: {e}", def.name),
+            })?;
+        if affected == 0 {
+            return Err(out_of_range(table, row, count_rows(conn, &def.name)?));
+        }
+        Ok(())
+    }
+
+    fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
+        let def = self
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(table))
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?;
+        let sql = format!(
+            "DELETE FROM {} WHERE rowid = (SELECT rowid FROM {} ORDER BY rowid LIMIT 1 OFFSET ?1)",
+            quote_ident(&def.name),
+            quote_ident(&def.name)
+        );
+        let offset = i64::try_from(row).unwrap_or(i64::MAX);
+        let affected =
+            conn.execute(&sql, rusqlite::params![offset])
+                .map_err(|e| PortError::WriteFailed {
+                    detail: format!("delete from {:?} failed: {e}", def.name),
+                })?;
+        if affected == 0 {
+            return Err(out_of_range(table, row, count_rows(conn, &def.name)?));
+        }
+        Ok(())
+    }
+
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
         let conn = self.conn.as_ref().ok_or_else(no_database)?;
         let mut out = Vec::new();
@@ -206,3 +299,13 @@ use mapping::{
     collect_tables, count_rows, create_sql, foreign_keys, no_database, open_database, quote_ident,
     read_failed, read_magic, read_only, sql_value, to_field_value,
 };
+
+/// Out-of-range error for a single addressed row.
+fn out_of_range(table: &str, row: usize, row_count: usize) -> PortError {
+    PortError::OutOfRange {
+        table: table.to_owned(),
+        start: row,
+        len: 1,
+        row_count,
+    }
+}

@@ -184,6 +184,33 @@ impl StoragePort for Jet4Port {
             .map(|row| row.iter().map(to_field_value).collect())
             .collect())
     }
+
+    fn update_row(
+        &mut self,
+        table: &str,
+        row: usize,
+        values: &[FieldValue],
+    ) -> Result<(), PortError> {
+        if self.reader.is_none() {
+            return Err(no_database());
+        }
+        let page = self.page_of(table)?;
+        let stored = {
+            let definition = self.definition_of(table)?.clone();
+            port_write::to_storage_values_for_update(&definition.fields, values)?
+        };
+        self.with_writer(|writer| writer.update_row(page, row, &stored))?;
+        Ok(())
+    }
+
+    fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
+        if self.reader.is_none() {
+            return Err(no_database());
+        }
+        let page = self.page_of(table)?;
+        self.with_writer(|writer| writer.delete_row(page, row))?;
+        Ok(())
+    }
 }
 
 /// Maps one stored value onto the domain vocabulary (1:1 — the variants
@@ -204,6 +231,23 @@ fn to_field_value(value: &crate::types::StorageValue) -> FieldValue {
 }
 
 impl Jet4Port {
+    /// TDEF page of a catalogued table (the writer's identity).
+    fn page_of(&self, table: &str) -> Result<u32, PortError> {
+        self.pages
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(table))
+            .map(|(_, page)| *page)
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))
+    }
+
+    /// Domain definition of a catalogued table.
+    fn definition_of(&self, table: &str) -> Result<&TableDef, PortError> {
+        self.tables
+            .iter()
+            .find(|definition| definition.name.eq_ignore_ascii_case(table))
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))
+    }
+
     /// Runs one writer operation on a private copy of the file, persists the
     /// result and swaps in the refreshed reader/catalog. A failed operation
     /// leaves the file and the in-memory state untouched.
@@ -309,6 +353,17 @@ fn no_database() -> PortError {
 fn map_write(error: StorageError) -> PortError {
     match error {
         StorageError::Unsupported { reason } => PortError::Unsupported { reason },
+        StorageError::OutOfRange {
+            table,
+            start,
+            len,
+            row_count,
+        } => PortError::OutOfRange {
+            table,
+            start,
+            len,
+            row_count,
+        },
         other => PortError::WriteFailed {
             detail: other.to_string(),
         },

@@ -93,6 +93,27 @@ impl StoragePort for DetectingPort {
         }
     }
 
+    fn update_row(
+        &mut self,
+        table: &str,
+        row: usize,
+        values: &[FieldValue],
+    ) -> Result<(), PortError> {
+        match &mut self.backend {
+            Some(Backend::Jet(port)) => port.update_row(table, row, values),
+            Some(Backend::Sqlite(port)) => port.update_row(table, row, values),
+            None => Err(no_database()),
+        }
+    }
+
+    fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
+        match &mut self.backend {
+            Some(Backend::Jet(port)) => port.delete_row(table, row),
+            Some(Backend::Sqlite(port)) => port.delete_row(table, row),
+            None => Err(no_database()),
+        }
+    }
+
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
         match &self.backend {
             Some(Backend::Jet(port)) => port.read_rows(table, range),

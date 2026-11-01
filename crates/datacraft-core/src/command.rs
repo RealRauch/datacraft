@@ -47,6 +47,24 @@ pub enum Command {
         /// Full positional value list (arity must match the table).
         values: Vec<crate::schema::FieldValue>,
     },
+    /// Replaces one row by its zero-based live-row index (step 11.10,
+    /// H40). `Null` on an AutoNumber field keeps the engine-assigned value;
+    /// any other AutoNumber value must equal the current one.
+    UpdateRow {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// Zero-based index in the table's live-row order.
+        row: usize,
+        /// Full positional value list (arity must match the table).
+        values: Vec<crate::schema::FieldValue>,
+    },
+    /// Deletes one row by its zero-based live-row index (step 11.10, H40).
+    DeleteRow {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// Zero-based index in the table's live-row order.
+        row: usize,
+    },
     /// Opens the object in a tab (re-activates an existing tab instead of
     /// opening a second one for the same object).
     OpenObject(ObjectId),

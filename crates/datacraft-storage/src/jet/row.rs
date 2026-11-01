@@ -245,6 +245,37 @@ pub(crate) fn fixed_len(col: &JetColumn) -> usize {
     }
 }
 
+/// Whether any memo/OLE column of `row` points at an external long-value
+/// storage form (single LVAL record or chain) instead of the inline form
+/// the writer emits. Updating such a row would orphan the LVAL pages, so
+/// the writer refuses it precisely.
+pub(crate) fn has_external_long_value(row: &[u8], def: &JetTableDef) -> Result<bool, StorageError> {
+    let layout = RowLayout::parse(row, false)?;
+    for col in &def.columns {
+        if col.is_fixed() || !matches!(col.data_type, JetType::Memo | JetType::Ole) {
+            continue;
+        }
+        let index = usize::from(col.var_index.unwrap_or(0));
+        if index >= layout.var_len {
+            continue;
+        }
+        let (start, end) = (layout.var_start(row, index), layout.var_end(row, index));
+        if end <= start {
+            continue; // NULL (empty slot)
+        }
+        if end - start < 4 {
+            return Ok(true); // malformed payload: never rewrite it blindly
+        }
+        let flags =
+            u32::from_le_bytes([row[start], row[start + 1], row[start + 2], row[start + 3]])
+                & 0xC000_0000;
+        if flags != 0x8000_0000 {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 fn decode_variable(
     row: &[u8],
     layout: &RowLayout,
@@ -429,4 +460,43 @@ fn decode_compressed_text(bytes: &[u8]) -> String {
         }
     }
     String::from_utf16_lossy(&units)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::jet::encode::{build_table_def, encode_row};
+
+    fn memo_table() -> JetTableDef {
+        build_table_def(
+            0x4E,
+            0,
+            &[
+                JetColumn::new("id", JetType::LongInt, 0x03, 0, 0, 4),
+                JetColumn::new("note", JetType::Memo, 0x02, 1, 0, 0),
+            ],
+            0,
+            0,
+        )
+    }
+
+    #[test]
+    fn inline_long_values_are_rewritable_and_external_ones_are_not() {
+        let def = memo_table();
+        let inline = encode_row(
+            &[StorageValue::Int(1), StorageValue::Text("hello".into())],
+            &def,
+        )
+        .expect("encode inline memo");
+        assert!(!has_external_long_value(&inline, &def).expect("inline row parses"));
+
+        let null_memo = encode_row(&[StorageValue::Int(2), StorageValue::Null], &def)
+            .expect("encode null memo");
+        assert!(!has_external_long_value(&null_memo, &def).expect("null memo parses"));
+
+        // The memo payload starts behind num_cols (2) + the fixed area (4).
+        let mut external = inline.clone();
+        external[6..10].copy_from_slice(&0x4000_0000u32.to_le_bytes());
+        assert!(has_external_long_value(&external, &def).expect("external row parses"));
+    }
 }

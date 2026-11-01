@@ -202,9 +202,9 @@ Evidence (hex study on both fixture variants, hashes per
   bound. Chain cycles and non-TDEF chain members are precise `Corrupt`
   errors. (Found via the Access-rewritten fixture variant — Table2.)
 - **Writes** run through the clean-room writer (BACKLOG H9, Phase 10):
-  create tables + insert rows on Jet4/ACE with usage-map-consistent
-  allocation — see "Usage maps (writer)" below. Update/delete rows and
-  LVAL-chain writes follow.
+  create tables, insert, update and delete rows on Jet4/ACE with
+  usage-map-consistent allocation — see "Usage maps (writer)" and
+  "Row update and delete (writer)" below.
 
 ## Usage maps (writer — verified 2026-11-01, step 10.1)
 
@@ -305,14 +305,43 @@ column mapping (with its lossiness) is documented in `src/port_write.rs`:
 - text `max_len` becomes a byte budget of `2 * max_len` (UTF-16, variable
   slot); memo/OLE use the inline long-value form; numeric widths, decimal
   scale (17-byte `Numeric`), date, currency, GUID and boolean map 1:1.
-- **`Unsupported` today:** `AutoNumber` (the writer does not maintain the
-  AutoNumber counter yet) and attachment/complex columns (M4).
-- `drop_table` is `Unsupported` until the navigation-pane delete flow
-  (step 11.4).
+- **`Unsupported` today:** inserting into `AutoNumber` columns (the writer
+  does not maintain the counter yet, M8), attachment/complex columns (M4)
+  and `drop_table` (M7).
+- `update_row`/`delete_row` address rows by their zero-based live-row
+  index — the same order `read_rows` returns (next section).
 
 Verified end-to-end on the pinned fixture: an inserted row (text, byte,
 integer, long, double, date, currency, boolean) reads back through our
 decoder after reopen **and** through `mdb-export` (mdbtools 1.0.1).
+
+## Row update and delete (writer — 2026-11-01, step 11.10, BACKLOG H40)
+
+Row indices address the **live-row order** (slots without the deleted
+flag, in page/slot order) — the order the reader returns.
+
+- **Delete** sets bit `0x8000` in the row's offset-table entry and
+  decrements the TDEF `num_rows`; the bytes stay in place. This is the
+  Access convention: space is reclaimed by a later compaction, never by
+  the delete, so the page's free-space field and the usage/free maps stay
+  valid unchanged. The reader already skips `0x8000` slots (deleted rows
+  and overflow targets).
+- **Update** takes the in-place path when the encoded row keeps its byte
+  length (fixed-width rows and same-length variable values): only the
+  slot's bytes change, offsets and free space stay valid.
+- A different length **repacks the page** back-to-front with every slot's
+  `0x8000`/`0x4000` flags preserved and recomputes the free-space field;
+  the table's free-map bit is refreshed afterwards (>= 512 bytes free).
+- **`Unsupported` (precise):** rows behind an overflow pointer (`0x4000`
+  slot) and rows whose memo/OLE value lives in an **external LVAL chain**
+  — rewriting them would orphan pages; and updates whose row does not fit
+  the page (overflow into a new page is a later milestone).
+- AutoNumber columns are written as-is on update; the command bus
+  guarantees the value is unchanged (`Null` keeps the current value).
+
+Verified on private fixture copies: update/delete persist across reopen,
+memo/OLE repack round-trips, usage maps decode after the operations, and
+`mdb-export` reads the written file where the oracle is installed.
 
 ## Jet 3 (Access 97) read path (2026-11-01 — step 10.6, BACKLOG L1)
 

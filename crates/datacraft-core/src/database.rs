@@ -124,6 +124,91 @@ impl crate::core::Core {
         }
     }
 
+    /// Replaces one row (step 11.10, H40): schema-validated like an insert,
+    /// with AutoNumber values preserved (Null keeps the current value, any
+    /// other value must match it).
+    pub(crate) fn update_row(
+        &mut self,
+        table: &str,
+        row: usize,
+        values: &[FieldValue],
+    ) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(table))
+        else {
+            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+        };
+        let canonical = def.name.clone();
+        let fields = def.fields.clone();
+        if values.len() != fields.len() {
+            return failed(format!(
+                "update {:?}: expected {} values, found {}",
+                canonical,
+                fields.len(),
+                values.len()
+            ));
+        }
+        let current = match self
+            .port
+            .read_rows(&canonical, crate::port::RowRange { start: row, len: 1 })
+        {
+            Ok(rows) if rows.len() == 1 => rows.into_iter().next().expect("length checked"),
+            Ok(_) => return failed(format!("row {row} of {canonical:?} is out of range")),
+            Err(e) => return failed(e.to_string()),
+        };
+        let mut final_values = values.to_vec();
+        for (index, field) in fields.iter().enumerate() {
+            if matches!(field.kind, FieldKind::AutoNumber(_)) {
+                if matches!(final_values[index], FieldValue::Null) {
+                    final_values[index] = current[index].clone();
+                } else if final_values[index] != current[index] {
+                    return failed(format!(
+                        "field {:?}: AutoNumber values are engine-assigned and cannot be changed",
+                        field.name
+                    ));
+                }
+                continue;
+            }
+            if let Err(e) = field.validate_value(&final_values[index]) {
+                return failed(format!("field {:?}: {e}", field.name));
+            }
+        }
+        match self.port.update_row(&canonical, row, &final_values) {
+            Err(e) => failed(e.to_string()),
+            Ok(()) => vec![Event::RowUpdated {
+                table: canonical,
+                row,
+            }],
+        }
+    }
+
+    /// Deletes one row (step 11.10, H40).
+    pub(crate) fn delete_row(&mut self, table: &str, row: usize) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(table))
+        else {
+            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+        };
+        let canonical = def.name.clone();
+        match self.port.delete_row(&canonical, row) {
+            Err(e) => failed(e.to_string()),
+            Ok(()) => vec![Event::RowDeleted {
+                table: canonical,
+                row,
+            }],
+        }
+    }
+
     pub(crate) fn drop_table(&mut self, table: &str) -> Vec<Event> {
         if self.state.database.is_none() {
             return failed("no database is open — open a database first");

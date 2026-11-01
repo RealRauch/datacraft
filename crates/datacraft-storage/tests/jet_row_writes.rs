@@ -10,12 +10,11 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{PortError, RowRange, StoragePort};
-use datacraft_core::schema::{
-    BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
-use datacraft_storage::jet::{Jet4TableReader, Jet4Writer};
-use datacraft_storage::port_adapter::Jet4Port;
+use datacraft_core::schema::{BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
+use datacraft_storage::StorageError;
 use datacraft_storage::StorageValue;
+use datacraft_storage::jet::{DataPage, Jet4TableReader, Jet4Writer, JetColumn, JetType};
+use datacraft_storage::port_adapter::Jet4Port;
 
 fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -66,8 +65,14 @@ fn table1_values() -> Vec<FieldValue> {
 }
 
 fn read_all(port: &Jet4Port, table: &str) -> Vec<Vec<FieldValue>> {
-    port.read_rows(table, RowRange { start: 0, len: 1000 })
-        .expect("read rows")
+    port.read_rows(
+        table,
+        RowRange {
+            start: 0,
+            len: 1000,
+        },
+    )
+    .expect("read rows")
 }
 
 #[test]
@@ -104,7 +109,10 @@ fn updating_a_fixed_width_column_keeps_the_row_slot() {
     port.close();
 
     let reopened = opened(&scratch.0);
-    assert_eq!(read_all(&reopened, "Table1")[0][4], FieldValue::Integer(424_242));
+    assert_eq!(
+        read_all(&reopened, "Table1")[0][4],
+        FieldValue::Integer(424_242)
+    );
 }
 
 #[test]
@@ -296,4 +304,169 @@ fn the_oracle_reads_a_written_file() {
     );
     let csv = String::from_utf8_lossy(&output.stdout);
     assert!(csv.contains("updated"), "{csv}");
+}
+
+#[test]
+fn update_errors_are_precise() {
+    let scratch = Scratch(scratch_copy("update-errors"));
+    let mut port = opened(&scratch.0);
+
+    let err = port
+        .update_row("Table1", 0, &[FieldValue::Integer(1)])
+        .expect_err("arity");
+    assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
+    assert!(err.to_string().contains("defines 9 fields"), "{err}");
+
+    let mut values = table1_values();
+    values[2] = FieldValue::Text("not a byte".into());
+    let err = port.update_row("Table1", 0, &values).expect_err("kind");
+    assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
+
+    // Table3's AutoNumber column accepts only its engine-assigned integer.
+    let err = port
+        .update_row(
+            "Table3",
+            0,
+            &[FieldValue::Text("id".into()), FieldValue::Text("b".into())],
+        )
+        .expect_err("autonumber type");
+    assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
+    assert!(err.to_string().contains("AutoNumber"), "{err}");
+}
+
+#[test]
+fn row_operations_require_an_open_database() {
+    let mut port = Jet4Port::new();
+    assert!(matches!(
+        port.update_row("Table1", 0, &[FieldValue::Null]),
+        Err(PortError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        port.delete_row("Table1", 0),
+        Err(PortError::Unsupported { .. })
+    ));
+}
+
+#[test]
+fn writer_row_updates_cover_in_place_external_and_full_pages() {
+    let scratch = Scratch(scratch_copy("writer-rows"));
+    let bytes = std::fs::read(&scratch.0).expect("read fixture");
+    let mut writer = Jet4Writer::new(bytes).expect("writer");
+    let page = writer
+        .create_table(
+            "RowOps",
+            &[
+                JetColumn::new("id", JetType::LongInt, 0x03, 0, 0, 4),
+                JetColumn::new("note", JetType::Memo, 0x02, 1, 0, 0),
+            ],
+        )
+        .expect("create the table");
+    writer
+        .insert_row(
+            page,
+            &[StorageValue::Int(1), StorageValue::Text("abcde".into())],
+        )
+        .expect("insert the row");
+
+    // Same-length text: the writer overwrites the slot in place.
+    writer
+        .update_row(
+            page,
+            0,
+            &[StorageValue::Int(1), StorageValue::Text("vwxyz".into())],
+        )
+        .expect("in-place update");
+
+    // A row that no longer fits the page answers a precise Unsupported.
+    let huge = "x".repeat(5000);
+    let err = writer
+        .update_row(page, 0, &[StorageValue::Int(1), StorageValue::Text(huge)])
+        .expect_err("row larger than the page");
+    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
+    assert!(err.to_string().contains("does not fit"), "{err}");
+
+    // A row that fits the page but collides with the offset table too.
+    let tight = "x".repeat(2035);
+    let err = writer
+        .update_row(page, 0, &[StorageValue::Int(1), StorageValue::Text(tight)])
+        .expect_err("row collides with the offset table");
+    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
+
+    // Patch the memo header into the external LVAL form: the update must be
+    // refused instead of orphaning the chain.
+    let mut bytes = writer.into_file();
+    let (page_no, slot) = Jet4Writer::new(bytes.clone())
+        .expect("writer")
+        .row_location(page, 0)
+        .expect("locate the row");
+    let base = page_no as usize * 4096;
+    let decoded = DataPage::decode(&bytes[base..base + 4096]).expect("decode the page");
+    let (start, _, _) = decoded.records[slot];
+    let memo_at = base + start + 2 + 4; // num_cols + fixed area
+    bytes[memo_at..memo_at + 4].copy_from_slice(&0x4000_0000u32.to_le_bytes());
+    let mut patched = Jet4Writer::new(bytes).expect("writer");
+    let err = patched
+        .update_row(
+            page,
+            0,
+            &[StorageValue::Int(1), StorageValue::Text("new".into())],
+        )
+        .expect_err("external LVAL row");
+    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
+    assert!(err.to_string().contains("LVAL"), "{err}");
+}
+
+#[test]
+fn rows_behind_an_overflow_pointer_are_not_updated() {
+    let scratch = Scratch(scratch_copy("overflow"));
+    let bytes = std::fs::read(&scratch.0).expect("read fixture");
+    let mut writer = Jet4Writer::new(bytes).expect("writer");
+    let page = writer
+        .create_table(
+            "Overflow",
+            &[
+                JetColumn::new("id", JetType::LongInt, 0x03, 0, 0, 4),
+                JetColumn::new("note", JetType::Memo, 0x02, 1, 0, 0),
+            ],
+        )
+        .expect("create the table");
+    writer
+        .insert_row(
+            page,
+            &[StorageValue::Int(1), StorageValue::Text("first".into())],
+        )
+        .expect("insert the data row");
+    writer
+        .insert_row(
+            page,
+            &[StorageValue::Int(2), StorageValue::Text("second".into())],
+        )
+        .expect("insert the pointer row");
+
+    // Rewire slot 1 into an overflow source that points at slot 0 (the
+    // target), exactly as Access stores a row larger than one page.
+    let mut bytes = writer.into_file();
+    let (page_no, _) = Jet4Writer::new(bytes.clone())
+        .expect("writer")
+        .row_location(page, 0)
+        .expect("locate the first row");
+    let base = page_no as usize * 4096;
+    let decoded = DataPage::decode(&bytes[base..base + 4096]).expect("decode the page");
+    let (_, _, raw0) = decoded.records[0];
+    let (start1, _, raw1) = decoded.records[1];
+    let pointer = (page_no << 8).to_le_bytes();
+    bytes[base + start1..base + start1 + 4].copy_from_slice(&pointer);
+    bytes[base + 14 + 2..base + 16 + 2].copy_from_slice(&(raw1 | 0x4000).to_le_bytes());
+    bytes[base + 14..base + 16].copy_from_slice(&(raw0 | 0x8000).to_le_bytes());
+
+    let mut patched = Jet4Writer::new(bytes).expect("writer");
+    let err = patched
+        .update_row(
+            page,
+            0,
+            &[StorageValue::Int(9), StorageValue::Text("new".into())],
+        )
+        .expect_err("overflow row");
+    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
+    assert!(err.to_string().contains("overflow"), "{err}");
 }

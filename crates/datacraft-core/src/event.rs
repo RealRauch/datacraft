@@ -36,6 +36,20 @@ pub enum Event {
         /// Canonical table name.
         table: String,
     },
+    /// A row was replaced (step 11.10, H40).
+    RowUpdated {
+        /// Canonical table name.
+        table: String,
+        /// Zero-based index in the live-row order.
+        row: usize,
+    },
+    /// A row was deleted (step 11.10, H40).
+    RowDeleted {
+        /// Canonical table name.
+        table: String,
+        /// Zero-based index in the live-row order at delete time.
+        row: usize,
+    },
     /// A new tab was opened (followed by `ActiveTabChanged`).
     TabOpened {
         /// Assigned tab id.

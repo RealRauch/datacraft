@@ -178,6 +178,16 @@ impl Jet4Writer {
 
     /// `num_rows += 1` in the TDEF block head (in place, same size).
     fn bump_num_rows(&mut self, tdef_page: u32) -> Result<(), StorageError> {
+        self.adjust_num_rows(tdef_page, 1)
+    }
+
+    /// Applies a signed delta to `num_rows` in the TDEF block head
+    /// (saturating at zero); inserts bump, deletes decrement.
+    pub(crate) fn adjust_num_rows(
+        &mut self,
+        tdef_page: u32,
+        delta: i64,
+    ) -> Result<(), StorageError> {
         let base = self.header.page_offset(tdef_page)? as usize;
         let at = base + 8 + 8; // page header + block offset of num_rows
         let rows = u32::from_le_bytes([
@@ -186,13 +196,22 @@ impl Jet4Writer {
             self.file[at + 2],
             self.file[at + 3],
         ]);
-        self.file[at..at + 4].copy_from_slice(&(rows + 1).to_le_bytes());
+        let updated = if delta >= 0 {
+            rows.saturating_add(delta as u32)
+        } else {
+            rows.saturating_sub(delta.unsigned_abs() as u32)
+        };
+        self.file[at..at + 4].copy_from_slice(&updated.to_le_bytes());
         Ok(())
     }
 
     /// Marks `page_no` in the free map while it holds ≥ `FREE_MAP_RESERVE`
     /// bytes, clears the bit below (the hint must never over-promise).
-    fn update_free_bit(&mut self, tdef_page: u32, page_no: u32) -> Result<(), StorageError> {
+    pub(crate) fn update_free_bit(
+        &mut self,
+        tdef_page: u32,
+        page_no: u32,
+    ) -> Result<(), StorageError> {
         let base = self.header.page_offset(page_no)? as usize;
         let free_space = u16::from_le_bytes([self.file[base + 2], self.file[base + 3]]) as usize;
         let (map_ref, mut map) = self.table_free_map(tdef_page)?;

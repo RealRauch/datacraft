@@ -126,6 +126,47 @@ pub(crate) fn to_storage_values(
     Ok(out)
 }
 
+/// Maps domain values onto the physical storage vocabulary for an update:
+/// AutoNumber columns keep their engine-assigned value, so they are written
+/// as-is (the bus guarantees the value is unchanged); everything else is
+/// validated like an insert.
+pub(crate) fn to_storage_values_for_update(
+    fields: &[FieldDef],
+    values: &[FieldValue],
+) -> Result<Vec<StorageValue>, PortError> {
+    if values.len() != fields.len() {
+        return Err(PortError::WriteFailed {
+            detail: format!(
+                "row holds {} values but the table defines {} fields",
+                values.len(),
+                fields.len()
+            ),
+        });
+    }
+    let mut out = Vec::with_capacity(values.len());
+    for (field, value) in fields.iter().zip(values) {
+        if matches!(field.kind, FieldKind::AutoNumber(_)) {
+            if !matches!(value, FieldValue::Integer(_)) {
+                return Err(PortError::WriteFailed {
+                    detail: format!(
+                        "field {:?}: AutoNumber values must be integers on update",
+                        field.name
+                    ),
+                });
+            }
+            out.push(to_storage_value(value));
+            continue;
+        }
+        field
+            .validate_value(value)
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("field {:?}: {e}", field.name),
+            })?;
+        out.push(to_storage_value(value));
+    }
+    Ok(out)
+}
+
 fn to_storage_value(value: &FieldValue) -> StorageValue {
     match value {
         FieldValue::Null => StorageValue::Null,
