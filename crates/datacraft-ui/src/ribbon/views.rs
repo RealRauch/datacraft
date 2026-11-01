@@ -26,13 +26,17 @@ pub(super) fn active_object_kind(app: &App) -> Option<String> {
 /// The Access Views split-button: the primary part switches to the other
 /// view, the arrow opens the explicit view menu. Disabled unless the
 /// active tab has a design view.
-pub(super) fn view_mode_button(ui: &mut eframe::egui::Ui, app: &App) -> Option<Command> {
+pub(super) fn view_mode_button(
+    ui: &mut eframe::egui::Ui,
+    app: &App,
+    tip: Option<&str>,
+) -> Option<Command> {
     let snapshot = app.snapshot();
     let active = snapshot
         .active_tab
         .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id));
     let Some(tab) = active.filter(|tab| tab.has_design_view) else {
-        ribbon_button_disabled(ui, t("View"), "view_mode")
+        ribbon_button_disabled(ui, t("View"), "view_mode", tip)
             .on_hover_text(t("No active tab with a design view."));
         return None;
     };
@@ -40,7 +44,7 @@ pub(super) fn view_mode_button(ui: &mut eframe::egui::Ui, app: &App) -> Option<C
     let tab_id = tab.id;
     let mut intent = None;
     ui.horizontal(|ui| {
-        if ribbon_button(ui, view_label(current), "view_mode") {
+        if ribbon_button(ui, view_label(current), "view_mode", tip) {
             intent = Some(Command::SetTabMode {
                 tab_id,
                 mode: current.toggled(),

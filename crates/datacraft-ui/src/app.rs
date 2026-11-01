@@ -34,6 +34,10 @@ pub struct App {
     pub nav_sort: datacraft_core::nav::NavSortOrder,
     /// Last viewport title sent to the window system (step 21.7, U11).
     pub(crate) window_title: String,
+    /// Current ribbon key-tip phase (step 21.8, U12).
+    pub keytips: Option<crate::keys::KeyTipsPhase>,
+    /// Alt state of the previous frame (edge detection for key tips).
+    pub(crate) alt_down: bool,
     /// Row data per table tab, loaded once on tab appearance.
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
     /// Query results per query tab, refreshed when the QBE model changes.
@@ -100,6 +104,8 @@ impl App {
             backstage_page: crate::backstage::BackstagePage::default(),
             nav_sort: datacraft_core::nav::NavSortOrder::default(),
             window_title: "DataCraft".to_owned(),
+            keytips: None,
+            alt_down: false,
             rows: HashMap::new(),
             results: HashMap::new(),
             form_selection: HashMap::new(),
@@ -158,6 +164,15 @@ impl App {
         }
         self.maintain_caches(&events);
         events
+    }
+
+    /// Esc: drops the buffered new-record cells of the active tab and
+    /// closes the password prompt (step 21.8, U12).
+    pub fn cancel_edit(&mut self) {
+        if let Some(tab_id) = self.snapshot.active_tab {
+            self.new_row.remove(&tab_id);
+        }
+        self.password_prompt = None;
     }
 
     /// SQL window editor text.

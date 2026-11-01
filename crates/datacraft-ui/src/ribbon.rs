@@ -37,12 +37,23 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
         app.active_ribbon_tab = "home";
     }
 
-    // Tab strip row: the active tab reads as a teal selection.
+    // Tab strip row: the active tab reads as a teal selection. In the key
+    // tip Tabs phase each tab shows its spec-derived tip (step 21.8, U12).
+    let tab_tips = if app.keytips == Some(crate::keys::KeyTipsPhase::Tabs) {
+        let ids: Vec<&str> = tabs.iter().map(|tab| tab.id).collect();
+        datacraft_core::keys::key_tips(&ids)
+    } else {
+        Vec::new()
+    };
     ui.horizontal(|ui| {
         ui.add_space(2.0);
-        for tab in &tabs {
+        for (index, tab) in tabs.iter().enumerate() {
             let selected = app.active_ribbon_tab == tab.id;
-            let label = egui::RichText::new(t(tab.label)).strong();
+            let label_text = match tab_tips.get(index) {
+                Some(tip) => format!("[{tip}] {}", t(tab.label)),
+                None => t(tab.label).to_owned(),
+            };
+            let label = egui::RichText::new(label_text).strong();
             if ui.selectable_label(selected, label).clicked() {
                 app.active_ribbon_tab = tab.id;
             }
@@ -57,6 +68,19 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     else {
         return;
     };
+    // Commands phase: tips on every action button, in spec order.
+    let command_tips = if app.keytips == Some(crate::keys::KeyTipsPhase::Commands) {
+        let ids: Vec<&str> = tab
+            .groups
+            .iter()
+            .flat_map(|group| group.actions.iter())
+            .map(|action| action.id)
+            .collect();
+        datacraft_core::keys::key_tips(&ids)
+    } else {
+        Vec::new()
+    };
+    let mut tip_index = 0usize;
     ui.horizontal(|ui| {
         ui.add_space(4.0);
         for group in &tab.groups {
@@ -67,11 +91,13 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                 ui.add_space(2.0);
                 ui.horizontal(|ui| {
                     for action in &group.actions {
+                        let tip = command_tips.get(tip_index).map(String::as_str);
+                        tip_index += 1;
                         let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
                         ui.push_id(id, |ui| match &action.state {
                             ActionState::Enabled => {
                                 if action.id == "table" {
-                                    if ribbon_button(ui, t(action.label), action.id) {
+                                    if ribbon_button(ui, t(action.label), action.id, tip) {
                                         app.create_table_flow();
                                     }
                                 } else if action.id == "open_database" {
@@ -81,7 +107,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                                 .desired_width(180.0)
                                                 .hint_text(t("path to .mdb")),
                                         );
-                                        if ribbon_button(ui, t(action.label), action.id) {
+                                        if ribbon_button(ui, t(action.label), action.id, tip) {
                                             intent = Some(Command::OpenDatabase {
                                                 path: app.open_path.clone().into(),
                                                 password: None,
@@ -89,17 +115,17 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                         }
                                     });
                                 } else if action.id == "view_mode" {
-                                    if let Some(command) = views::view_mode_button(ui, app) {
+                                    if let Some(command) = views::view_mode_button(ui, app, tip) {
                                         intent = Some(command);
                                     }
-                                } else if ribbon_button(ui, t(action.label), action.id)
+                                } else if ribbon_button(ui, t(action.label), action.id, tip)
                                     && let Some(command) = command_for(action.id, app)
                                 {
                                     intent = Some(command);
                                 }
                             }
                             ActionState::DisabledIn { phase } => {
-                                ribbon_button_disabled(ui, t(action.label), action.id)
+                                ribbon_button_disabled(ui, t(action.label), action.id, tip)
                                     .on_hover_text(tr("arrives in {phase}", &[("phase", phase)]));
                             }
                         });
@@ -127,13 +153,18 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
 }
 
 /// An Access-sized command button (icon above the label).
-fn ribbon_button(ui: &mut egui::Ui, label: &str, icon: &str) -> bool {
-    ribbon_button_response(ui, label, icon, true).clicked()
+fn ribbon_button(ui: &mut egui::Ui, label: &str, icon: &str, tip: Option<&str>) -> bool {
+    ribbon_button_response(ui, label, icon, true, tip).clicked()
 }
 
 /// The disabled twin: painted muted, hovers with the phase hint.
-fn ribbon_button_disabled(ui: &mut egui::Ui, label: &str, icon: &str) -> egui::Response {
-    ribbon_button_response(ui, label, icon, false)
+fn ribbon_button_disabled(
+    ui: &mut egui::Ui,
+    label: &str,
+    icon: &str,
+    tip: Option<&str>,
+) -> egui::Response {
+    ribbon_button_response(ui, label, icon, false, tip)
 }
 
 /// Custom-painted command button. A real egui button cannot host the vector
@@ -144,6 +175,7 @@ fn ribbon_button_response(
     label: &str,
     icon: &str,
     enabled: bool,
+    tip: Option<&str>,
 ) -> egui::Response {
     let tokens = tokens(ui.visuals());
     let font = egui::FontId::new(fonts::CONTROL.size, egui::FontFamily::Proportional);
@@ -193,6 +225,22 @@ fn ribbon_button_response(
         galley,
         ink,
     );
+    if let Some(tip) = tip {
+        // Key-tip badge (step 21.8, U12): painted, never part of the
+        // AccessKit label or the translated caption.
+        let badge = egui::Rect::from_min_size(
+            rect.right_top() + egui::vec2(-16.0, 2.0),
+            egui::vec2(14.0, 12.0),
+        );
+        ui.painter().rect_filled(badge, 2.0, tokens.accent);
+        ui.painter().text(
+            badge.center(),
+            egui::Align2::CENTER_CENTER,
+            tip,
+            egui::FontId::new(9.0, egui::FontFamily::Proportional),
+            tokens.on_accent,
+        );
+    }
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
     response
 }

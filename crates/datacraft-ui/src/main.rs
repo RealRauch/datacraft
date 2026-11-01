@@ -21,6 +21,7 @@ mod form_design;
 mod form_runtime;
 mod i18n;
 mod icons;
+mod keys;
 #[cfg(test)]
 mod keys_tests;
 mod labels;

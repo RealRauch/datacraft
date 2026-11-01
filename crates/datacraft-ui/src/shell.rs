@@ -23,6 +23,7 @@ impl eframe::App for App {
         self.rescue_window_position(ui.ctx());
         self.capture_window_geometry(ui.ctx());
         self.sync_window_title(ui.ctx());
+        crate::keys::handle(self, ui.ctx());
         crate::appearance::apply(ui.ctx(), self.appearance_setting());
         crate::theme::apply(ui.ctx());
         let tokens = tokens(ui.visuals());
