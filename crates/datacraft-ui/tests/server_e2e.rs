@@ -1,7 +1,7 @@
 //! Headless E2E harness (step 9.2, item H33).
 //!
 //! Drives the FULL stack over the wire: `transport::serve` with a
-//! Jet4Port-composed core against the committed fixture — JSON-RPC lines
+//! DetectingPort-composed core against the committed fixture — JSON-RPC lines
 //! in, response JSON out, assertions on events and snapshots, never on
 //! pixels. This is the template agents copy for automation.
 
@@ -106,7 +106,10 @@ fn opens_a_sqlite_database_over_the_wire() {
     assert_eq!(events[0]["DatabaseOpened"]["format"], "sqlite", "{events}");
     let snapshot = &result_of(&responses[1]);
     assert_eq!(snapshot["database"]["format"], "sqlite", "{snapshot}");
-    assert_eq!(snapshot["database"]["tables"][0]["name"], "notes", "{snapshot}");
+    assert_eq!(
+        snapshot["database"]["tables"][0]["name"], "notes",
+        "{snapshot}"
+    );
     let _ = std::fs::remove_file(&path);
 }
 

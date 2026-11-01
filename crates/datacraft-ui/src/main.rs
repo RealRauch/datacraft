@@ -59,7 +59,7 @@ fn main() -> eframe::Result {
         options,
         Box::new(|_cc| {
             Ok(Box::new(App::new(Box::new(
-                datacraft_storage::port_adapter::Jet4Port::new(),
+                datacraft_storage::detecting::DetectingPort::new(),
             ))))
         }),
     )

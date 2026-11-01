@@ -81,12 +81,13 @@ fn kind(port: &SqlitePort, table: &str, name: &str) -> FieldKind {
 
 #[test]
 fn opens_a_sqlite_file_with_the_sqlite_format() {
-    let (port, scratch) = open_shop();
-    let opened = port
-        .open(&scratch.0)
-        .expect("reopen the generated file");
+    let (mut port, scratch) = open_shop();
+    let opened = port.open(&scratch.0).expect("reopen the generated file");
     assert_eq!(opened.format, DatabaseFormat::Sqlite);
-    assert_eq!(opened.name, scratch.0.file_stem().unwrap().to_string_lossy());
+    assert_eq!(
+        opened.name,
+        scratch.0.file_stem().unwrap().to_string_lossy()
+    );
 }
 
 #[test]
@@ -103,7 +104,10 @@ fn maps_declared_types_onto_access_kinds() {
         kind(&port, "customers", "id"),
         FieldKind::AutoNumber(AutoKind::LongInteger)
     );
-    assert_eq!(kind(&port, "customers", "name"), FieldKind::Text { max_len: 255 });
+    assert_eq!(
+        kind(&port, "customers", "name"),
+        FieldKind::Text { max_len: 255 }
+    );
     assert_eq!(
         kind(&port, "customers", "code"),
         FieldKind::Text { max_len: 12 }
@@ -215,7 +219,10 @@ fn unknown_tables_are_reported_precisely() {
     let err = port
         .read_rows("missing", RowRange { start: 0, len: 1 })
         .expect_err("unknown table must fail");
-    assert!(matches!(err, PortError::TableNotFound(name) if name == "missing"), "{err:?}");
+    assert!(
+        matches!(err, PortError::TableNotFound(ref name) if name == "missing"),
+        "{err:?}"
+    );
 }
 
 #[test]

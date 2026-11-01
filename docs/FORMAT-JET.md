@@ -327,6 +327,52 @@ pinned yet; the oracle comparison applies when one is sourced (see
   names and cell text. No compressed form exists.
 - **Writer**: unchanged — the writer milestone targets Jet4/ACE only.
 
+## SQLite backend (2026-11-01, step 13.1, BACKLOG H35)
+
+SQLite is the second source family behind the same `StoragePort`; it is not
+a Jet format, so its mapping lives here next to the Jet facts to keep the
+domain-mapping decisions in one place.
+
+**Detection.** A file whose first 16 bytes are `SQLite format 3\0` is served
+by `SqlitePort`; Jet/ACE headers (`01 00 00 00` at offset 0) by `Jet4Port`.
+`DetectingPort` sniffs the magic once at `open` and delegates every port
+operation to the chosen backend — every client (GUI, MCP, CLI, E2E) speaks
+the same command vocabulary. Anything else fails with a precise
+`OpenFailed` naming the path and the expected headers.
+
+**Catalog.** `sqlite_master` (`type = 'table'`, internal `sqlite_*` names
+filtered) in `rowid` order — creation order, deterministic per file.
+`PRAGMA table_info` supplies name, declared type, `NOT NULL` and the
+primary-key position; `PRAGMA foreign_key_list` supplies relationships
+(a missing `to` column resolves to the referenced table's primary key).
+
+**Declared type → Access field kind.** Marker types are matched by name
+first, then by SQLite's affinity rules:
+
+| SQLite declared type | Domain kind | Notes |
+|---|---|---|
+| `INTEGER PRIMARY KEY AUTOINCREMENT` | `AutoNumber(LongInteger)` | requires the table DDL to contain `AUTOINCREMENT`; always required |
+| `INTEGER`, `BIGINT`, `INT*` | `Number(LongInteger)` | 64-bit values widen into the domain integer |
+| `TEXT`, `CHAR`, `CLOB`, `VARCHAR(n)` | `Text { max_len }` | `n` clamped to 1–255; unbounded text maps to the Access maximum 255 |
+| `BLOB` or no declared type | `Binary(OleObject)` | raw bytes |
+| `REAL`, `FLOAT`, `DOUBLE` | `Number(Double)` | |
+| `NUMERIC`, `DECIMAL`, other | `Number(Decimal { 28, 0 })` | SQLite has no decimal storage class; values are read as integers or rounded reals (documented lossiness) |
+| `BOOLEAN`, `BOOL` | `Boolean { tri_state: nullable }` | SQLite stores 0/1 as integers; readers map non-zero to Yes |
+| `DATE`, `DATETIME`, `TIMESTAMP` | `DateTime` | DataCraft treats the stored number as an OLE Automation day value; foreign text dates surface as text |
+| `CURRENCY`, `MONEY` | `Currency` | scaled integer (10⁻⁴), same as Jet |
+| `GUID`, `UNIQUEIDENTIFIER` | `Guid` | 16-byte BLOB or canonical 8-4-4-4-12 text |
+
+**Value mapping.** `NULL` → `Null`; integers → `Integer` (or `Boolean`,
+`Currency`, `DateTime`, scaled `Decimal` per the column kind); reals →
+`Float` (or `DateTime`/scaled `Decimal`); text → `Text` (GUID-shaped text
+under a GUID column parses to `Guid`); blobs → `Binary` (16-byte blobs
+under a GUID column become `Guid`). Row windows use `LIMIT/OFFSET` over
+the table's natural rowid order; a window starting beyond the count is
+`OutOfRange`, one starting at the count is empty.
+
+**Writes.** `create_table`/`drop_table`/`insert_row` land in step 13.2
+(BACKLOG H36); until then the backend answers `Unsupported`.
+
 ## Column type 0x11 — decision record (2026-11-01, step 10.7, BACKLOG L2)
 
 **Decision:** `0x11` maps to `JetType::LongBinary` — a **fixed-storage long

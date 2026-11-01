@@ -22,6 +22,8 @@ pub enum DatabaseFormat {
     Jet4,
     /// ACE (Access 2007 and later, `.accdb`).
     Ace,
+    /// SQLite 3 (`.sqlite`, `.db`) — the non-Jet source family (H35).
+    Sqlite,
 }
 
 /// Errors a storage backend reports through the port.
