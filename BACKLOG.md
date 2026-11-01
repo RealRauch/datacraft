@@ -96,6 +96,12 @@
 - **Approach:** Ctrl+S (Save Design), Ctrl+W (Close Tab), Esc (cancel cell edit / close menu) mapped to the same single commands as their buttons; Alt reveals ribbon key tips rendered from the spec ids (never invented labels). Keyboard documentation rides with M6's README accuracy pass, not here. Scope guard at `fd7f662`: the model's keytips are a four-phase state machine (Tabs → Commands → Legacy → Backstage) including Word-2003 sequences and numeric QAT badges; DataCraft takes only the Tabs and Commands phases.
 - **Acceptance:** shortcuts dispatch one command each; key tips visible after Alt and match the spec; headless-testable where egui permits (coordinate with T5); canonical verification set green.
 
+### [ ] U15 — Recent databases in the backstage — 🟢
+- **Location:** `crates/datacraft-ui/src/settings.rs` (persisted list), `crates/datacraft-ui/src/backstage.rs` (Recent page)
+- **Problem:** The File backstage (step 21.3, U7) has no Recent Databases entry: `ui.json` (I4) persists language, appearance and window geometry, but no opened-file history. U7's scope named Recent "once I4 lands"; I4 shipped without the list, so the page is deliberately absent.
+- **Approach:** persist a bounded, de-duplicated recent-paths list on successful `DatabaseOpened` (atomic save via U13's helper), render it on the backstage Home/Open page, and dispatch one `OpenDatabase` per click; missing files are pruned on load with a precise notice instead of disappearing silently.
+- **Acceptance:** opening a database adds it to the recent list; the list survives restarts; clicking an entry dispatches exactly one open command; stale paths are pruned visibly; canonical verification set green.
+
 ---
 
 ## 🔵 TEST GAPS

@@ -8,17 +8,13 @@
 
 use datacraft_core::ribbon::{ActionState, rendered_tabs, ribbon_spec};
 
-const DISPATCHABLE_ACTIONS: [&str; 12] = [
-    "ribbon.file.open.open_database",
-    "ribbon.file.database.close_database",
+const DISPATCHABLE_ACTIONS: [&str; 8] = [
     "ribbon.home.view.toggle_nav_pane",
     "ribbon.home.views.view_mode",
     "ribbon.create.queries.query_design",
     "ribbon.create.forms.form_design",
     "ribbon.create.reports.report_design",
     "ribbon.create.tables.table",
-    "ribbon.file.design.save_design",
-    "ribbon.file.design.load_design",
     "ribbon.database_tools.relationships.relationships",
     "ribbon.database_tools.queries.query_sql",
 ];
@@ -35,6 +31,17 @@ fn the_spec_carries_the_five_access_tabs_in_order() {
     assert_eq!(
         labels,
         ["File", "Home", "Create", "External Data", "Database Tools"]
+    );
+}
+
+#[test]
+fn the_file_tab_delegates_to_the_backstage() {
+    let file = &ribbon_spec().tabs[0];
+    assert_eq!(file.id, "file");
+    assert!(
+        file.groups.is_empty(),
+        "File is a full-page backstage, not a ribbon tab with inline inputs: {:?}",
+        file.groups
     );
 }
 
@@ -207,25 +214,16 @@ fn quick_access_save_is_enabled_and_history_entries_name_their_follow_up() {
 }
 
 #[test]
-fn quick_access_reuses_the_ribbon_action_ids() {
-    let spec = ribbon_spec();
-    let ribbon_actions: Vec<&str> = spec
-        .tabs
-        .iter()
-        .chain(spec.contextual_tabs.iter().map(|entry| &entry.tab))
-        .flat_map(|tab| &tab.groups)
-        .flat_map(|group| &group.actions)
-        .map(|action| action.id)
-        .collect();
-    for entry in &spec.quick_access {
-        if matches!(entry.state, ActionState::Enabled) {
-            assert!(
-                ribbon_actions.contains(&entry.id),
-                "QAT {} must reuse a ribbon action id",
-                entry.id
-            );
-        }
-    }
+fn quick_access_save_is_a_stable_command_id() {
+    let quick_access = &ribbon_spec().quick_access;
+    assert!(
+        matches!(quick_access[0].state, ActionState::Enabled),
+        "Save is dispatchable today"
+    );
+    assert_eq!(
+        quick_access[0].id, "save_design",
+        "the QAT keeps the command id shared with the backstage Save page"
+    );
 }
 
 #[test]
