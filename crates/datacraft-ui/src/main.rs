@@ -22,6 +22,7 @@ mod qbe;
 mod relationships;
 mod report_design;
 mod ribbon;
+mod shell;
 mod sql_window;
 mod theme;
 mod workspace;
