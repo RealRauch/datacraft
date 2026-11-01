@@ -125,7 +125,7 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
                     actions: vec![RibbonAction {
                         id: "query_design",
                         label: "Query Design",
-                        state: ActionState::DisabledIn { phase: "Phase 7" },
+                        state: ActionState::Enabled,
                     }],
                 },
             ],
