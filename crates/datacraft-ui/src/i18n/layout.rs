@@ -69,7 +69,7 @@ fn german_status_lines_fit_the_minimum_window() {
 }
 
 /// Runs one egui pass so the default fonts are laid out and measurable.
-fn run(mut measure: impl FnMut(&egui::Context)) {
+fn run(measure: impl FnMut(&egui::Context)) {
     let ctx = egui::Context::default();
     let mut output = ctx.run_pass(egui::RawInput::default(), measure);
     // Headless: there is no painter that would apply the font-atlas delta.
