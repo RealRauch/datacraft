@@ -7,9 +7,11 @@
 //!   files, so every read decrypts it and every write re-encrypts it.
 //! - A non-zero database key at 0x3e means every page after page 0 is
 //!   RC4-encrypted with `db_key XOR page_number` (4 LE bytes).
-//! - Jet3 stores the database password at 0x42 (20 bytes) XOR a documented
-//!   fixed key; Jet4 stores 40 bytes (UTF-16LE, 20 characters) XOR a 4-byte
-//!   mask derived from the creation-date double at 0x72.
+//! - Jet3 stores the database password at 0x42 (20 bytes) as **plain text**
+//!   inside the encrypted header region (the documented fixed XOR key is the
+//!   differential-recovery technique, not an in-file mask); Jet4 stores 40
+//!   bytes (UTF-16LE, 20 characters) XOR a 4-byte mask derived from the
+//!   creation-date double at 0x72.
 //! - ACE 2007+ replaces the page cipher with Office encryption (RC4
 //!   CryptoAPI or AES); the structure length at 0x299 and/or a non-zero
 //!   database key marks it. DataCraft answers a precise `Unsupported`.
@@ -20,11 +22,6 @@ use crate::types::FormatVersion;
 
 /// Fixed RC4 key of the page-0 header region (`0x6b39dac7` little-endian).
 pub const HEADER_RC4_KEY: [u8; 4] = [0xC7, 0xDA, 0x39, 0x6B];
-/// Documented fixed XOR key of the Jet3 password field (community RE).
-pub const JET3_PASSWORD_KEY: [u8; 20] = [
-    0x86, 0xFB, 0xEC, 0x37, 0x5D, 0x44, 0x9C, 0xFA, 0xC6, 0x5E, 0x28, 0xE6, 0x13, 0xB6, 0x8A, 0x60,
-    0x54, 0x94, 0x7B, 0x36,
-];
 /// Page-0 header region length of Jet3.
 pub const JET3_HEADER_REGION: usize = 126;
 /// Page-0 header region length of Jet4/ACE.
@@ -203,12 +200,11 @@ fn decode_region(
     })
 }
 
-/// Jet3 password field: fixed XOR, CP1252 text, NUL/space padded.
+/// Jet3 password field: plain CP1252 text inside the encrypted header
+/// region, NUL/space padded.
 fn jet3_password(region: &[u8]) -> Result<String, StorageError> {
-    let mut bytes = [0u8; JET3_PASSWORD_LEN];
-    for (index, byte) in bytes.iter_mut().enumerate() {
-        *byte = region[PASSWORD_OFFSET - HEADER_START + index] ^ JET3_PASSWORD_KEY[index];
-    }
+    let start = PASSWORD_OFFSET - HEADER_START;
+    let bytes = &region[start..start + JET3_PASSWORD_LEN];
     let end = bytes
         .iter()
         .position(|byte| *byte == 0)
@@ -287,24 +283,12 @@ mod tests {
     }
 
     #[test]
-    fn jet3_passwords_unmask_with_the_fixed_key() {
-        // The stored field is the whole 20-byte plaintext (NUL-padded)
-        // XOR the fixed key.
+    fn jet3_passwords_are_plain_text_in_the_decrypted_header() {
         let mut region = [0u8; JET3_HEADER_REGION];
-        for (index, byte) in JET3_PASSWORD_KEY.iter().enumerate() {
-            region[PASSWORD_OFFSET - HEADER_START + index] = *byte;
-        }
-        let password = b"secret";
-        for (index, byte) in password.iter().enumerate() {
-            region[PASSWORD_OFFSET - HEADER_START + index] = byte ^ JET3_PASSWORD_KEY[index];
-        }
+        region[PASSWORD_OFFSET - HEADER_START..PASSWORD_OFFSET - HEADER_START + 6]
+            .copy_from_slice(b"secret");
         assert_eq!(jet3_password(&region).unwrap(), "secret");
-        // An unprotected field is the empty plaintext XOR the key.
-        let mut empty = [0u8; JET3_HEADER_REGION];
-        for (index, byte) in JET3_PASSWORD_KEY.iter().enumerate() {
-            empty[PASSWORD_OFFSET - HEADER_START + index] = *byte;
-        }
-        assert_eq!(jet3_password(&empty).unwrap(), "");
+        assert_eq!(jet3_password(&[0u8; JET3_HEADER_REGION]).unwrap(), "");
     }
 
     #[test]

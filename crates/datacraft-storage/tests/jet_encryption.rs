@@ -265,16 +265,13 @@ fn jet3_password_and_page_encryption_decode_through_the_reader() {
     file[data + 2..data + 4].copy_from_slice(&((row_start - 12) as u16).to_le_bytes());
 
     let header = FileHeader::decode(&file, file.len() as u64).expect("Jet3 header");
-    // Jet3 password field: 20 bytes XOR the documented fixed key.
+    // Jet3 password field: plain text inside the encrypted header region.
     let mut region = file[0x18..0x18 + 126].to_vec();
     crypto::rc4(&HEADER_RC4_KEY, &mut region);
     let db_key = 0x00C0_FFEEu32;
     region[0x3e - 0x18..0x42 - 0x18].copy_from_slice(&db_key.to_le_bytes());
     let mut field = [0u8; 20];
     field[..6].copy_from_slice(b"secret");
-    for (index, byte) in field.iter_mut().enumerate() {
-        *byte ^= crypto::JET3_PASSWORD_KEY[index];
-    }
     region[0x42 - 0x18..0x56 - 0x18].copy_from_slice(&field);
     file[0x18..0x18 + 126].copy_from_slice(&region);
     crypto::encrypt_file(&mut file, &header, Some(&PageEncryption { db_key }))

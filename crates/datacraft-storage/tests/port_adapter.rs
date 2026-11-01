@@ -319,7 +319,6 @@ fn jet3_catalog_shell() -> Vec<u8> {
     file[0x14..0x18].copy_from_slice(&0u32.to_le_bytes());
     // Unprotected Jet3 password field + the fixed-key header region
     // (step 16.2 / M5).
-    file[0x42..0x56].copy_from_slice(&datacraft_storage::jet::crypto::JET3_PASSWORD_KEY);
     datacraft_storage::jet::crypto::rc4(
         &datacraft_storage::jet::crypto::HEADER_RC4_KEY,
         &mut file[0x18..0x18 + datacraft_storage::jet::crypto::JET3_HEADER_REGION],

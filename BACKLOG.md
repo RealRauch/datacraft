@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T17:45
+# BACKLOG.md — Open items (As of: 2026-11-01T19:43
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -124,6 +124,13 @@
 - **Location:** `crates/datacraft-ui/src/nav_pane.rs`; pure ordering helpers in core; model: WordCraft `panes.rs` patterns
 - **Approach:** the "All Access Objects" label becomes a (single-entry) category dropdown per the Access convention; objects are opened/deleted via a context menu (Open/Design/Delete), replacing the always-visible ✕ button; group headers gain a sort menu (name/type) implemented as a pure ordering function over the snapshot-derived list.
 - **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
+
+### [ ] F2 — Jet3 database passwords are plain text (M5 fact correction) — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/crypto.rs` (`jet3_password`), tests in `jet3.rs`/`jet_encryption.rs`/`jet_table.rs`/`port_adapter.rs`
+- **Problem:** M5 initially decoded the Jet3 password field with the documented fixed XOR key. The pinned pristine Jet3 fixture (`testV1997.mdb`) stores an all-zero field and was rejected as password-protected — the fixed key is the differential-recovery technique, not an in-file mask.
+- **Fix:** Jet3 passwords are plain CP1252 text inside the RC4-decrypted header region; the fixed key constant was removed and the tests/docs corrected.
+- **Evidence:** `fixtures/testV1997.mdb` opens without a password; the generated Jet3 password/page-encryption test still passes.
+- **Retro:** inline fix during step 16.3 (M5 scope), Low class, discovered by the first real Jet3 fixture.
 
 ---
 

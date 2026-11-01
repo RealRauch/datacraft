@@ -460,9 +460,11 @@ page-encrypted copies of the pinned fixtures.
 - **Database key:** the decrypted dword at 0x3e. Non-zero = every page after
   page 0 is RC4-encrypted with the 4-byte key `db_key XOR page_number`
   (LE). Page 0's body outside the header region stays plaintext.
-- **Jet3 password:** 20 bytes at 0x42, XOR a documented fixed key
-  (`86 FB EC 37 5D 44 9C FA C6 5E 28 E6 13 B6 8A 60 54 94 7B 36`),
-  CP1252 text, NUL/space padded. Empty plaintext = no password.
+- **Jet3 password:** 20 bytes at 0x42 as **plain CP1252 text** inside the
+  encrypted header region, NUL/space padded. Empty = no password. (The
+  documented fixed XOR key `86 FB EC 37 …` is the differential-recovery
+  technique — XOR a known-unprotected file with the protected one — not an
+  in-file mask.)
 - **Jet4 password:** 40 bytes at 0x42 = 20 UTF-16LE characters XOR a 4-byte
   mask. The mask is the integer part of the OLE creation-date double at
   0x72 as 4 LE bytes (`44568.67…` → `18 AE 00 00`). Empty plaintext = no
