@@ -22,13 +22,24 @@
 - **21.7 Window title & status-bar conventions (U11)**
 - **21.8 Keyboard: shortcuts & ribbon key tips (U12)**
 - **21.9 Phase 21 Quality Gate Review**
-### Phase 22 — Settings hardening (U13)
+### Phase 23 — Hardening & Test Gaps *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
-- **22.1 Atomic ui.json save (temp + rename)**
-- **22.2 Window position, maximized state and off-screen rescue**
-- **22.3 Phase 22 Quality Gate Review**
+- **23.1 CLI binary E2E over a real subprocess (T4)**
+- **23.2 egui headless UI tests with egui_kittest (T5)**
+- **23.3 Native-query decode errors surface at open (M10)**
+- **23.4 Phase 23 Quality Gate Review**
+### Phase 24 — Jet Writer Remainder *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **24.1 Jet AutoNumber counter maintenance on insert (M8)**
+- **24.2 Jet table drops through the writer (M7)**
+- **24.3 Design-time schema editing, ALTER TABLE (M9)**
+- **24.4 Phase 24 Quality Gate Review**
+
+
 
 
 
@@ -165,6 +176,14 @@
 | 21.7 | Window title & status-bar conventions (U11) | ⬜ |
 | 21.8 | Keyboard: shortcuts & ribbon key tips (U12) | ⬜ |
 | 21.9 | Phase 21 Quality Gate Review | ⬜ |
-| 22.1 | Atomic ui.json save (temp + rename) | 🔄 |
-| 22.2 | Window position, maximized state and off-screen rescue | ⬜ |
-| 22.3 | Phase 22 Quality Gate Review | ⬜ |
+| 22.1 | Atomic ui.json save (temp + rename) | ✅ |
+| 22.2 | Window position, maximized state and off-screen rescue | ✅ |
+| 22.3 | Phase 22 Quality Gate Review | ✅ |
+| 23.1 | CLI binary E2E over a real subprocess (T4) | ⬜ |
+| 23.2 | egui headless UI tests with egui_kittest (T5) | ⬜ |
+| 23.3 | Native-query decode errors surface at open (M10) | ⬜ |
+| 23.4 | Phase 23 Quality Gate Review | ⬜ |
+| 24.1 | Jet AutoNumber counter maintenance on insert (M8) | ⬜ |
+| 24.2 | Jet table drops through the writer (M7) | ⬜ |
+| 24.3 | Design-time schema editing, ALTER TABLE (M9) | ⬜ |
+| 24.4 | Phase 24 Quality Gate Review | ⬜ |

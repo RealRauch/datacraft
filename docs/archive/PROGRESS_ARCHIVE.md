@@ -273,3 +273,14 @@
 - **20.4 Dark mode: Appearance Light/Dark/System (U4)**
 - **20.5 Phase 20 Quality Gate Review**
 **Verification:** fmt --check and clippy -D warnings green; cargo test --workspace green; file-size gate green; local Windows coverage 91.98 % lines unchanged (datacraft-ui excluded by registry #1, platform gap documented in docs/TESTING.md §3); before/after light and dark screenshots under docs/phase-20 reviewed at the gate; the empty-workspace canvas defect found by the screenshots was fixed inline (F3). (checkpoint: 82e456a)
+
+---
+
+### Phase 22 — Settings hardening (U13)
+
+**Scope (Steps):**
+
+- **22.1 Atomic ui.json save (temp + rename)**
+- **22.2 Window position, maximized state and off-screen rescue**
+- **22.3 Phase 22 Quality Gate Review**
+**Verification:** fmt --check and clippy -D warnings green; cargo test --workspace green (69 UI tests incl. atomic-save and geometry suites); file-size gate green (settings split into `settings/tests.rs`); local Windows coverage 91.98 % lines unchanged (datacraft-ui excluded by registry #1, platform gap documented in docs/TESTING.md §3); runtime smoke test confirmed position round-trip and off-screen rescue (9000,9000 → 820,380). (checkpoint: 21044b2)

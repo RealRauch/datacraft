@@ -33,12 +33,13 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–20 are complete: the UI
-> shell now wears the rebased look (neutral tokens, teal accent,
+> **DataCraft is in early development.** Phases 1–20 and 22 are complete: the
+> UI shell wears the rebased look (neutral tokens, teal accent,
 > Inter/JetBrains Mono typography, original vector iconography and
-> Light/Dark/System appearance). Phase 21 (Access UI alignment: contextual
-> ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX,
-> keyboard) is next.
+> Light/Dark/System appearance), and the UI-owned `ui.json` saves atomically
+> and restores the full window geometry. Phase 21 (Access UI alignment:
+> contextual ribbon tabs, quick access toolbar, backstage,
+> datasheet/nav-pane/tab UX, keyboard) is next.
 > The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
 > `.accdb` files (Jet4/ACE cross-checked against the libmdb oracle in CI) and
 > writes verified Jet4 table/row paths; the headless command bus drives a
@@ -213,6 +214,7 @@ Seventeen delivered phases and the planned UI work:
 | 18–19 — UI Localization & Settings | i18n kernel, complete German catalog, `ui.json`, language switcher | ✅ |
 | 20 — Look & Typography | neutral tokens, Inter/JetBrains Mono typography, original vector iconography, Light/Dark/System appearance | ✅ |
 | 21 — Access UI Alignment | contextual ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX, keyboard | ⬜ |
+| 22 — Settings Hardening | atomic `ui.json` save, window position/maximized state, off-screen rescue | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA

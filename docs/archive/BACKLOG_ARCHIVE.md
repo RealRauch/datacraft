@@ -583,3 +583,13 @@
 - **Fix:** wrap the empty-state message in the same `CentralPanel` frame as the populated workspace (6 lines, Low class), committed with the Phase 20 gate.
 - **Acceptance:** an empty workspace renders the canvas token in both palettes.
 - **Done:** fixed inline in `612b114` during the Phase 20 gate — the empty workspace now paints the canvas token in both palettes
+
+---
+
+### [x] U13 — ui.json hardening: atomic save + full window geometry — 🟡
+- **Placement:** Phase 22, steps 22.1–22.2 (scheduled right after Phase 20; order decision 2026-11-01).
+- **Location:** `crates/datacraft-ui/src/settings.rs` (`save`, window geometry), `app.rs` (capture); model: WordCraft `apps/wordcraft/src/main.rs` (`write_prefs`), `crates/ui-egui/src/window_geometry.rs` @ `fd7f662`
+- **Problem:** `Settings::save` uses `std::fs::write`, so a crash mid-write leaves `ui.json` truncated (the defaults recover, but the settings are lost); the stored geometry is the inner size only, so position and maximized state are not restored and a window can reopen off-screen after a monitor change.
+- **Approach:** write to a sibling temporary file and rename it over the target (the model's `write_prefs`); extend the stored geometry to position + maximized, clamp it against the visible monitors and drop implausible values (the model's `WindowGeometry::sanitized`/`rescue_position` pattern).
+- **Acceptance:** an interrupted write leaves the previous file intact; position and maximized state round-trip across restarts; a saved off-screen position is rescued onto a visible monitor; corrupt/partial files still fall back to defaults; canonical verification set green.
+- **Done:** done in `1462e99` (atomic save, RED `5c2be6b`) and `21044b2` (geometry + rescue, RED `aabd453`) — sibling temp file renamed over the target, legacy files still load, position/maximized round-trip, off-screen positions rescued onto the visible monitor; runtime smoke test: (9000,9000) → (820,380)
