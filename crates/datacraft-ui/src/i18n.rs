@@ -9,6 +9,8 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 
 mod de;
+#[cfg(test)]
+mod parity;
 
 /// UI display language (never leaves this crate).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -241,10 +243,7 @@ mod tests {
             app.dispatch(Command::CreateForm {
                 name: "Card".into(),
             });
-            app.dispatch(Command::OpenObject(ObjectId::new(
-                ObjectKind::Form,
-                "Card",
-            )));
+            app.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Form, "Card")));
             app.snapshot().to_json()
         };
 
