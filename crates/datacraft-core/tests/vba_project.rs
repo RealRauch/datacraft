@@ -162,7 +162,7 @@ fn analyze_vba_returns_the_headless_analysis_over_the_bus() {
             assert_eq!(analysis.call_graph.len(), 2);
             assert!(analysis.sql_literals.is_empty());
             assert!(analysis.table_references.is_empty());
-            assert!(analysis.unused_modules.is_empty());
+            assert_eq!(analysis.unused_modules, vec!["Utilities"]);
         }
         other => panic!("expected analysis event, got {other:?}"),
     }

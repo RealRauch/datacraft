@@ -80,7 +80,10 @@ fn the_call_graph_resolves_qualified_calls_new_and_bare_procedures() {
     assert!(edge("Orders", "Inventory"), "qualified call resolves");
     assert!(edge("Orders", "Worker"), "New Worker resolves");
     assert!(edge("Form_Orders", "Orders"), "event code calls helper");
-    assert!(!edge("Inventory", "Orders"), "comments/strings do not count");
+    assert!(
+        !edge("Inventory", "Orders"),
+        "comments/strings do not count"
+    );
     assert_eq!(
         analysis
             .call_graph

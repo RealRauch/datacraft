@@ -261,6 +261,11 @@ pub enum Event {
         /// The module including its decoded source.
         module: crate::vba::VbaModule,
     },
+    /// The headless static VBA analysis completed (step 17.3, L5).
+    VbaAnalyzed {
+        /// Call graph, SQL literals, references and unused modules.
+        analysis: crate::vba_analysis::VbaAnalysis,
+    },
     /// A command could not be executed; the reason is precise and
     /// user-renderable (LESSONS #4 — no silent swallowing).
     Failed {

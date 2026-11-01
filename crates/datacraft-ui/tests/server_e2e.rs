@@ -413,3 +413,40 @@ fn vba_project_and_module_source_cross_the_wire() {
     let opened = &result_of(&responses[3])["events"][0]["TabOpened"];
     assert_eq!(opened["object"]["kind"], "module", "{opened}");
 }
+
+#[test]
+fn vba_static_analysis_crosses_the_wire() {
+    let northwind = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("northwind2007.accdb");
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": northwind.to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"dispatch",
+                   "params":{"AnalyzeVba":null}}),
+        ],
+    );
+    let analysis = &result_of(&responses[1])["events"][0]["VbaAnalyzed"]["analysis"];
+    assert_eq!(
+        analysis["call_graph"].as_array().expect("call graph").len(),
+        18,
+        "{analysis}"
+    );
+    assert!(
+        !analysis["sql_literals"].as_array().expect("SQL").is_empty(),
+        "{analysis}"
+    );
+    assert!(
+        analysis["table_references"]
+            .as_array()
+            .expect("table refs")
+            .iter()
+            .any(|table| table == "Employee Privileges"),
+        "{analysis}"
+    );
+}

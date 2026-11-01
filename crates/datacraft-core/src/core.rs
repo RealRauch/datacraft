@@ -241,6 +241,7 @@ impl Core {
                 self.set_report_grouping(&report, group_by)
             }
             Command::LoadVbaModule { module } => self.load_vba_module(&module),
+            Command::AnalyzeVba => self.analyze_vba_command(),
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
             Command::OpenDatabase { path, password } => self.open_database(path, password),

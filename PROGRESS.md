@@ -165,8 +165,8 @@
 | 16.3 | Jet3-Reste: Jump-Table & TDEF-Ketten (L3) | ✅ |
 | 16.4 | Phase 16 Quality Gate Review | ✅ |
 | 17.1 | Makro-Inventur (L4) | ✅ |
-| 17.2 | VBA-Extraction & Viewer (L5) | 🔄 |
-| 17.3 | Statische Analyse headless (L5) | ⬜ |
+| 17.2 | VBA-Extraction & Viewer (L5) | ✅ |
+| 17.3 | Statische Analyse headless (L5) | 🔄 |
 | 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | ⬜ |
 | 17.5 | Phase 17 Quality Gate Review | ⬜ |
 | 18.1 | i18n kernel in the UI crate (I1) | ⬜ |

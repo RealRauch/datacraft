@@ -39,6 +39,7 @@ pub mod sql_engine;
 pub mod state;
 pub mod transport;
 pub mod vba;
+pub mod vba_analysis;
 mod vba_dispatch;
 
 pub use ids::TabId;

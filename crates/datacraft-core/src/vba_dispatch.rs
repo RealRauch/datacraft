@@ -35,6 +35,34 @@ impl crate::core::Core {
             None => failed(format!("VBA module {name:?} not found")),
         }
     }
+
+    /// Runs the static analysis over the open project (step 17.3, L5).
+    pub fn analyze_vba(&self) -> Result<crate::vba_analysis::VbaAnalysis, String> {
+        let Some(db) = self.state.database.as_ref() else {
+            return Err("no database is open — open a database first".to_owned());
+        };
+        if let Some(reason) = &db.vba_error {
+            return Err(reason.clone());
+        }
+        let Some(project) = db.vba_project.as_ref() else {
+            return Err("the open database has no VBA project".to_owned());
+        };
+        let tables: Vec<String> = db.tables.iter().map(|table| table.name.clone()).collect();
+        let queries: Vec<String> = db
+            .queries
+            .iter()
+            .map(|query| query.name.clone())
+            .chain(db.native_queries.iter().map(|query| query.name.clone()))
+            .collect();
+        Ok(crate::vba_analysis::analyze(project, &tables, &queries))
+    }
+
+    pub(crate) fn analyze_vba_command(&mut self) -> Vec<Event> {
+        match self.analyze_vba() {
+            Ok(analysis) => vec![Event::VbaAnalyzed { analysis }],
+            Err(reason) => failed(reason),
+        }
+    }
 }
 
 #[cfg(test)]

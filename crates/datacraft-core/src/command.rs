@@ -283,6 +283,9 @@ pub enum Command {
         /// Module name (case-insensitive).
         module: String,
     },
+    /// Runs the headless static VBA analysis (step 17.3, L5): call graph,
+    /// embedded SQL, table/query references and unused modules.
+    AnalyzeVba,
     /// Writes the design layer (forms + queries + reports) to a
     /// `.datacraft` sidecar file (ADR-1).
     SaveDesignDocument {
