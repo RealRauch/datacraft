@@ -129,6 +129,9 @@ pub trait StoragePort {
     /// `row_count` is empty; anything beyond fails with
     /// [`PortError::OutOfRange`].
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError>;
+    /// Appends one row (positional values, arity must match the table).
+    /// `Null` on an AutoNumber field means "engine-assigned".
+    fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError>;
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
 }
@@ -213,6 +216,12 @@ impl MockPort {
             ..Self::default()
         }
     }
+
+    /// Builder: makes every subsequent write fail with `detail`.
+    pub fn with_write_failure(&mut self, detail: impl Into<String>) -> &mut Self {
+        self.write_fail = Some(detail.into());
+        self
+    }
 }
 
 impl StoragePort for MockPort {
@@ -285,6 +294,34 @@ impl StoragePort for MockPort {
         };
         let (start, end) = window_slice(table, range, rows.len())?;
         Ok(rows[start..end].to_vec())
+    }
+
+    fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        let Some(pos) = self
+            .tables
+            .iter()
+            .position(|t| t.name.eq_ignore_ascii_case(table))
+        else {
+            return Err(PortError::TableNotFound(table.to_owned()));
+        };
+        let def = self.tables[pos].clone();
+        if values.len() != def.fields.len() {
+            return Err(PortError::WriteFailed {
+                detail: format!(
+                    "insert into {:?}: expected {} values, found {}",
+                    def.name,
+                    def.fields.len(),
+                    values.len()
+                ),
+            });
+        }
+        self.rows.entry(def.name).or_default().push(values.to_vec());
+        Ok(())
     }
 
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {

@@ -7,7 +7,8 @@ use crate::ObjectKind;
 use crate::core::failed;
 use crate::event::Event;
 use crate::ids::TabId;
-use crate::schema::TableDef;
+use crate::port::PortError;
+use crate::schema::{FieldKind, FieldValue, TableDef};
 use crate::state::DatabaseState;
 
 impl crate::core::Core {
@@ -75,6 +76,48 @@ impl crate::core::Core {
                 db.tables.push(definition);
                 vec![Event::TableCreated { table: name }]
             }
+        }
+    }
+
+    /// Appends one row (step 13.2, H36): schema validation first, then the
+    /// port write, then the event — a rejected row never reaches storage.
+    pub(crate) fn insert_row(
+        &mut self,
+        table: &str,
+        values: &[crate::schema::FieldValue],
+    ) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(table))
+        else {
+            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+        };
+        if values.len() != def.fields.len() {
+            return failed(format!(
+                "insert into {:?}: expected {} values, found {}",
+                def.name,
+                def.fields.len(),
+                values.len()
+            ));
+        }
+        for (field, value) in def.fields.iter().zip(values) {
+            // Null on an AutoNumber means "engine-assigned" (the Access
+            // convention); any other value is rejected by the schema.
+            if matches!(field.kind, FieldKind::AutoNumber(_)) && matches!(value, FieldValue::Null) {
+                continue;
+            }
+            if let Err(e) = field.validate_value(value) {
+                return failed(format!("field {:?}: {e}", field.name));
+            }
+        }
+        let canonical = def.name.clone();
+        match self.port.insert_row(&canonical, values) {
+            Err(e) => failed(e.to_string()),
+            Ok(()) => vec![Event::RowInserted { table: canonical }],
         }
     }
 

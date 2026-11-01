@@ -136,6 +136,7 @@ impl Core {
             Command::CloseDatabase => self.close_database(),
             Command::CreateTable { definition } => self.create_table(definition),
             Command::DropTable { table } => self.drop_table(&table),
+            Command::InsertRow { table, values } => self.insert_row(&table, &values),
             Command::OpenObject(object) => self.open_object(object),
             Command::CloseTab { tab_id } => self.close_tab(tab_id),
             Command::SetActiveTab { tab_id } => self.set_active_tab(tab_id),

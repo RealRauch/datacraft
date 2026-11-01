@@ -8,9 +8,7 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::port::{MockPort, RowRange};
-use datacraft_core::schema::{
-    AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 
 fn customers() -> TableDef {
     let mut name = FieldDef::new("name", FieldKind::Text { max_len: 20 });
@@ -31,7 +29,10 @@ fn open_core(port: MockPort) -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
     });
-    assert!(matches!(events[0], Event::DatabaseOpened { .. }), "{events:?}");
+    assert!(
+        matches!(events[0], Event::DatabaseOpened { .. }),
+        "{events:?}"
+    );
     core
 }
 
@@ -90,10 +91,7 @@ fn a_null_autonumber_means_engine_assigned() {
     let mut user_value = row("Grace");
     user_value[0] = FieldValue::Integer(99);
     let events = core.dispatch(insert("Customers", user_value));
-    assert!(
-        failure(&events).contains("engine-assigned"),
-        "{events:?}"
-    );
+    assert!(failure(&events).contains("engine-assigned"), "{events:?}");
 }
 
 #[test]
@@ -143,7 +141,10 @@ fn port_failures_are_reported_and_leave_the_rows_untouched() {
     let rows = core
         .read_rows("Customers", RowRange { start: 0, len: 10 })
         .expect("rows stay readable");
-    assert!(rows.is_empty(), "the rejected row must not appear: {rows:?}");
+    assert!(
+        rows.is_empty(),
+        "the rejected row must not appear: {rows:?}"
+    );
 }
 
 #[test]

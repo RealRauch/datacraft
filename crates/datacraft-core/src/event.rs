@@ -31,6 +31,11 @@ pub enum Event {
         /// Canonical table name.
         table: String,
     },
+    /// A row was appended to a table (step 13.2, H36).
+    RowInserted {
+        /// Canonical table name.
+        table: String,
+    },
     /// A new tab was opened (followed by `ActiveTabChanged`).
     TabOpened {
         /// Assigned tab id.

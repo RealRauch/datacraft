@@ -68,12 +68,89 @@ impl StoragePort for SqlitePort {
         self.tables.clone()
     }
 
-    fn create_table(&mut self, _definition: &TableDef) -> Result<(), PortError> {
-        Err(write_pending())
+    fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        definition.validate().map_err(|e| PortError::WriteFailed {
+            detail: e.to_string(),
+        })?;
+        let sql = create_sql(definition)?;
+        conn.execute_batch(&sql)
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("creating table {:?} failed: {e}", definition.name),
+            })?;
+        self.tables.push(definition.clone());
+        Ok(())
     }
 
-    fn drop_table(&mut self, _name: &str) -> Result<String, PortError> {
-        Err(write_pending())
+    fn drop_table(&mut self, name: &str) -> Result<String, PortError> {
+        let Some(pos) = self
+            .tables
+            .iter()
+            .position(|t| t.name.eq_ignore_ascii_case(name))
+        else {
+            return Err(PortError::TableNotFound(name.to_owned()));
+        };
+        let canonical = self.tables[pos].name.clone();
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        conn.execute(&format!("DROP TABLE {}", quote_ident(&canonical)), [])
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("dropping table {canonical:?} failed: {e}"),
+            })?;
+        self.tables.remove(pos);
+        Ok(canonical)
+    }
+
+    fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        let def = self
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(table))
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?
+            .clone();
+        if values.len() != def.fields.len() {
+            return Err(PortError::WriteFailed {
+                detail: format!(
+                    "insert into {:?}: expected {} values, found {}",
+                    def.name,
+                    def.fields.len(),
+                    values.len()
+                ),
+            });
+        }
+        let mut columns = Vec::new();
+        let mut params = Vec::new();
+        for (field, value) in def.fields.iter().zip(values) {
+            if matches!(field.kind, FieldKind::AutoNumber(_)) {
+                if matches!(value, FieldValue::Null) {
+                    continue;
+                }
+                return Err(PortError::WriteFailed {
+                    detail: format!(
+                        "autonumber field {:?} is engine-assigned; user-provided values are rejected",
+                        field.name
+                    ),
+                });
+            }
+            params.push(sql_value(&field.kind, value));
+            columns.push(quote_ident(&field.name));
+        }
+        let sql = if columns.is_empty() {
+            format!("INSERT INTO {} DEFAULT VALUES", quote_ident(&def.name))
+        } else {
+            let placeholders: Vec<String> = (1..=columns.len()).map(|n| format!("?{n}")).collect();
+            format!(
+                "INSERT INTO {} ({}) VALUES ({})",
+                quote_ident(&def.name),
+                columns.join(", "),
+                placeholders.join(", ")
+            )
+        };
+        conn.execute(&sql, rusqlite::params_from_iter(params))
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("insert into {:?} failed: {e}", def.name),
+            })?;
+        Ok(())
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
@@ -114,6 +191,94 @@ impl StoragePort for SqlitePort {
             out.extend(foreign_keys(conn, table)?);
         }
         Ok(out)
+    }
+}
+
+/// `CREATE TABLE` statement for a domain definition.
+///
+/// Lossiness (documented in docs/FORMAT-JET.md): SQLite has no storage
+/// classes for byte/integer widths, decimals, dates or booleans, so the
+/// declared type is a marker that this backend reads back faithfully;
+/// `AUTOINCREMENT` requires an `INTEGER PRIMARY KEY` and at most one such
+/// column exists per table.
+fn create_sql(definition: &TableDef) -> Result<String, PortError> {
+    let mut columns = Vec::with_capacity(definition.fields.len());
+    let mut auto_seen = false;
+    for field in &definition.fields {
+        let mut column = format!("{} {}", quote_ident(&field.name), sql_type(&field.kind)?);
+        if matches!(field.kind, FieldKind::AutoNumber(_)) {
+            if auto_seen {
+                return Err(PortError::Unsupported {
+                    reason: format!(
+                        "table {:?} declares more than one AutoNumber — SQLite allows one \
+                         INTEGER PRIMARY KEY AUTOINCREMENT per table",
+                        definition.name
+                    ),
+                });
+            }
+            auto_seen = true;
+            column.push_str(" PRIMARY KEY AUTOINCREMENT");
+        } else if field.properties.required {
+            column.push_str(" NOT NULL");
+        }
+        columns.push(column);
+    }
+    Ok(format!(
+        "CREATE TABLE {} ({})",
+        quote_ident(&definition.name),
+        columns.join(", ")
+    ))
+}
+
+/// Domain kind -> SQLite declared type (the inverse of `field_kind`).
+fn sql_type(kind: &FieldKind) -> Result<String, PortError> {
+    Ok(match kind {
+        FieldKind::Text { max_len } => format!("VARCHAR({max_len})"),
+        FieldKind::Memo => "TEXT".to_owned(),
+        FieldKind::Number(NumericKind::Byte | NumericKind::Integer | NumericKind::LongInteger) => {
+            "INTEGER".to_owned()
+        }
+        FieldKind::Number(NumericKind::Single | NumericKind::Double) => "REAL".to_owned(),
+        FieldKind::Number(NumericKind::Decimal { .. }) => "NUMERIC".to_owned(),
+        FieldKind::DateTime => "DATETIME".to_owned(),
+        FieldKind::Currency => "CURRENCY".to_owned(),
+        FieldKind::AutoNumber(AutoKind::LongInteger) => "INTEGER".to_owned(),
+        FieldKind::AutoNumber(AutoKind::ReplicationId) => {
+            return Err(PortError::Unsupported {
+                reason: "SQLite has no replication-id AutoNumber; use a plain GUID field"
+                    .to_owned(),
+            });
+        }
+        FieldKind::Boolean { .. } => "BOOLEAN".to_owned(),
+        FieldKind::Binary(_) => "BLOB".to_owned(),
+        FieldKind::Guid => "GUID".to_owned(),
+    })
+}
+
+/// Domain value -> SQLite parameter, keeping the column's storage class.
+fn sql_value(kind: &FieldKind, value: &FieldValue) -> rusqlite::types::Value {
+    use rusqlite::types::Value as Sql;
+    match value {
+        FieldValue::Null => Sql::Null,
+        FieldValue::Boolean(b) => Sql::Integer(i64::from(*b)),
+        FieldValue::Integer(i) => Sql::Integer(*i),
+        FieldValue::Float(f) => Sql::Real(*f),
+        FieldValue::Currency(c) => Sql::Integer(*c),
+        FieldValue::DateTime(days) => Sql::Real(*days),
+        FieldValue::Decimal(scaled) => {
+            let scale = match kind {
+                FieldKind::Number(NumericKind::Decimal { scale, .. }) => u32::from(*scale),
+                _ => 0,
+            };
+            if scale == 0 {
+                Sql::Integer(i64::try_from(*scaled).unwrap_or(i64::MAX))
+            } else {
+                Sql::Real(*scaled as f64 / decimal_factor(scale) as f64)
+            }
+        }
+        FieldValue::Text(text) => Sql::Text(text.clone()),
+        FieldValue::Binary(bytes) => Sql::Blob(bytes.clone()),
+        FieldValue::Guid(bytes) => Sql::Blob(bytes.to_vec()),
     }
 }
 
@@ -399,12 +564,6 @@ fn read_failed(table: &str, error: rusqlite::Error) -> PortError {
 fn no_database() -> PortError {
     PortError::Unsupported {
         reason: "no database is open".to_owned(),
-    }
-}
-
-fn write_pending() -> PortError {
-    PortError::Unsupported {
-        reason: "SQLite writes arrive in step 13.2 (BACKLOG H36)".to_owned(),
     }
 }
 

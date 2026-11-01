@@ -126,6 +126,14 @@ impl StoragePort for Jet4Port {
             .collect())
     }
 
+    fn insert_row(&mut self, _table: &str, _values: &[FieldValue]) -> Result<(), PortError> {
+        Err(PortError::Unsupported {
+            reason: "the Jet4 backend's row inserts arrive with the write path \
+                     (Phase 11, BACKLOG H40)"
+                .to_owned(),
+        })
+    }
+
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
         let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
             reason: "no database is open".to_owned(),

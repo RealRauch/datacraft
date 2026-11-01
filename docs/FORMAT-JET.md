@@ -370,8 +370,17 @@ under a GUID column become `Guid`). Row windows use `LIMIT/OFFSET` over
 the table's natural rowid order; a window starting beyond the count is
 `OutOfRange`, one starting at the count is empty.
 
-**Writes.** `create_table`/`drop_table`/`insert_row` land in step 13.2
-(BACKLOG H36); until then the backend answers `Unsupported`.
+**Writes (step 13.2).** `create_table` emits `CREATE TABLE` with the
+inverse of the affinity table: text → `VARCHAR(n)`/`TEXT`, integral numbers →
+`INTEGER`, single/double → `REAL`, decimal → `NUMERIC`, date/time →
+`DATETIME`, currency → `CURRENCY`, boolean → `BOOLEAN`, binary → `BLOB`,
+GUID → `GUID`, `AutoNumber(LongInteger)` → `INTEGER PRIMARY KEY
+AUTOINCREMENT` (exactly one per table; `AutoNumber(ReplicationId)` is a
+precise `Unsupported`). Required fields become `NOT NULL`. `insert_row`
+builds a parameterized `INSERT`; `NULL` on an AutoNumber column omits the
+column so SQLite assigns the value, any other value is rejected. Stored
+values keep their domain family on read-back; the documented lossiness is
+SQLite's own (no width/scale enforcement for `INTEGER`/`NUMERIC`).
 
 ## Column type 0x11 — decision record (2026-11-01, step 10.7, BACKLOG L2)
 

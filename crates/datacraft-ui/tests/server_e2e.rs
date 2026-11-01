@@ -215,8 +215,8 @@ fn creates_and_fills_a_sqlite_table_over_the_wire() {
             FieldDef::new("score", FieldKind::Number(NumericKind::Double)),
         ],
     );
-    let create = serde_json::to_value(Command::CreateTable { definition })
-        .expect("serialize CreateTable");
+    let create =
+        serde_json::to_value(Command::CreateTable { definition }).expect("serialize CreateTable");
     let insert = serde_json::to_value(Command::InsertRow {
         table: "people".into(),
         values: vec![

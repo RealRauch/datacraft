@@ -38,6 +38,15 @@ pub enum Command {
         /// Table name as shown in the navigation pane.
         table: String,
     },
+    /// Appends one row to a table (step 13.2, H36). Values are positional
+    /// and validated against the table schema; `Null` on an AutoNumber
+    /// field means "engine-assigned".
+    InsertRow {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// Full positional value list (arity must match the table).
+        values: Vec<crate::schema::FieldValue>,
+    },
     /// Opens the object in a tab (re-activates an existing tab instead of
     /// opening a second one for the same object).
     OpenObject(ObjectId),

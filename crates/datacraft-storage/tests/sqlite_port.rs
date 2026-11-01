@@ -301,7 +301,11 @@ fn creates_a_table_and_persists_inserted_rows_across_reopen() {
     .expect("insert Ada");
     port.insert_row(
         "people",
-        &[FieldValue::Null, FieldValue::Text("Grace".into()), FieldValue::Null],
+        &[
+            FieldValue::Null,
+            FieldValue::Text("Grace".into()),
+            FieldValue::Null,
+        ],
     )
     .expect("insert Grace");
     port.close();
@@ -332,7 +336,10 @@ fn drop_table_removes_it_from_the_catalog_and_the_file() {
     let mut port = SqlitePort::new();
     port.open(&scratch.0).expect("open empty database");
     port.create_table(&people()).expect("create people");
-    assert_eq!(port.drop_table("PEOPLE").expect("drop case-insensitively"), "people");
+    assert_eq!(
+        port.drop_table("PEOPLE").expect("drop case-insensitively"),
+        "people"
+    );
     assert!(port.tables().is_empty());
     port.close();
     let mut reopened = SqlitePort::new();
@@ -350,7 +357,10 @@ fn insert_errors_are_precise() {
     let missing = port
         .insert_row("missing", &[])
         .expect_err("unknown table must fail");
-    assert!(matches!(missing, PortError::TableNotFound(_)), "{missing:?}");
+    assert!(
+        matches!(missing, PortError::TableNotFound(_)),
+        "{missing:?}"
+    );
 
     let arity = port
         .insert_row("people", &[FieldValue::Null])
@@ -363,8 +373,13 @@ fn insert_errors_are_precise() {
         other => panic!("expected WriteFailed, got {other:?}"),
     }
 
-    let drop_missing = port.drop_table("missing").expect_err("unknown table must fail");
-    assert!(matches!(drop_missing, PortError::TableNotFound(_)), "{drop_missing:?}");
+    let drop_missing = port
+        .drop_table("missing")
+        .expect_err("unknown table must fail");
+    assert!(
+        matches!(drop_missing, PortError::TableNotFound(_)),
+        "{drop_missing:?}"
+    );
 }
 
 #[test]
@@ -373,7 +388,9 @@ fn create_table_rejects_an_invalid_definition() {
     let mut port = SqlitePort::new();
     port.open(&scratch.0).expect("open empty database");
     let invalid = TableDef::new("", vec![FieldDef::new("x", FieldKind::Memo)]);
-    let err = port.create_table(&invalid).expect_err("invalid definition must fail");
+    let err = port
+        .create_table(&invalid)
+        .expect_err("invalid definition must fail");
     assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
 }
 
@@ -412,8 +429,8 @@ fn value_families_round_trip_through_sqlite_storage() {
     );
     port.create_table(&def).expect("create families");
     let guid = [
-        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54,
-        0x32, 0x10,
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32,
+        0x10,
     ];
     port.insert_row(
         "families",

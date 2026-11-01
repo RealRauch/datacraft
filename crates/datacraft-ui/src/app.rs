@@ -252,6 +252,29 @@ impl App {
         }) {
             self.results.clear();
         }
+        // Inserted rows invalidate exactly the open datasheet tabs of their
+        // table; the reload loop below repopulates the cache.
+        let inserted: Vec<String> = events
+            .iter()
+            .filter_map(|e| match e {
+                Event::RowInserted { table } => Some(table.to_lowercase()),
+                _ => None,
+            })
+            .collect();
+        if !inserted.is_empty() {
+            let stale: Vec<TabId> = self
+                .snapshot
+                .tabs
+                .iter()
+                .filter(|tab| {
+                    tab.object_kind == "table" && inserted.contains(&tab.object_name.to_lowercase())
+                })
+                .map(|tab| tab.id)
+                .collect();
+            for tab_id in stale {
+                self.rows.remove(&tab_id);
+            }
+        }
         let Some(db) = &self.snapshot.database else {
             self.rows.clear();
             return;

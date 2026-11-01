@@ -85,6 +85,14 @@ impl StoragePort for DetectingPort {
         }
     }
 
+    fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        match &mut self.backend {
+            Some(Backend::Jet(port)) => port.insert_row(table, values),
+            Some(Backend::Sqlite(port)) => port.insert_row(table, values),
+            None => Err(no_database()),
+        }
+    }
+
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
         match &self.backend {
             Some(Backend::Jet(port)) => port.read_rows(table, range),
