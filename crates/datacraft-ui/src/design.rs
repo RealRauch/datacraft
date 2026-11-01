@@ -20,7 +20,11 @@ pub fn design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .snapshot()
         .database
         .as_ref()
-        .and_then(|db| db.tables.iter().find(|t| t.ui_test_id == tab.ui_test_id))
+        .and_then(|db| {
+            db.tables
+                .iter()
+                .find(|table| table.name.eq_ignore_ascii_case(&tab.object_name))
+        })
         .map(|t| t.fields.clone())
     else {
         ui.label(t("Table no longer exists"));

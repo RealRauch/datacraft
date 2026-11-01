@@ -72,6 +72,12 @@
 - **Approach:** persist a bounded, de-duplicated recent-paths list on successful `DatabaseOpened` (atomic save via U13's helper), render it on the backstage Home/Open page, and dispatch one `OpenDatabase` per click; missing files are pruned on load with a precise notice instead of disappearing silently.
 - **Acceptance:** opening a database adds it to the recent list; the list survives restarts; clicking an entry dispatches exactly one open command; stale paths are pruned visibly; canonical verification set green.
 
+### [ ] F4 — Datasheet/design looked tables up by the wrong test id — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs`, `crates/datacraft-ui/src/design.rs`
+- **Problem:** Both views matched `TableEntrySnapshot.ui_test_id` (`navpane.expanded.node.<kind>.<name>`) against `TabSnapshot.ui_test_id` (`workspace.tab.<kind>.<name>`) — the values can never be equal, so every table tab rendered "Table no longer exists" instead of columns, rows and fields. Found by the new headless kittest suite (T5).
+- **Fix:** look the table up by name (case-insensitive), like the rest of the UI; fixed inline during step 23.2.
+- **Verification:** `datasheet_exposes_its_cells_as_labels` renders header, cells and the row count; canonical verification set green.
+
 ---
 
 ## 🔵 TEST GAPS

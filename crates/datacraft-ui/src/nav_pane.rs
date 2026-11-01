@@ -33,12 +33,12 @@ pub(crate) const SECTION_MODULES: &str = "Modules";
 /// shell only while `nav_pane_visible`).
 pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     // Access category dropdown: one entry until the category model grows.
-    egui::ComboBox::from_id_salt("navpane.category")
-        .width(180.0)
-        .selected_text(t("All Access Objects"))
-        .show_ui(ui, |ui| {
+    // A menu button (not a ComboBox) carries an accessible name.
+    ui.push_id("navpane.category", |ui| {
+        ui.menu_button(t("All Access Objects"), |ui| {
             let _ = ui.selectable_label(true, t("All Access Objects"));
         });
+    });
 
     let snapshot = app.snapshot();
     let Some(db) = &snapshot.database else {
@@ -85,6 +85,9 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                             ui.horizontal(|ui| {
                                 crate::icons::icon(ui, kind.slug(), is_active);
                                 let entry = ui.selectable_label(is_active, &name);
+                                if entry.clicked() {
+                                    open_intent = Some((kind, name.clone(), None));
+                                }
                                 entry.context_menu(|ui| {
                                     let open = ui
                                         .push_id(format!("nav.{header}.{name}.menu.open"), |ui| {

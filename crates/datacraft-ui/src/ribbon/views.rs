@@ -50,7 +50,7 @@ pub(super) fn view_mode_button(
                 mode: current.toggled(),
             });
         }
-        ui.menu_button("▾", |ui| {
+        ui.menu_button("…", |ui| {
             for mode in [TabMode::Datasheet, TabMode::Design] {
                 if ui
                     .selectable_label(mode == current, view_label(mode))

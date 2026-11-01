@@ -45,7 +45,7 @@ pipe position (`$?` after a pipe reports the *last* command, LESSONS #10).
 
 | # | Scope | Mechanism | Justification | Rules | Revisit |
 |---|-------|-----------|---------------|-------|---------|
-| 1 | crate `datacraft-ui` | `--exclude datacraft-ui` on the llvm-cov invocation (CI + local) | The crate is eframe/egui rendering glue: the event-loop entry point (`main`) and `eframe::App` paint code are not exercisable headlessly. `#[coverage(off)]` is **unstable** on the pinned stable toolchain (rust 1.98, rust-lang/rust#84605), so the attribute cannot be used. | Rendering glue only — **all logic lives in `datacraft-core`** (covered). Logic found in `ui` (layout math, state, commands) is a review finding and moves to core. | When the coverage attribute stabilizes, or if eframe enables headless `App` execution. |
+| 1 | crate `datacraft-ui` | `--exclude datacraft-ui` on the llvm-cov invocation (CI + local) | The crate is eframe/egui rendering glue, but **no longer untested**: the `egui_kittest` suite (`crates/datacraft-ui/tests/ui_kittest.rs`, step 23.2/T5) drives the real widgets through AccessKit (ribbon, nav pane, datasheet, SQL window, backstage) and gates their semantic tree with committed `insta` snapshots. Line coverage stays excluded because `#[coverage(off)]` is unstable on the pinned toolchain and paint closures are not meaningfully line-covered without a window. | Rendering glue only — **all logic lives in `datacraft-core`** (covered). Logic found in `ui` (layout math, state, commands) is a review finding and moves to core. | When the coverage attribute stabilizes, or if eframe enables headless `App` execution. |
 | 2 | `datacraft-cli/src/main.rs` (the bin target only) | none — the ~20-line composition root counts against the gate as uncovered | The bin's **behaviour** is covered by the real-subprocess suite `crates/datacraft-cli/tests/cli_process.rs` (step 23.1, T4): open/exec/non-interactive repl over real stdio plus the exit-code matrix and the stderr routing. The line-coverage exclusion remains because the bin only wires the real stdio handles into `run_split` and subprocess profiles are not merged on every host. **All logic lives in the `datacraft_cli` library and is covered.** | The bin stays a thin `main`; logic found in it is a review finding and moves to the library. | When subprocess profiles are merged reliably on all CI hosts, or the coverage attribute stabilizes. |
 
 The exclusion is deliberately **crate-scoped, not line-scoped**: it can only
@@ -70,6 +70,7 @@ this history: `testV2000.mdb` is the pristine jackcess pin (`repo@commit`),
 `testV2000-access-touched.mdb` documents what real Access does on open.
 | Oracle | `cfg(test)` libmdb backend (Phase 2) | strict schema/row cross-check of our decoder against libmdb |
 | Headless E2E | `datacraft-core` command bus (Phase 9) | assert `UiStateSnapshot` JSON — never pixels |
+| Headless UI | `datacraft-ui/tests/ui_kittest.rs` (T5) | real egui widgets driven by AccessKit labels/roles; committed `insta` snapshots of the semantic tree are the layout gate — DPI/font-independent, never pixel compares |
 
 ## 5. Conventions
 

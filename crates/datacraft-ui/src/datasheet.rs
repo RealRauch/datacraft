@@ -46,7 +46,11 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .snapshot()
         .database
         .as_ref()
-        .and_then(|db| db.tables.iter().find(|t| t.ui_test_id == tab.ui_test_id))
+        .and_then(|db| {
+            db.tables
+                .iter()
+                .find(|table| table.name.eq_ignore_ascii_case(&tab.object_name))
+        })
         .map(|t| t.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>())
     else {
         ui.label(t("Table no longer exists"));
@@ -307,6 +311,19 @@ pub(crate) fn grid_ui(
                                     font.clone(),
                                     tokens.text,
                                 );
+                                // Cells are painted, so expose them as
+                                // AccessKit labels for the headless suite
+                                // (step 23.2, T5): label-based addressing
+                                // instead of pixel coordinates.
+                                let cell_id = ui.scope_id().with(("cell", row_idx, col));
+                                ui.interact(cell, cell_id, egui::Sense::hover())
+                                    .widget_info(|| {
+                                        egui::WidgetInfo::labeled(
+                                            egui::Role::Label,
+                                            true,
+                                            text.clone(),
+                                        )
+                                    });
                                 ui.painter().line_segment(
                                     [egui::pos2(cell.right(), cell.top()), cell.right_bottom()],
                                     egui::Stroke::new(1.0, tokens.border),
@@ -366,10 +383,33 @@ fn header_ui(
             ui.painter().text(
                 rect.left_center() + egui::vec2(4.0, 0.0),
                 egui::Align2::LEFT_CENTER,
-                format!("{name}{}", sort_indicator(order)),
+                name,
                 font.clone(),
                 tokens.on_accent,
             );
+            // Sort caret: painted, not a font glyph (Inter has no U+25B2).
+            if order != SortOrder::None {
+                let cx = rect.right() - 9.0;
+                let cy = rect.center().y;
+                let points = if order == SortOrder::Ascending {
+                    vec![
+                        egui::pos2(cx, cy - 3.5),
+                        egui::pos2(cx - 4.0, cy + 2.5),
+                        egui::pos2(cx + 4.0, cy + 2.5),
+                    ]
+                } else {
+                    vec![
+                        egui::pos2(cx, cy + 3.5),
+                        egui::pos2(cx - 4.0, cy - 2.5),
+                        egui::pos2(cx + 4.0, cy - 2.5),
+                    ]
+                };
+                ui.painter().add(egui::Shape::convex_polygon(
+                    points,
+                    tokens.on_accent,
+                    egui::Stroke::NONE,
+                ));
+            }
             if sortable {
                 if response.clicked() {
                     pending = Some((col, order.toggled()));
@@ -410,14 +450,5 @@ fn header_ui(
         && let Some(callback) = on_sort.as_mut()
     {
         callback(col, order);
-    }
-}
-
-/// Header sort glyph: unsorted shows nothing, sorted shows a caret.
-fn sort_indicator(order: SortOrder) -> &'static str {
-    match order {
-        SortOrder::None => "",
-        SortOrder::Ascending => " ▲",
-        SortOrder::Descending => " ▼",
     }
 }

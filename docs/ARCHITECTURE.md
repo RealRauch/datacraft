@@ -64,8 +64,13 @@ headlessly (Principle 4) and the tool agent-operable (Principle 3).
 crates/
 ├── datacraft-core/      domain model, command bus, app state, test IDs
 ├── datacraft-storage/   StorageEngine trait + Jet/ACE backends (Ph. 2+)
-└── datacraft-ui/        eframe/egui desktop shell (bin: `datacraft`)
+└── datacraft-ui/        eframe/egui desktop shell (lib + bin `datacraft`)
 ```
+
+`datacraft-ui` builds as a library with a thin `main` so the headless
+`egui_kittest` suite (`tests/ui_kittest.rs`, T5) can drive the same widgets
+through AccessKit; the layer boundary is unchanged — paint code only, all
+decisions in core.
 
 Dependency direction rules (review-enforced, never cyclic):
 
