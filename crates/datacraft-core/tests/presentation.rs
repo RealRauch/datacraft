@@ -79,6 +79,17 @@ fn format_names_are_human_readable() {
         "Jet4"
     );
     assert_eq!(datacraft_core::port::DatabaseFormat::Ace.to_string(), "Ace");
+    assert_eq!(
+        datacraft_core::port::DatabaseFormat::Sqlite.to_string(),
+        "SQLite"
+    );
+}
+
+#[test]
+fn sqlite_format_serializes_as_lower_case_slug() {
+    let json = serde_json::to_string(&datacraft_core::port::DatabaseFormat::Sqlite)
+        .expect("format serializes");
+    assert_eq!(json, "\"sqlite\"");
 }
 
 #[test]

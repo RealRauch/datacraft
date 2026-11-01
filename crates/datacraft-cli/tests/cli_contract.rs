@@ -99,6 +99,38 @@ fn exec_with_a_db_opens_first() {
 }
 
 #[test]
+fn sqlite_databases_open_through_the_cli_vocabulary() {
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-cli-{}-sqlite.sqlite",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+    let conn = rusqlite::Connection::open(&path).expect("create scratch SQLite file");
+    conn.execute_batch(
+        "CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT);
+         INSERT INTO notes (body) VALUES ('cli');",
+    )
+    .expect("populate scratch SQLite file");
+
+    let mut core = Core::new(Box::new(datacraft_storage::detecting::DetectingPort::new()));
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "open".to_owned(),
+            path.to_string_lossy().to_string(),
+            "--json".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.contains("\"format\":\"sqlite\""), "{text}");
+    assert!(text.contains("\"name\":\"notes\""), "{text}");
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
 fn usage_errors_exit_with_code_one() {
     let mut core = fresh_core();
     let mut out: Vec<u8> = Vec::new();

@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use datacraft_core::core::Core;
 use datacraft_core::transport::serve;
-use datacraft_storage::port_adapter::Jet4Port;
+use datacraft_storage::detecting::DetectingPort;
 use serde_json::{Value, json};
 
 fn fixture() -> PathBuf {
@@ -19,6 +19,23 @@ fn fixture() -> PathBuf {
         .join("..")
         .join("fixtures")
         .join("testV2000.mdb")
+}
+
+/// Generates a throwaway SQLite file (never a committed fixture: the
+/// content is deterministic and the file is removed by the test).
+fn scratch_sqlite(stem: &str) -> PathBuf {
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-e2e-{}-{stem}.sqlite",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+    let conn = rusqlite::Connection::open(&path).expect("create scratch SQLite file");
+    conn.execute_batch(
+        "CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT);
+         INSERT INTO notes (body) VALUES ('over the wire');",
+    )
+    .expect("populate scratch SQLite file");
+    path
 }
 
 /// Runs one serve session; returns the parsed response lines.
@@ -43,7 +60,7 @@ fn result_of(response: &Value) -> &Value {
 
 #[test]
 fn open_the_fixture_and_inspect_over_the_wire() {
-    let mut core = Core::new(Box::new(Jet4Port::new()));
+    let mut core = Core::new(Box::new(DetectingPort::new()));
     let responses = session(
         &mut core,
         &[
@@ -74,8 +91,28 @@ fn open_the_fixture_and_inspect_over_the_wire() {
 }
 
 #[test]
+fn opens_a_sqlite_database_over_the_wire() {
+    let path = scratch_sqlite("notes");
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": path.to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"inspect"}),
+        ],
+    );
+    let events = &result_of(&responses[0])["events"];
+    assert_eq!(events[0]["DatabaseOpened"]["format"], "sqlite", "{events}");
+    let snapshot = &result_of(&responses[1]);
+    assert_eq!(snapshot["database"]["format"], "sqlite", "{snapshot}");
+    assert_eq!(snapshot["database"]["tables"][0]["name"], "notes", "{snapshot}");
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
 fn the_read_only_backend_rejects_writes_over_the_wire() {
-    let mut core = Core::new(Box::new(Jet4Port::new()));
+    let mut core = Core::new(Box::new(DetectingPort::new()));
     let responses = session(
         &mut core,
         &[
@@ -98,7 +135,7 @@ fn the_read_only_backend_rejects_writes_over_the_wire() {
 
 #[test]
 fn qbe_and_run_over_the_wire() {
-    let mut core = Core::new(Box::new(Jet4Port::new()));
+    let mut core = Core::new(Box::new(DetectingPort::new()));
     let responses = session(
         &mut core,
         &[
@@ -124,7 +161,7 @@ fn qbe_and_run_over_the_wire() {
 
 #[test]
 fn the_design_document_round_trips_over_the_wire() {
-    let mut core = Core::new(Box::new(Jet4Port::new()));
+    let mut core = Core::new(Box::new(DetectingPort::new()));
     let path = std::env::temp_dir().join(format!("datacraft-e2e-{}.datacraft", std::process::id()));
     let responses = session(
         &mut core,
@@ -144,7 +181,7 @@ fn the_design_document_round_trips_over_the_wire() {
     );
 
     // A fresh core reloads the design layer over the wire.
-    let mut core = Core::new(Box::new(Jet4Port::new()));
+    let mut core = Core::new(Box::new(DetectingPort::new()));
     let responses = session(
         &mut core,
         &[
