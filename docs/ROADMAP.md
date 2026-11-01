@@ -27,7 +27,7 @@ inner rings are still open.
 | Ring | Capability | Depends on | Cost / boundedness | Phase mapping |
 |------|------------|-----------|--------------------|---------------|
 | 0 | Storage: Jet4 read → ACE read → Jet4 write → ACE write | — | high; spec + oracle driven | Phase 2, H9 (write), L1 (Jet3) |
-| 1 | **Expression service** — `=Now()`, `IIf()`, `[Field] & " x"`, `Format()`, default values, validation rules, calculated fields | — | small, well-bounded language | Phase 15 (planned) |
+| 1 | **Expression service** — `=Now()`, `IIf()`, `[Field] & " x"`, `Format()`, default values, validation rules, calculated fields | — | small, well-bounded language | ✅ Phase 15 (steps 15.1–15.2) |
 | 2 | Query engine — Jet SQL + the algebra stored in `MSysQueries` (QBE compiles to it) | R1 | hard but bounded | Phase 7 |
 | 3 | Macros — DoCmd action set (~60 documented actions, declarative) | R1 | bounded, low cost per action | Phase 17 (planned; read-only inventory first) |
 | 4 | Forms/Reports runtime — bound forms, events, record navigation, requery | R1, R3 | largest single item | Phase 8 (canvas/design first), runtime extends 8.3 |
@@ -130,10 +130,10 @@ any code embedded in database files without explicit user consent/permissions.
 | # | Milestone | Unlocks | Status |
 |---|-----------|---------|--------|
 | M0 | Storage read milestones (Jet4 → ACE) | everything | ✅ Jet4 (Phase 2), Jet3 (Phase 10), ACE 2007/2010/2016 (Phase 14, oracle-checked); SQLite sources (Phase 13) |
-| M1 | Expression service (Ring 1) | queries, macros, forms, validation | ⬜ Phase 15 (planned, H41) |
+| M1 | Expression service (Ring 1) | queries, macros, forms, validation | ✅ Phase 15 (steps 15.1–15.2, H41 archived; `Now`/`Date` deliberately absent — deterministic) |
 | M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 |
 | M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11) |
-| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview; grouped/aggregate bands await M1 → Phase 15) |
+| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview) + Phase 15 (grouped/aggregate bands) |
 | M5 | Macros (Ring 3) | unattended app logic | ⬜ Phase 17 (planned; read-only inventory first, L4) |
 | M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ⬜ Phase 17 (planned, L5) |
 | M7 | `ScriptEngine` trait hook in core (unimplemented) + engine decision | stage-2 scripting when the §4 gate opens | ⬜ gated (Ring 4 + demand) |

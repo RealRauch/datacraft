@@ -200,3 +200,15 @@
 - **11.10 Jet4 Update/Delete-Writes (H40)**
 - **11.11 Journaled Write-Profile (M2)**
 **Verification:** Journal in core: PreviewWrite diff + token, ApplyWrite with stale-preview re-validation and atomic StoragePort::write_row_ops (Jet: one writer session), RollbackWrite (inverse ops, deletes re-appended), DiscardWrite; write profile refuses attachment/GUID-AutoNumber precisely (M4/M8). 14 contract tests incl. JSON-RPC round trip. Verification: fmt, clippy -D warnings, cargo test --workspace (55 suites), llvm-cov 95.20% lines, file-size clean. (checkpoint dcb6852)
+
+---
+
+### Phase 15 — Expression-Service & Saved Queries
+
+**Scope (Steps):**
+
+- **15.1 Expression-Kern: Evaluator & Funktionen (H41)**
+- **15.2 Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41)**
+- **15.3 Native Saved Queries: MSysQueries (M3)**
+- **15.4 Phase 15 Quality Gate Review**
+**Verification:** Quality gate passed: fmt, clippy -D warnings, 60 suites green, coverage ≥95%, file-size gate, fixture manifest + docs_validate clean. Commits: 15.1 b6c7c73/a657762, 15.2 7eb3bbc/6cb634d, 15.3 78203c3/d914484, fixture 51bd3c5; H41 + M3 archived; ROADMAP M1 closed, M4 bands note updated.
