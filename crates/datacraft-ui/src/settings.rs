@@ -108,7 +108,10 @@ impl Settings {
         Self::from_file(file)
     }
 
-    /// Writes the settings, creating the config directory as needed.
+    /// Writes the settings, creating the config directory as needed. The
+    /// JSON goes to a sibling temporary file that is renamed over the
+    /// target, so an interrupted write can never truncate the file that is
+    /// already on disk (step 22.1, U13).
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
         let file = SettingsFile {
             language: Some(self.language.as_value().to_owned()),
@@ -119,7 +122,9 @@ impl Settings {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        std::fs::write(path, json)
+        let temp = temp_path(path);
+        std::fs::write(&temp, json)?;
+        std::fs::rename(&temp, path)
     }
 
     /// Records the current viewport size (ignored when implausible).
@@ -134,6 +139,13 @@ impl Settings {
             window: file.window.and_then(WindowSize::sane),
         }
     }
+}
+
+/// Sibling temporary path of `path` (`ui.json` → `ui.json.tmp`).
+fn temp_path(path: &Path) -> PathBuf {
+    let mut name = path.as_os_str().to_os_string();
+    name.push(".tmp");
+    PathBuf::from(name)
 }
 
 /// On-disk shape: strings and optional fields so one unknown value cannot
