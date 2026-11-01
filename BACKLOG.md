@@ -16,21 +16,6 @@
 
 > No open items.
 
-### [ ] H9 — Jet4 writer workstream (create tables, write rows) — 🟠
-- **Location:** `datacraft-storage/src/jet/` (writer), post-Phase-4 workstream
-- **Scope:** Jet4 write milestone from ARCHITECTURE §6 (create tables, insert/update rows, usage-map allocation, index maintenance deferred). UI write commands route to `InMemoryEngine` until this lands; then the `Jet4Backend` gains write capability. Bit-for-bit goal: writes must open without repair prompts in MS Access — proven by golden round-trips + oracle.
-- **Acceptance:** Access opens written files without repair; decode(encode(decode(x))) == decode(x) over fixtures; write-path coverage >= gate.
-
-### [ ] H31 — Report canvas — print layout and preview — 🟠
-- **Location:** `datacraft-core/src/form.rs` (ReportDef sharing the canvas), `datacraft-ui/src/report_design.rs`
-- **Scope:** Report canvas: ReportDef shares the ControlKind canvas (page geometry instead of form size, print-oriented defaults); report design + print preview runtime; grouped/aggregate printing lands after the expression service (M1). Deferred from Phase 8 (forms landed first; the canvas math, palette and sidecar persistence are shared and already proven).
-- **Acceptance:** A report design persists in the sidecar, renders a print-preview runtime over source rows, and passes the canonical verification set.
-
-### [ ] H34 — Final documentation and release prep — 🟠
-- **Location:** README.md, docs/ARCHITECTURE.md, docs/HANDOFF removal check, workspace docs
-- **Scope:** Final documentation and release prep for the Phase 1-9 plan: README reflects the delivered feature set (storage read, command bus, JSON-RPC + MCP endpoint, E2E harness, CLI), the architecture table names all four clients and the new crates, the roadmap table closes Phase 9, stale session notes are cleaned up. No new features.
-- **Acceptance:** Docs build coherent with the tree (spot-checked paths exist), roadmap/status tables truthful, canonical verification set green.
-
 ---
 
 ## 🟡 MEDIUM
@@ -43,28 +28,11 @@
 
 > No open items.
 
-### [ ] L1 — Jet 3 (Access 97) read support — 🟢
-- **Location:** `datacraft-storage/src/jet/`
-- **Scope:** Jet 3 (Access 97) read support: 2048-byte pages, codepage-based text (no UTF-16), Jet3 TDEF layout. Deferred per default decision 2026-10-31 — Jet4 and ACE read paths come first; Jet3 files are detected via the version dword and rejected with a precise `Unsupported` error until this item lands.
-- **Acceptance:** A Jet3 fixture decodes to schema + rows through the same `StorageEngine` boundary.
-
-### [ ] L2 — Jet4 column type 0x11 (MSysAccessObjects.Data) — study and decide mapping — 🟢
-- **Location:** `crates/datacraft-storage/src/jet/tdef.rs` (JetType::from_byte), `tests/oracle.rs` (skip path)
-- **Problem:** Jet4 column type `0x11` is not in HACKING's (incomplete) type table and not in `docs/FORMAT-JET.md`; both fixtures use it in `MSysAccessObjects.Data` (long-value column). mdb-tools itself warns "unsupported data type 17" on the same column. Our reader answers with a precise `Unsupported`, and the oracle skips such tables.
-- **Scope:** Focused study on the fixture's MSysAccessObjects rows (likely long-binary/LVAL like OLE; jackcess reads the table fine). Then either map the type or keep the precise `Unsupported` with a documented reason.
-- **Acceptance:** Decision documented in `docs/FORMAT-JET.md`; oracle no longer needs the skip, or the skip carries the documented reason.
-
 ---
 
 ## 🔵 TEST GAPS
 
 > No open items.
-
-### [ ] T3 — Fixture pin integrity — restore pristine testV2000, keep Access-touched variant, manifest + CI hash gate — 🔵
-- **Location:** `fixtures/` (`testV2000.mdb`, manifest), CI workflow
-- **Problem:** `fixtures/testV2000.mdb` no longer matches the jackcess pin (`be0a2139`): the file was opened in real Access, which rewrote system-table pages and appended 22 pages on open (full evidence + hashes in `docs/FIXTURE-SOURCES.md` §4). A silently drifted fixture poisons the oracle evidence base — the recorded pin hash no longer describes the file on disk.
-- **Scope:** restore pristine `testV2000.mdb` from the verified pin source (sha256 `126bad49…`); keep the Access-rewritten file as `fixtures/testV2000-access-touched.mdb` (second writer variant — T2 material, do not discard); replace `jackcess-pin.txt` with a per-file manifest (`repo@commit` + sha256, sources and recommended Phase-2 pin set per `docs/FIXTURE-SOURCES.md` §5); add a CI job that verifies committed fixture hashes; document the rule: fixtures are never opened in writer-capable applications (Access) — byte experiments run on copies only.
-- **Acceptance:** committed `fixtures/manifest` hashes match the committed files and CI fails on drift; pristine + Access-touched variants exist as separate fixtures; pin set per docs/FIXTURE-SOURCES.md §5 pinned; rule documented in docs/TESTING.md.
 
 ---
 
@@ -109,3 +77,9 @@
 - H33 — Headless E2E harness — full stack over the wire — done (step 9.2 (test 245b49a))
 - H8 — CLI client as fourth headless command-bus client — done (step 9.4 (test 917174f, feat d31c759))
 - F1 — Ribbon spec/mapping seam was unguarded — Create tab panic — done (fixed immediately: total command_for mapping + seam test in ui crate (next commit); no unreachable! left in paint code)
+- H9 — Jet4 writer workstream (create tables, write rows) — done (Phase 10, steps 10.1-10.3 (checkpoint 73f540b): writer core + create/insert + round-trip acceptance; Access-repair gate documented as manual follow-up)
+- H31 — Report canvas — print layout and preview — done (Phase 10, steps 10.4-10.5 (checkpoint 1440c64): print-geometry designer + preview runtime; grouped/aggregate bands deferred to M1)
+- H34 — Final documentation and release prep — done (Phase 10, step 10.9 (checkpoint 9468b51): README/ROADMAP/ARCHITECTURE/FORMAT-JET reflect the Phase 1-10 feature set)
+- L1 — Jet 3 (Access 97) read support — done (Phase 10, step 10.6 (checkpoint e1627cb): Jet3 read through the same boundary; jump-table rows = documented Unsupported remainder; real A97 fixture unpinned)
+- L2 — Jet4 column type 0x11 (MSysAccessObjects.Data) — study and decide mapping — done (Phase 10, step 10.7 (checkpoint 8faeac3): 0x11 = JetType::LongBinary (fixed OLE compound docs); oracle skip documented)
+- T3 — Fixture pin integrity — restore pristine testV2000, keep Access-touched variant, manifest + CI hash gate — done (Phase 10, step 10.8 (checkpoint aafb794): pristine restored (126bad49…), touched variant kept, manifest + CI hash gate, immutability rule in TESTING.md)

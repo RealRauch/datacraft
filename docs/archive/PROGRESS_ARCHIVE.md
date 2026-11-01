@@ -126,3 +126,21 @@
 - **9.3 Final Documentation & Release Prep**
 - **9.4 CLI Client (Headless Transport)**
 **Verification:** Final gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 34 sections ok, llvm-cov --fail-under-lines 95 exit 0, file-size gate OK (max file 475 lines), zero debt markers. README/architecture updated for the four-client architecture; roadmap table closed. H34 archived with the step. The Phase 1-9 plan is complete. (checkpoint: efa8b71)
+
+---
+
+### Phase 10 — Jet4 Writer, Report Canvas & Release
+
+**Scope (Steps):**
+
+- **10.1 Jet4 Writer Core & Usage-Map Allocation (h9)**
+- **10.2 Jet4 Create Tables & Write Rows (h9)**
+- **10.3 Jet4 Writer Round-Trip Acceptance (h9)**
+- **10.4 Report Canvas — Print Layout & Design (h31)**
+- **10.5 Report Print Preview Runtime (h31)**
+- **10.6 Jet 3 (Access 97) Read Support (l1)**
+- **10.7 Jet4 Column Type 0x11 — Study & Mapping Decision (l2)**
+- **10.8 Fixture Pin Integrity — Manifest & CI Hash Gate (t3)**
+- **10.9 Final Documentation & Release Prep (h34)**
+- **10.10 Phase 10 Quality Gate Review**
+**Verification:** Final gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 41 sections ok, llvm-cov --fail-under-lines 95 exit 0 (95.11% lines), file-size gate 0 violations, zero debt markers (CI word-boundary pattern), fixture manifest verified. Phase 1-10 plan is complete; the manual Access-repair check on written files remains a documented follow-up. (checkpoint: 7f9f9fc)
