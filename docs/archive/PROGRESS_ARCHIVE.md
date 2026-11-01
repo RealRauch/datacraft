@@ -237,3 +237,15 @@
 - **17.4 Doku-Genauigkeit: Kompatibilitätsmatrix (M6)**
 - **17.5 Phase 17 Quality Gate Review**
 **Verification:** Gate review passed: fmt, clippy -D warnings, cargo test --workspace, file-size <500, fixture manifest hashes, docs_validate (4 accepted PLAN_WITHOUT_WIP for planned phases), no debt markers. Coverage: Windows line coverage 93.45% vs 92.81% Phase-16 baseline on the same host; new modules 95-100%; Linux CI remains the binding >=95% gate (TESTING §2 platform note). Archive debt-scan exclusion fixed in 581b28d. Phase commits: cf63492/0bc2176/8da3acb (17.1), d155410/ccf2107 (17.2), f56ca82/63ec95c (17.3), 19854e6/d532c45 (17.4), 5e1bd88/581b28d (gate). (checkpoint: 581b28d)
+
+---
+
+### Phase 18 — UI Localization (i18n) *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **18.1 i18n kernel in the UI crate (I1)**
+- **18.2 All UI literals through t() (I2)**
+- **18.3 German catalog complete (I3)**
+- **18.4 Phase 18 Quality Gate Review**
+**Verification:** Gate passed: fmt 0, clippy -D warnings 0, workspace tests green, file-size gate 0, fixture manifest 15/15 OK, no debt markers, docs_validate clean. Coverage 93.46% local vs Phase-17 93.45% on the same host; Linux CI remains the binding >=95% gate (TESTING §2). I2/I3 verified: no bare user-facing literals left (grep allow-list: glyphs/numbers only), catalog parity both directions, German layout 58.2/112 px and 164.9/640 px, locale mapping + English fallback unit-tested. sys-locale content gate approved by the user before landing (crate already transitive). Commits: 1780c1e/dbc513a (18.1), 57af757/b616e9c (18.2), 44e2251/6486786/5c9d69e/1926448 (18.3). (checkpoint: 1926448)

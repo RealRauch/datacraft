@@ -356,3 +356,19 @@ on_accent, and the dark-mode pendants) derives from the brand teal
 `#0F8B7E`. Dark mode ships as `Appearance { Light, Dark, System }` (default
 System) with WCAG contrast tests against the teal variants. Fonts are openly
 licensed (OFL) and attributed.
+
+**Implemented scope (Phase 18, 2026-11-01):** the UI surface is localized —
+`crates/datacraft-ui/src/i18n.rs` provides `t()`/`tr()`/`plural()` over the
+embedded German catalog, split into `i18n/de/ui_chrome.rs` and
+`i18n/de/views.rs` to stay below the file-size gate. Every paint-code
+literal and every data-dependent label (field kinds from
+`FieldSnapshot.kind`, cell text from `FieldValue`, the status line from
+snapshot counts) renders through it, while `inspect()` JSON stays
+byte-identical in every language (wire-stability test). Parity tests scan
+the UI sources in both directions — no untranslated key, no orphaned catalog
+entry — and enforce identical placeholder sets; layout tests measure the
+German strings against the ribbon and status-bar budgets with egui's real
+font metrics. `sys-locale` (already in the dependency tree transitively) is
+now a direct UI-only dependency. Deliberately absent: the language switcher
+and the `ui.json` settings store (Phase 19) and `Event::Failed.reason`
+localization, which waits on core failure codes (BACKLOG I6).

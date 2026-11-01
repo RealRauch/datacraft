@@ -502,3 +502,27 @@
 - **Ansatz:** Embedded Compound File reassemblieren, `dir`-/Modul-Streams je `[MS-OVBA]` decodieren, Quelltext pro Modul ins Domain-Modell; Viewer (Modulbaum + Quelle + Volltextsuche) wie jedes andere DB-Objekt; headless statische Analyse (Call-Graph, eingebettete SQL-Literale, Tabellen-/Query-Referenzen, ungenutzte Module) — MCP-freundlich. Oracle: Referenz-*Outputs* als Golden-Daten, nie Code (Clean-Room-Muster wie H7). **Keine Ausführung** (ADR-2-Grenze).
 - **Acceptance:** Fixture mit VBA-Projekt; Extraction deterministisch/stabil; Viewer + Analyse über Bus/MCP; ADR-2-Grenze (kein Interpreter) in Tests verankert.
 - **Done:** VBA extraction/viewer (ccf2107) + static analysis (63ec95c), no execution
+
+---
+
+### [x] I1 — i18n kernel in the UI crate — 🟠
+- **Location:** `crates/datacraft-ui/src/i18n.rs` (neu) + `crates/datacraft-ui/src/i18n/` (Katalog-Module), `crates/datacraft-ui/Cargo.toml` (neue Dependency `sys-locale`); Modell: WordCraft `crates/ui-egui/src/i18n.rs`; ADR-4 in `docs/ARCHITECTURE.md` §15
+- **Approach:** `t()`/`tr()` with the English source string as the lookup key (gettext pattern); embedded German catalog tables; a missing translation falls back to the English source unchanged (incremental coverage never breaks a build). `Lang` selection: setting `"auto"` (default) → system detection via `sys-locale` (`de*` → German, anything else → English), `DATACRAFT_LANGUAGE` environment override wins over detection. The current language lives in UI state only — ADR-4: UI settings never write into core, the `.datacraft` sidecar or the wire; headless clients (MCP/CLI) stay English. **New dependency `sys-locale` (ui crate only) = Medium content gate → pause for release before landing.**
+- **Acceptance:** `t()` returns the English source for unknown keys; detection unit-tested (locale strings → language mapping incl. `None`/non-`de` fallback); env override beats detection; core untouched (`git diff crates/datacraft-core` empty); canonical verification set green.
+- **Done:** dbc513a
+
+---
+
+### [x] I2 — All UI literals through t() — 🟠
+- **Location:** `crates/datacraft-ui/src/*.rs` (nav_pane.rs, workspace.rs, datasheet.rs, design.rs, qbe.rs, relationships.rs, sql_window.rs, form_design.rs, form_runtime.rs, report_design.rs, designer_palette.rs, shell.rs, ribbon.rs, app.rs `notice_for`, flows.rs); ADR-4
+- **Approach:** every hardcoded user-facing literal in the paint code goes through `t()` (~88 literals today). Data-dependent display text is localized in the UI from locale-neutral snapshot data: field-type names from the `FieldSnapshot.kind` enum (not the English `kind_display` string), Yes/No cell text from `FieldValue`, the status line from snapshot counts/format. Ribbon labels render via `t(spec.label)` (the English spec label is the key); toasts/hints become template functions with `{name}`-style placeholders. Core is not modified; `inspect()` JSON stays byte-identical in every language (wire-stability test).
+- **Acceptance:** no user-facing English literals left in paint code (grep allow-list: technical glyphs `✕`/`◀`/`▶` only); `git diff crates/datacraft-core` empty; wire-stability test green (fixture `inspect()` before/after byte-equal); canonical verification set green.
+- **Done:** b616e9c
+
+---
+
+### [x] I3 — German catalog complete — 🟠
+- **Location:** `crates/datacraft-ui/src/i18n/` (de tables), `crates/datacraft-ui/src/i18n.rs` (parity tests)
+- **Approach:** full German translation of every catalog key using Access terminology (Datenblatt, Entwurfsansicht, Navigationsbereich, Datei/Start/Erstellen/Externe Daten/Datenbanktools). Parity tests enforce: every key present in the German tables, non-empty, and diffed against the English source so nothing drifts silently. Layout sanity: longer German strings must not truncate in ribbon group captions and the status bar (checked in the manual gate run, noted in PROGRESS).
+- **Acceptance:** parity tests green; the app shows German on a German system and English otherwise (fallback proven); canonical verification set green.
+- **Done:** 6486786

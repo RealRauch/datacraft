@@ -16,21 +16,6 @@
 
 > No open items.
 
-### [ ] I1 — i18n kernel in the UI crate — 🟠
-- **Location:** `crates/datacraft-ui/src/i18n.rs` (neu) + `crates/datacraft-ui/src/i18n/` (Katalog-Module), `crates/datacraft-ui/Cargo.toml` (neue Dependency `sys-locale`); Modell: WordCraft `crates/ui-egui/src/i18n.rs`; ADR-4 in `docs/ARCHITECTURE.md` §15
-- **Approach:** `t()`/`tr()` with the English source string as the lookup key (gettext pattern); embedded German catalog tables; a missing translation falls back to the English source unchanged (incremental coverage never breaks a build). `Lang` selection: setting `"auto"` (default) → system detection via `sys-locale` (`de*` → German, anything else → English), `DATACRAFT_LANGUAGE` environment override wins over detection. The current language lives in UI state only — ADR-4: UI settings never write into core, the `.datacraft` sidecar or the wire; headless clients (MCP/CLI) stay English. **New dependency `sys-locale` (ui crate only) = Medium content gate → pause for release before landing.**
-- **Acceptance:** `t()` returns the English source for unknown keys; detection unit-tested (locale strings → language mapping incl. `None`/non-`de` fallback); env override beats detection; core untouched (`git diff crates/datacraft-core` empty); canonical verification set green.
-
-### [ ] I2 — All UI literals through t() — 🟠
-- **Location:** `crates/datacraft-ui/src/*.rs` (nav_pane.rs, workspace.rs, datasheet.rs, design.rs, qbe.rs, relationships.rs, sql_window.rs, form_design.rs, form_runtime.rs, report_design.rs, designer_palette.rs, shell.rs, ribbon.rs, app.rs `notice_for`, flows.rs); ADR-4
-- **Approach:** every hardcoded user-facing literal in the paint code goes through `t()` (~88 literals today). Data-dependent display text is localized in the UI from locale-neutral snapshot data: field-type names from the `FieldSnapshot.kind` enum (not the English `kind_display` string), Yes/No cell text from `FieldValue`, the status line from snapshot counts/format. Ribbon labels render via `t(spec.label)` (the English spec label is the key); toasts/hints become template functions with `{name}`-style placeholders. Core is not modified; `inspect()` JSON stays byte-identical in every language (wire-stability test).
-- **Acceptance:** no user-facing English literals left in paint code (grep allow-list: technical glyphs `✕`/`◀`/`▶` only); `git diff crates/datacraft-core` empty; wire-stability test green (fixture `inspect()` before/after byte-equal); canonical verification set green.
-
-### [ ] I3 — German catalog complete — 🟠
-- **Location:** `crates/datacraft-ui/src/i18n/` (de tables), `crates/datacraft-ui/src/i18n.rs` (parity tests)
-- **Approach:** full German translation of every catalog key using Access terminology (Datenblatt, Entwurfsansicht, Navigationsbereich, Datei/Start/Erstellen/Externe Daten/Datenbanktools). Parity tests enforce: every key present in the German tables, non-empty, and diffed against the English source so nothing drifts silently. Layout sanity: longer German strings must not truncate in ribbon group captions and the status bar (checked in the manual gate run, noted in PROGRESS).
-- **Acceptance:** parity tests green; the app shows German on a German system and English otherwise (fallback proven); canonical verification set green.
-
 ### [ ] U1 — Theme rebase: WordCraft-style neutral tokens, Teal accent — 🟠
 - **Location:** `crates/datacraft-ui/src/theme.rs` (token system), paint sites referencing theme constants; ADR-6 in `docs/ARCHITECTURE.md` §15; model: WordCraft `crates/ui-egui/src/theme.rs`
 - **Approach:** token-based theme adopting the model's **neutral** system: chrome/title bar `#F0F0F0`, ribbon `#F9F9F9`, canvas `#E6E6E6`, panel `#FAFAFA`, text `#242424`/`#616161`/`#A8A8A8`, borders `#E1E1E1`/`#C8C8C8`, hover `#E6E6E6`, pressed `#D6D6D6`. **The accent family stays DataCraft teal and is derived from it — no accent colour is copied from the model (its blue is explicitly rejected):** accent `#0F8B7E`, accent_text `#0B6B60`, checked/selection `#DCE9E4` (existing TEAL_WASH), on_accent `#F8F4EA` (ON_TEAL). Geometry from the model: item_spacing (6,4), button_padding (8,3), corner radii windows 8 / menus 6 / widgets 4, 1 px strokes. The derivation rule ("accent tokens are teal derivatives, never the model's blue") is pinned by a unit test.
@@ -226,3 +211,6 @@
 - M6 — Doku-Genauigkeit (Kompatibilitätsaussagen ↔ verifizierter Stand) — done (verified compatibility matrix + Phase 17 docs accuracy, commit 19854e6)
 - L4 — Makro-Inventur (Ring 3 / Roadmap M5) — done (read-only macro inventory, commit 8da3acb)
 - L5 — VBA-Extraction + Viewer + statische Analyse (Roadmap M6) — done (VBA extraction/viewer (ccf2107) + static analysis (63ec95c), no execution)
+- I1 — i18n kernel in the UI crate — done (dbc513a)
+- I2 — All UI literals through t() — done (b616e9c)
+- I3 — German catalog complete — done (6486786)

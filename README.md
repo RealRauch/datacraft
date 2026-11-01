@@ -33,14 +33,15 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–16 are complete and Phase 17
-> (read-only macros, VBA extraction/viewer, static analysis, docs accuracy) is
-> underway. The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
+> **DataCraft is in early development.** Phases 1–18 are complete; Phase 19
+> (the UI-owned `ui.json` settings store and the language switcher) is next.
+> The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
 > `.accdb` files (Jet4/ACE cross-checked against the libmdb oracle in CI) and
 > writes verified Jet4 table/row paths; the headless command bus drives a
 > serializable snapshot with JSON-RPC/MCP and CLI clients; the egui shell has
-> the Access layout with datasheets, the QBE grid, the form/report canvas and
-> the relationship mapper. Expect breaking changes. The honest, step-by-step
+> the Access layout with datasheets, the QBE grid, the form/report canvas, the
+> relationship mapper and a German UI (system-detected, English fallback;
+> ADR-4). Expect breaking changes. The honest, step-by-step
 > picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
 > the verified compatibility claims are in
 > [Compatibility matrix](#compatibility-matrix-verified-2026-11-01).

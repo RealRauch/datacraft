@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 18 — UI Localization (i18n) *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **18.1 i18n kernel in the UI crate (I1)**
-- **18.2 All UI literals through t() (I2)**
-- **18.3 German catalog complete (I3)**
-- **18.4 Phase 18 Quality Gate Review**
 ### Phase 19 — App Settings & Language Switcher *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -160,10 +152,10 @@
 | 17.3 | Statische Analyse headless (L5) | ✅ |
 | 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | ✅ |
 | 17.5 | Phase 17 Quality Gate Review | ✅ |
-| 18.1 | i18n kernel in the UI crate (I1) | ⬜ |
-| 18.2 | All UI literals through t() (I2) | ⬜ |
-| 18.3 | German catalog complete (I3) | ⬜ |
-| 18.4 | Phase 18 Quality Gate Review | ⬜ |
+| 18.1 | i18n kernel in the UI crate (I1) | ✅ |
+| 18.2 | All UI literals through t() (I2) | ✅ |
+| 18.3 | German catalog complete (I3) | ✅ |
+| 18.4 | Phase 18 Quality Gate Review | ✅ |
 | 19.1 | App settings store ui.json (I4) | ⬜ |
 | 19.2 | Language switcher in the UI (I5) | ⬜ |
 | 19.3 | Phase 19 Quality Gate Review | ⬜ |
