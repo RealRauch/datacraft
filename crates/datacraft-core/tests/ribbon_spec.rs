@@ -177,6 +177,56 @@ fn contextual_tab_actions_are_dispatchable() {
 }
 
 #[test]
+fn quick_access_entries_are_declared_in_order() {
+    let quick_access = &ribbon_spec().quick_access;
+    let ids: Vec<&str> = quick_access.iter().map(|entry| entry.id).collect();
+    assert_eq!(ids, ["save_design", "undo", "redo"]);
+    let labels: Vec<&str> = quick_access.iter().map(|entry| entry.label).collect();
+    assert_eq!(labels, ["Save", "Undo", "Redo"]);
+}
+
+#[test]
+fn quick_access_save_is_enabled_and_history_entries_name_their_follow_up() {
+    let quick_access = &ribbon_spec().quick_access;
+    assert!(
+        matches!(quick_access[0].state, ActionState::Enabled),
+        "Save is dispatchable today"
+    );
+    for entry in &quick_access[1..] {
+        match &entry.state {
+            ActionState::DisabledIn { phase } => {
+                assert!(
+                    phase.contains("U14"),
+                    "{} names its follow-up item: {phase}",
+                    entry.id
+                );
+            }
+            ActionState::Enabled => panic!("{} must stay disabled until U14", entry.id),
+        }
+    }
+}
+
+#[test]
+fn quick_access_reuses_the_ribbon_action_ids() {
+    let spec = ribbon_spec();
+    let ribbon_actions: Vec<&str> = spec
+        .tabs
+        .iter()
+        .chain(spec.contextual_tabs.iter().map(|entry| &entry.tab))
+        .flat_map(|tab| &tab.groups)
+        .flat_map(|group| &group.actions)
+        .map(|action| action.id)
+        .collect();
+    for entry in &spec.quick_access {
+        assert!(
+            ribbon_actions.contains(&entry.id),
+            "QAT {} must reuse a ribbon action id",
+            entry.id
+        );
+    }
+}
+
+#[test]
 fn disabled_actions_declare_their_arriving_phase() {
     let spec = ribbon_spec();
     let tabs = spec

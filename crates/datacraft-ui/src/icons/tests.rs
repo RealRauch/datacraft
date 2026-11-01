@@ -40,6 +40,16 @@ fn every_ribbon_action_has_an_icon() {
     }
 }
 
+/// Every Quick Access Toolbar entry resolves to an icon (step 21.2).
+#[test]
+fn every_quick_access_action_has_an_icon() {
+    for entry in &ribbon_spec().quick_access {
+        let (dispatched, shapes) = paint_once(entry.id);
+        assert!(dispatched, "QAT action {:?} has no icon", entry.id);
+        assert!(shapes > 0, "QAT action {:?} paints nothing", entry.id);
+    }
+}
+
 /// Every object kind (nav pane, document tabs) resolves to an icon.
 #[test]
 fn every_object_kind_has_an_icon() {

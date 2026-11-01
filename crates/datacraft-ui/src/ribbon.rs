@@ -413,6 +413,7 @@ fn next_name(used: Vec<String>, prefix: &str) -> String {
 mod tests {
     use super::*;
     use datacraft_core::port::MockPort;
+    use datacraft_core::ribbon::ribbon_spec;
 
     /// Seam contract (LESSONS #2): every enabled spec action except the
     /// input-bound `open_database`, the state-bound `view_mode` and the
@@ -443,5 +444,27 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// The QAT reuses the ribbon action ids, so both surfaces resolve
+    /// through the same mapping; disabled entries map nothing (step 21.2).
+    #[test]
+    fn quick_access_entries_use_the_shared_command_mapping() {
+        let app = App::new(Box::new(MockPort::new()));
+        for entry in &ribbon_spec().quick_access {
+            let mapped = command_for(entry.id, &app);
+            match &entry.state {
+                ActionState::Enabled => {
+                    assert!(mapped.is_some(), "QAT {} has no mapping", entry.id);
+                }
+                ActionState::DisabledIn { .. } => {
+                    assert!(mapped.is_none(), "QAT {} must stay disabled", entry.id);
+                }
+            }
+        }
+        assert!(matches!(
+            command_for("save_design", &app),
+            Some(Command::SaveDesignDocument { .. })
+        ));
     }
 }

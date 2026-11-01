@@ -118,6 +118,7 @@ impl Core {
 
 ```text
 ribbon.<tab>.<group>.<action>     e.g. ribbon.create.tables.table_design
+qat.<action>                       e.g. qat.save_design
 navpane.<state>.node.<kind>.<name> e.g. navpane.expanded.node.table.customers
 workspace.tab.<object-id>          e.g. workspace.tab.table.customers
 datasheet.<table>.cell.<row>.<col> e.g. datasheet.customers.cell.12.name
