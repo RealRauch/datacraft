@@ -29,9 +29,9 @@ inner rings are still open.
 | 0 | Storage: Jet4 read → ACE read → Jet4 write → ACE write | — | high; spec + oracle driven | Phase 2, H9 (write), L1 (Jet3) |
 | 1 | **Expression service** — `=Now()`, `IIf()`, `[Field] & " x"`, `Format()`, default values, validation rules, calculated fields | — | small, well-bounded language | ✅ Phase 15 (steps 15.1–15.2) |
 | 2 | Query engine — Jet SQL + the algebra stored in `MSysQueries` (QBE compiles to it) | R1 | hard but bounded | Phase 7 |
-| 3 | Macros — DoCmd action set (~60 documented actions, declarative) | R1 | bounded, low cost per action | Phase 17 (planned; read-only inventory first) |
+| 3 | Macros — DoCmd action set (~60 documented actions, declarative) | R1 | bounded, low cost per action | ✅ Phase 17, step 17.1: read-only inventory (DoCmd execution remains out of scope) |
 | 4 | Forms/Reports runtime — bound forms, events, record navigation, requery | R1, R3 | largest single item | Phase 8 (canvas/design first), runtime extends 8.3 |
-| 5 | VBA | R4 **and** runtime semantics | out of scope as interpreter — see §3 | extraction/analysis only |
+| 5 | VBA | R4 **and** runtime semantics | out of scope as interpreter — see §3 | ✅ Phase 17, steps 17.2–17.3: extraction, viewer, static analysis (no execution) |
 
 ## 3. VBA strategy — decision record
 
@@ -62,13 +62,14 @@ scope, subject to the re-evaluation gate below.
    the VBA VM is precisely a Windows-native COM component. Reimplementing it
    on the platforms we are leaving would be self-defeating.
 
-**What we do instead (in scope):**
+**What we do instead (in scope):** — delivered in Phase 17, steps 17.2–17.3.
 
 - **Extraction** (fits storage milestones; lands via existing LVAL/long-value
-  decoding): read `MSysAccessStorage` (Jet3: `MSysAccessObjects`), reassemble
-  the embedded compound file, decode `dir` + module streams per `[MS-OVBA]`,
-  keep per-module source in the domain model. Oracle: reference *outputs* as
-  golden data, never code — same clean-room pattern as the libmdb oracle (H7).
+  decoding): read `MSysAccessStorage` (Jet3: `MSysAccessObjects` — Jet 3
+  extraction is still a remainder), decode `dir` + module streams per
+  `[MS-OVBA]`, keep per-module source in the domain model. Oracle:
+  reference *outputs* as golden data, never code — same clean-room pattern
+  as the libmdb oracle (H7).
 - **Presentation:** module tree + source viewer + full-text search in the
   Phase 5+ UI; the VBA project appears like any other database object.
 - **Static analysis (headless, MCP-friendly):** call graph per project, SQL
@@ -132,10 +133,10 @@ any code embedded in database files without explicit user consent/permissions.
 | M0 | Storage read milestones (Jet4 → ACE) | everything | ✅ Jet4 (Phase 2), Jet3 (Phase 10), ACE 2007/2010/2016 (Phase 14, oracle-checked); SQLite sources (Phase 13) |
 | M1 | Expression service (Ring 1) | queries, macros, forms, validation | ✅ Phase 15 (steps 15.1–15.2, H41 archived; `Now`/`Date` deliberately absent — deterministic) |
 | M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 |
-| M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11) |
+| M3 | Write path (Ring 0 write) | editing apps, Access-compatible write goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11); verified claim set in the README matrix |
 | M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview) + Phase 15 (grouped/aggregate bands) |
-| M5 | Macros (Ring 3) | unattended app logic | ⬜ Phase 17 (planned; read-only inventory first, L4) |
-| M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ⬜ Phase 17 (planned, L5) |
+| M5 | Macros (Ring 3) | unattended app logic | ✅ Phase 17, step 17.1: read-only inventory (name + coarse arguments); DoCmd execution stays out of scope |
+| M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ✅ Phase 17, steps 17.2–17.3 (extraction, viewer, `AnalyzeVba`; no execution) |
 | M7 | `ScriptEngine` trait hook in core (unimplemented) + engine decision | stage-2 scripting when the §4 gate opens | ⬜ gated (Ring 4 + demand) |
 | — | VBA execution | — | ⛔ out of scope (see §3 gate) |
 

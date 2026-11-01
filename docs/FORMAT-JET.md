@@ -1,9 +1,11 @@
 # FORMAT-JET.md — Jet/ACE binary format facts (clean-room knowledge base)
 
 > The authoritative record of every format fact DataCraft's decoders rely on.
-> **Sources are public documentation only** — no MDB Tools source code, no
-> decompiled Microsoft material (`docs/ARCHITECTURE.md` §12). Facts are
-> verified against real files by the CI oracle (step 2.4, item H7).
+> Compatibility claims are bounded by the README **Compatibility matrix**;
+> this file records facts, evidence and known remainders, never a blanket
+> support statement. **Sources are public documentation only** — no MDB Tools
+> source code, no decompiled Microsoft material (`docs/ARCHITECTURE.md` §12).
+> Facts are verified against real files by the CI oracle (step 2.4, item H7).
 > Sources: the community format reference at `jabakobob.net/mdb/` (pages
 > "First Page", "Table Definition Pages", "Data Pages") and the public format
 > documentation distributed with MDB Tools (`HACKING` — documentation file,

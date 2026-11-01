@@ -8,11 +8,13 @@
 ## 1. Mission
 
 DataCraft is an open-source, cross-platform alternative to Microsoft Access:
-bit-for-bit compatible reading and writing of `.mdb` (Jet) and `.accdb` (ACE)
-files, the classic Access UX paradigm (Ribbon, Navigation Pane, tabbed
-documents, Datasheet/Design views, QBE query builder, Form/Report canvas)
-rendered in an original, minimal, hardware-accelerated ArtCraft aesthetic —
-and a headless core that AI agents can drive exactly like the GUI does.
+verified reading of `.mdb` (Jet 3/4) and `.accdb` (ACE) files with a verified
+Jet 4 write path for tables and rows — every compatibility claim is bounded by
+the matrix in `README.md` — the classic Access UX paradigm (Ribbon,
+Navigation Pane, tabbed documents, Datasheet/Design views, QBE query builder,
+Form/Report canvas) rendered in an original, minimal, hardware-accelerated
+ArtCraft aesthetic — and a headless core that AI agents can drive exactly like
+the GUI does.
 
 ## 2. Principles → mechanisms
 
@@ -138,7 +140,7 @@ builds never link it.
 | Criterion | libmdb FFI (runtime) | Pure Rust engine |
 |---|---|---|
 | `.mdb`/`.accdb` read | mature | built by us, spec-based |
-| **write** | practically absent — no accurate Access-compatible writer | **only viable route to bit-for-bit writes** |
+| **write** | practically absent — no accurate Access-compatible writer | **only viable route to Access-compatible writes** (verified claim set: README matrix) |
 | license | LGPL-2.1, dynamic linking only | none (product code) |
 | cross-platform build | GLib dependency, vcpkg/MSYS2 pain | `cargo build` everywhere |
 | correctness confidence | battle-tested reader | oracle cross-check in CI replaces that |
@@ -149,8 +151,10 @@ but no write path and a second implementation of the same boundary later;
 reference. Rejected for the reasons above.
 
 **Consequences:** Phase 2 is longer than an FFI shortcut; LGPL stays confined
-to dev/CI; every read milestone is proven by (1) golden-file fixtures and
-(2) strict schema/row comparison against the oracle.
+to dev/CI; every Jet 4/ACE read milestone is proven by (1) golden-file
+fixtures and (2) strict schema/row comparison against the oracle. Jet 3 has
+fixture coverage only (no libmdb oracle). The verified claim set and its
+limits live in the README compatibility matrix.
 
 **Trait boundary** (implemented in Phase 2.1):
 
@@ -179,12 +183,15 @@ engine reads every source through the port (see `docs/FORMAT-JET.md`
 ACE write. Each milestone: spec → decoder/encoder → proptest round-trip →
 golden files → oracle comparison. Landed so far: Jet4 read, Jet3 (Access 97)
 read incl. chained TDEFs, >255-byte jump-table rows and overflow/LVAL pages,
-embedded-OLE columns (fixed 0x11 long binary), ACE complex values
+embedded-OLE columns (fixed 0x11 long binary), ACE read and complex values
 (attachments, multi-value, version history; Phase 16), Jet3/Jet4 RC4 database
 passwords and page encryption (Phase 16; ACE Office encryption stays a precise
-`Unsupported`), and the Jet4 writer core (tables + rows, usage-map-consistent;
-Phase 10) — update/delete, LVAL-chain writes and the Access-repair gate are the
-remaining write-path work.
+`Unsupported`), the Jet4 writer core incl. update/delete and journaled batches
+(tables + rows, usage-map-consistent; Phases 10–11), and the Phase 17
+read-only programmability layer (named macros, VBA extraction/viewer/static
+analysis). Remaining write-path work: AutoNumber counters (M8), `DropTable`
+(M7), LVAL-chain writes for complex values, the ACE write path and the
+Access-repair gate. The README compatibility matrix is the claim set.
 
 ## 7. Domain data model (preview of Phase 3)
 
@@ -296,6 +303,16 @@ implements **no VBA interpreter or runtime**. VBA is extracted, displayed and
 statically analyzed only; byte-compatible VBA execution is out of scope with a
 defined re-evaluation gate. Ring model, rationale and gate: `docs/ROADMAP.md`
 §2–§5.
+
+**Implemented scope (Phase 17, 2026-11-01):** the in-scope part of ADR-2 is
+delivered — `MSysAccessStorage` is decoded into the ACE application tree,
+named macros become a read-only inventory (name + coarse readable arguments),
+the VBA project is extracted per `[MS-OVBA]` (`dir` records, compressed module
+streams, project code page) with a read-only viewer, and `AnalyzeVba` returns
+the call graph, embedded SQL literals, table/query references and unused
+modules over the bus/MCP. Deliberately absent: macro/VBA execution, the
+`_VBA_PROJECT` p-code cache, and Jet 3 project extraction
+(`MSysAccessObjects` chunking — BACKLOG remainder).
 
 **Decision record (ADR-3, 2026-10-31):** no own scripting language. Automation
 is command-bus-first (headless JSON-RPC/MCP + CLI); an embedded *existing*

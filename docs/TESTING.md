@@ -31,6 +31,13 @@ pipe position (`$?` after a pipe reports the *last* command, LESSONS #10).
 - Tool: `cargo-llvm-cov`, gate **≥ 95 % lines**, workspace-wide, enforced by CI.
 - Rationale for line coverage over region/branch: stable, cheap, mechanical;
   branch intent is covered by explicit table-driven tests instead.
+- **Platform note (2026-11-01, measured):** a local Windows `llvm-cov` run
+  reports **92.81 %** lines for the Phase 16 commit (`8d5c1cb`) whose Linux CI
+  coverage job passed. The cause was not isolated; the numbers are not
+  comparable across hosts. The ubuntu-latest CI job is the binding gate — a
+  local Windows number below 95 % is not a license to exclude files or lower
+  the threshold, and every coverage exception still needs a registry row in
+  §3.
 - **Every exception must be registered below.** Unregistered exclusions are a
   High-class review finding (quality gate manipulation).
 

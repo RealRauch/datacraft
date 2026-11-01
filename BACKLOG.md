@@ -70,6 +70,12 @@
 - **Approach:** `AddField`/`DropField`/`RenameField`/`SetFieldProperties` commands through the port, rewriting the TDEF while preserving row data; the design grid becomes editable with save/cancel and dispatches exactly one command per edit; shapes the writer cannot alter answer a precise `Unsupported`.
 - **Acceptance:** Design-view edits persist across a reopen with row data preserved; oracle check on the changed file; UI edits dispatch one command each; failures leave the file and state untouched.
 
+### [ ] M10 — Native-query decode errors are dropped at open — 🟡
+- **Location:** `crates/datacraft-core/src/database.rs` (`open_database` calls `native_queries().unwrap_or_default()`), `state.rs`/`snapshot.rs`, `port_native.rs`; `crates/datacraft-ui/src/nav_pane.rs`
+- **Problem:** A database whose `MSysQueries` contains an undecoded attribute (observed: attribute code 12 on `fixtures/northwind2007.accdb`) opens successfully but silently shows **no** native queries — the precise `Unsupported` reason is discarded. This contradicts LESSONS #4 and makes the compatibility matrix's "unsupported constructs answer a precise `Unsupported`" claim misleading at open time.
+- **Approach:** store the decode result and its error in `DatabaseState`/`UiStateSnapshot` (`native_queries_error`), exactly like `macros_error`/`vba_error`; keep the open succeeding with an empty list; render the reason in the navigation pane's Queries group and expose it to inspect/MCP. Add a fixture-backed test on `northwind2007.accdb` pinning attribute 12.
+- **Acceptance:** opening the Northwind fixture yields `native_queries` empty plus a visible `native_queries_error` containing "attribute code 12"; `inspect()` carries it; a database with decodable queries has no error; canonical verification set green.
+
 ### [ ] I4 — App settings store (ui.json) — 🟡
 - **Location:** `crates/datacraft-ui/src/settings.rs` (neu), Config-Dir-Auflösung handgerollt (`%APPDATA%`/`XDG_CONFIG_HOME`/`~/Library/Application Support`, Fallback Home — keine neue Dependency); ADR-5 in `docs/ARCHITECTURE.md` §15
 - **Approach:** serde JSON at `<config>/datacraft/ui.json` storing `language` (`"auto"`/`"de"`/`"en"`) and window geometry now, appearance later (U4). Unknown values fall back to defaults instead of failing (WordCraft `ui.json` pattern). Strictly UI-owned — settings are **never** written into the `.datacraft` sidecar or any core state (ADR-5); loaded at startup, saved on change/close.
