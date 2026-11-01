@@ -11,6 +11,8 @@
 use eframe::egui;
 use eframe::egui::Color32;
 
+pub mod fonts;
+
 /// The brand teal — the app icon's full-bleed tile field. Every accent
 /// token derives from this colour (ADR-6).
 pub const BRAND_TEAL: Color32 = Color32::from_rgb(0x0F, 0x8B, 0x7E);
