@@ -66,11 +66,6 @@
 - **Approach:** two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
 - **Acceptance:** every dispatch failure carries a stable code; the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs) switch to code assertions.
 
-### [ ] U12 — Keyboard: shortcuts & ribbon key tips — 🟢
-- **Location:** `crates/datacraft-ui/src/` (new input handling in shell.rs or a small keys.rs), `ribbon.rs` (key tip overlay); model: WordCraft `crates/ui-egui/src/keytips.rs` @ `fd7f662`
-- **Approach:** Ctrl+S (Save Design), Ctrl+W (Close Tab), Esc (cancel cell edit / close menu) mapped to the same single commands as their buttons; Alt reveals ribbon key tips rendered from the spec ids (never invented labels). Keyboard documentation rides with M6's README accuracy pass, not here. Scope guard at `fd7f662`: the model's keytips are a four-phase state machine (Tabs → Commands → Legacy → Backstage) including Word-2003 sequences and numeric QAT badges; DataCraft takes only the Tabs and Commands phases.
-- **Acceptance:** shortcuts dispatch one command each; key tips visible after Alt and match the spec; headless-testable where egui permits (coordinate with T5); canonical verification set green.
-
 ### [ ] U15 — Recent databases in the backstage — 🟢
 - **Location:** `crates/datacraft-ui/src/settings.rs` (persisted list), `crates/datacraft-ui/src/backstage.rs` (Recent page)
 - **Problem:** The File backstage (step 21.3, U7) has no Recent Databases entry: `ui.json` (I4) persists language, appearance and window geometry, but no opened-file history. U7's scope named Recent "once I4 lands"; I4 shipped without the list, so the page is deliberately absent.
@@ -178,3 +173,4 @@
 - U9 — Nav pane: category dropdown, context menu, group sort — done (done in `05dd600` (RED `6371c93`) — localized single-entry category dropdown, Open/Design/Delete context menu replacing the always-visible ✕, and name/type group sorting via the pure `nav::sort_entries`; Design opens in one command (`OpenObjectInMode`) with wire coverage)
 - U10 — Tabs: middle-click close, context menu — done (done in `f2ae2a1` (RED `7e3c5f8`) — middle-click closes a tab; Close / Close Others / Close All context menu with the latter two as bus commands (CloseOtherTabs/CloseAllTabs) and JSON-RPC wire tests; closed tabs drop their presentation caches)
 - U11 — Window title & status-bar conventions — done (done in `f049073` (RED `93c1760`) — `<db> : Database (<format>)` viewport title localized in both languages, sent only on change and cleared to the app name on close; status bar gains a disabled filter placeholder)
+- U12 — Keyboard: shortcuts & ribbon key tips — done (done in `33f6e23` (RED `e108ae7`) — Ctrl+S/Ctrl+W/Esc dispatch/bind the same single actions as their buttons; Alt shows spec-derived key tips (Tabs phase selects, Commands phase badges the actions); derivation (`core::keys::key_tips`) and shortcut mapping are unit-tested)

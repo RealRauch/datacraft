@@ -649,3 +649,11 @@
 - **Approach:** the viewport title follows the Access convention `{db} : Database ({format})` (localized via I2's catalog), updated on open/close without per-frame churn; with no database open the plain app name shows. The status bar gains an indicator slot (filter state placeholder) consistent with the Access status bar.
 - **Acceptance:** the title reflects the open database and clears on close; localized in both languages; the status indicator renders its disabled state; canonical verification set green.
 - **Done:** done in `f049073` (RED `93c1760`) — `<db> : Database (<format>)` viewport title localized in both languages, sent only on change and cleared to the app name on close; status bar gains a disabled filter placeholder
+
+---
+
+### [x] U12 — Keyboard: shortcuts & ribbon key tips — 🟢
+- **Location:** `crates/datacraft-ui/src/` (new input handling in shell.rs or a small keys.rs), `ribbon.rs` (key tip overlay); model: WordCraft `crates/ui-egui/src/keytips.rs` @ `fd7f662`
+- **Approach:** Ctrl+S (Save Design), Ctrl+W (Close Tab), Esc (cancel cell edit / close menu) mapped to the same single commands as their buttons; Alt reveals ribbon key tips rendered from the spec ids (never invented labels). Keyboard documentation rides with M6's README accuracy pass, not here. Scope guard at `fd7f662`: the model's keytips are a four-phase state machine (Tabs → Commands → Legacy → Backstage) including Word-2003 sequences and numeric QAT badges; DataCraft takes only the Tabs and Commands phases.
+- **Acceptance:** shortcuts dispatch one command each; key tips visible after Alt and match the spec; headless-testable where egui permits (coordinate with T5); canonical verification set green.
+- **Done:** done in `33f6e23` (RED `e108ae7`) — Ctrl+S/Ctrl+W/Esc dispatch/bind the same single actions as their buttons; Alt shows spec-derived key tips (Tabs phase selects, Commands phase badges the actions); derivation (`core::keys::key_tips`) and shortcut mapping are unit-tested
