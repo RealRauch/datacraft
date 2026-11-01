@@ -19,6 +19,7 @@ mod qbe;
 mod relationships;
 mod report_design;
 mod ribbon;
+mod theme;
 mod workspace;
 
 use eframe::egui;

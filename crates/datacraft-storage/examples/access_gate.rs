@@ -9,8 +9,8 @@
 //! cargo run -p datacraft-storage --example access_gate
 //! ```
 
-use datacraft_storage::jet::{JetColumn, JetType, Jet4Writer};
 use datacraft_storage::StorageValue;
+use datacraft_storage::jet::{Jet4Writer, JetColumn, JetType};
 
 fn main() {
     let source = std::path::Path::new("fixtures/testV2000.mdb");
@@ -58,5 +58,8 @@ fn main() {
             .expect("inserts");
     }
     std::fs::write(&target, writer.into_file()).expect("writes the artifact");
-    println!("wrote {} — open it in Access and follow access-gate/CHECKLIST.md", target.display());
+    println!(
+        "wrote {} — open it in Access and follow access-gate/CHECKLIST.md",
+        target.display()
+    );
 }

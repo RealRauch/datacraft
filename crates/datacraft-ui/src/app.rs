@@ -304,6 +304,8 @@ impl App {
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        crate::theme::apply(ui.ctx());
+
         egui::Panel::top("datacraft.ribbon").show(ui, |ui| {
             crate::ribbon::ribbon_ui(self, ui);
         });
