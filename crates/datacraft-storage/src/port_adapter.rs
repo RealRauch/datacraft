@@ -17,8 +17,10 @@
 
 use std::path::{Path, PathBuf};
 
-use datacraft_core::port::{DatabaseFormat, OpenedDatabase, PortError, StoragePort};
-use datacraft_core::schema::{AutoKind, BinaryKind, FieldDef, FieldKind, NumericKind, TableDef};
+use datacraft_core::port::{DatabaseFormat, OpenedDatabase, PortError, RowRange, StoragePort};
+use datacraft_core::schema::{
+    AutoKind, BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
+};
 
 use crate::error::StorageError;
 use crate::jet::reader::Jet4TableReader;
@@ -84,6 +86,38 @@ impl StoragePort for Jet4Port {
 
     fn drop_table(&mut self, _name: &str) -> Result<String, PortError> {
         Err(read_only())
+    }
+
+    fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
+        let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
+            reason: "no database is open".to_owned(),
+        })?;
+        let data = reader.open_table(table).map_err(|e| match e {
+            crate::error::StorageError::TableNotFound(name) => PortError::TableNotFound(name),
+            other => map_open(other),
+        })?;
+        let (start, end) = datacraft_core::port::window_slice(table, range, data.rows.len())?;
+        Ok(data.rows[start..end]
+            .iter()
+            .map(|row| row.iter().map(to_field_value).collect())
+            .collect())
+    }
+}
+
+/// Maps one stored value onto the domain vocabulary (1:1 — the variants
+/// correspond, see docs/FORMAT-JET.md "Domain mapping").
+fn to_field_value(value: &crate::types::StorageValue) -> FieldValue {
+    match value {
+        crate::types::StorageValue::Null => FieldValue::Null,
+        crate::types::StorageValue::Bit(b) => FieldValue::Boolean(*b),
+        crate::types::StorageValue::Int(i) => FieldValue::Integer(*i),
+        crate::types::StorageValue::Float(f) => FieldValue::Float(*f),
+        crate::types::StorageValue::Currency(c) => FieldValue::Currency(*c),
+        crate::types::StorageValue::DateTime(d) => FieldValue::DateTime(*d),
+        crate::types::StorageValue::Text(s) => FieldValue::Text(s.clone()),
+        crate::types::StorageValue::Binary(b) => FieldValue::Binary(b.clone()),
+        crate::types::StorageValue::Guid(g) => FieldValue::Guid(*g),
+        crate::types::StorageValue::Decimal(d) => FieldValue::Decimal(*d),
     }
 }
 

@@ -5,11 +5,11 @@
 //! (empty window at `row_count`, precise error beyond), and `Core` exposes
 //! it as a passthrough for the UI's virtualized datasheet.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
-use datacraft_core::port::{MockPort, PortError, RowRange};
+use datacraft_core::port::{MockPort, PortError, RowRange, StoragePort as _};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 
 fn table(name: &str) -> TableDef {
@@ -40,7 +40,9 @@ fn seeded_core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
     });
-    core.dispatch(Command::CreateTable { definition: table("Customers") });
+    core.dispatch(Command::CreateTable {
+        definition: table("Customers"),
+    });
     core
 }
 
@@ -72,7 +74,10 @@ fn a_window_beyond_row_count_is_a_precise_error() {
         .expect_err("beyond the row set");
     let msg = err.to_string();
     assert!(msg.contains("4"), "names the start: {msg}");
-    assert!(msg.to_lowercase().contains("range"), "names the problem: {msg}");
+    assert!(
+        msg.to_lowercase().contains("range"),
+        "names the problem: {msg}"
+    );
     assert!(matches!(err, PortError::OutOfRange { .. }));
 }
 
@@ -96,7 +101,7 @@ fn reads_work_without_an_open_database_fail_precisely() {
 
 #[test]
 fn null_and_typed_values_pass_through_unchanged() {
-    let mut port = MockPort::new();
+    let mut port = MockPort::with_tables(vec![table("T")]);
     port.with_row_data(
         "T",
         vec![vec![
@@ -110,8 +115,10 @@ fn null_and_typed_values_pass_through_unchanged() {
             FieldValue::Guid([9u8; 16]),
         ]],
     );
-    port.with_tables(vec![table("T")]);
-    let rows = port.read_rows("T", RowRange { start: 0, len: 10 }).expect("read");
+    port.open(Path::new("m.mdb")).expect("mock opens");
+    let rows = port
+        .read_rows("T", RowRange { start: 0, len: 10 })
+        .expect("read");
     assert_eq!(rows[0][0], FieldValue::Null);
     assert_eq!(rows[0][1], FieldValue::Boolean(true));
     assert_eq!(rows[0][7], FieldValue::Guid([9u8; 16]));

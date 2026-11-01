@@ -99,7 +99,10 @@ fn display_values_are_user_renderable() {
     );
     assert_eq!(display_value(&FieldValue::Decimal(-9)), "-9");
     assert_eq!(display_value(&FieldValue::Text("hi ✓".into())), "hi ✓");
-    assert_eq!(display_value(&FieldValue::Binary(vec![1, 2, 3])), "<binary: 3 bytes>");
+    assert_eq!(
+        display_value(&FieldValue::Binary(vec![1, 2, 3])),
+        "<binary: 3 bytes>"
+    );
     assert_eq!(
         display_value(&FieldValue::Guid([0u8; 16])),
         "00000000-0000-0000-0000-000000000000"

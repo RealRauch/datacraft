@@ -6,6 +6,7 @@
 
 use crate::ObjectKind;
 use crate::port::DatabaseFormat;
+use crate::schema::FieldValue;
 use crate::snapshot::UiStateSnapshot;
 
 /// Status bar line for the given snapshot.
@@ -39,4 +40,85 @@ pub fn tab_placeholder(kind: ObjectKind, name: &str) -> String {
         ObjectKind::Form => format!("Form view for {name:?} arrives in Phase 8."),
         ObjectKind::Report => format!("Report preview for {name:?} arrives in Phase 8."),
     }
+}
+
+/// User-renderable text for one cell (Access-like conventions: `Yes`/`No`
+/// booleans, currency with up to 4 scaled decimals, OLE dates as
+/// `YYYY-MM-DD HH:MM`).
+pub fn display_value(value: &FieldValue) -> String {
+    match value {
+        FieldValue::Null => String::new(),
+        FieldValue::Boolean(true) => "Yes".to_owned(),
+        FieldValue::Boolean(false) => "No".to_owned(),
+        FieldValue::Integer(i) => i.to_string(),
+        FieldValue::Float(f) => f.to_string(),
+        FieldValue::Currency(scaled) => display_currency(*scaled),
+        FieldValue::DateTime(days) => display_ole_datetime(*days),
+        FieldValue::Decimal(scaled) => scaled.to_string(),
+        FieldValue::Text(s) => s.clone(),
+        FieldValue::Binary(bytes) => format!("<binary: {} bytes>", bytes.len()),
+        FieldValue::Guid(bytes) => display_guid(bytes),
+    }
+}
+
+/// Currency is a scaled 64-bit integer (factor 10^-4); trailing zeros trim.
+fn display_currency(scaled: i64) -> String {
+    let sign = if scaled < 0 { "-" } else { "" };
+    let abs = scaled.unsigned_abs();
+    let whole = abs / 10_000;
+    let frac = abs % 10_000;
+    if frac == 0 {
+        format!("{sign}{whole}")
+    } else {
+        let mut frac = format!("{frac:04}");
+        while frac.ends_with('0') {
+            frac.pop();
+        }
+        format!("{sign}{whole}.{frac}")
+    }
+}
+
+/// OLE Automation date (days since 1899-12-30; 25569 days to the Unix
+/// epoch) rendered via the civil-from-days algorithm.
+fn display_ole_datetime(days: f64) -> String {
+    let whole = days.floor();
+    let mut minutes = ((days - whole) * 1440.0).round() as i64;
+    let mut day = whole as i64;
+    if minutes >= 1440 {
+        minutes -= 1440;
+        day += 1;
+    }
+    let (year, month, mday) = civil_from_days(day - 25_569);
+    format!(
+        "{year:04}-{month:02}-{mday:02} {:02}:{:02}",
+        minutes / 60,
+        minutes % 60
+    )
+}
+
+/// Days since 1970-01-01 -> (year, month, day).
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+/// 16 bytes as the canonical 8-4-4-4-12 lowercase hex form.
+fn display_guid(bytes: &[u8; 16]) -> String {
+    let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+    format!(
+        "{}-{}-{}-{}-{}",
+        &hex[0..8],
+        &hex[8..12],
+        &hex[12..16],
+        &hex[16..20],
+        &hex[20..32]
+    )
 }

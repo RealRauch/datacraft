@@ -40,6 +40,16 @@ impl Core {
         UiStateSnapshot::of(&self.state)
     }
 
+    /// Reads a window of rows through the port (the datasheet's data
+    /// source; the port owns the backend mapping).
+    pub fn read_rows(
+        &self,
+        table: &str,
+        range: crate::port::RowRange,
+    ) -> Result<Vec<Vec<crate::schema::FieldValue>>, PortError> {
+        self.port.read_rows(table, range)
+    }
+
     /// Applies one command; returns the observable outcomes in order.
     pub fn dispatch(&mut self, command: Command) -> Vec<Event> {
         match command {

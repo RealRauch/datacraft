@@ -152,7 +152,13 @@ fn read_rows_maps_storage_values_to_domain_values() {
         .expect("fixture has a table with rows");
 
     let rows = port
-        .read_rows(&with_rows.name, RowRange { start: 0, len: usize::MAX })
+        .read_rows(
+            &with_rows.name,
+            RowRange {
+                start: 0,
+                len: usize::MAX,
+            },
+        )
         .expect("full read");
     let arity = with_rows.fields.len();
     assert!(
@@ -162,23 +168,47 @@ fn read_rows_maps_storage_values_to_domain_values() {
     // Windowing agrees with the full read.
     let half = rows.len() / 2;
     let first = port
-        .read_rows(&with_rows.name, RowRange { start: 0, len: half })
+        .read_rows(
+            &with_rows.name,
+            RowRange {
+                start: 0,
+                len: half,
+            },
+        )
         .expect("first half");
     assert_eq!(first, rows[..half]);
     let tail = port
-        .read_rows(&with_rows.name, RowRange { start: rows.len(), len: 4 })
+        .read_rows(
+            &with_rows.name,
+            RowRange {
+                start: rows.len(),
+                len: 4,
+            },
+        )
         .expect("empty tail");
     assert!(tail.is_empty());
 
     let err = port
-        .read_rows(&with_rows.name, RowRange { start: rows.len() + 1, len: 1 })
+        .read_rows(
+            &with_rows.name,
+            RowRange {
+                start: rows.len() + 1,
+                len: 1,
+            },
+        )
         .expect_err("beyond the row set");
-    assert!(matches!(err, datacraft_core::port::PortError::OutOfRange { .. }));
+    assert!(matches!(
+        err,
+        datacraft_core::port::PortError::OutOfRange { .. }
+    ));
 
     let err = port
         .read_rows("Ghost", RowRange { start: 0, len: 1 })
         .expect_err("unknown table");
-    assert!(matches!(err, datacraft_core::port::PortError::TableNotFound(_)));
+    assert!(matches!(
+        err,
+        datacraft_core::port::PortError::TableNotFound(_)
+    ));
 
     // Values are domain values, not storage values: spot-check a mapped row.
     let _ = FieldValue::Null;

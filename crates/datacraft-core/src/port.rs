@@ -5,9 +5,11 @@
 //! `storage → core`), headless tests use [`MockPort`]. No storage type
 //! crosses into the core vocabulary.
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
-use crate::schema::TableDef;
+use crate::schema::{FieldValue, TableDef};
 
 /// Binary format family of an opened database (domain vocabulary; the
 /// backends map their physical version detection onto it).
@@ -42,6 +44,17 @@ pub enum PortError {
         /// What is unsupported and why.
         reason: String,
     },
+    /// A row window starts beyond the table's rows.
+    OutOfRange {
+        /// Name of the table addressed.
+        table: String,
+        /// First requested row index.
+        start: usize,
+        /// Requested window length.
+        len: usize,
+        /// Actual row count of the table.
+        row_count: usize,
+    },
 }
 
 impl std::fmt::Display for PortError {
@@ -51,11 +64,29 @@ impl std::fmt::Display for PortError {
             Self::TableNotFound(name) => write!(f, "table {name:?} not found"),
             Self::WriteFailed { detail } => write!(f, "write failed: {detail}"),
             Self::Unsupported { reason } => write!(f, "unsupported: {reason}"),
+            Self::OutOfRange {
+                table,
+                start,
+                len,
+                row_count,
+            } => write!(
+                f,
+                "row window {start}+{len} of {table:?} is out of range ({row_count} rows)"
+            ),
         }
     }
 }
 
 impl std::error::Error for PortError {}
+
+/// Window selector for row reads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RowRange {
+    /// Zero-based index of the first row to read.
+    pub start: usize,
+    /// Maximum number of rows to read.
+    pub len: usize,
+}
 
 /// Metadata of a successfully opened database.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,6 +110,29 @@ pub trait StoragePort {
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError>;
     /// Drops a table; returns its canonical name.
     fn drop_table(&mut self, name: &str) -> Result<String, PortError>;
+    /// Reads a window of rows as domain values. A window starting at
+    /// `row_count` is empty; anything beyond fails with
+    /// [`PortError::OutOfRange`].
+    fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError>;
+}
+
+/// Window slice shared by implementations: start beyond the count is an
+/// error, the tail window is empty.
+pub fn window_slice(
+    table: &str,
+    range: RowRange,
+    count: usize,
+) -> Result<(usize, usize), PortError> {
+    if range.start > count {
+        return Err(PortError::OutOfRange {
+            table: table.to_owned(),
+            start: range.start,
+            len: range.len,
+            row_count: count,
+        });
+    }
+    let end = range.start.saturating_add(range.len).min(count);
+    Ok((range.start, end))
 }
 
 /// In-memory backend for headless tests and early UI wiring (mirrors
@@ -86,6 +140,7 @@ pub trait StoragePort {
 #[derive(Debug, Default)]
 pub struct MockPort {
     tables: Vec<TableDef>,
+    rows: HashMap<String, Vec<Vec<FieldValue>>>,
     opened: Option<OpenedDatabase>,
     open_fail: Option<String>,
     write_fail: Option<String>,
@@ -107,6 +162,16 @@ impl MockPort {
             tables,
             ..Self::default()
         }
+    }
+
+    /// Builder: attaches row data for a table (case-insensitive reads).
+    pub fn with_row_data(
+        &mut self,
+        table: impl Into<String>,
+        rows: Vec<Vec<FieldValue>>,
+    ) -> &mut Self {
+        self.rows.insert(table.into(), rows);
+        self
     }
 
     /// Creates a mock whose `open` always fails with `detail`.
@@ -178,5 +243,23 @@ impl StoragePort for MockPort {
             .position(|t| t.name.to_lowercase() == name.to_lowercase())
             .ok_or_else(|| PortError::TableNotFound(name.to_owned()))?;
         Ok(self.tables.remove(pos).name)
+    }
+
+    fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
+        if self.opened.is_none() {
+            return Err(PortError::Unsupported {
+                reason: "no database is open".to_owned(),
+            });
+        }
+        let Some(rows) = self
+            .rows
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(table))
+            .map(|(_, rows)| rows)
+        else {
+            return Err(PortError::TableNotFound(table.to_owned()));
+        };
+        let (start, end) = window_slice(table, range, rows.len())?;
+        Ok(rows[start..end].to_vec())
     }
 }
