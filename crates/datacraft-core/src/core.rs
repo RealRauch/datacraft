@@ -255,14 +255,25 @@ impl Core {
             Command::ApplyWrite { token } => self.apply_write(token),
             Command::RollbackWrite { token } => self.rollback_write(token),
             Command::DiscardWrite { token } => self.discard_write(token),
-            Command::OpenObject(object) => self.open_object(object),
+            Command::OpenObject(object) => self.open_object(object, None),
+            Command::OpenObjectInMode { object, mode } => self.open_object(object, Some(mode)),
             Command::CloseTab { tab_id } => self.close_tab(tab_id),
             Command::SetActiveTab { tab_id } => self.set_active_tab(tab_id),
             Command::SetTabMode { tab_id, mode } => self.set_tab_mode(tab_id, mode),
         }
     }
 
-    fn open_object(&mut self, object: crate::ObjectId) -> Vec<Event> {
+    /// Opens (or re-activates) an object tab. An explicit mode is honoured
+    /// for kinds with a design view and applied to existing tabs as well
+    /// (step 21.5, item U9).
+    fn open_object(&mut self, object: crate::ObjectId, mode: Option<TabMode>) -> Vec<Event> {
+        if mode.is_some() && !object.kind.has_design_view() {
+            return failed(format!(
+                "the {} object {:?} has no design view",
+                object.kind.slug(),
+                object.name
+            ));
+        }
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
@@ -308,16 +319,26 @@ impl Core {
             .cloned()
         {
             self.state.active_tab = Some(existing.id);
-            return vec![Event::ActiveTabChanged {
+            let mut events = vec![Event::ActiveTabChanged {
                 tab_id: Some(existing.id),
             }];
+            if let Some(mode) = mode {
+                if let Some(tab) = self.state.tabs.iter_mut().find(|tab| tab.id == existing.id) {
+                    tab.mode = mode;
+                }
+                events.push(Event::TabModeSet {
+                    tab_id: existing.id,
+                    mode,
+                });
+            }
+            return events;
         }
         let tab_id = TabId::new(self.state.next_tab_id);
         self.state.next_tab_id += 1;
         self.state.tabs.push(TabState {
             id: tab_id,
             object: object.clone(),
-            mode: TabMode::Datasheet,
+            mode: mode.unwrap_or(TabMode::Datasheet),
         });
         self.state.active_tab = Some(tab_id);
         vec![

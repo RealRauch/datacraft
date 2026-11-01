@@ -88,6 +88,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("Sort Ascending", "Aufsteigend sortieren"),
     ("Sort Descending", "Absteigend sortieren"),
+    ("Sort by Name", "Nach Name sortieren"),
+    ("Sort by Type", "Nach Typ sortieren"),
     ("Statement", "Anweisung"),
     ("Subform", "Unterformular"),
     ("Switch view", "Ansicht wechseln"),

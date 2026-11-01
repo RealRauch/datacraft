@@ -18,6 +18,7 @@ pub mod grid;
 pub mod ids;
 pub mod journal;
 pub mod macro_def;
+pub mod nav;
 pub mod palette;
 pub mod port;
 mod port_mock;

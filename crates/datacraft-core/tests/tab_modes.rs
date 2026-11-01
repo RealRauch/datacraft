@@ -169,7 +169,10 @@ fn open_object_in_mode_opens_the_tab_directly_in_that_view() {
         mode: TabMode::Design,
     });
     match events.as_slice() {
-        [Event::TabOpened { tab_id, .. }, Event::ActiveTabChanged { tab_id: active }] => {
+        [
+            Event::TabOpened { tab_id, .. },
+            Event::ActiveTabChanged { tab_id: active },
+        ] => {
             assert_eq!(active, &Some(*tab_id));
             assert_eq!(mode_of(&core, *tab_id), TabMode::Design);
         }
@@ -231,8 +234,5 @@ fn open_object_in_mode_round_trips_over_the_json_rpc_wire() {
         .to_string(),
     );
     let response: Value = serde_json::from_str(&raw).expect("response parses");
-    assert_eq!(
-        response["result"]["snapshot"]["tabs"][0]["mode"],
-        "Design"
-    );
+    assert_eq!(response["result"]["snapshot"]["tabs"][0]["mode"], "Design");
 }

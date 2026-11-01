@@ -28,6 +28,8 @@ pub struct App {
     pub active_ribbon_tab: &'static str,
     /// Selected backstage page while the File tab is active (step 21.3).
     pub backstage_page: crate::backstage::BackstagePage,
+    /// Navigation-pane group sort (step 21.5; ordering lives in core).
+    pub nav_sort: datacraft_core::nav::NavSortOrder,
     /// Row data per table tab, loaded once on tab appearance.
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
     /// Query results per query tab, refreshed when the QBE model changes.
@@ -92,6 +94,7 @@ impl App {
             open_path: String::new(),
             active_ribbon_tab: "home",
             backstage_page: crate::backstage::BackstagePage::default(),
+            nav_sort: datacraft_core::nav::NavSortOrder::default(),
             rows: HashMap::new(),
             results: HashMap::new(),
             form_selection: HashMap::new(),

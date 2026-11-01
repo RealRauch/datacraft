@@ -104,6 +104,14 @@ pub enum Command {
     /// Opens the object in a tab (re-activates an existing tab instead of
     /// opening a second one for the same object).
     OpenObject(ObjectId),
+    /// Opens the object in the given view (step 21.5, item U9) — the
+    /// navigation pane's Open/Design context menu in one command.
+    OpenObjectInMode {
+        /// The object to open.
+        object: ObjectId,
+        /// The view the tab starts (or switches to) in.
+        mode: crate::state::TabMode,
+    },
     /// Closes one document tab; closing the active tab activates its
     /// next-lower neighbor.
     CloseTab {
