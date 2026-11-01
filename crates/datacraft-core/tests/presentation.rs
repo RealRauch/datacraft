@@ -60,8 +60,8 @@ fn format_names_are_human_readable() {
 
 #[test]
 fn tab_placeholders_name_the_object_and_the_arriving_phase() {
-    use datacraft_core::present::tab_placeholder;
     use datacraft_core::ObjectKind;
+    use datacraft_core::present::tab_placeholder;
 
     assert_eq!(
         tab_placeholder(ObjectKind::Table, "Customers"),

@@ -69,11 +69,6 @@ impl eframe::App for App {
             ui.label(status_line(self.snapshot()));
         });
 
-        egui::CentralPanel::default().show(ui, |ui| {
-            match &self.snapshot().database {
-                Some(_) => ui.label("Tabbed workspace — step 5.4"),
-                None => ui.label("Open a database from the File ribbon tab."),
-            };
-        });
+        crate::workspace::workspace_ui(self, ui);
     }
 }

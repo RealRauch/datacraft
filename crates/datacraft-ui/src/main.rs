@@ -12,6 +12,7 @@
 mod app;
 mod nav_pane;
 mod ribbon;
+mod workspace;
 
 use eframe::egui;
 
