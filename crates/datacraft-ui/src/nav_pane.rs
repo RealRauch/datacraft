@@ -208,6 +208,16 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 })
                 .unwrap_or_default(),
         );
+        // A native-query decode failure is visible at the Queries group, not
+        // silently swallowed (step 23.3, M10). Rendered after the sections so
+        // the section closure's borrow of `ui` has ended.
+        if let Some(reason) = &db.native_queries_error {
+            ui.label(
+                egui::RichText::new(reason)
+                    .small()
+                    .color(crate::theme::tokens(ui.visuals()).danger),
+            );
+        }
     });
     if let Some(order) = sort_intent {
         app.nav_sort = order;

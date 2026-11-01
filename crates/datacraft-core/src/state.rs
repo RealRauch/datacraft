@@ -89,6 +89,9 @@ pub struct DatabaseState {
     pub reports: Vec<crate::report::ReportDef>,
     /// Native saved queries read from the file (step 15.3, M3; read-only).
     pub native_queries: Vec<crate::port::NativeQuery>,
+    /// Why the native-query decode failed, if it did — the open still
+    /// succeeds when the tables are readable (step 23.3, M10).
+    pub native_queries_error: Option<String>,
     /// Named macros read from the file (step 17.1, L4; read-only).
     pub macros: Vec<crate::macro_def::MacroDef>,
     /// Why the macro inventory could not be decoded, if it failed — the

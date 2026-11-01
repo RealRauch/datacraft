@@ -44,6 +44,12 @@ impl crate::core::Core {
                     Ok(project) => (project, None),
                     Err(error) => (None, Some(error.to_string())),
                 };
+                let (native_queries, native_queries_error) = match self.port.native_queries() {
+                    Ok(queries) => (queries, None),
+                    // Observable degradation, never a silent empty list: the
+                    // snapshot carries the precise reason (step 23.3, M10).
+                    Err(error) => (Vec::new(), Some(error.to_string())),
+                };
                 self.state.sql_result = None;
                 self.state.expression_result = None;
                 self.state.database = Some(DatabaseState {
@@ -55,7 +61,8 @@ impl crate::core::Core {
                     queries: Vec::new(),
                     forms: Vec::new(),
                     reports: Vec::new(),
-                    native_queries: self.port.native_queries().unwrap_or_default(),
+                    native_queries,
+                    native_queries_error,
                     macros,
                     macros_error,
                     vba_project,

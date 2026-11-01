@@ -30,7 +30,7 @@ fn a_native_query_decode_error_still_opens_the_database() {
     );
     let database = core.inspect().database.expect("database snapshot");
     assert!(
-        database.native_queries.is_empty(),
+        database.queries.is_empty(),
         "no partially decoded list is fabricated"
     );
     let reason = database
@@ -44,7 +44,7 @@ fn a_decodable_database_carries_no_native_query_error() {
     let mut core = Core::new(Box::new(MockPort::new()));
     open(&mut core);
     let database = core.inspect().database.expect("database snapshot");
-    assert!(database.native_queries.is_empty());
+    assert!(database.queries.is_empty());
     assert!(database.native_queries_error.is_none());
 }
 
@@ -58,10 +58,9 @@ fn the_error_crosses_the_inspection_wire() {
         &mut core,
         "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"inspect\"}",
     );
-    assert!
-        (
-            json.contains("native_queries_error"),
-            "inspect carries the field: {json}"
-        );
+    assert!(
+        json.contains("native_queries_error"),
+        "inspect carries the field: {json}"
+    );
     assert!(json.contains("attribute code 12"), "{json}");
 }

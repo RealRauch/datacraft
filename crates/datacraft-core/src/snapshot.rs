@@ -45,6 +45,8 @@ pub struct DatabaseSnapshot {
     pub relationships: Vec<crate::port::Relationship>,
     /// Query definitions in creation order.
     pub queries: Vec<QueryEntrySnapshot>,
+    /// Why the native-query decode failed, if it did (step 23.3, M10).
+    pub native_queries_error: Option<String>,
     /// Form design documents in creation order.
     pub forms: Vec<crate::form::FormDef>,
     /// Report design documents in creation order (step 10.4, H31).
@@ -173,6 +175,7 @@ impl UiStateSnapshot {
                     })
                     .collect(),
                 macros_error: db.macros_error.clone(),
+                native_queries_error: db.native_queries_error.clone(),
                 vba: db.vba_project.as_ref().map(|project| VbaProjectSnapshot {
                     modules: project
                         .modules
