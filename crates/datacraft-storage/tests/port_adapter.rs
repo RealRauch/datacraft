@@ -267,7 +267,7 @@ fn jet3_fixtures_open_through_the_port() {
 
 /// A minimal Jet3 shell with a plausible (empty) MSysObjects TDEF.
 fn jet3_catalog_shell() -> Vec<u8> {
-    use datacraft_storage::jet::{JetColumn, JetType};
+    use datacraft_storage::jet::JetType;
 
     const PAGE: usize = 2048;
     let mut file = vec![0u8; PAGE * 4];
