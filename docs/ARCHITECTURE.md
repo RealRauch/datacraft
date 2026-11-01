@@ -372,3 +372,16 @@ font metrics. `sys-locale` (already in the dependency tree transitively) is
 now a direct UI-only dependency. Deliberately absent: the language switcher
 and the `ui.json` settings store (Phase 19) and `Event::Failed.reason`
 localization, which waits on core failure codes (BACKLOG I6).
+
+**Implemented scope (Phase 19, 2026-11-01):** the UI-owned settings store
+lands in `crates/datacraft-ui/src/settings.rs`:
+`<config>/datacraft/ui.json` (`%APPDATA%`, `$XDG_CONFIG_HOME`/`~/.config`,
+`~/Library/Application Support`; resolved without a new dependency), parsed
+per field so unknown or corrupt values fall back to defaults instead of
+failing. It stores the language choice (`auto`/`de`/`en`) and the inner
+window size; the File-tab switcher (Auto/Deutsch/English) applies live and
+saves immediately, geometry is captured per frame and saved on exit.
+Language resolution is an explicit startup step (setting >
+`DATACRAFT_LANGUAGE` > detection) — `t()` renders English until it runs,
+which keeps headless tests independent of the host locale. The sidecar,
+core and wire remain untouched by the settings path.

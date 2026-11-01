@@ -249,3 +249,14 @@
 - **18.3 German catalog complete (I3)**
 - **18.4 Phase 18 Quality Gate Review**
 **Verification:** Gate passed: fmt 0, clippy -D warnings 0, workspace tests green, file-size gate 0, fixture manifest 15/15 OK, no debt markers, docs_validate clean. Coverage 93.46% local vs Phase-17 93.45% on the same host; Linux CI remains the binding >=95% gate (TESTING §2). I2/I3 verified: no bare user-facing literals left (grep allow-list: glyphs/numbers only), catalog parity both directions, German layout 58.2/112 px and 164.9/640 px, locale mapping + English fallback unit-tested. sys-locale content gate approved by the user before landing (crate already transitive). Commits: 1780c1e/dbc513a (18.1), 57af757/b616e9c (18.2), 44e2251/6486786/5c9d69e/1926448 (18.3). (checkpoint: 1926448)
+
+---
+
+### Phase 19 — App Settings & Language Switcher *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **19.1 App settings store ui.json (I4)**
+- **19.2 Language switcher in the UI (I5)**
+- **19.3 Phase 19 Quality Gate Review**
+**Verification:** Gate passed: fmt 0, clippy -D warnings 0, workspace tests green (UI 39 unit + 10 e2e), file-size gate 0 after the app.rs split (195df3c), fixture manifest 14/14 OK (the Phase-18 note said 15/15 — the manifest has 14 entries, corrected here), CI debt scan clean, docs_validate clean. Coverage 93.46% local, unchanged from Phase 18 (UI crate excluded); Linux CI remains the binding >=95% gate (TESTING §2). I5 verified: live switch, immediate persistence, Auto→detection and the full precedence chain headless-tested; settings live only in ui.json and the sidecar is untouched. Commits: 6af3622/d898120 (19.1), d765cec/745f84f (19.2), 195df3c (gate split). (checkpoint: 195df3c)

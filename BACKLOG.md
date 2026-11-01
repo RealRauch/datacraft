@@ -56,16 +56,6 @@
 - **Approach:** store the decode result and its error in `DatabaseState`/`UiStateSnapshot` (`native_queries_error`), exactly like `macros_error`/`vba_error`; keep the open succeeding with an empty list; render the reason in the navigation pane's Queries group and expose it to inspect/MCP. Add a fixture-backed test on `northwind2007.accdb` pinning attribute 12.
 - **Acceptance:** opening the Northwind fixture yields `native_queries` empty plus a visible `native_queries_error` containing "attribute code 12"; `inspect()` carries it; a database with decodable queries has no error; canonical verification set green.
 
-### [ ] I4 — App settings store (ui.json) — 🟡
-- **Location:** `crates/datacraft-ui/src/settings.rs` (neu), Config-Dir-Auflösung handgerollt (`%APPDATA%`/`XDG_CONFIG_HOME`/`~/Library/Application Support`, Fallback Home — keine neue Dependency); ADR-5 in `docs/ARCHITECTURE.md` §15
-- **Approach:** serde JSON at `<config>/datacraft/ui.json` storing `language` (`"auto"`/`"de"`/`"en"`) and window geometry now, appearance later (U4). Unknown values fall back to defaults instead of failing (WordCraft `ui.json` pattern). Strictly UI-owned — settings are **never** written into the `.datacraft` sidecar or any core state (ADR-5); loaded at startup, saved on change/close.
-- **Acceptance:** settings round-trip across restarts; corrupt/empty file → defaults, no panic; precedence per ADR-5 (setting > env > detection > auto); sidecar files untouched by the settings path; canonical verification set green.
-
-### [ ] I5 — Language switcher in the UI — 🟡
-- **Location:** `crates/datacraft-ui/src/ribbon.rs` (File tab group; moves into the backstage with U7), `app.rs`, `settings.rs` (I4); ADR-4/ADR-5
-- **Approach:** a language menu (Auto/Deutsch/English) in the File ribbon tab; selection persists to `ui.json`; precedence Setting > Env > Detection > Auto. Switching applies immediately — `t()` reads the current language each frame (WordCraft per-frame refresh pattern), no restart required.
-- **Acceptance:** switch applies live; persistence across restarts; `Auto` resolves per detection; headless test for the full precedence chain; canonical verification set green.
-
 ### [ ] U3 — Original vector iconography (ribbon, nav pane, tabs) — 🟡
 - **Location:** `crates/datacraft-ui/src/icons.rs` (neu, reines Painter-Modul), `ribbon.rs`, `nav_pane.rs`, `workspace.rs`; model: WordCraft `crates/ui-egui/src/icons.rs`
 - **Approach:** original egui vector painter functions per icon (open/save/close/table/query/form/report/relationships/SQL/design …), mapped from the existing stable ids (ribbon action ids, `ObjectKind`) — never invented keys. Monochrome ink strokes with teal accents, no external image assets (clean-room and asset-free besides fonts).
@@ -214,3 +204,5 @@
 - I1 — i18n kernel in the UI crate — done (dbc513a)
 - I2 — All UI literals through t() — done (b616e9c)
 - I3 — German catalog complete — done (6486786)
+- I4 — App settings store (ui.json) — done (d898120)
+- I5 — Language switcher in the UI — done (745f84f)

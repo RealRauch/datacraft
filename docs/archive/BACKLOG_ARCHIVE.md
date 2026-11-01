@@ -526,3 +526,19 @@
 - **Approach:** full German translation of every catalog key using Access terminology (Datenblatt, Entwurfsansicht, Navigationsbereich, Datei/Start/Erstellen/Externe Daten/Datenbanktools). Parity tests enforce: every key present in the German tables, non-empty, and diffed against the English source so nothing drifts silently. Layout sanity: longer German strings must not truncate in ribbon group captions and the status bar (checked in the manual gate run, noted in PROGRESS).
 - **Acceptance:** parity tests green; the app shows German on a German system and English otherwise (fallback proven); canonical verification set green.
 - **Done:** 6486786
+
+---
+
+### [x] I4 — App settings store (ui.json) — 🟡
+- **Location:** `crates/datacraft-ui/src/settings.rs` (neu), Config-Dir-Auflösung handgerollt (`%APPDATA%`/`XDG_CONFIG_HOME`/`~/Library/Application Support`, Fallback Home — keine neue Dependency); ADR-5 in `docs/ARCHITECTURE.md` §15
+- **Approach:** serde JSON at `<config>/datacraft/ui.json` storing `language` (`"auto"`/`"de"`/`"en"`) and window geometry now, appearance later (U4). Unknown values fall back to defaults instead of failing (WordCraft `ui.json` pattern). Strictly UI-owned — settings are **never** written into the `.datacraft` sidecar or any core state (ADR-5); loaded at startup, saved on change/close.
+- **Acceptance:** settings round-trip across restarts; corrupt/empty file → defaults, no panic; precedence per ADR-5 (setting > env > detection > auto); sidecar files untouched by the settings path; canonical verification set green.
+- **Done:** d898120
+
+---
+
+### [x] I5 — Language switcher in the UI — 🟡
+- **Location:** `crates/datacraft-ui/src/ribbon.rs` (File tab group; moves into the backstage with U7), `app.rs`, `settings.rs` (I4); ADR-4/ADR-5
+- **Approach:** a language menu (Auto/Deutsch/English) in the File ribbon tab; selection persists to `ui.json`; precedence Setting > Env > Detection > Auto. Switching applies immediately — `t()` reads the current language each frame (WordCraft per-frame refresh pattern), no restart required.
+- **Acceptance:** switch applies live; persistence across restarts; `Auto` resolves per detection; headless test for the full precedence chain; canonical verification set green.
+- **Done:** 745f84f

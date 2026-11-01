@@ -9,13 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 19 — App Settings & Language Switcher *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **19.1 App settings store ui.json (I4)**
-- **19.2 Language switcher in the UI (I5)**
-- **19.3 Phase 19 Quality Gate Review**
 ### Phase 20 — Look & Typography (WordCraft neutrals, Teal accent) *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -156,9 +149,9 @@
 | 18.2 | All UI literals through t() (I2) | ✅ |
 | 18.3 | German catalog complete (I3) | ✅ |
 | 18.4 | Phase 18 Quality Gate Review | ✅ |
-| 19.1 | App settings store ui.json (I4) | ⬜ |
-| 19.2 | Language switcher in the UI (I5) | ⬜ |
-| 19.3 | Phase 19 Quality Gate Review | ⬜ |
+| 19.1 | App settings store ui.json (I4) | ✅ |
+| 19.2 | Language switcher in the UI (I5) | ✅ |
+| 19.3 | Phase 19 Quality Gate Review | ✅ |
 | 20.1 | Theme rebase: neutral tokens, Teal accent (U1) | ⬜ |
 | 20.2 | Typography: Inter + type rungs (U2) | ⬜ |
 | 20.3 | Original vector iconography (U3) | ⬜ |
