@@ -39,16 +39,34 @@ pub fn run(core: &mut Core, args: &[String], out: &mut dyn Write) -> Outcome {
     run_with_streams(core, args, out, &mut std::io::stdin().lock())
 }
 
-/// Stream-injected variant so every arm is testable in-process.
+/// Stream-injected variant so every arm is testable in-process. Results and
+/// errors share `out` (the historical contract); the binary uses
+/// [`run_split`] to route failures to stderr.
 pub fn run_with_streams(
     core: &mut Core,
     args: &[String],
     out: &mut dyn Write,
     reader: &mut dyn std::io::BufRead,
 ) -> Outcome {
+    let mut errors: Vec<u8> = Vec::new();
+    let outcome = run_split(core, args, out, &mut errors, reader);
+    let _ = out.write_all(&errors);
+    outcome
+}
+
+/// Split-stream variant (step 23.1, item T4): machine-readable results and
+/// successes go to `out`, failures and usage errors to `err`. JSON payloads
+/// stay on stdout — the exit code carries the failure for machines.
+pub fn run_split(
+    core: &mut Core,
+    args: &[String],
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+    reader: &mut dyn std::io::BufRead,
+) -> Outcome {
     let Some(command) = args.first() else {
         return usage(
-            out,
+            err,
             "usage: datacraft-cli (open <path> | exec <json> | repl) [--json] \
              [--db <path>] [-p <password>]",
         );
@@ -64,32 +82,33 @@ pub fn run_with_streams(
     match command.as_str() {
         "open" => {
             let Some(path) = args.get(1).filter(|p| !p.as_str().starts_with("--")) else {
-                return usage(out, "usage: datacraft-cli open <path> [-p <password>]");
+                return usage(err, "usage: datacraft-cli open <path> [-p <password>]");
             };
             run_command(
                 core,
                 open_command(path, password.as_deref()),
                 json_output,
                 out,
+                err,
             )
         }
         "exec" => {
             let Some(json) = args.get(1) else {
-                return usage(out, "usage: datacraft-cli exec '<json command>'");
+                return usage(err, "usage: datacraft-cli exec '<json command>'");
             };
             let Ok(command) = serde_json::from_str::<Command>(json) else {
-                return usage(out, "invalid command JSON");
+                return usage(err, "invalid command JSON");
             };
             let mut events = Vec::new();
             if let Some(path) = db_path {
                 events.extend(core.dispatch(open_command(&path, password.as_deref())));
                 if failed(&events) {
-                    print_events(core, &events, json_output, out);
+                    print_events(core, &events, json_output, out, err);
                     return Outcome::CommandFailed;
                 }
             }
             events.extend(core.dispatch(command));
-            print_events(core, &events, json_output, out);
+            print_events(core, &events, json_output, out, err);
             if failed(&events) {
                 Outcome::CommandFailed
             } else {
@@ -103,7 +122,7 @@ pub fn run_with_streams(
             repl(core, reader, out);
             Outcome::Ok
         }
-        other => usage(out, &format!("unknown command {other:?}")),
+        other => usage(err, &format!("unknown command {other:?}")),
     }
 }
 
@@ -112,9 +131,10 @@ fn run_command(
     command: Command,
     json_output: bool,
     out: &mut dyn Write,
+    err: &mut dyn Write,
 ) -> Outcome {
     let events = core.dispatch(command);
-    print_events(core, &events, json_output, out);
+    print_events(core, &events, json_output, out, err);
     if failed(&events) {
         Outcome::CommandFailed
     } else {
@@ -127,34 +147,42 @@ fn print_events(
     events: &[datacraft_core::event::Event],
     json_output: bool,
     out: &mut dyn Write,
+    err: &mut dyn Write,
 ) {
-    let has_failure = failed(events);
     if json_output {
         let payload = serde_json::json!({
             "events": events,
             "snapshot": core.inspect(),
         });
         let _ = writeln!(out, "{payload}");
-    } else {
-        for event in events {
+        return;
+    }
+    for event in events {
+        if is_failure(event) {
+            let _ = writeln!(err, "{event:?}");
+        } else {
             let _ = writeln!(out, "{event:?}");
         }
-        let status = if has_failure { "failed" } else { "ok" };
-        let _ = writeln!(out, "{status}");
     }
+    let status = if failed(events) { "failed" } else { "ok" };
+    let target: &mut dyn Write = if failed(events) { err } else { out };
+    let _ = writeln!(target, "{status}");
 }
 
-/// Whether the events include a rejected command (including the dedicated
-/// password events, step 16.2 / M5).
+/// Whether one event is a rejection (including the dedicated password
+/// events, step 16.2 / M5).
+fn is_failure(event: &datacraft_core::event::Event) -> bool {
+    matches!(
+        event,
+        datacraft_core::event::Event::Failed { .. }
+            | datacraft_core::event::Event::PasswordRequired { .. }
+            | datacraft_core::event::Event::PasswordRejected { .. }
+    )
+}
+
+/// Whether the events include a rejected command.
 fn failed(events: &[datacraft_core::event::Event]) -> bool {
-    events.iter().any(|event| {
-        matches!(
-            event,
-            datacraft_core::event::Event::Failed { .. }
-                | datacraft_core::event::Event::PasswordRequired { .. }
-                | datacraft_core::event::Event::PasswordRejected { .. }
-        )
-    })
+    events.iter().any(is_failure)
 }
 
 /// Value of a `-p`/`--password` flag (the first occurrence wins).
