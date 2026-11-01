@@ -481,4 +481,42 @@ mod tests {
         crate::i18n::set_lang(crate::i18n::Lang::English);
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn window_title_follows_the_open_database_and_clears_on_close() {
+        let _guard = crate::i18n::lang_lock();
+        crate::i18n::set_lang(crate::i18n::Lang::English);
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        assert_eq!(crate::shell::window_title(app.snapshot()), "DataCraft");
+        app.dispatch(datacraft_core::command::Command::OpenDatabase {
+            path: "shop.mdb".into(),
+            password: None,
+        });
+        assert_eq!(
+            crate::shell::window_title(app.snapshot()),
+            "shop : Database (Jet4)"
+        );
+        app.dispatch(datacraft_core::command::Command::CloseDatabase);
+        assert_eq!(crate::shell::window_title(app.snapshot()), "DataCraft");
+    }
+
+    #[test]
+    fn window_title_is_localized_in_both_languages() {
+        let _guard = crate::i18n::lang_lock();
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(datacraft_core::command::Command::OpenDatabase {
+            path: "shop.mdb".into(),
+            password: None,
+        });
+        crate::i18n::set_lang(crate::i18n::Lang::German);
+        assert_eq!(
+            crate::shell::window_title(app.snapshot()),
+            "shop : Datenbank (Jet4)"
+        );
+        crate::i18n::set_lang(crate::i18n::Lang::English);
+        assert_eq!(
+            crate::shell::window_title(app.snapshot()),
+            "shop : Database (Jet4)"
+        );
+    }
 }
