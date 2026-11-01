@@ -125,13 +125,6 @@
 - **Approach:** the "All Access Objects" label becomes a (single-entry) category dropdown per the Access convention; objects are opened/deleted via a context menu (Open/Design/Delete), replacing the always-visible ✕ button; group headers gain a sort menu (name/type) implemented as a pure ordering function over the snapshot-derived list.
 - **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
 
-### [ ] F2 — Jet3 database passwords are plain text (M5 fact correction) — 🟡
-- **Location:** `crates/datacraft-storage/src/jet/crypto.rs` (`jet3_password`), tests in `jet3.rs`/`jet_encryption.rs`/`jet_table.rs`/`port_adapter.rs`
-- **Problem:** M5 initially decoded the Jet3 password field with the documented fixed XOR key. The pinned pristine Jet3 fixture (`testV1997.mdb`) stores an all-zero field and was rejected as password-protected — the fixed key is the differential-recovery technique, not an in-file mask.
-- **Fix:** Jet3 passwords are plain CP1252 text inside the RC4-decrypted header region; the fixed key constant was removed and the tests/docs corrected.
-- **Evidence:** `fixtures/testV1997.mdb` opens without a password; the generated Jet3 password/page-encryption test still passes.
-- **Retro:** inline fix during step 16.3 (M5 scope), Low class, discovered by the first real Jet3 fixture.
-
 ---
 
 ## 🟢 LOW
@@ -250,3 +243,4 @@
 - M2 — Journaled/restringierte Write-Profile (Preview, Bestätigung, Feldfamilien) — done (done in `dcb6852` (step 11.11; preview→apply→rollback journal, atomic Jet batch, field-family profile))
 - H41 — Expression-Service (Ring 1 / Roadmap M1) — done (15.1 (b6c7c73 RED, a657762 GREEN) + 15.2 (7eb3bbc RED, 6cb634d GREEN): evaluator suite, NULL/coercion contracts, defaults/rules/calculated wiring, RunExpression over the bus and grouped/aggregate report bands)
 - M3 — Native Saved Queries (MSysQueries → QueryDef) — done (15.3 (78203c3 RED, d914484 GREEN): MSysQueries decoder with all nine flavors, native queries in the nav pane, read-only QBE tab, mappable-subset Run, documented rests (parameters/criteria/joins/grouping), queryTestV2000.mdb pinned (51bd3c5))
+- F2 — Jet3 database passwords are plain text (M5 fact correction) — done (done in 9b05ab7)
