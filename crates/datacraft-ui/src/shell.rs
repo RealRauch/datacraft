@@ -22,6 +22,7 @@ impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.rescue_window_position(ui.ctx());
         self.capture_window_geometry(ui.ctx());
+        self.sync_window_title(ui.ctx());
         crate::appearance::apply(ui.ctx(), self.appearance_setting());
         crate::theme::apply(ui.ctx());
         let tokens = tokens(ui.visuals());
@@ -75,6 +76,12 @@ impl eframe::App for App {
                     } else if let Some(notice) = self.last_notice() {
                         ui.colored_label(tokens.accent, notice);
                     }
+                    // Filter-state placeholder (step 21.7, U11): rendered
+                    // disabled until a filter model exists.
+                    ui.push_id("status.filter", |ui| {
+                        ui.add_enabled(false, egui::Button::new(t("Filter")))
+                            .on_hover_text(t("No filter is active."));
+                    });
                     // Right: the record-navigation box over the active view's
                     // record domain (rows / results / form record / pages).
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -98,6 +105,16 @@ impl eframe::App for App {
 }
 
 impl App {
+    /// Keeps the viewport title on the Access convention without per-frame
+    /// commands: only a changed title is sent (step 21.7, U11).
+    fn sync_window_title(&mut self, ctx: &egui::Context) {
+        let title = window_title(self.snapshot());
+        if title != self.window_title {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
+            self.window_title = title;
+        }
+    }
+
     /// The status bar's record-navigation box (step 12.4): `◀ 3 of 12 ▶`
     /// over the active tab's record domain. Paint-only presentation state —
     /// each view kind maps to its own record cursor.
@@ -156,6 +173,18 @@ impl App {
             _ => {}
         }
     }
+}
+
+/// Localized viewport title (Access convention): `{db} : Database
+/// ({format})`, the plain app name while nothing is open (step 21.7, U11).
+pub(crate) fn window_title(snapshot: &UiStateSnapshot) -> String {
+    let Some(db) = &snapshot.database else {
+        return "DataCraft".to_owned();
+    };
+    tr(
+        "{database} : Database ({format})",
+        &[("database", &db.name), ("format", &db.format.to_string())],
+    )
 }
 
 /// Localized status-bar line (Access convention): built UI-side from the

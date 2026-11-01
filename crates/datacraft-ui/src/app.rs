@@ -32,6 +32,8 @@ pub struct App {
     pub backstage_page: crate::backstage::BackstagePage,
     /// Navigation-pane group sort (step 21.5; ordering lives in core).
     pub nav_sort: datacraft_core::nav::NavSortOrder,
+    /// Last viewport title sent to the window system (step 21.7, U11).
+    pub(crate) window_title: String,
     /// Row data per table tab, loaded once on tab appearance.
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
     /// Query results per query tab, refreshed when the QBE model changes.
@@ -97,6 +99,7 @@ impl App {
             active_ribbon_tab: "home",
             backstage_page: crate::backstage::BackstagePage::default(),
             nav_sort: datacraft_core::nav::NavSortOrder::default(),
+            window_title: "DataCraft".to_owned(),
             rows: HashMap::new(),
             results: HashMap::new(),
             form_selection: HashMap::new(),

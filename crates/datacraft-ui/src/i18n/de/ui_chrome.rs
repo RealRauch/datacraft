@@ -40,6 +40,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Design saved to {path}", "Entwurf gespeichert unter {path}"),
     ("External Data", "Externe Daten"),
     ("File", "Datei"),
+    ("Filter", "Filter"),
     ("Form Design", "Formularentwurf"),
     ("Form Tools", "Formulartools"),
     ("Forms", "Formulare"),
@@ -60,6 +61,7 @@ pub static TABLE: &[(&str, &str)] = &[
         "Keine aktive Registerkarte mit Entwurfsansicht.",
     ),
     ("No database open", "Keine Datenbank geöffnet"),
+    ("No filter is active.", "Kein Filter aktiv."),
     ("No objects", "Keine Objekte"),
     ("No open documents", "Keine geöffneten Dokumente"),
     ("Open", "Öffnen"),
@@ -121,6 +123,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("{count} result row", "{count} Ergebniszeile"),
     ("{count} result rows", "{count} Ergebniszeilen"),
     ("{current} of {total}", "{current} von {total}"),
+    (
+        "{database} : Database ({format})",
+        "{database} : Datenbank ({format})",
+    ),
     (
         "{database} ({format}) — {count} table",
         "{database} ({format}) — {count} Tabelle",
