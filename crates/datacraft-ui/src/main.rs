@@ -12,6 +12,7 @@
 mod app;
 mod datasheet;
 mod design;
+mod designer_palette;
 mod flows;
 mod form_design;
 mod form_runtime;
@@ -163,6 +164,71 @@ mod tests {
         app.delete_object(ObjectKind::Form, "Missing");
         assert!(
             app.last_error().unwrap_or_default().contains("not found"),
+            "{:?}",
+            app.last_error()
+        );
+    }
+
+    #[test]
+    fn the_designer_palette_places_fields_and_toolbox_controls() {
+        use datacraft_core::ObjectKind;
+        use datacraft_core::command::Command;
+        use datacraft_core::form::ControlKind;
+        use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
+
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(Command::OpenDatabase {
+            path: "memory.mock".into(),
+        });
+        app.dispatch(Command::CreateTable {
+            definition: TableDef::new(
+                "Customers",
+                vec![
+                    FieldDef::new("name", FieldKind::Text { max_len: 50 }),
+                    FieldDef::new("active", FieldKind::Boolean { tri_state: false }),
+                ],
+            ),
+        });
+        app.dispatch(Command::CreateForm {
+            name: "Card".into(),
+        });
+
+        app.set_record_source(ObjectKind::Form, "Card", "Customers");
+        app.add_designer_field(ObjectKind::Form, "Card", "name");
+        app.add_toolbox_control(ObjectKind::Form, "Card", "button");
+        let form = app.snapshot().database.as_ref().expect("db").forms[0].clone();
+        assert_eq!(form.controls.len(), 2);
+        assert_eq!(
+            form.controls[0].kind,
+            ControlKind::TextBox {
+                bound_field: Some("name".into())
+            }
+        );
+        assert_eq!(
+            form.controls[1].kind,
+            ControlKind::Button {
+                caption: "Button".into()
+            }
+        );
+        assert!(app.last_error().is_none(), "{:?}", app.last_error());
+
+        app.dispatch(Command::CreateReport {
+            name: "List".into(),
+        });
+        app.set_record_source(ObjectKind::Report, "List", "Customers");
+        app.add_designer_field(ObjectKind::Report, "List", "active");
+        let report = app.snapshot().database.as_ref().expect("db").reports[0].clone();
+        assert_eq!(
+            report.controls[0].kind,
+            ControlKind::CheckBox {
+                bound_field: Some("active".into())
+            }
+        );
+
+        // The palette refuses a source outside the schema whitelist.
+        app.set_record_source(ObjectKind::Form, "Card", "Ghost");
+        assert!(
+            app.last_error().unwrap_or_default().contains("Ghost"),
             "{:?}",
             app.last_error()
         );

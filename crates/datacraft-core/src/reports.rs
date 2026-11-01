@@ -167,6 +167,35 @@ impl crate::core::Core {
         }]
     }
 
+    /// Adds a record-source field from the designer's field list as a
+    /// bound control at the next free page slot (step 11.6).
+    pub(crate) fn add_report_field(&mut self, report: &str, field: &str) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .reports
+            .iter()
+            .find(|r| r.name.eq_ignore_ascii_case(report))
+        else {
+            return failed(format!("report {report:?} not found"));
+        };
+        let canonical = def.name.clone();
+        let bounds = (def.page.width, def.page.height);
+        let control = match crate::palette::place_field_control(
+            &def.source,
+            &db.tables,
+            field,
+            def.grid,
+            bounds,
+            &def.controls,
+        ) {
+            Ok(control) => control,
+            Err(reason) => return failed(reason),
+        };
+        self.add_report_control(&canonical, control)
+    }
+
     /// Assigns the source table (whitelist + re-validation of bindings).
     pub(crate) fn set_report_source(&mut self, report: &str, table: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {

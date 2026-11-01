@@ -127,7 +127,7 @@
 | 11.3 | Ribbon + Neue-Tabelle-Flow | ✅ |
 | 11.4 | Nav-Pane-Löschflüsse | ✅ |
 | 11.5 | QBE: Run + Criteria-Clear | ✅ |
-| 11.6 | Designer-Paletten + Quellen-Wahl | ⬜ |
+| 11.6 | Designer-Paletten + Quellen-Wahl | 🔄 |
 | 11.7 | Datasheet: Neue-Zeile | ⬜ |
 | 11.8 | Sidecar-UI + Aufräumen + access_gate-Beispiel | ⬜ |
 | 11.9 | Phase 11 Quality Gate Review | ⬜ |

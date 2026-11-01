@@ -1,18 +1,21 @@
-//! Report design canvas (step 10.4, item H31).
+//! Report design canvas (steps 10.4/11.6, item H31).
 //!
 //! Renders the report's page (print geometry) from the snapshot: the
 //! paper surface, margin guides and the shared control canvas with the
-//! proven snap/drag math. Pure paint; every change is one dispatch.
+//! proven snap/drag math, beside the designer palette. Pure paint; every
+//! change is one dispatch.
 
 use eframe::egui;
 
+use datacraft_core::ObjectKind;
 use datacraft_core::canvas::Rect;
 use datacraft_core::command::Command;
+use datacraft_core::report::ReportDef;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
 
-/// Renders the design canvas of one report tab.
+/// Renders the design view of one report tab: canvas plus palette.
 pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let Some(report) = app
         .snapshot()
@@ -25,6 +28,17 @@ pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         return;
     };
 
+    ui.horizontal_top(|ui| {
+        ui.vertical(|ui| canvas_ui(app, tab, &report, ui));
+        ui.separator();
+        ui.vertical(|ui| {
+            crate::designer_palette::designer_palette_ui(app, ObjectKind::Report, &report.name, ui)
+        });
+    });
+}
+
+/// The report's design canvas itself (paper, grid, controls, footer).
+fn canvas_ui(app: &mut App, tab: &TabSnapshot, report: &ReportDef, ui: &mut egui::Ui) {
     ui.heading(egui::RichText::new(format!("Report: {}", report.name)));
     ui.label(
         egui::RichText::new(format!(

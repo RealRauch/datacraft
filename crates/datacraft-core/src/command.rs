@@ -141,6 +141,14 @@ pub enum Command {
         /// Control name (case-insensitive).
         control: String,
     },
+    /// Adds a record-source field from the designer's field list as a
+    /// bound control at the next free slot (step 11.6).
+    AddFormField {
+        /// Target form name (case-insensitive).
+        form: String,
+        /// Source field name (case-insensitive).
+        field: String,
+    },
     /// Assigns a form's source table (whitelisted; existing bindings
     /// re-validated).
     SetFormSource {
@@ -182,6 +190,14 @@ pub enum Command {
         report: String,
         /// Control name (case-insensitive).
         control: String,
+    },
+    /// Adds a record-source field from the designer's field list as a
+    /// bound control at the next free page slot (step 11.6).
+    AddReportField {
+        /// Target report name (case-insensitive).
+        report: String,
+        /// Source field name (case-insensitive).
+        field: String,
     },
     /// Assigns a report's source table (whitelisted; bindings re-validated).
     SetReportSource {

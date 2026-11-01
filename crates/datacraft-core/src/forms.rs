@@ -164,6 +164,31 @@ impl crate::core::Core {
             control: canonical,
         }]
     }
+    /// Adds a record-source field from the designer's field list as a
+    /// bound control at the next free slot (step 11.6).
+    pub(crate) fn add_form_field(&mut self, form: &str, field: &str) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db.forms.iter().find(|f| f.name.eq_ignore_ascii_case(form)) else {
+            return failed(format!("form {form:?} not found"));
+        };
+        let canonical = def.name.clone();
+        let bounds = (def.size.width, def.size.height);
+        let control = match crate::palette::place_field_control(
+            &def.source,
+            &db.tables,
+            field,
+            def.grid,
+            bounds,
+            &def.controls,
+        ) {
+            Ok(control) => control,
+            Err(reason) => return failed(reason),
+        };
+        self.add_control(&canonical, control)
+    }
+
     /// Assigns the source table (whitelist + re-validation of bindings).
     pub(crate) fn set_form_source(&mut self, form: &str, table: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {

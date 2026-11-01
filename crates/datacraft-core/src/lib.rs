@@ -14,6 +14,7 @@ pub mod form;
 pub mod forms;
 pub mod grid;
 pub mod ids;
+pub mod palette;
 pub mod port;
 pub mod present;
 pub mod qbe;

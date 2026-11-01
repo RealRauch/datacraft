@@ -166,6 +166,7 @@ impl Core {
                 rect,
             } => self.set_control_rect(&form, &control, rect),
             Command::DeleteFormControl { form, control } => self.delete_control(&form, &control),
+            Command::AddFormField { form, field } => self.add_form_field(&form, &field),
             Command::SetFormSource { form, table } => self.set_form_source(&form, &table),
             Command::CreateReport { name } => self.create_report(&name),
             Command::DeleteReport { name } => self.delete_report(&name),
@@ -180,6 +181,7 @@ impl Core {
             Command::DeleteReportControl { report, control } => {
                 self.delete_report_control(&report, &control)
             }
+            Command::AddReportField { report, field } => self.add_report_field(&report, &field),
             Command::SetReportSource { report, table } => self.set_report_source(&report, &table),
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),

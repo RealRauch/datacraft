@@ -1,8 +1,11 @@
-//! App-level command flows (steps 11.3/11.4): table creation and object
-//! deletion compose existing bus commands; no logic lives in paint code.
+//! App-level command flows (steps 11.3/11.4/11.6): table creation, object
+//! deletion and the designer palettes compose existing bus commands; no
+//! logic lives in paint code.
 
+use datacraft_core::ObjectKind;
 use datacraft_core::command::Command;
 use datacraft_core::event::Event;
+use datacraft_core::form::ControlDef;
 
 use crate::app::App;
 
@@ -49,6 +52,99 @@ impl App {
             },
         };
         self.dispatch(command);
+    }
+
+    /// Assigns a form's or report's record source (step 11.6) — the
+    /// designer palette's source selector.
+    pub fn set_record_source(&mut self, kind: ObjectKind, object: &str, table: &str) {
+        let command = match kind {
+            ObjectKind::Form => Command::SetFormSource {
+                form: object.to_owned(),
+                table: table.to_owned(),
+            },
+            ObjectKind::Report => Command::SetReportSource {
+                report: object.to_owned(),
+                table: table.to_owned(),
+            },
+            ObjectKind::Table | ObjectKind::Query => return,
+        };
+        self.dispatch(command);
+    }
+
+    /// Adds a record-source field from the designer's field list (step
+    /// 11.6) as a bound control at the next free slot.
+    pub fn add_designer_field(&mut self, kind: ObjectKind, object: &str, field: &str) {
+        let command = match kind {
+            ObjectKind::Form => Command::AddFormField {
+                form: object.to_owned(),
+                field: field.to_owned(),
+            },
+            ObjectKind::Report => Command::AddReportField {
+                report: object.to_owned(),
+                field: field.to_owned(),
+            },
+            ObjectKind::Table | ObjectKind::Query => return,
+        };
+        self.dispatch(command);
+    }
+
+    /// Adds a toolbox control at the next free slot (step 11.6). Name,
+    /// default kind and placement come from the core palette helpers.
+    pub fn add_toolbox_control(&mut self, kind: ObjectKind, object: &str, entry_id: &str) {
+        let Some((grid, bounds, controls)) = self.design_surface(kind, object) else {
+            return;
+        };
+        let Some(control) =
+            datacraft_core::palette::place_toolbox_control(entry_id, grid, bounds, &controls)
+        else {
+            return;
+        };
+        let command = match kind {
+            ObjectKind::Form => Command::AddFormControl {
+                form: object.to_owned(),
+                control,
+            },
+            ObjectKind::Report => Command::AddReportControl {
+                report: object.to_owned(),
+                control,
+            },
+            ObjectKind::Table | ObjectKind::Query => return,
+        };
+        self.dispatch(command);
+    }
+
+    /// Grid, bounds and placed controls of a design surface.
+    fn design_surface(
+        &self,
+        kind: ObjectKind,
+        object: &str,
+    ) -> Option<(f32, (f32, f32), Vec<ControlDef>)> {
+        let db = self.snapshot().database.as_ref()?;
+        match kind {
+            ObjectKind::Form => {
+                let def = db
+                    .forms
+                    .iter()
+                    .find(|form| form.name.eq_ignore_ascii_case(object))?;
+                Some((
+                    def.grid,
+                    (def.size.width, def.size.height),
+                    def.controls.clone(),
+                ))
+            }
+            ObjectKind::Report => {
+                let def = db
+                    .reports
+                    .iter()
+                    .find(|report| report.name.eq_ignore_ascii_case(object))?;
+                Some((
+                    def.grid,
+                    (def.page.width, def.page.height),
+                    def.controls.clone(),
+                ))
+            }
+            ObjectKind::Table | ObjectKind::Query => None,
+        }
     }
 
     /// Reason of the last failed command (status bar).

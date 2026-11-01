@@ -1,12 +1,15 @@
-//! Form design canvas (step 8.1, item H28).
+//! Form design canvas (steps 8.1/11.6, items H28/H29).
 //!
-//! Renders the form frame and the snap grid from the snapshot; controls
-//! arrive with step 8.2 and drag with the same snap math. Pure paint.
+//! Renders the form frame, the snap grid and the placed controls from the
+//! snapshot, beside the designer palette (record source, field list and
+//! toolbox). Pure paint; drags and palette clicks dispatch one command.
 
 use eframe::egui;
 
+use datacraft_core::ObjectKind;
 use datacraft_core::canvas::Rect;
 use datacraft_core::command::Command;
+use datacraft_core::form::FormDef;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
@@ -16,7 +19,7 @@ const FORM_WIDTH: f32 = 640.0;
 /// Form canvas height in points.
 const FORM_HEIGHT: f32 = 400.0;
 
-/// Renders the design canvas of one form tab.
+/// Renders the design view of one form tab: canvas plus palette.
 pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let Some(form) = app
         .snapshot()
@@ -29,14 +32,19 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         return;
     };
 
+    ui.horizontal_top(|ui| {
+        ui.vertical(|ui| canvas_ui(app, tab, &form, ui));
+        ui.separator();
+        ui.vertical(|ui| {
+            crate::designer_palette::designer_palette_ui(app, ObjectKind::Form, &form.name, ui)
+        });
+    });
+}
+
+/// The design canvas itself (frame, grid, controls, footer).
+fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui) {
     ui.heading(egui::RichText::new(format!("Form: {}", form.name)));
-    ui.label(
-        egui::RichText::new(format!(
-            "Snap grid: {} px — controls arrive in step 8.2.",
-            form.grid
-        ))
-        .small(),
-    );
+    ui.label(egui::RichText::new(format!("Snap grid: {} px", form.grid)).small());
     ui.separator();
 
     let (canvas_rect, _) =

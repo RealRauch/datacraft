@@ -69,6 +69,8 @@ pub struct QueryEntrySnapshot {
 pub struct FieldSnapshot {
     /// Field name.
     pub name: String,
+    /// Domain kind (designer field-list mapping and agents).
+    pub kind: crate::schema::FieldKind,
     /// Access UI type name (design grid Data Type column).
     pub kind_display: String,
     /// Full field properties (design grid property sheet).
@@ -137,6 +139,7 @@ impl UiStateSnapshot {
                             .iter()
                             .map(|f| FieldSnapshot {
                                 name: f.name.clone(),
+                                kind: f.kind,
                                 kind_display: crate::present::field_kind_display(&f.kind),
                                 properties: f.properties.clone(),
                             })

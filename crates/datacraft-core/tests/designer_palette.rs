@@ -14,14 +14,11 @@ use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::form::{ControlKind, FormDef};
 use datacraft_core::palette::{
-    TOOLBOX, field_palette, free_slot, place_toolbox_control, toolbox_control,
-    unique_control_name,
+    TOOLBOX, field_palette, free_slot, place_toolbox_control, toolbox_control, unique_control_name,
 };
 use datacraft_core::port::MockPort;
 use datacraft_core::report::ReportDef;
-use datacraft_core::schema::{
-    AutoKind, BinaryKind, FieldDef, FieldKind, NumericKind, TableDef,
-};
+use datacraft_core::schema::{AutoKind, BinaryKind, FieldDef, FieldKind, NumericKind, TableDef};
 
 fn customers() -> TableDef {
     TableDef::new(
@@ -30,10 +27,7 @@ fn customers() -> TableDef {
             FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
             FieldDef::new("name", FieldKind::Text { max_len: 50 }),
             FieldDef::new("active", FieldKind::Boolean { tri_state: false }),
-            FieldDef::new(
-                "photo",
-                FieldKind::Binary(BinaryKind::OleObject),
-            ),
+            FieldDef::new("photo", FieldKind::Binary(BinaryKind::OleObject)),
         ],
     )
 }
@@ -89,7 +83,14 @@ fn the_toolbox_mirrors_the_access_control_palette() {
     let ids: Vec<&str> = TOOLBOX.iter().map(|entry| entry.id).collect();
     assert_eq!(
         ids,
-        vec!["label", "text_box", "check_box", "combo_box", "button", "subform"]
+        vec![
+            "label",
+            "text_box",
+            "check_box",
+            "combo_box",
+            "button",
+            "subform"
+        ]
     );
 
     let rect = Rect {
@@ -100,7 +101,11 @@ fn the_toolbox_mirrors_the_access_control_palette() {
     };
     let kinds: Vec<ControlKind> = TOOLBOX
         .iter()
-        .map(|entry| toolbox_control(entry.id, "ctl", rect).expect("known entry").kind)
+        .map(|entry| {
+            toolbox_control(entry.id, "ctl", rect)
+                .expect("known entry")
+                .kind
+        })
         .collect();
     assert_eq!(
         kinds,
@@ -114,7 +119,9 @@ fn the_toolbox_mirrors_the_access_control_palette() {
             ControlKind::Button {
                 caption: "Button".into()
             },
-            ControlKind::SubForm { form: String::new() },
+            ControlKind::SubForm {
+                form: String::new()
+            },
         ]
     );
     assert!(toolbox_control("ghost", "ctl", rect).is_none());
@@ -210,8 +217,7 @@ fn a_full_canvas_has_no_free_slot() {
 
 #[test]
 fn toolbox_controls_land_in_the_next_free_slot() {
-    let placed =
-        place_toolbox_control("text_box", 8.0, (640.0, 400.0), &[]).expect("placed");
+    let placed = place_toolbox_control("text_box", 8.0, (640.0, 400.0), &[]).expect("placed");
     assert_eq!(placed.name, "Text");
     assert_eq!(
         placed.rect,
@@ -326,7 +332,12 @@ fn adding_a_field_places_a_bound_control_in_the_next_free_slot() {
             bound_field: Some("name".into())
         }
     );
-    assert_eq!(def.controls[1].kind, ControlKind::CheckBox { bound_field: Some("active".into()) });
+    assert_eq!(
+        def.controls[1].kind,
+        ControlKind::CheckBox {
+            bound_field: Some("active".into())
+        }
+    );
 }
 
 #[test]
