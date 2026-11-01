@@ -8,6 +8,7 @@
 use crate::error::StorageError;
 use crate::jet::lval;
 use crate::jet::tdef::{JetColumn, JetTableDef, JetType};
+use crate::jet::text::{decode_compressed_text, decode_text};
 use crate::types::StorageValue;
 
 /// Decodes one raw row against the table definition.
@@ -84,6 +85,10 @@ struct RowLayout {
     mask_at: usize,
     var_len: usize,
     table_at: usize,
+    /// Jump table between the var table and `var_len` (Jet3 only; empty on
+    /// Jet4 and on rows below the 256-byte offset range).
+    jump_at: usize,
+    jump_len: usize,
     eod: usize,
     jet3: bool,
 }
@@ -131,14 +136,19 @@ impl RowLayout {
             mask_at,
             var_len,
             table_at,
+            jump_at: 0,
+            jump_len: 0,
             eod,
             jet3,
         })
     }
 
-    /// Jet3 tail: `[eod u8][var_table u8 × n][var_len u8][mask]`. The eod
-    /// must close the row exactly — a mismatch means the data crossed the
-    /// 255-byte offset range and the jump table applies (unsupported).
+    /// Jet3 tail: `[eod u8][var_table u8 × n][jump_table][var_len u8][mask]`.
+    /// The jump table appears when the row crosses 256-byte boundaries; its
+    /// entries name the first variable column of each 256-byte segment (a
+    /// `0xFF` entry is the documented dummy). The number of entries follows
+    /// the row size; the closure check picks the documented candidate and
+    /// falls back to the small candidate range for hostile files.
     fn parse_jet3(row: &[u8]) -> Result<Self, StorageError> {
         if row.is_empty() {
             return Err(StorageError::Corrupt {
@@ -156,31 +166,64 @@ impl RowLayout {
         }
         let mask_at = row.len() - mask_len;
         let var_len = row[mask_at - 1] as usize;
-        let table_at = mask_at - 1 - var_len;
-        if table_at < 2 {
+        // The documented count follows the row size (`row_len / 256`); the
+        // closure check is the authority, with a small fallback range for
+        // files that disagree.
+        let preferred = row.len() / 256;
+        let mut candidates = vec![preferred];
+        for candidate in 0..=preferred + 1 {
+            if candidate != preferred {
+                candidates.push(candidate);
+            }
+        }
+        let mut chosen = None;
+        for jump_len in candidates {
+            let Some(jump_at) = (mask_at - 1).checked_sub(jump_len) else {
+                continue;
+            };
+            let Some(table_at) = jump_at.checked_sub(var_len) else {
+                continue;
+            };
+            if table_at < 2 {
+                continue;
+            }
+            let raw_eod = row[table_at - 1] as usize;
+            if !row[jump_at..jump_at + jump_len]
+                .iter()
+                .all(|entry| *entry == 0xFF || (*entry as usize) <= var_len)
+            {
+                continue;
+            }
+            // The raw eod is a byte; every crossed 256-byte boundary (a jump
+            // entry at or below the eod's column index) adds one segment.
+            let segments = row[jump_at..jump_at + jump_len]
+                .iter()
+                .filter(|entry| **entry != 0xFF && **entry as usize <= var_len)
+                .count();
+            let eod = raw_eod + segments * 256;
+            if eod + 1 + var_len + jump_len + 1 + mask_len != row.len() {
+                continue;
+            }
+            chosen = Some((table_at, jump_at, jump_len, eod));
+            break;
+        }
+        let Some((table_at, jump_at, jump_len, eod)) = chosen else {
             return Err(StorageError::Corrupt {
                 context: "row".into(),
-                detail: "row too short for variable column table".into(),
-            });
-        }
-        let eod = row[table_at - 1] as usize;
-        if eod + 1 + var_len + 1 + mask_len != row.len() {
-            return Err(StorageError::Unsupported {
-                reason: format!(
-                    "Jet3 row needs the >{}-byte jump-table mechanism (unsupported; \
-                     eod {} + tail {} != row length {})",
-                    crate::jet::jet3::JET3_ROW_LIMIT,
-                    eod,
-                    1 + var_len + 1 + mask_len,
-                    row.len()
+                detail: format!(
+                    "Jet3 row tail does not close ({} bytes, {} variable columns)",
+                    row.len(),
+                    var_len
                 ),
             });
-        }
+        };
         Ok(Self {
             num_cols,
             mask_at,
             var_len,
             table_at,
+            jump_at,
+            jump_len,
             eod,
             jet3: true,
         })
@@ -199,7 +242,17 @@ impl RowLayout {
     /// parse invariants, so no bounds check is needed here.
     fn var_start(&self, row: &[u8], j: usize) -> usize {
         if self.jet3 {
-            return row[self.table_at + (self.var_len - 1 - j)] as usize;
+            let stored = row[self.table_at + (self.var_len - 1 - j)] as usize;
+            if self.jump_len == 0 {
+                return stored;
+            }
+            // Each jump entry at or below this variable column marks a
+            // crossed 256-byte boundary (the 0xFF dummy is ignored).
+            let segments = row[self.jump_at..self.jump_at + self.jump_len]
+                .iter()
+                .filter(|entry| **entry != 0xFF && **entry as usize <= j)
+                .count();
+            return stored + segments * 256;
         }
         let at = self.table_at + (self.var_len - 1 - j) * 2;
         u16::from_le_bytes([row[at], row[at + 1]]) as usize
@@ -361,7 +414,7 @@ fn decode_long_value(
             });
         }
         let pointer = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
-        lval::resolve(file, page_size, length_and_flags, pointer)?
+        lval::resolve(file, page_size, length_and_flags, pointer, jet3)?
     };
     Ok(match col.data_type {
         // Memos are always compressed unicode on Jet4 (FORMAT-JET.md,
@@ -395,7 +448,7 @@ fn decode_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> Result<StorageValu
         JetType::Binary | JetType::Ole | JetType::LongBinary | JetType::Complex | JetType::Memo => {
             StorageValue::Binary(bytes.to_vec())
         }
-        JetType::Text => StorageValue::Text(decode_text_bytes(bytes, col, jet3)),
+        JetType::Text => StorageValue::Text(decode_text(bytes, col.compressed_text, jet3)),
         JetType::Guid => {
             let mut guid = [0u8; 16];
             guid.copy_from_slice(bytes);
@@ -419,56 +472,6 @@ fn decode_numeric(bytes: &[u8]) -> StorageValue {
     } else {
         -(magnitude as i128)
     })
-}
-
-/// Text decoding: UCS-2LE or compressed unicode on Jet4, CP1252 on Jet3
-/// (see `docs/FORMAT-JET.md`).
-fn decode_text_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> String {
-    if jet3 {
-        return crate::jet::jet3::cp1252(bytes);
-    }
-    if col.compressed_text {
-        decode_compressed_text(bytes)
-    } else {
-        let units: Vec<u16> = bytes
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|p| u16::from_le_bytes(*p))
-            .collect();
-        String::from_utf16_lossy(&units)
-    }
-}
-
-/// Compressed unicode (Jet4). Two evidence-backed shapes:
-///
-/// - Without the `FF FE` header (compressed text columns): single-byte
-///   characters until a `0x00` switches to UCS-2 pairs for the remainder;
-///   a pair with high byte `0` reads back as its low byte (identical to
-///   the compressed reading).
-/// - With the `FF FE` header (Access memos, and values that mix ASCII and
-///   non-ASCII): the same mode-switch reading applies after the header —
-///   the header announces that compression is in use, not the first byte.
-fn decode_compressed_text(bytes: &[u8]) -> String {
-    let body = bytes.strip_prefix(&[0xFF, 0xFE][..]).unwrap_or(bytes);
-    let mut text = String::new();
-    let mut at = 0usize;
-    while at < body.len() {
-        let b = body[at];
-        at += 1;
-        if b == 0x00 {
-            let units: Vec<u16> = body[at..]
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .map(|pair| u16::from_le_bytes(*pair))
-                .collect();
-            text.push_str(&String::from_utf16_lossy(&units));
-            return text;
-        }
-        text.push(char::from(b));
-    }
-    text
 }
 
 #[cfg(test)]

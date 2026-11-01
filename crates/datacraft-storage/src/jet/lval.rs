@@ -19,6 +19,7 @@ pub fn resolve(
     page_size: usize,
     length_and_flags: u32,
     record_pointer: u32,
+    jet3: bool,
 ) -> Result<Vec<u8>, StorageError> {
     let total_len = (length_and_flags & 0x3FFF_FFFF) as usize;
     match length_and_flags & 0xC000_0000 {
@@ -28,7 +29,7 @@ pub fn resolve(
         }),
         0x4000_0000 => {
             let (page, row) = split_pointer(record_pointer)?;
-            let data = read_record(file, page_size, page, row)?;
+            let data = read_record(file, page_size, page, row, jet3)?;
             Ok(take_exact(data, total_len)?)
         }
         _ => {
@@ -37,7 +38,7 @@ pub fn resolve(
             let mut pointer = record_pointer;
             loop {
                 let (page, row) = split_pointer(pointer)?;
-                let record = read_record(file, page_size, page, row)?;
+                let record = read_record(file, page_size, page, row, jet3)?;
                 if record.len() < 4 {
                     return Err(StorageError::Corrupt {
                         context: "LVAL chain".into(),
@@ -85,7 +86,13 @@ fn split_pointer(pointer: u32) -> Result<(u32, u16), StorageError> {
     Ok((page, row))
 }
 
-fn read_record(file: &[u8], page_size: usize, page: u32, row: u16) -> Result<&[u8], StorageError> {
+fn read_record(
+    file: &[u8],
+    page_size: usize,
+    page: u32,
+    row: u16,
+    jet3: bool,
+) -> Result<&[u8], StorageError> {
     let start = page as usize * page_size;
     let page_bytes = file
         .get(start..start + page_size)
@@ -99,7 +106,11 @@ fn read_record(file: &[u8], page_size: usize, page: u32, row: u16) -> Result<&[u
             detail: format!("page {page} is not a data page"),
         });
     }
-    let decoded = DataPage::decode(page_bytes)?;
+    let decoded = if jet3 {
+        DataPage::decode_jet3(page_bytes)?
+    } else {
+        DataPage::decode(page_bytes)?
+    };
     let slot = decoded.records.get(row as usize);
     match slot {
         Some((start, end, _)) => Ok(&page_bytes[*start..*end]),

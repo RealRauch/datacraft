@@ -51,7 +51,7 @@ fn write_tdef(file: &mut [u8], page: usize, columns: &[(JetColumn, Vec<u8>)]) {
     for (col, _) in columns {
         block.push(col.data_type as u8);
         block.extend_from_slice(&col.column_id.to_le_bytes());
-        block.extend_from_slice(&0u16.to_le_bytes()); // offset_V
+        block.extend_from_slice(&col.var_index.unwrap_or(0).to_le_bytes()); // offset_V
         block.extend_from_slice(&col.column_id.to_le_bytes());
         block.extend_from_slice(&0x0409u16.to_le_bytes()); // sort order
         let misc: u16 = if col.data_type == JetType::Text {
@@ -201,12 +201,57 @@ fn jet3_fixture_reads_through_the_engine_boundary() {
     assert_eq!(data.rows[0][1], StorageValue::Text("alpha".into()));
 }
 
+/// Builds a Jet3 row with an explicit jump table (1-byte offsets plus the
+/// documented segment markers). `jump` is stored between the var table and
+/// the var_len byte.
+fn jet3_jump_row(num_cols: u8, var_cols: &[&[u8]], jump: &[u8]) -> Vec<u8> {
+    let mut row = vec![num_cols];
+    let mut starts = Vec::new();
+    for bytes in var_cols {
+        starts.push(row.len() as u8);
+        row.extend_from_slice(bytes);
+    }
+    row.push(row.len() as u8); // raw eod (low byte)
+    for start in starts.iter().rev() {
+        row.push(*start);
+    }
+    row.extend_from_slice(jump);
+    row.push(var_cols.len() as u8);
+    let mask = vec![0xFFu8; (num_cols as usize).div_ceil(8)];
+    row.extend_from_slice(&mask);
+    row
+}
+
 #[test]
-fn jet3_rows_over_255_data_bytes_are_a_precise_unsupported() {
+fn jet3_jump_table_rows_decode_across_256_byte_segments() {
+    let mut file = shell(2);
+    let mut first_column = JetColumn::new("A", JetType::Text, 0x02, 0, 0, 200);
+    first_column.var_index = Some(0);
+    let mut second_column = JetColumn::new("B", JetType::Text, 0x02, 1, 0, 100);
+    second_column.var_index = Some(1);
+    let columns = vec![
+        (first_column, b"A".to_vec()),
+        (second_column, b"B".to_vec()),
+    ];
+    write_tdef(&mut file, 1, &columns);
+    let first = vec![b'a'; 200];
+    let second = vec![b'b'; 100];
+    // Data spans 1..301; the eod (301) crosses the 256 boundary, so the
+    // jump table names the eod's column index (2) and the raw eod is 45.
+    let row = jet3_jump_row(2, &[&first, &second], &[2]);
+    write_data_page(&mut file, 2, 1, std::slice::from_ref(&row));
+    let def = JetTableDef::decode(&file, 1).expect("tdef");
+    let raw = last_row_bytes(&file, 2, row.len());
+    let values = decode_row_jet3(&raw, &def, &file, PAGE).expect("jump-table row decodes");
+    assert_eq!(values[0], StorageValue::Text("a".repeat(200)));
+    assert_eq!(values[1], StorageValue::Text("b".repeat(100)));
+}
+
+#[test]
+fn jet3_malformed_large_rows_are_corrupt() {
     let mut file = shell(2);
     write_tdef(&mut file, 1, &catalog_columns());
-    // A row whose variable data crosses 255 bytes needs the jump table:
-    // the eod wraps and the byte pattern stops matching the tail layout.
+    // A row over 255 bytes without the jump table cannot close its tail.
     let fixed = vec![0u8; 4];
     let big = vec![b'x'; 250];
     let row = jet3_row(3, &fixed, &[&big, b"y"], &[true, true, true]);
@@ -214,7 +259,7 @@ fn jet3_rows_over_255_data_bytes_are_a_precise_unsupported() {
     let def = JetTableDef::decode(&file, 1).expect("tdef");
     let raw = last_row_bytes(&file, 2, row.len());
     let err = decode_row_jet3(&raw, &def, &file, PAGE).unwrap_err();
-    assert!(matches!(err, StorageError::Unsupported { .. }), "{err}");
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
 }
 
 // --- hostile-input paths: every Jet3 decode failure is precise ---
@@ -226,9 +271,9 @@ fn jet3_tdef_rejects_non_tdef_pages_and_chains() {
     assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
     write_tdef(&mut file, 1, &catalog_columns());
     let base = PAGE; // TDEF page header: next-page dword at offset 4
-    file[base + 4..base + 8].copy_from_slice(&7u32.to_le_bytes());
+    file[base + 4..base + 8].copy_from_slice(&2u32.to_le_bytes());
     let err = JetTableDef::decode(&file, 1).unwrap_err();
-    assert!(matches!(err, StorageError::Unsupported { .. }), "{err}");
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
 }
 
 #[test]

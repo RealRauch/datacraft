@@ -346,9 +346,10 @@ memo/OLE repack round-trips, usage maps decode after the operations, and
 ## Jet 3 (Access 97) read path (2026-11-01 — step 10.6, BACKLOG L1)
 
 Source: MDB Tools HACKING (public documentation), black-box verified by the
-synthetic-fixture contract suite (`tests/jet3.rs`) — no real A97 fixture is
-pinned yet; the oracle comparison applies when one is sourced (see
-`docs/FIXTURE-SOURCES.md`).
+synthetic-fixture contract suite (`tests/jet3.rs`) and the pinned pristine
+Jet3 fixtures `fixtures/testV1997.mdb` / `fixtures/test2V1997.mdb`
+(`tests/jet3_remainders.rs`; provenance in `docs/FIXTURE-SOURCES.md`). The
+oracle comparison applies where mdb-tools is installed.
 
 - **2048-byte pages**; the header version dword is `0x00000000`.
 - **Data pages**: 10-byte header — `[0x01][0x01][free u16][tdef u32]
@@ -364,14 +365,27 @@ pinned yet; the oracle comparison applies when one is sourced (see
   unknown u16, flags u8, offset_F u16, col_len u16`), then **1-byte-length
   codepage names**. `misc` holds the code page for text columns
   (`0x4E4` = CP1252) and precision/scale otherwise.
+- **Chained TDEFs:** the page header's next-page dword links continuation
+  pages; their post-header payloads concatenate and the **first** page's
+  `tdef_len` is the total block length (continuation pages carry arbitrary
+  bytes in that field). Verified on `testV1997.mdb` (page 34 → 44, 89
+  columns) and `test2V1997.mdb` (page 29 → 56, 74 columns).
 - **Rows**: `[num_cols u8][fixed][var][eod u8][var_table u8 × n,
-  reversed][var_len u8][null mask]` — all counters/offsets are one byte.
-  The null mask is identical to Jet4 (bit k = column id k). The fixed
-  area starts at offset **1** (not 2).
-- **Jump table (unsupported)**: rows with more than 255 data bytes wrap
-  the eod and interleave a jump table of 256-boundary crossings. DataCraft
-  detects the wrapped signature (eod + tail ≠ row length) and answers a
-  precise `Unsupported` — the documented L1 remainder.
+  reversed][jump_table][var_len u8][null mask]` — all counters/offsets are
+  one byte. The null mask is identical to Jet4 (bit k = column id k). The
+  fixed area starts at offset **1** (not 2).
+- **Jump table:** rows whose data crosses 256-byte boundaries interleave a
+  jump table between the var table and `var_len`. Its entries name the
+  first variable column of each 256-byte segment (a `0xFF` entry is the
+  documented dummy); the entry count follows the row size (`row_len / 256`,
+  closure-checked). An offset reconstructs as `raw + 256 × (entries ≤
+  var_index)`; the eod uses `entries ≤ var_len`. Verified on
+  `test2V1997.mdb` page 50 (290-byte row, dummy entry, eod 255) and the
+  synthetic two-segment contract in `tests/jet3.rs` (200 + 100 bytes, eod
+  301).
+- **Overflow rows:** the `0x4000` pointer is followed with the Jet3 10-byte
+  data-page header (the catalog carries such rows); LVAL pages decode with
+  the same header.
 - **Text**: no unicode; CP1252 (writer-machine dependent) is decoded for
   names and cell text. No compressed form exists.
 - **Writer**: unchanged — the writer milestone targets Jet4/ACE only.

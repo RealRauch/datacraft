@@ -16,6 +16,7 @@ pub mod queries;
 pub mod reader;
 pub mod row;
 pub mod tdef;
+pub(crate) mod text;
 pub mod usage_map;
 pub mod writer;
 pub mod writer_rows;

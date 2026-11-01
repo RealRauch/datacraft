@@ -112,7 +112,11 @@ encryption fixtures are pinned as `fixtures/passwordV2000.mdb` (Jet4 database
 password), `fixtures/passwordV2000-none.mdb` (negative control),
 `fixtures/passwordV2010.accdb` (ACE Office encryption) and
 `fixtures/officeAgile42.accdb` (Office Agile AES) — all mdb-reader test data
-(password `"password"`, no real user content; step 16.2 / M5).
+(password `"password"`, no real user content; step 16.2 / M5). The Jet3
+remainders use `fixtures/testV1997.mdb` (chained TDEF page 34 → 44, catalog
+overflow rows) and `fixtures/test2V1997.mdb` (chained TDEF page 29 → 56 plus
+the 290-byte jump-table row on page 50) — jackcess V1997, provenance in
+`fixtures/manifest` (step 16.3 / L3).
 
 The three ACE fixtures are pinned as `fixtures/testV2007.accdb`,
 `fixtures/testV2010.accdb` and `fixtures/attachmentsV2016.accdb` (hashes and

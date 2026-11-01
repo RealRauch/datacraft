@@ -239,26 +239,26 @@ fn lval_hostile_pages_fail_precisely() {
     use datacraft_storage::jet::lval;
     let file = file_shell(3);
     // Page 1 is a zero page (type 0x00) — not a data page.
-    let err =
-        lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8).expect_err("zero page must fail");
+    let err = lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8, false)
+        .expect_err("zero page must fail");
     assert!(err.to_string().contains("not a data page"), "{err}");
 
     // Empty data page: no record 0 to resolve.
     let mut file = file_shell(2);
     support::write_data_page(&mut file, 1, 0, &[]);
-    let err = lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8)
+    let err = lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8, false)
         .expect_err("missing record must fail");
     assert!(err.to_string().contains("no usable record 0"), "{err}");
 
     // Single-LVAL record shorter than the declared memo length.
     let mut file = file_shell(2);
     support::write_data_page(&mut file, 1, 0, &[vec![0xAA, 0xBB]]);
-    let err =
-        lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8).expect_err("short record must fail");
+    let err = lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8, false)
+        .expect_err("short record must fail");
     assert!(err.to_string().contains("record holds 2 bytes"), "{err}");
 
     // Inline flag reaching the resolver (the row decoder handles inline).
-    let err = lval::resolve(&file, PAGE, 0x8000_0000u32 | 4, 1 << 8)
+    let err = lval::resolve(&file, PAGE, 0x8000_0000u32 | 4, 1 << 8, false)
         .expect_err("inline must be refused here");
     assert!(err.to_string().contains("inline"), "{err}");
 }

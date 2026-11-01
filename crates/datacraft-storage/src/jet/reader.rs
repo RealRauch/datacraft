@@ -92,6 +92,7 @@ impl Jet4TableReader {
         decoded: &DataPage,
         i: usize,
         depth: u8,
+        jet3: bool,
     ) -> Result<&'a [u8], StorageError> {
         if !decoded.is_overflow(i) {
             let (start, end) = decoded.record(i);
@@ -119,7 +120,11 @@ impl Jet4TableReader {
                 detail: format!("overflow target page {target_page} is not a data page"),
             });
         }
-        let target_decoded = DataPage::decode(target)?;
+        let target_decoded = if jet3 {
+            DataPage::decode_jet3(target)?
+        } else {
+            DataPage::decode(target)?
+        };
         if target_decoded.records.get(row).is_none() {
             return Err(StorageError::Corrupt {
                 context: "data page".into(),
@@ -129,7 +134,7 @@ impl Jet4TableReader {
                 ),
             });
         }
-        self.resolve_record(target, &target_decoded, row, depth + 1)
+        self.resolve_record(target, &target_decoded, row, depth + 1, jet3)
     }
 
     /// Reads the table rooted at `tdef_page`: schema plus all rows.
@@ -157,7 +162,7 @@ impl Jet4TableReader {
                 if decoded.records[i].2 & 0x8000 != 0 {
                     continue;
                 }
-                let record = self.resolve_record(page, &decoded, i, 0)?;
+                let record = self.resolve_record(page, &decoded, i, 0, jet3)?;
                 rows.push(if jet3 {
                     decode_row_jet3(record, &def, &self.file, self.header.page_size)?
                 } else {

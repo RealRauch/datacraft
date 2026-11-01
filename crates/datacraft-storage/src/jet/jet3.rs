@@ -10,9 +10,6 @@
 use crate::error::StorageError;
 use crate::jet::tdef::{JetTableDef, JetType};
 
-/// Byte-length limit of Jet3 1-byte row offsets below the jump table.
-pub(crate) const JET3_ROW_LIMIT: usize = 255;
-
 impl JetTableDef {
     /// Decodes a Jet3 TDEF (docs/FORMAT-JET.md "Jet 3 (Access 97)"): a
     /// 35-byte block header, 18-byte column descriptors, 1-byte-length
@@ -24,28 +21,42 @@ impl JetTableDef {
             file.get(..0x18).unwrap_or(file),
             file.len() as u64,
         )?;
-        let page = header.page_slice(file, tdef_page)?;
-        if crate::jet::page::page_type(page) != crate::jet::page::PAGE_TYPE_TDEF {
+        // Chained TDEFs concatenate their post-header payloads; the first
+        // page's `tdef_len` is the total block length (continuation pages
+        // carry arbitrary bytes in that field). Verified on the pinned
+        // fixture: page 34 announces 2815 bytes and chains to page 44.
+        let mut buffer: Vec<u8> = Vec::new();
+        let mut page_no = tdef_page;
+        let mut visited = std::collections::HashSet::new();
+        loop {
+            if !visited.insert(page_no) {
+                return Err(StorageError::Corrupt {
+                    context: "table definition".into(),
+                    detail: format!("Jet3 TDEF page chain revisits page {page_no}"),
+                });
+            }
+            let page = header.page_slice(file, page_no)?;
+            if crate::jet::page::page_type(page) != crate::jet::page::PAGE_TYPE_TDEF {
+                return Err(StorageError::Corrupt {
+                    context: "table definition".into(),
+                    detail: format!("page {page_no} in a Jet3 TDEF chain is not a TDEF page"),
+                });
+            }
+            buffer.extend_from_slice(&page[8..]);
+            let next_pg = u32::from_le_bytes([page[4], page[5], page[6], page[7]]);
+            if next_pg == 0 {
+                break;
+            }
+            page_no = next_pg;
+        }
+        let tdef_len = le::u32(&buffer, 0, "tdef_len")? as usize;
+        if tdef_len < 35 || tdef_len > buffer.len() {
             return Err(StorageError::Corrupt {
                 context: "table definition".into(),
-                detail: format!("page {tdef_page} is not a TDEF page"),
+                detail: format!("Jet3 tdef_len {tdef_len} out of bounds ({})", buffer.len()),
             });
         }
-        // Jet3 page header: type, unknown, 'VC' word, next-page dword.
-        let next_pg = u32::from_le_bytes([page[4], page[5], page[6], page[7]]);
-        if next_pg != 0 {
-            return Err(StorageError::Unsupported {
-                reason: "chained Jet3 table definitions are not supported".into(),
-            });
-        }
-        let b = &page[8..];
-        let tdef_len = le::u32(b, 0, "tdef_len")? as usize;
-        if tdef_len < 35 || tdef_len > b.len() {
-            return Err(StorageError::Corrupt {
-                context: "table definition".into(),
-                detail: format!("Jet3 tdef_len {tdef_len} out of bounds ({})", b.len()),
-            });
-        }
+        let b = &buffer[..tdef_len];
         let num_rows = le::u32(b, 4, "num_rows")?;
         let table_type = *b.get(12).ok_or_else(|| StorageError::Corrupt {
             context: "table definition".into(),
