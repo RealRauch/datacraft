@@ -91,6 +91,11 @@ pub enum Command {
         /// New cell value.
         value: QbeValue,
     },
+    /// Clears every QBE criterion cell of a query (step 11.5).
+    ClearQbeCriteria {
+        /// Target query name (case-insensitive).
+        query: String,
+    },
     /// Deletes a query (dependent tabs close first).
     DeleteQuery {
         /// Query name (case-insensitive).

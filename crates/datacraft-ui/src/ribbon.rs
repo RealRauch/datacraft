@@ -51,12 +51,23 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
             ui.vertical(|ui| {
                 ui.set_min_width(120.0);
                 ui.add_space(2.0);
+                if group.id == "design" {
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.sidecar_path)
+                            .desired_width(160.0)
+                            .hint_text("path to .datacraft"),
+                    );
+                }
                 ui.horizontal(|ui| {
                     for action in &group.actions {
                         let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
                         ui.push_id(id, |ui| match &action.state {
                             ActionState::Enabled => {
-                                if action.id == "open_database" {
+                                if action.id == "table" {
+                                    if ribbon_button(ui, action.label) {
+                                        app.create_table_flow();
+                                    }
+                                } else if action.id == "open_database" {
                                     ui.horizontal(|ui| {
                                         ui.add(
                                             egui::TextEdit::singleline(&mut app.open_path)
@@ -116,6 +127,12 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
         "close_database" => Some(Command::CloseDatabase),
         "toggle_nav_pane" => Some(Command::ToggleNavPane),
         "relationships" => Some(Command::ToggleRelationshipMapper),
+        "save_design" => Some(Command::SaveDesignDocument {
+            path: app.sidecar_path.clone().into(),
+        }),
+        "load_design" => Some(Command::LoadDesignDocument {
+            path: app.sidecar_path.clone().into(),
+        }),
         "query_sql" => Some(Command::ToggleSqlWindow),
         "query_design" => Some(Command::CreateQuery {
             name: next_query_name(app),
@@ -183,6 +200,9 @@ mod tests {
                     let mapped = command_for(action.id, &app);
                     match &action.state {
                         ActionState::Enabled if action.id != "open_database" => {
+                            if action.id == "table" {
+                                continue;
+                            }
                             assert!(
                                 mapped.is_some(),
                                 "enabled action {} has no mapping",

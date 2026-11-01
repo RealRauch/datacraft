@@ -33,6 +33,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         .and_then(|active| active_object_name(&snapshot.tabs, active));
 
     let mut intent: Option<(datacraft_core::ObjectKind, String)> = None;
+    let mut delete_intent: Option<(datacraft_core::ObjectKind, String)> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
         // Section: a collapsible group whose entries open on click. The
         // header carries the Access object-group names.
@@ -48,9 +49,18 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                             let is_active = active_object
                                 .as_deref()
                                 .is_some_and(|active| active.eq_ignore_ascii_case(&name));
-                            if ui.selectable_label(is_active, &name).clicked() {
-                                intent = Some((kind, name));
-                            }
+                            ui.horizontal(|ui| {
+                                if ui.selectable_label(is_active, &name).clicked() {
+                                    intent = Some((kind, name.clone()));
+                                }
+                                if ui
+                                    .small_button("✕")
+                                    .on_hover_text(format!("Delete {name}"))
+                                    .clicked()
+                                {
+                                    delete_intent = Some((kind, name));
+                                }
+                            });
                         });
                     }
                 });
@@ -85,7 +95,9 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 .collect(),
         );
     });
-    if let Some((kind, name)) = intent {
+    if let Some((kind, name)) = delete_intent {
+        app.delete_object(kind, &name);
+    } else if let Some((kind, name)) = intent {
         app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
             kind, name,
         )));

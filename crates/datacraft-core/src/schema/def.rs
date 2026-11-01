@@ -82,6 +82,19 @@ pub struct TableDef {
 }
 
 impl TableDef {
+    /// Access-style default for a new table (step 11.3): an `ID` long
+    /// integer plus `Field1` short text. AutoNumber is deliberately absent
+    /// until the Jet writer maintains its counter (Phase 11.10).
+    pub fn access_default(name: impl Into<String>) -> Self {
+        Self::new(
+            name,
+            vec![
+                FieldDef::new("ID", FieldKind::Number(super::NumericKind::LongInteger)),
+                FieldDef::new("Field1", FieldKind::Text { max_len: 255 }),
+            ],
+        )
+    }
+
     /// Creates a table definition.
     pub fn new(name: impl Into<String>, fields: Vec<FieldDef>) -> Self {
         Self {

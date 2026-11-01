@@ -12,6 +12,7 @@
 mod app;
 mod datasheet;
 mod design;
+mod flows;
 mod form_design;
 mod form_runtime;
 mod nav_pane;
@@ -115,6 +116,55 @@ mod tests {
             app.sql_error().unwrap_or_default().contains("only SELECT"),
             "{:?}",
             app.sql_error()
+        );
+    }
+
+    #[test]
+    fn the_new_table_flow_creates_and_opens_the_default_table() {
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(datacraft_core::command::Command::OpenDatabase {
+            path: "memory.mock".into(),
+        });
+        app.create_table_flow();
+        let snapshot = app.snapshot();
+        let tables = &snapshot.database.as_ref().expect("database").tables;
+        assert_eq!(tables[0].name, "Table1");
+        assert_eq!(tables[0].fields.len(), 2);
+        assert!(
+            snapshot
+                .tabs
+                .iter()
+                .any(|tab| tab.object_kind == "table" && tab.object_name == "Table1"),
+            "{:?}",
+            snapshot.tabs
+        );
+        assert!(app.last_error().is_none(), "{:?}", app.last_error());
+    }
+
+    #[test]
+    fn delete_flows_dispatch_and_surface_precise_errors() {
+        use datacraft_core::ObjectKind;
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(datacraft_core::command::Command::OpenDatabase {
+            path: "memory.mock".into(),
+        });
+        app.dispatch(datacraft_core::command::Command::CreateForm {
+            name: "Card".into(),
+        });
+        app.delete_object(ObjectKind::Form, "Card");
+        assert!(
+            app.snapshot()
+                .database
+                .as_ref()
+                .expect("database")
+                .forms
+                .is_empty()
+        );
+        app.delete_object(ObjectKind::Form, "Missing");
+        assert!(
+            app.last_error().unwrap_or_default().contains("not found"),
+            "{:?}",
+            app.last_error()
         );
     }
 

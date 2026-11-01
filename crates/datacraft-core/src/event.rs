@@ -58,6 +58,11 @@ pub enum Event {
         /// Visibility after the toggle.
         visible: bool,
     },
+    /// A query's criteria were cleared (step 11.5).
+    QbeCriteriaCleared {
+        /// Canonical query name.
+        query: String,
+    },
     /// A query was created.
     QueryCreated {
         /// Canonical query name.

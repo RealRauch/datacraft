@@ -39,6 +39,16 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .small(),
     );
     ui.separator();
+    let mut run = false;
+    let mut clear = false;
+    ui.horizontal(|ui| {
+        if ui.button("Run").clicked() {
+            run = true;
+        }
+        if ui.button("Clear criteria").clicked() {
+            clear = true;
+        }
+    });
 
     let mut intent: Option<(QbeRow, usize, QbeValue)> = None;
     egui::Grid::new("datacraft.qbe.grid")
@@ -125,15 +135,7 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     let response =
                         ui.add_sized([140.0, 22.0], egui::TextEdit::singleline(&mut buf));
                     if committed(&response) && buf != current {
-                        if buf.is_empty() {
-                            ui.label(
-                                egui::RichText::new("criteria cannot be cleared yet")
-                                    .small()
-                                    .weak(),
-                            );
-                        } else {
-                            intent = Some((QbeRow::Criteria(or_row), col, QbeValue::Text(buf)));
-                        }
+                        intent = Some((QbeRow::Criteria(or_row), col, QbeValue::Text(buf)));
                     }
                 }
                 ui.end_row();
@@ -141,13 +143,17 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         });
 
     ui.separator();
-    ui.label(
-        egui::RichText::new(
-            "Run the query from the navigation pane (results view) — the engine lands in step 7.3.",
-        )
-        .small(),
-    );
-
+    if clear {
+        app.dispatch(Command::ClearQbeCriteria {
+            query: query.name.clone(),
+        });
+        return;
+    }
+    if run {
+        app.dispatch(Command::RunQuery {
+            query: query.name.clone(),
+        });
+    }
     if let Some((row, col, value)) = intent {
         app.dispatch(Command::SetQbeCell {
             query: query.name.clone(),

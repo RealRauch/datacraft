@@ -84,6 +84,22 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
                         state: ActionState::Enabled,
                     }],
                 },
+                RibbonGroup {
+                    id: "design",
+                    label: "Design",
+                    actions: vec![
+                        RibbonAction {
+                            id: "save_design",
+                            label: "Save Design",
+                            state: ActionState::Enabled,
+                        },
+                        RibbonAction {
+                            id: "load_design",
+                            label: "Load Design",
+                            state: ActionState::Enabled,
+                        },
+                    ],
+                },
             ],
         },
         RibbonTab {
@@ -110,7 +126,7 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
                         RibbonAction {
                             id: "table",
                             label: "Table",
-                            state: ActionState::DisabledIn { phase: "Phase 6" },
+                            state: ActionState::Enabled,
                         },
                         RibbonAction {
                             id: "table_design",

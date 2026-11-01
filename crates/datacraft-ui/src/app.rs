@@ -55,6 +55,10 @@ pub struct App {
     sql_text: String,
     /// Reason of the last failed SQL run (the window renders it).
     sql_error: Option<String>,
+    /// Reason of the last failed command (status bar).
+    pub(crate) last_error: Option<String>,
+    /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
+    pub sidecar_path: String,
 }
 
 /// View mode of a document tab (presentation state).
@@ -90,6 +94,8 @@ impl App {
             design_selection: HashMap::new(),
             sql_text: "SELECT 1 AS one;".to_owned(),
             sql_error: None,
+            last_error: None,
+            sidecar_path: String::new(),
         }
     }
 
@@ -97,6 +103,10 @@ impl App {
     pub fn dispatch(&mut self, command: Command) -> Vec<Event> {
         let events = self.core.dispatch(command);
         self.snapshot = self.core.inspect();
+        self.last_error = events.iter().find_map(|event| match event {
+            Event::Failed { reason } => Some(reason.clone()),
+            _ => None,
+        });
         self.maintain_caches(&events);
         events
     }
@@ -411,6 +421,9 @@ impl eframe::App for App {
                     self.snapshot(),
                     active.as_ref().map(|(k, n)| (k.as_str(), n.as_str())),
                 ));
+                if let Some(reason) = self.last_error() {
+                    ui.colored_label(egui::Color32::from_rgb(0xB0, 0x2A, 0x2A), reason);
+                }
                 // Right: the record-navigation box over the active view's
                 // record domain (rows / results / form record / pages).
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

@@ -154,6 +154,7 @@ impl Core {
                 col,
                 value,
             } => self.set_qbe_cell(&query, row, col, value),
+            Command::ClearQbeCriteria { query } => self.clear_qbe_criteria(&query),
             Command::DeleteQuery { name } => self.delete_query(&name),
             Command::RunQuery { query } => self.run_query_command(&query),
             Command::CreateForm { name } => self.create_form(&name),
@@ -357,6 +358,25 @@ impl Core {
                 query: def.name.clone(),
             }],
         }
+    }
+
+    fn clear_qbe_criteria(&mut self, query: &str) -> Vec<Event> {
+        let Some(db) = self.state.database.as_mut() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .queries
+            .iter_mut()
+            .find(|q| q.name.eq_ignore_ascii_case(query))
+        else {
+            return failed(format!("query {query:?} not found"));
+        };
+        for field in &mut def.fields {
+            field.criteria.clear();
+        }
+        vec![Event::QbeCriteriaCleared {
+            query: def.name.clone(),
+        }]
     }
 
     fn delete_query(&mut self, name: &str) -> Vec<Event> {

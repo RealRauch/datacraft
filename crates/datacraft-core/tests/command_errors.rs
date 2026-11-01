@@ -130,3 +130,25 @@ fn queries_without_their_source_table_are_reported() {
     let events = core.dispatch(Command::RunQuery { query: "Q".into() });
     assert!(failure(&events).contains("source table"), "{events:?}");
 }
+
+#[test]
+fn qbe_criteria_clear_through_the_bus() {
+    let mut core = core();
+    core.dispatch(Command::CreateQuery { name: "Q".into() });
+    let events = core.dispatch(Command::ClearQbeCriteria { query: "q".into() });
+    assert_eq!(
+        events,
+        vec![Event::QbeCriteriaCleared { query: "Q".into() }]
+    );
+
+    let unknown = failure(&core.dispatch(Command::ClearQbeCriteria {
+        query: "Missing".into(),
+    }));
+    assert!(unknown.contains("not found"), "{unknown}");
+
+    let no_database = failure(
+        &Core::new(Box::new(MockPort::new()))
+            .dispatch(Command::ClearQbeCriteria { query: "Q".into() }),
+    );
+    assert!(no_database.contains("no database"), "{no_database}");
+}
