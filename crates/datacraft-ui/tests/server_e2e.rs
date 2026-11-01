@@ -272,3 +272,29 @@ fn creates_and_fills_a_sqlite_table_over_the_wire() {
     assert_eq!(rows[0][2], FieldValue::Float(2.5));
     let _ = std::fs::remove_file(&path);
 }
+
+#[test]
+fn run_sql_over_the_wire() {
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": fixture().to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"dispatch",
+                   "params":{"RunSql":{"sql":"SELECT COUNT(*) AS n FROM \"Table1\""}}}),
+            json!({"jsonrpc":"2.0","id":3,"method":"dispatch",
+                   "params":{"RunSql":{"sql":"DELETE FROM Table1"}}}),
+        ],
+    );
+    let events = &result_of(&responses[1])["events"];
+    assert_eq!(events[0]["SqlRan"]["rows"], 1, "{events}");
+    let failed = &result_of(&responses[2])["events"];
+    assert!(
+        failed[0]["Failed"]["reason"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("only SELECT"),
+        "{failed}"
+    );
+}

@@ -19,6 +19,7 @@ mod qbe;
 mod relationships;
 mod report_design;
 mod ribbon;
+mod sql_window;
 mod theme;
 mod workspace;
 
@@ -83,6 +84,38 @@ mod tests {
         assert!(app.snapshot().database.is_none());
         assert!(app.snapshot().nav_pane_visible);
         assert!(app.snapshot().tabs.is_empty());
+    }
+
+    #[test]
+    fn app_runs_sql_and_caches_the_result() {
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(datacraft_core::command::Command::OpenDatabase {
+            path: "memory.mock".into(),
+        });
+        app.set_sql_text("SELECT 1 AS one");
+        app.run_sql();
+        assert!(app.sql_error().is_none(), "{:?}", app.sql_error());
+        let result = app.sql_result().expect("result is cached");
+        assert_eq!(
+            result.rows[0][0],
+            datacraft_core::schema::FieldValue::Integer(1)
+        );
+    }
+
+    #[test]
+    fn app_caches_sql_errors_precisely() {
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(datacraft_core::command::Command::OpenDatabase {
+            path: "memory.mock".into(),
+        });
+        app.set_sql_text("DELETE FROM nothing");
+        app.run_sql();
+        assert!(app.sql_result().is_none());
+        assert!(
+            app.sql_error().unwrap_or_default().contains("only SELECT"),
+            "{:?}",
+            app.sql_error()
+        );
     }
 
     #[test]
