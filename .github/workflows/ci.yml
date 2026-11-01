@@ -109,9 +109,11 @@ jobs:
         run: |
           set -euo pipefail
           # Exclusions are the rule's own definition sites (PLAYBOOK §5, README
-          # quality-gates table, this job) — everything else is fully scanned.
+          # quality-gates table, this job) and the append-only archives, which
+          # are exempt history and must never be edited (PLAYBOOK §3/§5).
           if git grep -nIE '\b(TODO|FIXME|HACK|XXX)\b' -- \
-              . ':(exclude).github/workflows/ci.yml' ':(exclude)docs/PLAYBOOK.md' ':(exclude)README.md'; then
+              . ':(exclude).github/workflows/ci.yml' ':(exclude)docs/PLAYBOOK.md' ':(exclude)README.md' \
+              ':(exclude)docs/archive/**'; then
             echo "::error::Technical-debt markers found — rule 'no technical debt' (docs/PLAYBOOK.md §5)"
             exit 1
           fi

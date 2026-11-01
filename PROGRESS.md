@@ -18,7 +18,7 @@
 - **17.3 Statische Analyse headless (L5)**
 - **17.4 Doku-Genauigkeit: Kompatibilitätsmatrix (M6)**
 - **17.5 Phase 17 Quality Gate Review**
-### Phase 18 — UI Localization (i18n)
+### Phase 18 — UI Localization (i18n) *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
@@ -26,14 +26,14 @@
 - **18.2 All UI literals through t() (I2)**
 - **18.3 German catalog complete (I3)**
 - **18.4 Phase 18 Quality Gate Review**
-### Phase 19 — App Settings & Language Switcher
+### Phase 19 — App Settings & Language Switcher *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
 - **19.1 App settings store ui.json (I4)**
 - **19.2 Language switcher in the UI (I5)**
 - **19.3 Phase 19 Quality Gate Review**
-### Phase 20 — Look & Typography (WordCraft neutrals, Teal accent)
+### Phase 20 — Look & Typography (WordCraft neutrals, Teal accent) *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
@@ -42,7 +42,7 @@
 - **20.3 Original vector iconography (U3)**
 - **20.4 Dark mode: Appearance Light/Dark/System (U4)**
 - **20.5 Phase 20 Quality Gate Review**
-### Phase 21 — Access UI Alignment
+### Phase 21 — Access UI Alignment *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
@@ -167,8 +167,8 @@
 | 17.1 | Makro-Inventur (L4) | ✅ |
 | 17.2 | VBA-Extraction & Viewer (L5) | ✅ |
 | 17.3 | Statische Analyse headless (L5) | ✅ |
-| 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | 🔄 |
-| 17.5 | Phase 17 Quality Gate Review | ⬜ |
+| 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | ✅ |
+| 17.5 | Phase 17 Quality Gate Review | 🔄 |
 | 18.1 | i18n kernel in the UI crate (I1) | ⬜ |
 | 18.2 | All UI literals through t() (I2) | ⬜ |
 | 18.3 | German catalog complete (I3) | ⬜ |

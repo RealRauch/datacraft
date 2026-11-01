@@ -220,7 +220,7 @@ Mechanically enforced in CI on every push and pull request:
 | --- | --- |
 | Test coverage > 95 % | `cargo-llvm-cov --fail-under-lines 95` |
 | Source files < 500 lines | CI job fails on any `.rs` file ≥ 500 lines |
-| **No technical debt** | CI scan: no `TODO`/`FIXME`/`HACK`/`XXX` in tracked files |
+| **No technical debt** | CI scan: no `TODO`/`FIXME`/`HACK`/`XXX` in tracked files (append-only archives excluded) |
 | Formatting & lints | `rustfmt --check`, `clippy -D warnings` |
 | Cross-platform tests | Matrix: ubuntu-latest, windows-latest, macos-latest |
 | Format oracle | libmdb cross-check of the decoded Jet4/ACE fixture tables and rows |
