@@ -42,12 +42,6 @@
 - **Approach:** `AddField`/`DropField`/`RenameField`/`SetFieldProperties` commands through the port, rewriting the TDEF while preserving row data; the design grid becomes editable with save/cancel and dispatches exactly one command per edit; shapes the writer cannot alter answer a precise `Unsupported`.
 - **Acceptance:** Design-view edits persist across a reopen with row data preserved; oracle check on the changed file; UI edits dispatch one command each; failures leave the file and state untouched.
 
-### [ ] M10 — Native-query decode errors are dropped at open — 🟡
-- **Location:** `crates/datacraft-core/src/database.rs` (`open_database` calls `native_queries().unwrap_or_default()`), `state.rs`/`snapshot.rs`, `port_native.rs`; `crates/datacraft-ui/src/nav_pane.rs`
-- **Problem:** A database whose `MSysQueries` contains an undecoded attribute (observed: attribute code 12 on `fixtures/northwind2007.accdb`) opens successfully but silently shows **no** native queries — the precise `Unsupported` reason is discarded. This contradicts LESSONS #4 and makes the compatibility matrix's "unsupported constructs answer a precise `Unsupported`" claim misleading at open time.
-- **Approach:** store the decode result and its error in `DatabaseState`/`UiStateSnapshot` (`native_queries_error`), exactly like `macros_error`/`vba_error`; keep the open succeeding with an empty list; render the reason in the navigation pane's Queries group and expose it to inspect/MCP. Add a fixture-backed test on `northwind2007.accdb` pinning attribute 12.
-- **Acceptance:** opening the Northwind fixture yields `native_queries` empty plus a visible `native_queries_error` containing "attribute code 12"; `inspect()` carries it; a database with decodable queries has no error; canonical verification set green.
-
 ### [ ] U14 — Command history for Undo/Redo — 🟡
 - **Location:** `crates/datacraft-core/src/state.rs`, `command.rs`, dispatch modules; `crates/datacraft-ui/src/ribbon.rs` (QAT enablement)
 - **Problem:** The Quick Access Toolbar declares Undo/Redo (step 21.2, item U6) but renders them disabled: the command bus keeps no history, so there is nothing to undo.
@@ -165,3 +159,4 @@
 - T4 — CLI-Bin-E2E über echten Subprozess (assert_cmd) — done (done in `c382d2f` (RED `ec77a8d`) — real-subprocess E2E with assert_cmd/assert_fs/predicates covers open/exec/non-interactive repl, the 0/1/2 exit-code matrix and stderr precision; binary routes failures/usage to stderr; TESTING.md registry #2 re-evaluated)
 - F4 — Datasheet/design looked tables up by the wrong test id — done (fixed inline in `0e86d46` during step 23.2 — datasheet/design now resolve tables by name (case-insensitive) instead of comparing incompatible test-id schemes)
 - T5 — egui/eframe headless UI-Tests (egui_kittest, Layout-Regressionen) — done (done in `0e86d46` (RED `3831560`) — datacraft-ui is a lib + thin bin; egui_kittest 0.37 drives ribbon/nav-pane/datasheet/SQL window/backstage via AccessKit, with committed insta semantic-tree snapshots (no pixel compares); TESTING.md registry #1 and taxonomy updated)
+- M10 — Native-query decode errors are dropped at open — done (done in `3c7b1fb` (RED `5fb6f96`) — native-query decode errors are stored as `native_queries_error` in the snapshot instead of silently yielding an empty list; the Northwind attribute-12 error is pinned at the port and rendered at the Queries group)
