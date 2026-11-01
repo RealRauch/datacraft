@@ -34,6 +34,9 @@ pub struct AppState {
     /// Result of the last successful SQL run (not projected into the
     /// snapshot; the UI renders it from the core's state).
     pub sql_result: Option<crate::sql_engine::SqlResult>,
+    /// Result of the last successful expression run (step 15.2, H41; not
+    /// projected into the snapshot — agents read it via `Core`).
+    pub expression_result: Option<crate::schema::FieldValue>,
     /// Next confirmation token the journal assigns (monotonic).
     pub next_write_token: u64,
     /// Previewed write batch awaiting confirmation (step 11.11, M2).

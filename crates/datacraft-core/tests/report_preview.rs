@@ -1,9 +1,10 @@
-//! Print-preview pagination contract (step 10.5, item H31).
+//! Print-preview pagination contract (steps 10.5/15.2, items H31/H41).
 //!
 //! The preview runtime is a pure function: a report design acts as the
-//! page template, one page per source record (single-record pages —
-//! grouped/aggregate bands stay deferred to the expression service, M1).
-//! Layout math lives in core (Principle 4); the UI only paints pages.
+//! page template, one page per source record (ungrouped reports stay on
+//! single-record detail pages; grouped/aggregate bands live in
+//! `report_bands`). Layout math lives in core (Principle 4); the UI only
+//! paints pages.
 
 use std::path::PathBuf;
 
@@ -12,7 +13,7 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::port::MockPort;
 use datacraft_core::report::ReportDef;
-use datacraft_core::report_preview::paginate;
+use datacraft_core::report_preview::{Band, paginate};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
 
 fn customers() -> TableDef {
@@ -63,7 +64,7 @@ fn rows() -> Vec<Vec<FieldValue>> {
 #[test]
 fn empty_source_yields_exactly_one_template_page() {
     let report = ReportDef::new("Weekly");
-    let pages = paginate(&report, None, &[]);
+    let pages = paginate(&report, None, &[]).expect("renders");
     assert_eq!(pages.len(), 1);
     assert!(pages[0].items.is_empty());
 }
@@ -73,9 +74,10 @@ fn labels_render_literal_on_every_page() {
     let mut report = ReportDef::new("Weekly");
     report.source = "Customers".into();
     report.controls.push(label("header", "Sales Weekly"));
-    let pages = paginate(&report, Some(&customers()), &rows());
+    let pages = paginate(&report, Some(&customers()), &rows()).expect("renders");
     assert_eq!(pages.len(), 2, "one page per record");
     for page in &pages {
+        assert_eq!(page.band, Band::Detail);
         assert_eq!(page.items.len(), 1);
         assert_eq!(page.items[0].text, "Sales Weekly");
         assert_eq!(page.items[0].rect, report.controls[0].rect);
@@ -89,7 +91,7 @@ fn bound_controls_render_the_record_values() {
     report.controls.push(label("header", "Customer:"));
     report.controls.push(bound("nameBox", "Name"));
     report.controls.push(bound("activeBox", "Active"));
-    let pages = paginate(&report, Some(&customers()), &rows());
+    let pages = paginate(&report, Some(&customers()), &rows()).expect("renders");
     let texts: Vec<String> = pages[0].items.iter().map(|i| i.text.clone()).collect();
     assert_eq!(
         texts,
@@ -107,7 +109,7 @@ fn unknown_bound_fields_render_empty_not_broken() {
     let mut report = ReportDef::new("Weekly");
     report.source = "Customers".into();
     report.controls.push(bound("ghost", "Missing"));
-    let pages = paginate(&report, Some(&customers()), &rows());
+    let pages = paginate(&report, Some(&customers()), &rows()).expect("renders");
     assert_eq!(pages[0].items[0].text, "");
 }
 
@@ -116,7 +118,7 @@ fn no_source_renders_unbound_values_only() {
     let mut report = ReportDef::new("Weekly");
     report.controls.push(label("header", "Cover Page"));
     report.controls.push(bound("nameBox", "Name"));
-    let pages = paginate(&report, None, &[]);
+    let pages = paginate(&report, None, &[]).expect("renders");
     let texts: Vec<String> = pages[0].items.iter().map(|i| i.text.clone()).collect();
     assert_eq!(texts, vec!["Cover Page".to_owned(), String::new()]);
 }
@@ -180,7 +182,7 @@ fn bound_controls_render_empty_when_rows_are_narrower_than_the_schema() {
     report.source = "Customers".into();
     report.controls.push(bound("nameBox", "Name"));
     // A row shorter than the schema (schema-change prefix rows).
-    let pages = paginate(&report, Some(&customers()), &[vec![FieldValue::Null]]);
+    let pages = paginate(&report, Some(&customers()), &[vec![FieldValue::Null]]).expect("renders");
     assert_eq!(pages[0].items[0].text, "");
 }
 
@@ -212,6 +214,6 @@ fn unbound_combo_and_check_controls_render_empty() {
             },
         });
     }
-    let pages = paginate(&report, None, &[]);
+    let pages = paginate(&report, None, &[]).expect("renders");
     assert!(pages[0].items.iter().all(|i| i.text.is_empty()));
 }

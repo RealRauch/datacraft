@@ -263,6 +263,7 @@ fn properties_survive_the_document_round_trip_verbatim() {
         default_value: Some("True".into()),
         validation_rule: Some("Is Not Null".into()),
         validation_text: Some("enter a value".into()),
+        calculated: Some("[qty] * 2".into()),
         required: true,
         allow_zero_length: false,
         indexed: IndexMode::DuplicatesOk,

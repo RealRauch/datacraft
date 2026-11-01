@@ -43,6 +43,19 @@ pub enum Event {
         /// Zero-based index in the live-row order.
         row: usize,
     },
+    /// An expression was evaluated over the bus (step 15.2, H41); the
+    /// typed value is queryable via `Core::expression_result`.
+    ExpressionEvaluated {
+        /// The result rendered through the shared presentation layer.
+        result: String,
+    },
+    /// A report's grouping was set or cleared (step 15.2, H41).
+    ReportGroupingSet {
+        /// Canonical report name.
+        report: String,
+        /// The grouping field, or `None` when ungrouped.
+        group_by: Option<String>,
+    },
     /// A row was deleted (step 11.10, H40).
     RowDeleted {
         /// Canonical table name.

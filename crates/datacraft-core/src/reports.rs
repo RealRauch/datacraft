@@ -80,11 +80,10 @@ impl crate::core::Core {
         {
             return failed(format!("duplicate control name {:?}", control.name));
         }
-        if let Some(bound) = bound_field(&control) {
-            let detail = validate_binding(def, &db.tables, &bound);
-            if let Some(detail) = detail {
-                return failed(detail);
-            }
+        if let Some(bound) = bound_field(&control)
+            && let Some(detail) = validate_binding(def, &db.tables, &bound)
+        {
+            return failed(detail);
         }
         control.rect = crate::canvas::snap_rect(control.rect, def.grid);
         if control.rect.x + control.rect.width > def.page.width
@@ -218,6 +217,7 @@ impl crate::core::Core {
         };
         for control in &def.controls {
             if let Some(bound) = bound_field(control)
+                && !bound.starts_with('=')
                 && !source
                     .fields
                     .iter()
@@ -235,6 +235,52 @@ impl crate::core::Core {
             table: canonical,
         }]
     }
+
+    /// Sets or clears the report's grouping field (step 15.2, H41); the
+    /// field is whitelisted against the source table.
+    pub(crate) fn set_report_grouping(
+        &mut self,
+        report: &str,
+        group_by: Option<String>,
+    ) -> Vec<Event> {
+        let Some(db) = self.state.database.as_mut() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .reports
+            .iter_mut()
+            .find(|r| r.name.to_lowercase() == report.to_lowercase())
+        else {
+            return failed(format!("report {report:?} not found"));
+        };
+        if let Some(field) = &group_by {
+            if def.source.is_empty() {
+                return failed("set the report's source table before grouping");
+            }
+            let Some(source) = db
+                .tables
+                .iter()
+                .find(|t| t.name.to_lowercase() == def.source.to_lowercase())
+            else {
+                return failed(format!("source table {:?} not found", def.source));
+            };
+            if !source
+                .fields
+                .iter()
+                .any(|f| f.name.to_lowercase() == field.to_lowercase())
+            {
+                return failed(format!(
+                    "group field {field:?} not found in {:?}",
+                    source.name
+                ));
+            }
+        }
+        def.group_by = group_by;
+        vec![Event::ReportGroupingSet {
+            report: def.name.clone(),
+            group_by: def.group_by.clone(),
+        }]
+    }
 }
 
 /// The bound field of a control, if the kind carries one (shared with the
@@ -249,12 +295,19 @@ fn bound_field(control: &crate::form::ControlDef) -> Option<String> {
 }
 
 /// Binding whitelist: a source table must be assigned and the field must
-/// exist in it (LESSONS #5).
+/// exist in it (LESSONS #5). A bound field starting with `=` is an
+/// expression control (the Access `ControlSource` convention, step 15.2):
+/// it must parse now so a broken band fails at design time, not in print.
 fn validate_binding(
     def: &crate::report::ReportDef,
     tables: &[crate::schema::TableDef],
     bound: &str,
 ) -> Option<String> {
+    if let Some(expression) = bound.strip_prefix('=') {
+        return crate::expr::parse(expression)
+            .err()
+            .map(|e| format!("control expression {bound:?}: {e}"));
+    }
     if def.source.is_empty() {
         return Some("set the report's source table before binding fields".to_owned());
     }

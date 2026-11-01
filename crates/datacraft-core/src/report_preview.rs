@@ -1,16 +1,26 @@
-//! Print-preview pagination (step 10.5, item H31).
+//! Print-preview pagination (steps 10.5/15.2, items H31/H41).
 //!
-//! The report design acts as the page template: one preview page per
-//! source record (single-record pages; grouped/aggregate bands stay
-//! deferred to the expression service, M1). Layout math is a pure
-//! function over the design and the rows (Principle 4) — the UI only
-//! paints the returned pages. Values render through the shared
-//! presentation layer, so preview text matches the datasheet.
+//! The report design acts as the page template. Since the expression
+//! service, pagination lives in [`crate::report_bands`]: pages carry a
+//! band kind (`Detail`, or the `GroupHeader`/`GroupFooter` bands of a
+//! grouped report) and `=expression` controls evaluate per record or per
+//! group. Values render through the shared presentation layer, so
+//! preview text matches the datasheet.
 
 use crate::canvas::Rect;
-use crate::form::ControlKind;
 use crate::report::ReportDef;
 use crate::schema::{FieldValue, TableDef};
+
+/// Which band a preview page renders.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Band {
+    /// One record's values (also the only band of ungrouped reports).
+    Detail,
+    /// The group's key value, rendered once per group.
+    GroupHeader,
+    /// The group's aggregate expressions, rendered once per group.
+    GroupFooter,
+}
 
 /// One positioned render item in page coordinates.
 #[derive(Debug, Clone, PartialEq)]
@@ -21,78 +31,52 @@ pub struct PreviewItem {
     pub rect: Rect,
 }
 
-/// One preview page (the design template with one record's values).
+/// One preview page: the design template filled with one band's values.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreviewPage {
+    /// The band this page renders.
+    pub band: Band,
     /// Render items in control (paint) order.
     pub items: Vec<PreviewItem>,
 }
 
-/// Paginates a report design over source rows: `max(records, 1)` pages.
-/// Bound controls render the record's field through [`crate::present::display_value`]
-/// (unknown fields render empty); unbound controls render literally.
+/// Paginates a report design over source rows — grouped reports render
+/// header/footer bands, ungrouped ones stay single-record pages.
 pub fn paginate(
     report: &ReportDef,
     source: Option<&TableDef>,
     rows: &[Vec<FieldValue>],
-) -> Vec<PreviewPage> {
-    let page_count = rows.len().max(1);
-    let index_of = |field: &str| {
-        source.and_then(|table| {
-            table
-                .fields
-                .iter()
-                .position(|f| f.name.to_lowercase() == field.to_lowercase())
-        })
+) -> Result<Vec<PreviewPage>, String> {
+    crate::report_bands::paginate(report, source, rows)
+}
+
+/// Renders a bound field against one row (unknown fields and `Null`
+/// render empty); the expression path lives in `report_bands`.
+pub(crate) fn bound_text(
+    source: Option<&TableDef>,
+    row: Option<&Vec<FieldValue>>,
+    field: &str,
+) -> String {
+    let (Some(source), Some(row)) = (source, row) else {
+        return String::new();
     };
-    (0..page_count)
-        .map(|page| PreviewPage {
-            items: report
-                .controls
-                .iter()
-                .map(|control| {
-                    let text = match (&control.kind, rows.first().map(Vec::len)) {
-                        (ControlKind::Label { text }, _) => text.clone(),
-                        (ControlKind::Button { caption }, _) => caption.clone(),
-                        (
-                            ControlKind::TextBox {
-                                bound_field: Some(field),
-                            },
-                            Some(width),
-                        )
-                        | (
-                            ControlKind::CheckBox {
-                                bound_field: Some(field),
-                            },
-                            Some(width),
-                        )
-                        | (
-                            ControlKind::ComboBox {
-                                bound_field: Some(field),
-                            },
-                            Some(width),
-                        ) => match index_of(field) {
-                            Some(col) if col < width => match &rows[page][col] {
-                                FieldValue::Null => String::new(),
-                                value => crate::present::display_value(value),
-                            },
-                            _ => String::new(),
-                        },
-                        _ => String::new(),
-                    };
-                    PreviewItem {
-                        text,
-                        rect: control.rect,
-                    }
-                })
-                .collect(),
-        })
-        .collect()
+    let Some(column) = source
+        .fields
+        .iter()
+        .position(|candidate| candidate.name.eq_ignore_ascii_case(field))
+    else {
+        return String::new();
+    };
+    match row.get(column) {
+        Some(FieldValue::Null) | None => String::new(),
+        Some(value) => crate::present::display_value(value),
+    }
 }
 
 impl crate::core::Core {
     /// Builds the print preview of one report: resolves the whitelisted
-    /// source, reads its rows through the port and paginates.
+    /// source, reads its rows through the port and paginates. Failures
+    /// are precise (unknown group/aggregate fields, broken expressions).
     pub fn report_preview(&self, report: &str) -> Result<Vec<PreviewPage>, String> {
         let db = self.state.database.as_ref().ok_or("no database is open")?;
         let def = db
@@ -117,6 +101,6 @@ impl crate::core::Core {
                 .map_err(|e| e.to_string())?,
             None => Vec::new(),
         };
-        Ok(paginate(def, source, &rows))
+        paginate(def, source, &rows)
     }
 }

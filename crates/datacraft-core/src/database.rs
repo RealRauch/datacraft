@@ -8,7 +8,7 @@ use crate::core::failed;
 use crate::event::Event;
 use crate::ids::TabId;
 use crate::port::PortError;
-use crate::schema::{FieldKind, FieldValue, TableDef};
+use crate::schema::{FieldValue, TableDef};
 use crate::state::DatabaseState;
 
 impl crate::core::Core {
@@ -23,6 +23,7 @@ impl crate::core::Core {
                 let format = opened.format;
                 let relationships = self.port.relationships().unwrap_or_default();
                 self.state.sql_result = None;
+                self.state.expression_result = None;
                 self.state.database = Some(DatabaseState {
                     path,
                     name: name.clone(),
@@ -53,6 +54,7 @@ impl crate::core::Core {
         self.state.relationship_mapper_open = false;
         self.state.sql_window_open = false;
         self.state.sql_result = None;
+        self.state.expression_result = None;
         self.port.close();
         events.push(Event::DatabaseClosed);
         events
@@ -82,8 +84,9 @@ impl crate::core::Core {
         }
     }
 
-    /// Appends one row (step 13.2, H36): schema validation first, then the
-    /// port write, then the event — a rejected row never reaches storage.
+    /// Appends one row (step 13.2, H36; step 15.2 wires defaults,
+    /// calculated fields and rules): row preparation first, then the port
+    /// write, then the event — a rejected row never reaches storage.
     pub(crate) fn insert_row(
         &mut self,
         table: &str,
@@ -99,26 +102,12 @@ impl crate::core::Core {
         else {
             return failed(PortError::TableNotFound(table.to_owned()).to_string());
         };
-        if values.len() != def.fields.len() {
-            return failed(format!(
-                "insert into {:?}: expected {} values, found {}",
-                def.name,
-                def.fields.len(),
-                values.len()
-            ));
-        }
-        for (field, value) in def.fields.iter().zip(values) {
-            // Null on an AutoNumber means "engine-assigned" (the Access
-            // convention); any other value is rejected by the schema.
-            if matches!(field.kind, FieldKind::AutoNumber(_)) && matches!(value, FieldValue::Null) {
-                continue;
-            }
-            if let Err(e) = field.validate_value(value) {
-                return failed(format!("field {:?}: {e}", field.name));
-            }
-        }
         let canonical = def.name.clone();
-        match self.port.insert_row(&canonical, values) {
+        let prepared = match crate::field_expressions::prepare_insert(def, values) {
+            Ok(prepared) => prepared,
+            Err(reason) => return failed(reason),
+        };
+        match self.port.insert_row(&canonical, &prepared) {
             Err(e) => failed(e.to_string()),
             Ok(()) => vec![Event::RowInserted { table: canonical }],
         }
@@ -161,24 +150,11 @@ impl crate::core::Core {
             Ok(_) => return failed(format!("row {row} of {canonical:?} is out of range")),
             Err(e) => return failed(e.to_string()),
         };
-        let mut final_values = values.to_vec();
-        for (index, field) in fields.iter().enumerate() {
-            if matches!(field.kind, FieldKind::AutoNumber(_)) {
-                if matches!(final_values[index], FieldValue::Null) {
-                    final_values[index] = current[index].clone();
-                } else if final_values[index] != current[index] {
-                    return failed(format!(
-                        "field {:?}: AutoNumber values are engine-assigned and cannot be changed",
-                        field.name
-                    ));
-                }
-                continue;
-            }
-            if let Err(e) = field.validate_value(&final_values[index]) {
-                return failed(format!("field {:?}: {e}", field.name));
-            }
-        }
-        match self.port.update_row(&canonical, row, &final_values) {
+        let prepared = match crate::field_expressions::prepare_update(def, &current, values) {
+            Ok(prepared) => prepared,
+            Err(reason) => return failed(reason),
+        };
+        match self.port.update_row(&canonical, row, &prepared) {
             Err(e) => failed(e.to_string()),
             Ok(()) => vec![Event::RowUpdated {
                 table: canonical,

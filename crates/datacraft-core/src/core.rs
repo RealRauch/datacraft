@@ -158,6 +158,10 @@ impl Core {
                 }]
             }
             Command::RunSql { sql } => self.run_sql_command(&sql),
+            Command::RunExpression {
+                context,
+                expression,
+            } => self.run_expression_command(context, &expression),
             Command::CreateQuery { name } => self.create_query(&name),
             Command::SetQbeCell {
                 query,
@@ -194,6 +198,9 @@ impl Core {
             }
             Command::AddReportField { report, field } => self.add_report_field(&report, &field),
             Command::SetReportSource { report, table } => self.set_report_source(&report, &table),
+            Command::SetReportGrouping { report, group_by } => {
+                self.set_report_grouping(&report, group_by)
+            }
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
             Command::OpenDatabase { path } => self.open_database(path),

@@ -61,6 +61,10 @@ pub struct ReportDef {
     /// by `Command::SetReportSource`).
     #[serde(default)]
     pub source: String,
+    /// Grouping field (step 15.2, H41): rows with equal values form a
+    /// group whose header and aggregate footer render as bands.
+    #[serde(default)]
+    pub group_by: Option<String>,
     /// Snap grid in points (Access-like default: 8).
     pub grid: f32,
     /// Print geometry (default A4 portrait, half-inch margins).
@@ -76,6 +80,7 @@ impl ReportDef {
         Self {
             name: name.into(),
             source: String::new(),
+            group_by: None,
             grid: 8.0,
             page: PageSetup::default(),
             controls: Vec::new(),

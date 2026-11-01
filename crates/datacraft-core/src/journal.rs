@@ -127,42 +127,47 @@ fn is_fixed_width(kind: &FieldKind) -> bool {
     )
 }
 
-/// Simulates the batch over `rows` and returns the diff. Read-only; the
-/// caller applies it only after confirmation.
+/// Simulates the batch over `rows` and returns the **prepared** operations
+/// (defaults filled, calculated computed, rules enforced) plus the diff.
+/// Read-only; the caller applies only after confirmation — the prepared
+/// batch is the contract, so apply writes exactly what the preview showed.
 pub fn preview(
     table: &TableDef,
     rows: &[Vec<FieldValue>],
     ops: &[WriteOp],
-) -> Result<Vec<RowChange>, String> {
+) -> Result<(Vec<WriteOp>, Vec<RowChange>), String> {
     write_profile(table)?;
     let mut state = rows.to_vec();
+    let mut prepared = Vec::with_capacity(ops.len());
     let mut changes = Vec::with_capacity(ops.len());
     for op in ops {
         match op {
             WriteOp::Insert { values } => {
-                let values = validated_insert(table, values)?;
+                let values = crate::field_expressions::prepare_insert(table, values)?;
                 let row = state.len();
                 state.push(values.clone());
                 changes.push(RowChange {
                     kind: ChangeKind::Insert,
                     row: Some(row),
                     before: None,
-                    after: Some(values),
+                    after: Some(values.clone()),
                 });
+                prepared.push(WriteOp::Insert { values });
             }
             WriteOp::Update { row, values } => {
                 let Some(current) = state.get(*row) else {
                     return Err(out_of_range(table, *row, state.len()));
                 };
-                let values = validated_update(table, current, values)?;
+                let values = crate::field_expressions::prepare_update(table, current, values)?;
                 let before = state[*row].clone();
                 state[*row] = values.clone();
                 changes.push(RowChange {
                     kind: ChangeKind::Update,
                     row: Some(*row),
                     before: Some(before),
-                    after: Some(values),
+                    after: Some(values.clone()),
                 });
+                prepared.push(WriteOp::Update { row: *row, values });
             }
             WriteOp::Delete { row } => {
                 if *row >= state.len() {
@@ -175,10 +180,11 @@ pub fn preview(
                     before: Some(before),
                     after: None,
                 });
+                prepared.push(op.clone());
             }
         }
     }
-    Ok(changes)
+    Ok((prepared, changes))
 }
 
 /// The inverse operations of a previewed diff, in reverse application
@@ -230,59 +236,6 @@ fn out_of_range(table: &TableDef, row: usize, count: usize) -> String {
     )
 }
 
-fn validated_insert(table: &TableDef, values: &[FieldValue]) -> Result<Vec<FieldValue>, String> {
-    if values.len() != table.fields.len() {
-        return Err(format!(
-            "insert into {:?}: expected {} values, found {}",
-            table.name,
-            table.fields.len(),
-            values.len()
-        ));
-    }
-    for (field, value) in table.fields.iter().zip(values) {
-        if matches!(field.kind, FieldKind::AutoNumber(_)) && matches!(value, FieldValue::Null) {
-            continue;
-        }
-        field
-            .validate_value(value)
-            .map_err(|e| format!("field {:?}: {e}", field.name))?;
-    }
-    Ok(values.to_vec())
-}
-
-fn validated_update(
-    table: &TableDef,
-    current: &[FieldValue],
-    values: &[FieldValue],
-) -> Result<Vec<FieldValue>, String> {
-    if values.len() != table.fields.len() {
-        return Err(format!(
-            "update {:?}: expected {} values, found {}",
-            table.name,
-            table.fields.len(),
-            values.len()
-        ));
-    }
-    let mut out = values.to_vec();
-    for (index, field) in table.fields.iter().enumerate() {
-        if matches!(field.kind, FieldKind::AutoNumber(_)) {
-            if matches!(out[index], FieldValue::Null) {
-                out[index] = current[index].clone();
-            } else if out[index] != current[index] {
-                return Err(format!(
-                    "field {:?}: AutoNumber values are engine-assigned and cannot be changed",
-                    field.name
-                ));
-            }
-            continue;
-        }
-        field
-            .validate_value(&out[index])
-            .map_err(|e| format!("field {:?}: {e}", field.name))?;
-    }
-    Ok(out)
-}
-
 impl crate::core::Core {
     /// Previews a write batch and stores it as the pending journal.
     pub(crate) fn preview_write(&mut self, table: &str, ops: Vec<WriteOp>) -> Vec<Event> {
@@ -307,8 +260,8 @@ impl crate::core::Core {
             Ok(rows) => rows,
             Err(e) => return failed(e.to_string()),
         };
-        let changes = match preview(&def, &rows, &ops) {
-            Ok(changes) => changes,
+        let (prepared, changes) = match preview(&def, &rows, &ops) {
+            Ok(result) => result,
             Err(reason) => return failed(reason),
         };
         let token = self.state.next_write_token;
@@ -316,7 +269,7 @@ impl crate::core::Core {
         self.state.pending_write = Some(PendingWrite {
             table: def.name.clone(),
             token,
-            ops,
+            ops: prepared,
             changes: changes.clone(),
         });
         vec![Event::WritePreviewed {
@@ -363,7 +316,7 @@ impl crate::core::Core {
             Err(e) => return failed(e.to_string()),
         };
         let fresh = match preview(&def, &rows, &pending.ops) {
-            Ok(changes) => changes,
+            Ok((_, changes)) => changes,
             Err(reason) => return failed(format!("the table changed since the preview: {reason}")),
         };
         if fresh != pending.changes {

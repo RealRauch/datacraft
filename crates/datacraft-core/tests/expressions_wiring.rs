@@ -11,33 +11,30 @@ use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::port::{MockPort, RowRange};
 use datacraft_core::report_preview::Band;
-use datacraft_core::schema::{FieldDef, FieldKind, FieldProperties, FieldValue, NumericKind, TableDef};
+use datacraft_core::schema::{
+    FieldDef, FieldKind, FieldProperties, FieldValue, NumericKind, TableDef,
+};
 
 fn products() -> TableDef {
     TableDef::new(
         "Products",
         vec![
-            FieldDef::new("id", FieldKind::AutoNumber(datacraft_core::schema::AutoKind::LongInteger)),
+            FieldDef::new(
+                "id",
+                FieldKind::AutoNumber(datacraft_core::schema::AutoKind::LongInteger),
+            ),
             FieldDef::new("name", FieldKind::Text { max_len: 255 }),
             FieldDef::new("qty", FieldKind::Number(NumericKind::LongInteger)),
-            field_with(
-                "price",
-                FieldKind::Currency,
-                |p| {
-                    p.validation_rule = Some("[price] > 0".into());
-                    p.validation_text = Some("price must be positive".into());
-                },
-            ),
-            field_with(
-                "total",
-                FieldKind::Currency,
-                |p| p.calculated = Some("[qty] * [price]".into()),
-            ),
-            field_with(
-                "discount",
-                FieldKind::Number(NumericKind::Double),
-                |p| p.default_value = Some("0.1".into()),
-            ),
+            field_with("price", FieldKind::Currency, |p| {
+                p.validation_rule = Some("[price] > 0".into());
+                p.validation_text = Some("price must be positive".into());
+            }),
+            field_with("total", FieldKind::Currency, |p| {
+                p.calculated = Some("[qty] * [price]".into())
+            }),
+            field_with("discount", FieldKind::Number(NumericKind::Double), |p| {
+                p.default_value = Some("0.1".into())
+            }),
         ],
     )
 }
@@ -60,8 +57,8 @@ fn seeded() -> Vec<Vec<FieldValue>> {
 }
 
 fn core_with(table: TableDef, rows: Vec<Vec<FieldValue>>) -> Core {
-    let mut port = MockPort::with_tables(vec![table]);
-    port.with_row_data(table.name.as_str(), rows);
+    let mut port = MockPort::with_tables(vec![table.clone()]);
+    port.with_row_data(&table.name, rows);
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
@@ -111,7 +108,10 @@ fn defaults_fill_null_cells_on_insert() {
         table: "Products".into(),
         values: explicit,
     });
-    assert_eq!(rows(&core).pop().expect("row appended")[5], FieldValue::Float(0.5));
+    assert_eq!(
+        rows(&core).pop().expect("row appended")[5],
+        FieldValue::Float(0.5)
+    );
 }
 
 #[test]
@@ -125,7 +125,10 @@ fn broken_defaults_fail_the_insert_precisely() {
     }));
     assert!(reason.contains("discount"), "{reason}");
     assert!(reason.contains("default"), "{reason}");
-    assert!(rows(&core).is_empty(), "a rejected row never reaches storage");
+    assert!(
+        rows(&core).is_empty(),
+        "a rejected row never reaches storage"
+    );
 }
 
 #[test]
@@ -148,9 +151,10 @@ fn validation_rules_reject_false_and_null_results() {
     }));
     assert!(reason.contains("price must be positive"), "{reason}");
 
-    // Updates run the rule too.
+    // Updates run the rule too (calculated cells stay engine-computed).
     let mut update = seeded()[0].clone();
     update[3] = FieldValue::Currency(-5);
+    update[4] = FieldValue::Null;
     let reason = failure(&core.dispatch(Command::UpdateRow {
         table: "Products".into(),
         row: 0,
@@ -223,7 +227,7 @@ fn run_expression_evaluates_over_the_bus() {
     });
     assert!(matches!(
         events.last(),
-        Some(Event::ExpressionEvaluated { result }) if result == "20"
+        Some(Event::ExpressionEvaluated { result }) if result == "2"
     ));
 
     for (expression, needle) in [("Ghost", "Ghost"), ("1 +", "parse error")] {
@@ -241,7 +245,9 @@ fn run_expression_evaluates_over_the_bus() {
 
 fn report_with_bands(core: &mut Core) {
     for command in [
-        Command::CreateReport { name: "Invoice".into() },
+        Command::CreateReport {
+            name: "Invoice".into(),
+        },
         Command::SetReportSource {
             report: "Invoice".into(),
             table: "Products".into(),
@@ -279,14 +285,16 @@ fn report_with_bands(core: &mut Core) {
     ] {
         let events = core.dispatch(command);
         assert!(
-            !events.iter().any(|event| matches!(event, Event::Failed { .. })),
+            !events
+                .iter()
+                .any(|event| matches!(event, Event::Failed { .. })),
             "report setup must succeed"
         );
     }
 }
 
 fn banded_rows() -> Vec<Vec<FieldValue>> {
-    let mut row = |id: i64, name: &str, qty: i64, price: i64| {
+    let row = |id: i64, name: &str, qty: i64, price: i64| {
         vec![
             FieldValue::Integer(id),
             FieldValue::Text(name.into()),
@@ -296,7 +304,11 @@ fn banded_rows() -> Vec<Vec<FieldValue>> {
             FieldValue::Null,
         ]
     };
-    vec![row(1, "A", 2, 10_000), row(2, "A", 1, 20_000), row(3, "B", 4, 5_000)]
+    vec![
+        row(1, "A", 2, 10_000),
+        row(2, "A", 1, 20_000),
+        row(3, "B", 4, 5_000),
+    ]
 }
 
 #[test]
@@ -315,7 +327,12 @@ fn report_bands_group_and_aggregate() {
     let pages = core.report_preview("Invoice").expect("preview renders");
     let bands: Vec<(Band, Vec<&str>)> = pages
         .iter()
-        .map(|page| (page.band, page.items.iter().map(|item| item.text.as_str()).collect()))
+        .map(|page| {
+            (
+                page.band,
+                page.items.iter().map(|item| item.text.as_str()).collect(),
+            )
+        })
         .collect();
     assert_eq!(
         bands,
@@ -342,13 +359,18 @@ fn ungrouped_previews_stay_single_record_pages() {
     let pages = core.report_preview("Invoice").expect("preview renders");
     assert!(pages.iter().all(|page| page.band == Band::Detail));
     assert_eq!(pages.len(), 3);
-    assert_eq!(pages[0].items[1].text, "1", "aggregates see the record's row");
+    assert_eq!(
+        pages[0].items[1].text, "1",
+        "aggregates see the record's row"
+    );
 }
 
 #[test]
 fn grouping_whitelists_against_the_source() {
     let mut core = core_with(products(), seeded());
-    core.dispatch(Command::CreateReport { name: "Invoice".into() });
+    core.dispatch(Command::CreateReport {
+        name: "Invoice".into(),
+    });
     core.dispatch(Command::SetReportSource {
         report: "Invoice".into(),
         table: "Products".into(),

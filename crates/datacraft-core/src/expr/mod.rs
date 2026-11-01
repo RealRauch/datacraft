@@ -223,6 +223,18 @@ pub fn parse(source: &str) -> Result<Expression, ExprError> {
     parser::parse(source)
 }
 
+/// Family-safe ordering of two values — the report bands' `Min`/`Max`
+/// reuse the evaluator's comparison rules (step 15.2).
+pub fn field_ord(a: &FieldValue, b: &FieldValue) -> Result<std::cmp::Ordering, ExprError> {
+    coerce::ord_cmp(a, b)
+}
+
+/// Float view of a value for aggregation (numeric text coerces; dates
+/// count as their OLE days).
+pub fn numeric_view(value: &FieldValue) -> Result<f64, ExprError> {
+    Ok(f64::from(coerce::to_number(value)?))
+}
+
 impl Expression {
     /// Evaluates against a field scope; failures are precise runtime
     /// errors (unknown field or function, type mismatch, division by

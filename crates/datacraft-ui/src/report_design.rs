@@ -182,6 +182,11 @@ pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let page_count = pages.len();
     let current = app.preview_page(tab.id).min(page_count - 1);
     let items = pages[current].items.clone();
+    let band = match pages[current].band {
+        datacraft_core::report_preview::Band::Detail => "detail",
+        datacraft_core::report_preview::Band::GroupHeader => "group header",
+        datacraft_core::report_preview::Band::GroupFooter => "group footer",
+    };
 
     ui.horizontal(|ui| {
         if ui.small_button("\u{25c0}").clicked() && current > 0 {
@@ -191,10 +196,11 @@ pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             "Page {} of {page_count}",
             current + 1
         )));
+        ui.weak(format!("({band} band)"));
         if ui.small_button("\u{25b6}").clicked() && current + 1 < page_count {
             app.set_preview_page(tab.id, current + 1);
         }
-        ui.weak("(print preview \u{2014} one page per record)");
+        ui.weak("(print preview)");
     });
     ui.separator();
 

@@ -16,6 +16,15 @@ use crate::ids::TabId;
 use crate::qbe::{QbeRow, QbeValue};
 use crate::schema::TableDef;
 
+/// Row context of `Command::RunExpression` (step 15.2, H41).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExpressionContext {
+    /// Source table name (case-insensitive).
+    pub table: String,
+    /// Zero-based index in the table's live-row order.
+    pub row: usize,
+}
+
 /// One user-visible action.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Command {
@@ -114,6 +123,15 @@ pub enum Command {
     RunSql {
         /// The statement; anything but one SELECT/WITH is rejected.
         sql: String,
+    },
+    /// Evaluates one expression (step 15.2, H41) — over the bus, the MCP
+    /// endpoint and the CLI alike. With a row context the expression sees
+    /// the table's fields; without one it evaluates over an empty scope.
+    RunExpression {
+        /// Optional row context (table + zero-based live-row index).
+        context: Option<ExpressionContext>,
+        /// The expression source.
+        expression: String,
     },
     /// Creates an empty query (name unique, case-insensitive).
     CreateQuery {
@@ -246,6 +264,14 @@ pub enum Command {
         report: String,
         /// Source table name.
         table: String,
+    },
+    /// Sets or clears a report's grouping field (step 15.2, H41): the
+    /// field must exist in the source; `None` clears the grouping.
+    SetReportGrouping {
+        /// Target report name (case-insensitive).
+        report: String,
+        /// The grouping field, or `None` to ungroup.
+        group_by: Option<String>,
     },
     /// Writes the design layer (forms + queries + reports) to a
     /// `.datacraft` sidecar file (ADR-1).
