@@ -418,4 +418,66 @@ mod tests {
         crate::i18n::set_lang(crate::i18n::Lang::English);
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn switching_the_language_applies_live_and_persists_the_choice() {
+        use crate::settings::LanguageSetting;
+
+        let _guard = crate::i18n::LANG_LOCK.lock().expect("language lock");
+        let dir = std::env::temp_dir().join(format!(
+            "datacraft-language-switch-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = dir.join("ui.json");
+
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.set_settings_path(Some(path.clone()));
+        app.set_language_setting(LanguageSetting::German);
+        assert_eq!(app.language_setting(), LanguageSetting::German);
+        assert_eq!(crate::i18n::t("File"), "Datei");
+        assert!(app.last_error().is_none(), "{:?}", app.last_error());
+
+        // The next start reads the same choice (acceptance: restart).
+        let loaded = crate::settings::Settings::load(&path);
+        let mut restarted = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        restarted.apply_settings(loaded);
+        assert_eq!(restarted.language_setting(), LanguageSetting::German);
+        assert_eq!(crate::i18n::t("File"), "Datei");
+
+        restarted.set_language_setting(LanguageSetting::English);
+        assert_eq!(crate::i18n::t("File"), "File");
+        crate::i18n::set_lang(crate::i18n::Lang::English);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_failed_settings_write_surfaces_a_precise_reason() {
+        use crate::settings::LanguageSetting;
+
+        let _guard = crate::i18n::LANG_LOCK.lock().expect("language lock");
+        crate::i18n::set_lang(crate::i18n::Lang::English);
+        let dir = std::env::temp_dir().join(format!(
+            "datacraft-settings-fail-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir");
+
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        // A directory path cannot be written as a file.
+        app.set_settings_path(Some(dir.clone()));
+        app.set_language_setting(LanguageSetting::German);
+        assert!(
+            app.last_error()
+                .unwrap_or_default()
+                .contains("could not be saved"),
+            "{:?}",
+            app.last_error()
+        );
+
+        crate::i18n::set_lang(crate::i18n::Lang::English);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

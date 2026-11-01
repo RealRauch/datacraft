@@ -320,6 +320,19 @@ mod tests {
     }
 
     #[test]
+    fn language_labels_switch_with_the_current_language() {
+        use crate::i18n::{LANG_LOCK, Lang, set_lang};
+
+        let _guard = LANG_LOCK.lock().expect("language lock");
+        set_lang(Lang::German);
+        assert_eq!(LanguageSetting::Auto.label(), "Automatisch");
+        assert_eq!(LanguageSetting::German.label(), "Deutsch");
+        assert_eq!(LanguageSetting::English.label(), "English");
+        set_lang(Lang::English);
+        assert_eq!(LanguageSetting::Auto.label(), "Auto");
+    }
+
+    #[test]
     fn saving_writes_only_the_settings_file() {
         let dir = temp_dir("only-ui-json");
         let path = dir.join("nested").join("ui.json");
