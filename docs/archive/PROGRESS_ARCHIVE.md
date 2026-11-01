@@ -224,3 +224,16 @@
 - **16.3 Jet3-Reste: Jump-Table & TDEF-Ketten (L3)**
 - **16.4 Phase 16 Quality Gate Review**
 **Verification:** Quality gate passed: fmt 0, clippy -D warnings 0, workspace tests green, file-size 0 violations, fixture manifest 13/13 OK, docs_validate clean, no debt markers. Coverage 92.81% local (baseline 4425bc2 measured 92.81% on this machine — the 95% gate is CI-enforced; no regression). M4/M5/L3 archived with their commits; CI oracle auto-includes complexDataV2007/testV1997/test2V1997.
+
+---
+
+### Phase 17 — Makros, VBA & Doku-Genauigkeit
+
+**Scope (Steps):**
+
+- **17.1 Makro-Inventur (L4)**
+- **17.2 VBA-Extraction & Viewer (L5)**
+- **17.3 Statische Analyse headless (L5)**
+- **17.4 Doku-Genauigkeit: Kompatibilitätsmatrix (M6)**
+- **17.5 Phase 17 Quality Gate Review**
+**Verification:** Gate review passed: fmt, clippy -D warnings, cargo test --workspace, file-size <500, fixture manifest hashes, docs_validate (4 accepted PLAN_WITHOUT_WIP for planned phases), no debt markers. Coverage: Windows line coverage 93.45% vs 92.81% Phase-16 baseline on the same host; new modules 95-100%; Linux CI remains the binding >=95% gate (TESTING §2 platform note). Archive debt-scan exclusion fixed in 581b28d. Phase commits: cf63492/0bc2176/8da3acb (17.1), d155410/ccf2107 (17.2), f56ca82/63ec95c (17.3), 19854e6/d532c45 (17.4), 5e1bd88/581b28d (gate). (checkpoint: 581b28d)

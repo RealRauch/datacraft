@@ -9,15 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 17 — Makros, VBA & Doku-Genauigkeit
-
-**Scope (Steps):**
-
-- **17.1 Makro-Inventur (L4)**
-- **17.2 VBA-Extraction & Viewer (L5)**
-- **17.3 Statische Analyse headless (L5)**
-- **17.4 Doku-Genauigkeit: Kompatibilitätsmatrix (M6)**
-- **17.5 Phase 17 Quality Gate Review**
 ### Phase 18 — UI Localization (i18n) *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -168,7 +159,7 @@
 | 17.2 | VBA-Extraction & Viewer (L5) | ✅ |
 | 17.3 | Statische Analyse headless (L5) | ✅ |
 | 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | ✅ |
-| 17.5 | Phase 17 Quality Gate Review | 🔄 |
+| 17.5 | Phase 17 Quality Gate Review | ✅ |
 | 18.1 | i18n kernel in the UI crate (I1) | ⬜ |
 | 18.2 | All UI literals through t() (I2) | ⬜ |
 | 18.3 | German catalog complete (I3) | ⬜ |
