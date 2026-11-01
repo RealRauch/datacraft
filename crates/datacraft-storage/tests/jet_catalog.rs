@@ -31,6 +31,8 @@ fn user_table() -> JetTableDef {
             JetColumn::new("Key", JetType::LongInt, 0x01, 0, 0, 4),
             JetColumn::new("Title", JetType::Text, 0x02, 1, 0, 255),
         ],
+        used_pages: 0,
+        free_pages: 0,
     }
 }
 

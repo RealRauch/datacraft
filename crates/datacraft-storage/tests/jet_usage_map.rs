@@ -35,9 +35,11 @@ fn map_ref_packs_page_and_row_into_the_tdef_u32() {
 
 #[test]
 fn map_ref_rejects_indirection_maps_precisely() {
-    // Type 1 (indirection through 0x05 pages) is not part of the writer
-    // milestone; the fixture uses type 0 exclusively.
-    let err = MapRef::split_tdef_u32(0x0000_0601 & 0xFFFF_FF00 | 0x01).unwrap_err();
+    // The map type byte is the u32's highest byte (verified: 0x00000612 =
+    // type 0, pointer 0x612 = page 6 row 18). Type 1 (indirection through
+    // 0x05 pages) is not part of the writer milestone; the fixture uses
+    // type 0 exclusively.
+    let err = MapRef::split_tdef_u32(0x0100_0600).unwrap_err();
     assert!(matches!(err, StorageError::Unsupported { .. }), "{err}");
 }
 
@@ -46,7 +48,7 @@ fn usage_map_decodes_rows_and_reports_ownership() {
     // tdef 16 of the fixture: start 0, bitmap byte 2 = 0xb8 -> pages 19, 20,
     // 21, 23 (and byte 12 = 0x80 -> 743 in the full row).
     let mut bitmap = vec![0u8; 96];
-    bitmap[2] = 0b0001_1100;
+    bitmap[2] = 0b1011_1000; // pages 19, 20, 21, 23
     bitmap[92] = 0b1000_0000;
     let map = UsageMap::decode_row(&map_row(0, &bitmap)).expect("decodes");
     assert!(map.owns(19));
@@ -72,7 +74,7 @@ fn usage_map_row_round_trips_byte_identically() {
 fn usage_map_set_and_clear_flip_single_bits() {
     let mut map = UsageMap::decode_row(&map_row(0, &[0u8; 8])).expect("decodes");
     map.set(9).expect("in window");
-    assert_eq!(map.bitmap, [0b0000_0010, 0u8; 7]);
+    assert_eq!(map.bitmap, [0, 0b0000_0010, 0, 0, 0, 0, 0, 0]);
     assert!(map.owns(9));
     map.clear(9).expect("in window");
     assert!(!map.owns(9));

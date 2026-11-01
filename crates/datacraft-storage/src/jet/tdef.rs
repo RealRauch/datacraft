@@ -170,6 +170,11 @@ pub struct JetTableDef {
     pub num_rows: u32,
     /// Column descriptors in storage order.
     pub columns: Vec<JetColumn>,
+    /// Raw `used_pages` dword: usage-map type byte plus the row pointer of
+    /// the table's page-ownership map (writer, step 10.1).
+    pub used_pages: u32,
+    /// Raw `free_pages` dword (same packing, map of pages with free space).
+    pub free_pages: u32,
 }
 
 impl JetTableDef {
@@ -279,8 +284,8 @@ impl JetTableDef {
         let num_cols = le::u16(b, 37, "num_cols")? as usize;
         let num_idx = le::u32(b, 39, "num_idx")? as usize;
         let num_real_idx = le::u32(b, 43, "num_real_idx")? as usize;
-        let _used_pages = le::u32(b, 47, "used_pages")?;
-        let _free_pages = le::u32(b, 51, "free_pages")?;
+        let used_pages = le::u32(b, 47, "used_pages")?;
+        let free_pages = le::u32(b, 51, "free_pages")?;
         let mut at = 55 + num_real_idx * 12;
         let mut columns = Vec::with_capacity(num_cols);
         for _ in 0..num_cols {
@@ -365,6 +370,8 @@ impl JetTableDef {
             table_type,
             num_rows,
             columns,
+            used_pages,
+            free_pages,
         })
     }
 }

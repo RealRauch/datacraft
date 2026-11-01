@@ -32,7 +32,7 @@ fn shell_with_maps(spare: u32) -> Vec<u8> {
     // points at page 3, row 0.
     support::write_tdef(&mut file, 2, 0, 0x4E, &[]);
     let u32_at = 8 + 47; // TDEF block offset 47 -> page byte offset
-    file[2 * PAGE + u32_at..2 * PAGE + u32_at + 4].copy_from_slice(&((3u32 << 8) | 0).to_le_bytes());
+    file[2 * PAGE + u32_at..2 * PAGE + u32_at + 4].copy_from_slice(&(3u32 << 8).to_le_bytes());
     // Page 3: the table's usage page holding its (empty) used map.
     let row = UsageMap {
         start_page: 0,
@@ -67,7 +67,10 @@ fn writer_rejects_jet3_with_the_documented_error() {
     let mut file = file_shell(1);
     file[0x14..0x18].copy_from_slice(&0u32.to_le_bytes()); // Jet3 version
     let err = Jet4Writer::new(file).unwrap_err();
-    assert!(matches!(err, datacraft_storage::StorageError::Unsupported { .. }), "{err}");
+    assert!(
+        matches!(err, datacraft_storage::StorageError::Unsupported { .. }),
+        "{err}"
+    );
 }
 
 #[test]

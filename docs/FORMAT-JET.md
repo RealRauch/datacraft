@@ -203,3 +203,44 @@ Evidence (hex study on both fixture variants, hashes per
   errors. (Found via the Access-rewritten fixture variant — Table2.)
 - **Writes are `Unsupported`** through the port adapter until the writer
   workstream (BACKLOG H9) lands; the adapter is read-only by design.
+
+## Usage maps (writer — verified 2026-11-01, step 10.1)
+
+Black-box verified against the Access-written fixture by decoding the TDEF
+`used_pages`/`free_pages` dwords of every table and cross-checking the bits
+against the data-page scan (`owner == tdef`): **zero contradictions on all
+13 real tables** (jet_usage_map.rs `fixture_usage_maps_agree_with_the_page_scan`).
+
+- The TDEF dwords pack **`[map type in the HIGH byte][u24 LE record pointer
+  = (page << 8) | row]`** — e.g. MSysObjects: `used = 0x00000600` (page 6,
+  row 0), `free = 0x00000601` (page 6, row 1). HACKING's byte-wise reading
+  ("byte 0 = map type") describes Jet3 byte order; in Jet4 files the type
+  sits in the highest byte of the dword.
+- **All maps in the file are type `0x00`**: the map lives as a **row in a
+  data page** — there is not a single type-`0x05` usage page in the file
+  (HACKING's "indirection to 0x05 pages" describes the type-1 form, which
+  Access did not use here; DataCraft answers a precise `Unsupported`).
+- A type-0 map row is **`[0x00][start_page u32][bitmap]`**, LSB first, bit
+  set = page **allocated to the table**. Rows grow with the table's window:
+  observed 64- and 96-byte bitmaps (512/768-page windows) and a non-zero
+  `start_page` (752, for a table whose pages began beyond the first window).
+- The **global map is page 1, row 0** with the opposite polarity: bit set =
+  page **free or absent**; Access pre-marks headroom beyond EOF (fixture:
+  bits 765–767 of a 765-page file in a 96-byte/768-page window). When a new
+  page is appended its bit is cleared there.
+- Usage-map rows live in data pages **owned by page `0`** (page 1 itself is
+  owned by the phony TDEF `1`). The `free_space` field of usage pages
+  follows the data-page formula `lowest_row_start − (14 + 2·row_count)` —
+  verified exactly on pages 1, 6, 17, 25.
+- Rewriting a grown map row in place keeps every `(page, row)` reference
+  valid: rows keep their slot indices; only offsets and `free_space` change.
+- **Freed TDEF pages** are re-filled with the pattern `ff 00 ff ff …` and
+  keep their page-type byte `0x02` (fixture pages 322, 707, 708 — same
+  signature; 708 additionally serves as page 30's chain tail). A real TDEF
+  block is recognized by its fixed header: `table_type` ∈ {`0x4E`, `0x53`}
+  at block offset 32, `num_cols ≤ max_cols`, `tdef_len ≥ 55`. The writer
+  gates allocation on this plausibility check.
+- Writer allocation policy (step 10.1): **append-only** at EOF — interior
+  free-page reclaim is not needed for the write milestone (the fixture
+  carries 27 zeroed pages that the global map marks allocated; they are
+  preserved untouched).

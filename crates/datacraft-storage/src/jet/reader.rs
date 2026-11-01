@@ -47,6 +47,12 @@ impl Jet4TableReader {
         &self.header
     }
 
+    /// Consumes the reader and returns the raw file bytes (writer handoff,
+    /// step 10.1).
+    pub fn into_raw_file(self) -> Vec<u8> {
+        self.file
+    }
+
     /// Resolves a record slot, following overflow pointers (bounded depth).
     fn resolve_record<'a>(
         &'a self,
