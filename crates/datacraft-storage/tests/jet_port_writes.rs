@@ -146,12 +146,12 @@ fn create_table_rejects_forms_the_writer_cannot_encode() {
         "Auto",
         vec![FieldDef::new(
             "id",
-            FieldKind::AutoNumber(AutoKind::LongInteger),
+            FieldKind::AutoNumber(AutoKind::ReplicationId),
         )],
     );
     let err = port
         .create_table(&auto)
-        .expect_err("AutoNumber assignment is not supported yet");
+        .expect_err("GUID AutoNumbers stay unsupported");
     assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
 
     let attachment = TableDef::new(

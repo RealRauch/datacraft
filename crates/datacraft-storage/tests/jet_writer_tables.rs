@@ -16,6 +16,7 @@ fn row_encoder_round_trips_every_type() {
     let mut def = JetTableDef {
         table_type: 0x4E,
         num_rows: 0,
+        autonumber: 0,
         used_pages: 0,
         free_pages: 0,
         columns: vec![
@@ -58,6 +59,7 @@ fn row_encoder_handles_nulls_and_empty_slots() {
     let mut def = JetTableDef {
         table_type: 0x4E,
         num_rows: 0,
+        autonumber: 0,
         used_pages: 0,
         free_pages: 0,
         columns: vec![

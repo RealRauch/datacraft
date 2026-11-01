@@ -307,9 +307,14 @@ column mapping (with its lossiness) is documented in `src/port_write.rs`:
 - text `max_len` becomes a byte budget of `2 * max_len` (UTF-16, variable
   slot); memo/OLE use the inline long-value form; numeric widths, decimal
   scale (17-byte `Numeric`), date, currency, GUID and boolean map 1:1.
-- **`Unsupported` today:** inserting into `AutoNumber` columns (the writer
-  does not maintain the counter yet, M8), complex-value columns (attachments,
-  multi-value, version history — read-only since M4) and `drop_table` (M7).
+- **AutoNumber (LongInteger):** the TDEF head `+12` holds the table's next
+  value; the column carries the `0x04` AUTONUMBER flag and is written as a
+  fixed 4-byte `LongInt`. `Null` on insert means engine-assigned: the writer
+  fills the counter value and advances `+12` (persisted across reopen); a
+  user-supplied value is rejected. GUID AutoNumbers (`ReplicationId`) stay a
+  precise `Unsupported` (step 24.1, M8).
+- **`Unsupported` today:** complex-value columns (attachments, multi-value,
+  version history — read-only since M4) and `drop_table` (M7).
 - `update_row`/`delete_row` address rows by their zero-based live-row
   index — the same order `read_rows` returns (next section).
 

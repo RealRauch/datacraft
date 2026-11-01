@@ -117,6 +117,9 @@ impl JetTableDef {
         Ok(Self {
             table_type,
             num_rows,
+            // Jet3 has no write path; the AutoNumber counter is Jet4-only
+            // (step 24.1, M8).
+            autonumber: 0,
             columns,
             used_pages,
             free_pages,

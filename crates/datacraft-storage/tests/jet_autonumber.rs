@@ -11,8 +11,8 @@ use datacraft_core::port::{PortError, RowRange, StoragePort};
 use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_storage::port_adapter::Jet4Port;
 use datacraft_storage::{
-    jet::{Jet4TableReader, Jet4Writer, JetColumn, JetTableDef, JetType},
     StorageValue,
+    jet::{Jet4TableReader, Jet4Writer, JetColumn, JetTableDef, JetType},
 };
 
 fn fixture() -> PathBuf {
@@ -37,10 +37,7 @@ fn autonumber_table() -> TableDef {
     TableDef::new(
         "AutoId",
         vec![
-            FieldDef::new(
-                "id",
-                FieldKind::AutoNumber(AutoKind::LongInteger),
-            ),
+            FieldDef::new("id", FieldKind::AutoNumber(AutoKind::LongInteger)),
             FieldDef::new("note", FieldKind::Text { max_len: 20 }),
         ],
     )
@@ -91,10 +88,7 @@ fn the_port_assigns_values_that_survive_a_reopen() {
     for note in ["one", "two"] {
         port.insert_row(
             "AutoId",
-            &[
-                FieldValue::Null,
-                FieldValue::Text(note.to_owned()),
-            ],
+            &[FieldValue::Null, FieldValue::Text(note.to_owned())],
         )
         .expect("insert with engine-assigned id");
     }
@@ -147,10 +141,7 @@ fn user_supplied_autonumber_values_stay_rejected() {
             ],
         )
         .expect_err("user-supplied ids are rejected");
-    assert!(
-        error.to_string().contains("AutoNumber"),
-        "{error}"
-    );
+    assert!(error.to_string().contains("AutoNumber"), "{error}");
     port.close();
     let _ = std::fs::remove_file(&path);
 }
@@ -164,10 +155,7 @@ fn guid_autonumbers_stay_a_precise_unsupported() {
         "Guids",
         vec![
             FieldDef::new("id", FieldKind::AutoNumber(AutoKind::ReplicationId)),
-            FieldDef::new(
-                "value",
-                FieldKind::Number(NumericKind::LongInteger),
-            ),
+            FieldDef::new("value", FieldKind::Number(NumericKind::LongInteger)),
         ],
     );
     let error = port
@@ -175,5 +163,53 @@ fn guid_autonumbers_stay_a_precise_unsupported() {
         .expect_err("ReplicationId stays unsupported");
     assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
     port.close();
+    let _ = std::fs::remove_file(&path);
+}
+
+/// Oracle gate (CI linux): mdb-export must see the assigned values.
+#[test]
+fn mdb_export_sees_the_assigned_values() {
+    if std::env::var_os("DATACRAFT_ORACLE_MDB").is_none() {
+        eprintln!("skipped: DATACRAFT_ORACLE_MDB not set");
+        return;
+    }
+    if std::process::Command::new("mdb-export")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("skipped: mdb-export not installed");
+        return;
+    }
+    let path = fixture_copy("export");
+    let file = std::fs::read(&path).expect("copy readable");
+    let mut writer = Jet4Writer::new(file).expect("writer opens");
+    let tdef = writer
+        .create_table(
+            "AutoExport",
+            &[
+                JetColumn::new("id", JetType::LongInt, 0x05, 0, 0, 4),
+                JetColumn::new("note", JetType::Text, 0x02, 1, 0, 40),
+            ],
+        )
+        .expect("table created");
+    for note in ["first", "second"] {
+        writer
+            .insert_row(
+                tdef,
+                &[StorageValue::Null, StorageValue::Text(note.to_owned())],
+            )
+            .expect("row inserted");
+    }
+    std::fs::write(&path, writer.into_file()).expect("write the copy");
+    let output = std::process::Command::new("mdb-export")
+        .arg(&path)
+        .arg("AutoExport")
+        .output()
+        .expect("mdb-export runs");
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("1,first"), "{stdout}");
+    assert!(stdout.contains("2,second"), "{stdout}");
     let _ = std::fs::remove_file(&path);
 }

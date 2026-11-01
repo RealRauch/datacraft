@@ -27,6 +27,7 @@ fn user_table() -> JetTableDef {
     JetTableDef {
         table_type: 0x4E,
         num_rows: 1,
+        autonumber: 0,
         columns: vec![
             JetColumn::new("Key", JetType::LongInt, 0x01, 0, 0, 4),
             JetColumn::new("Title", JetType::Text, 0x02, 1, 0, 255),

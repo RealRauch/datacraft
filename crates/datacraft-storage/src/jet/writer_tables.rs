@@ -114,7 +114,20 @@ impl Jet4Writer {
         values: &[StorageValue],
     ) -> Result<(), StorageError> {
         let def = JetTableDef::decode(&self.file, tdef_page)?;
-        let row = encode_row(values, &def)?;
+        // Engine-assigned AutoNumber values (step 24.1, item M8): Null on an
+        // AUTONUMBER column takes the table's next counter value.
+        let mut values = values.to_vec();
+        let mut assigned = false;
+        for (column, value) in def.columns.iter().zip(values.iter_mut()) {
+            if column.flags & crate::jet::tdef::flags::AUTONUMBER == 0 {
+                continue;
+            }
+            if matches!(value, StorageValue::Null) {
+                *value = StorageValue::Int(i64::from(def.autonumber.max(1)));
+                assigned = true;
+            }
+        }
+        let row = encode_row(&values, &def)?;
         let (_, free) = self.table_free_map(tdef_page)?;
         let target = free
             .marked_pages()
@@ -122,6 +135,9 @@ impl Jet4Writer {
             .map_or_else(|| self.allocate_data_page(tdef_page), Ok)?;
         self.append_row_to_page(target, &row)?;
         self.bump_num_rows(tdef_page)?;
+        if assigned {
+            self.bump_autonumber(tdef_page)?;
+        }
         self.update_free_bit(tdef_page, target)?;
         Ok(())
     }
@@ -179,6 +195,23 @@ impl Jet4Writer {
     /// `num_rows += 1` in the TDEF block head (in place, same size).
     fn bump_num_rows(&mut self, tdef_page: u32) -> Result<(), StorageError> {
         self.adjust_num_rows(tdef_page, 1)
+    }
+
+    /// Advances the table's next AutoNumber value (`+12` in the TDEF head)
+    /// after an engine-assigned insert (step 24.1, item M8).
+    fn bump_autonumber(&mut self, tdef_page: u32) -> Result<(), StorageError> {
+        let base = self.header.page_offset(tdef_page)? as usize;
+        let at = base + 8 + 12;
+        let current = u32::from_le_bytes([
+            self.file[at],
+            self.file[at + 1],
+            self.file[at + 2],
+            self.file[at + 3],
+        ])
+        .max(1);
+        let next = current.saturating_add(1);
+        self.file[at..at + 4].copy_from_slice(&next.to_le_bytes());
+        Ok(())
     }
 
     /// Applies a signed delta to `num_rows` in the TDEF block head

@@ -15,7 +15,8 @@
 //! | `Boolean` | `Bool` (mask bit, no storage) | none |
 //! | `Binary(OleObject)` | variable `Ole` | none (inline long-value form) |
 //! | `Guid` | fixed `Guid` (16 bytes) | none |
-//! | `AutoNumber(_)` | — | **`Unsupported`**: the writer does not maintain the AutoNumber counter yet |
+//! | `AutoNumber(LongInteger)` | fixed `LongInt` with the AUTONUMBER flag; Null = engine-assigned | none (the writer maintains the TDEF counter) |
+//! | `AutoNumber(ReplicationId)` | — | **`Unsupported`**: GUID AutoNumbers stay unsupported (M8 remainder) |
 //! | `Binary(Attachment)` / `MultiValue(_)` / `Complex` | — | **`Unsupported`**: complex-value columns are read-only (M4) |
 
 use datacraft_core::port::PortError;
@@ -41,6 +42,12 @@ pub(crate) fn table_to_columns(definition: &TableDef) -> Result<Vec<JetColumn>, 
         }
         if !field.properties.required {
             column_flags |= flags::NULLABLE;
+        }
+        if matches!(field.kind, FieldKind::AutoNumber(_)) {
+            // Engine-assigned: the flag drives the read mapping; the column
+            // is never nullable (step 24.1, item M8).
+            column_flags |= flags::AUTONUMBER;
+            column_flags &= !flags::NULLABLE;
         }
         let mut column = JetColumn::new(
             &field.name,
@@ -85,10 +92,11 @@ fn column_shape(kind: &FieldKind) -> Result<(JetType, u16, bool, u8), PortError>
             });
         }
         FieldKind::Guid => (JetType::Guid, 16, true, 0),
-        FieldKind::AutoNumber(AutoKind::LongInteger | AutoKind::ReplicationId) => {
+        FieldKind::AutoNumber(AutoKind::LongInteger) => (JetType::LongInt, 4, true, 0),
+        FieldKind::AutoNumber(AutoKind::ReplicationId) => {
             return Err(PortError::Unsupported {
-                reason: "AutoNumber assignment is not supported yet — the writer does not \
-                         maintain the AutoNumber counter"
+                reason: "GUID AutoNumbers (ReplicationId) are not writable — only the \
+                         LongInteger flavor is maintained"
                     .to_owned(),
             });
         }
@@ -112,10 +120,15 @@ pub(crate) fn to_storage_values(
     let mut out = Vec::with_capacity(values.len());
     for (field, value) in fields.iter().zip(values) {
         if matches!(field.kind, FieldKind::AutoNumber(_)) {
-            return Err(PortError::Unsupported {
-                reason: format!(
-                    "AutoNumber field {:?} is engine-assigned and the writer does not \
-                     maintain the counter yet",
+            if matches!(value, FieldValue::Null) {
+                // Engine-assigned: the writer fills the table's next counter
+                // value (step 24.1, item M8).
+                out.push(StorageValue::Null);
+                continue;
+            }
+            return Err(PortError::WriteFailed {
+                detail: format!(
+                    "field {:?}: AutoNumber values are engine-assigned — leave the value Null",
                     field.name
                 ),
             });

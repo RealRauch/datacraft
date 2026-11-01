@@ -112,7 +112,6 @@ fn required_fields_are_not_nullable_and_ids_follow_the_order() {
 #[test]
 fn unsupported_kinds_are_precise() {
     for kind in [
-        FieldKind::AutoNumber(AutoKind::LongInteger),
         FieldKind::AutoNumber(AutoKind::ReplicationId),
         FieldKind::Binary(BinaryKind::Attachment),
         FieldKind::MultiValue(MultiValueKind::Text { max_len: 10 }),
@@ -125,6 +124,20 @@ fn unsupported_kinds_are_precise() {
             "{kind:?}: {err:?}"
         );
     }
+
+    // The LongInteger AutoNumber flavor is writable: AUTONUMBER flag, fixed
+    // LongInt, never nullable (step 24.1, M8).
+    let columns = table_to_columns(&TableDef::new(
+        "T",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::AutoNumber(AutoKind::LongInteger),
+        )],
+    ))
+    .expect("LongInteger AutoNumber maps");
+    assert_eq!(columns[0].data_type, JetType::LongInt);
+    assert_ne!(columns[0].flags & flags::AUTONUMBER, 0);
+    assert_eq!(columns[0].flags & flags::NULLABLE, 0);
 
     let invalid = TableDef::new("", vec![FieldDef::new("f", FieldKind::Memo)]);
     let err = table_to_columns(&invalid).expect_err("invalid definitions fail");
@@ -189,12 +202,17 @@ fn complex_values_are_rejected_before_storage() {
 }
 
 #[test]
-fn autonumber_values_are_rejected_before_storage() {
+fn autonumber_values_are_engine_assigned_before_storage() {
     let fields = vec![FieldDef::new(
         "id",
         FieldKind::AutoNumber(AutoKind::LongInteger),
     )];
-    let err =
-        to_storage_values(&fields, &[FieldValue::Null]).expect_err("AutoNumber is engine-assigned");
-    assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
+    // Null is the engine-assigned marker; the writer fills the counter.
+    let stored = to_storage_values(&fields, &[FieldValue::Null]).expect("Null is engine-assigned");
+    assert_eq!(stored, [StorageValue::Null]);
+    // User-supplied values are rejected precisely.
+    let err = to_storage_values(&fields, &[FieldValue::Integer(7)])
+        .expect_err("user-supplied AutoNumber values are rejected");
+    assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
+    assert!(err.to_string().contains("engine-assigned"), "{err}");
 }

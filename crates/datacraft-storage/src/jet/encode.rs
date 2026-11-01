@@ -245,6 +245,14 @@ pub fn build_table_def(
     JetTableDef {
         table_type,
         num_rows,
+        autonumber: if derived
+            .iter()
+            .any(|column| column.flags & crate::jet::tdef::flags::AUTONUMBER != 0)
+        {
+            1
+        } else {
+            0
+        },
         columns: derived,
         used_pages,
         free_pages,
@@ -262,7 +270,7 @@ pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
     block.extend_from_slice(&0u32.to_le_bytes()); // tdef_len, patched below
     block.extend_from_slice(&0u32.to_le_bytes()); // unknown
     block.extend_from_slice(&def.num_rows.to_le_bytes());
-    block.extend_from_slice(&0u32.to_le_bytes()); // autonumber
+    block.extend_from_slice(&def.autonumber.to_le_bytes());
     block.push(0x01);
     block.extend_from_slice(&[0u8; 3]);
     block.extend_from_slice(&0u32.to_le_bytes()); // complex autonumber

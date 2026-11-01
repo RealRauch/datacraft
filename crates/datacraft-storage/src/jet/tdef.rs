@@ -184,6 +184,9 @@ pub struct JetTableDef {
     pub table_type: u8,
     /// Total row count of the table.
     pub num_rows: u32,
+    /// Next AutoNumber value (`+12` in the TDEF head); 0 when the table has
+    /// no AutoNumber column (step 24.1, item M8).
+    pub autonumber: u32,
     /// Column descriptors in storage order.
     pub columns: Vec<JetColumn>,
     /// Raw `used_pages` dword: usage-map type byte plus the row pointer of
@@ -292,7 +295,7 @@ impl JetTableDef {
 
         let _unknown0 = le::u32(b, 4, "unknown")?;
         let num_rows = le::u32(b, 8, "num_rows")?;
-        let _autonumber = le::u32(b, 12, "autonumber")?;
+        let autonumber = le::u32(b, 12, "autonumber")?;
         // +16: autonum flag (0x01) + 3 unknown, +20: complex autonumber,
         // +24: 8 unknown, +32: table type.
         let table_type = *b.get(32).ok_or_else(|| StorageError::Corrupt {
@@ -389,6 +392,7 @@ impl JetTableDef {
         Ok(Self {
             table_type,
             num_rows,
+            autonumber,
             columns,
             used_pages,
             free_pages,
