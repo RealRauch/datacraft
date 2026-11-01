@@ -221,4 +221,38 @@ mod tests {
         set_lang(Lang::English);
         assert_eq!(t("File"), "File");
     }
+
+    /// ADR-4: the wire contract never sees the UI language — the same
+    /// session renders the same `inspect()` JSON in English and German.
+    #[test]
+    fn the_wire_snapshot_is_byte_identical_in_every_ui_language() {
+        use datacraft_core::ObjectId;
+        use datacraft_core::ObjectKind;
+        use datacraft_core::command::Command;
+        use datacraft_core::port::MockPort;
+
+        let _guard = LANG_LOCK.lock().expect("language lock");
+        let run = || {
+            let mut app = crate::app::App::new(Box::new(MockPort::new()));
+            app.dispatch(Command::OpenDatabase {
+                path: "shop.mdb".into(),
+                password: None,
+            });
+            app.dispatch(Command::CreateForm {
+                name: "Card".into(),
+            });
+            app.dispatch(Command::OpenObject(ObjectId::new(
+                ObjectKind::Form,
+                "Card",
+            )));
+            app.snapshot().to_json()
+        };
+
+        set_lang(Lang::English);
+        let english = run();
+        set_lang(Lang::German);
+        let german = run();
+        set_lang(Lang::English);
+        assert_eq!(english, german);
+    }
 }
