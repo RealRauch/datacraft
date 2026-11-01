@@ -53,6 +53,32 @@ pub struct DatabaseSnapshot {
     pub macros: Vec<MacroEntrySnapshot>,
     /// Why the macro inventory could not be decoded, if it failed.
     pub macros_error: Option<String>,
+    /// Extracted VBA project summary (step 17.2, L5); `None` when the
+    /// database has no decoded project.
+    pub vba: Option<VbaProjectSnapshot>,
+    /// Why the VBA extraction failed, if it did.
+    pub vba_error: Option<String>,
+}
+
+/// Snapshot of the extracted VBA project (module tree only — source is
+/// fetched per module through `LoadVbaModule`, never mirrored here).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VbaProjectSnapshot {
+    /// Modules in `dir`-stream order.
+    pub modules: Vec<VbaModuleSnapshot>,
+}
+
+/// One VBA module in the snapshot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VbaModuleSnapshot {
+    /// Module name as shown in the navigation pane and viewer.
+    pub name: String,
+    /// `navpane.<expanded|collapsed>.node.module.<name>`.
+    pub ui_test_id: String,
+    /// Module kind.
+    pub kind: crate::vba::VbaModuleKind,
+    /// Source line count (the viewer's summary).
+    pub lines: usize,
 }
 
 /// One macro in the snapshot (navigation pane entry and viewer input).
@@ -143,6 +169,22 @@ impl UiStateSnapshot {
                     })
                     .collect(),
                 macros_error: db.macros_error.clone(),
+                vba: db.vba_project.as_ref().map(|project| VbaProjectSnapshot {
+                    modules: project
+                        .modules
+                        .iter()
+                        .map(|module| VbaModuleSnapshot {
+                            name: module.name.clone(),
+                            ui_test_id: state.nav_pane_test_id(&crate::ObjectId::new(
+                                crate::ObjectKind::Module,
+                                &module.name,
+                            )),
+                            kind: module.kind,
+                            lines: module.lines(),
+                        })
+                        .collect(),
+                }),
+                vba_error: db.vba_error.clone(),
                 queries: db
                     .queries
                     .iter()

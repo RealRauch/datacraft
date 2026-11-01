@@ -69,7 +69,10 @@ fn modules_open_read_only_tabs_and_load_their_source_over_the_bus() {
         ObjectKind::Module,
         "Utilities",
     )));
-    let [Event::TabOpened { object, .. }, Event::ActiveTabChanged { .. }] = events.as_slice()
+    let [
+        Event::TabOpened { object, .. },
+        Event::ActiveTabChanged { .. },
+    ] = events.as_slice()
     else {
         panic!("expected tab open pair, got {events:?}");
     };
@@ -123,9 +126,10 @@ fn a_failed_extraction_stays_visible_and_does_not_block_opening() {
     let snapshot = core.inspect();
     let database = snapshot.database.expect("database is open");
     assert!(database.vba.is_none());
-    assert_eq!(
-        database.vba_error.as_deref(),
-        Some("VBA dir stream is corrupt")
+    let vba_error = database.vba_error.as_deref().expect("error is visible");
+    assert!(
+        vba_error.contains("VBA dir stream is corrupt"),
+        "{vba_error}"
     );
     let events = core.dispatch(Command::LoadVbaModule {
         module: "Utilities".to_owned(),

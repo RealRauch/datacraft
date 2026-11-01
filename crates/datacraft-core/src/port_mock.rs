@@ -16,6 +16,8 @@ pub struct MockPort {
     rows: HashMap<String, Vec<Vec<FieldValue>>>,
     relationships: Vec<Relationship>,
     macros: Vec<crate::macro_def::MacroDef>,
+    vba: Option<crate::vba::VbaProject>,
+    vba_error: Option<String>,
     opened: Option<OpenedDatabase>,
     open_fail: Option<String>,
     write_fail: Option<String>,
@@ -61,6 +63,19 @@ impl MockPort {
     /// Builder: attaches the named-macro inventory (step 17.1, L4).
     pub fn with_macros(&mut self, macros: Vec<crate::macro_def::MacroDef>) -> &mut Self {
         self.macros = macros;
+        self
+    }
+
+    /// Builder: attaches an extracted VBA project (step 17.2, L5).
+    pub fn with_vba(&mut self, project: crate::vba::VbaProject) -> &mut Self {
+        self.vba = Some(project);
+        self
+    }
+
+    /// Builder: makes the VBA extraction fail with `reason` (observable
+    /// degradation; the database still opens).
+    pub fn with_vba_error(&mut self, reason: impl Into<String>) -> &mut Self {
+        self.vba_error = Some(reason.into());
         self
     }
 
@@ -308,6 +323,15 @@ impl StoragePort for MockPort {
 
     fn macros(&self) -> Result<Vec<crate::macro_def::MacroDef>, PortError> {
         Ok(self.macros.clone())
+    }
+
+    fn vba_project(&self) -> Result<Option<crate::vba::VbaProject>, PortError> {
+        if let Some(reason) = &self.vba_error {
+            return Err(PortError::Unsupported {
+                reason: reason.clone(),
+            });
+        }
+        Ok(self.vba.clone())
     }
 }
 

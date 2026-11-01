@@ -28,6 +28,10 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         && db.reports.is_empty()
         && db.queries.is_empty()
         && db.macros.is_empty()
+        && db
+            .vba
+            .as_ref()
+            .is_none_or(|project| project.modules.is_empty())
     {
         ui.label("No objects");
         return;
@@ -106,6 +110,19 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 .map(|m| (m.name.clone(), datacraft_core::ObjectKind::Macro))
                 .collect(),
         );
+        section(
+            "Modules",
+            db.vba
+                .as_ref()
+                .map(|project| {
+                    project
+                        .modules
+                        .iter()
+                        .map(|m| (m.name.clone(), datacraft_core::ObjectKind::Module))
+                        .collect()
+                })
+                .unwrap_or_default(),
+        );
     });
     if let Some((kind, name)) = delete_intent {
         app.delete_object(kind, &name);
@@ -125,7 +142,11 @@ fn active_object_name(
         .map(|tab| tab.object_name.clone())
 }
 
-/// Macros are a read-only inventory (step 17.1): no delete affordance.
+/// Macros and modules are a read-only inventory (steps 17.1/17.2): no
+/// delete affordance.
 fn deletable(kind: datacraft_core::ObjectKind) -> bool {
-    !matches!(kind, datacraft_core::ObjectKind::Macro)
+    !matches!(
+        kind,
+        datacraft_core::ObjectKind::Macro | datacraft_core::ObjectKind::Module
+    )
 }

@@ -281,6 +281,12 @@ pub trait StoragePort {
     fn macros(&self) -> Result<Vec<crate::macro_def::MacroDef>, PortError> {
         Ok(Vec::new())
     }
+    /// Extracted VBA project of the open database (step 17.2, L5).
+    /// Backends without a decoded project return `None`; extraction errors
+    /// are reported so the core can surface them without blocking the open.
+    fn vba_project(&self) -> Result<Option<crate::vba::VbaProject>, PortError> {
+        Ok(None)
+    }
 }
 
 /// One row operation of a batch write (the journal's port vocabulary).

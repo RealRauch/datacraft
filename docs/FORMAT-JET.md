@@ -663,3 +663,45 @@ including `Not [CurrentProject].[IsTrusted]` and the two form names) and
 `Delete * from …` statements). Jet 3 keeps macro definitions inside
 `MSysAccessObjects`; that compound-file chunking is not decoded yet, so
 Jet 3 names are reported with `definition_decoded = false`.
+
+## VBA project extraction (step 17.2, item L5)
+
+The ACE VBA project lives under `MSysAccessStorage`:
+`VBA/VBAProject/VBA` (storages) holds `dir`, `_VBA_PROJECT`, `PROJECT`,
+`PROJECTwm` and one stream per module. The `dir` stream names the modules,
+so the stream names (random-looking identifiers) are resolved through it.
+
+**Compression ([MS-OVBA] §2.4.1).** `dir` and the source part of each
+module stream are `CompressedContainer`s: signature `0x01`, then chunks
+whose 2-byte header carries the chunk size minus three (bits 0–11), the
+`0b011` signature (bits 12–14) and the compressed flag (bit 15). A
+compressed chunk is a sequence of flag bytes (least-significant bit =
+first token) followed by up to eight tokens; a set bit is a copy token.
+The copy offset/length bit split is dynamic:
+`BitCount = max(ceil(log2(position_in_chunk)), 4)`,
+`Length = (token & (0xFFFF >> BitCount)) + 3`,
+`Offset = ((token & !(0xFFFF >> BitCount)) >> (16 - BitCount)) + 1`;
+copies may overlap (run-length). Raw chunks copy their bytes verbatim.
+
+**`dir` stream ([MS-OVBA] §2.3.4.2).** Decompressed, it is a flat
+`id (2) size (4) payload` record sequence. `PROJECTVERSION` (`0x0009`) is
+the exception: a fixed 12-byte record without a size field. Used records:
+`0x0003` code page (1252/1200/65001 decoded), `0x000F` modules start,
+`0x0019` module name, `0x001A` module stream name, `0x0031` module offset,
+`0x0021` procedural / `0x0022` non-procedural type, `0x002B` terminator.
+Unknown records are skipped.
+
+**Module stream ([MS-OVBA] §2.3.4.3).** `[PerformanceCache]\
+[CompressedContainer]` — the performance cache is `MODULEOFFSET` bytes
+and ignored on read; the remainder decompresses to VBA source in the
+project code page. Kind mapping: procedural → standard; non-procedural
+`Form_*` → form, `Report_*` → report, everything else → class.
+
+**Scope.** P-code (`_VBA_PROJECT` performance cache) is not decoded and
+nothing is executed (ADR-2). Jet 3 keeps the project in
+`MSysAccessObjects` (compound-file chunking), which is not decoded yet —
+Jet 3 databases report no project (BACKLOG remainder).
+
+Oracle: `fixtures/northwind2007.accdb` extracts 18 modules with source
+(`Utilities` … `Report_Monthly Sales Report`); the jackcess ACE templates
+carry an empty project (0 modules).

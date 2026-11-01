@@ -94,6 +94,10 @@ pub struct DatabaseState {
     /// Why the macro inventory could not be decoded, if it failed — the
     /// open still succeeds when the tables are readable.
     pub macros_error: Option<String>,
+    /// Extracted VBA project (step 17.2, L5; read-only, never executed).
+    pub vba_project: Option<crate::vba::VbaProject>,
+    /// Why the VBA extraction failed, if it did — the open still succeeds.
+    pub vba_error: Option<String>,
 }
 
 /// State of one open document tab.

@@ -277,6 +277,12 @@ pub enum Command {
         /// The grouping field, or `None` to ungroup.
         group_by: Option<String>,
     },
+    /// Loads one VBA module's extracted source (step 17.2, L5). Read-only:
+    /// the source is returned in `Event::VbaModuleLoaded`, never executed.
+    LoadVbaModule {
+        /// Module name (case-insensitive).
+        module: String,
+    },
     /// Writes the design layer (forms + queries + reports) to a
     /// `.datacraft` sidecar file (ADR-1).
     SaveDesignDocument {

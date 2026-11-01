@@ -64,6 +64,9 @@ pub struct App {
     /// Open database-password prompt (step 16.2, M5; the state and paint
     /// live in `password_prompt.rs`).
     pub(crate) password_prompt: Option<crate::password_prompt::PasswordPrompt>,
+    /// VBA viewer search text (module list + source full-text filter,
+    /// step 17.2).
+    pub vba_search: String,
 }
 
 /// View mode of a document tab (presentation state).
@@ -104,6 +107,7 @@ impl App {
             sidecar_path: String::new(),
             new_row: HashMap::new(),
             password_prompt: None,
+            vba_search: String::new(),
         }
     }
 
@@ -238,6 +242,12 @@ impl App {
     /// View mode of a tab (defaults to the datasheet).
     pub fn tab_mode(&self, tab_id: TabId) -> TabMode {
         self.tab_mode.get(&tab_id).copied().unwrap_or_default()
+    }
+
+    /// One extracted VBA module (the viewer's read-only data source,
+    /// step 17.2).
+    pub fn vba_module(&self, name: &str) -> Option<&datacraft_core::vba::VbaModule> {
+        self.core.vba_module(name)
     }
 
     /// Toggles a tab between datasheet and design view.

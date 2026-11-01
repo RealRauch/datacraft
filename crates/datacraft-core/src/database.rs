@@ -40,6 +40,10 @@ impl crate::core::Core {
                     // snapshot carries the precise reason.
                     Err(error) => (Vec::new(), Some(error.to_string())),
                 };
+                let (vba_project, vba_error) = match self.port.vba_project() {
+                    Ok(project) => (project, None),
+                    Err(error) => (None, Some(error.to_string())),
+                };
                 self.state.sql_result = None;
                 self.state.expression_result = None;
                 self.state.database = Some(DatabaseState {
@@ -54,6 +58,8 @@ impl crate::core::Core {
                     native_queries: self.port.native_queries().unwrap_or_default(),
                     macros,
                     macros_error,
+                    vba_project,
+                    vba_error,
                 });
                 vec![Event::DatabaseOpened { name, format }]
             }

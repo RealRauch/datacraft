@@ -48,6 +48,10 @@ pub struct Jet4Port {
     complex: ComplexCatalog,
     /// Named macros read at open (step 17.1, L4; read-only).
     macros: Vec<datacraft_core::macro_def::MacroDef>,
+    /// Extracted VBA project (step 17.2, L5; read-only).
+    vba: Option<datacraft_core::vba::VbaProject>,
+    /// Why the VBA extraction failed, if it did (observable degradation).
+    vba_error: Option<String>,
     path: Option<PathBuf>,
 }
 
@@ -72,20 +76,13 @@ impl StoragePort for Jet4Port {
         };
         let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
         let entries = collect_tables(&reader, &complex)?;
-        let macros = reader
-            .macros()
-            .map_err(map_open)?
-            .into_iter()
-            .map(|stored| datacraft_core::macro_def::MacroDef {
-                name: stored.name,
-                actions: stored
-                    .arguments
-                    .into_iter()
-                    .map(|argument| datacraft_core::macro_def::MacroAction { argument })
-                    .collect(),
-                definition_decoded: stored.definition_decoded,
-            })
-            .collect();
+        let macros = crate::port_objects::macros_to_core(reader.macros().map_err(map_open)?);
+        let (vba, vba_error) = match reader.vba_project() {
+            Ok(project) => (project.map(crate::port_objects::vba_to_core), None),
+            // Extraction failure is reported through the port, not by
+            // blocking the database open.
+            Err(error) => (None, Some(error.to_string())),
+        };
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
@@ -97,6 +94,8 @@ impl StoragePort for Jet4Port {
             .collect();
         self.complex = complex;
         self.macros = macros;
+        self.vba = vba;
+        self.vba_error = vba_error;
         self.reader = Some(reader);
         self.path = Some(path.to_path_buf());
         Ok(OpenedDatabase { name, format })
@@ -108,6 +107,8 @@ impl StoragePort for Jet4Port {
         self.pages.clear();
         self.complex = ComplexCatalog::default();
         self.macros.clear();
+        self.vba = None;
+        self.vba_error = None;
         self.path = None;
     }
 
@@ -142,6 +143,15 @@ impl StoragePort for Jet4Port {
 
     fn macros(&self) -> Result<Vec<datacraft_core::macro_def::MacroDef>, PortError> {
         Ok(self.macros.clone())
+    }
+
+    fn vba_project(&self) -> Result<Option<datacraft_core::vba::VbaProject>, PortError> {
+        if let Some(reason) = &self.vba_error {
+            return Err(PortError::Unsupported {
+                reason: reason.clone(),
+            });
+        }
+        Ok(self.vba.clone())
     }
 
     fn relationships(&self) -> Result<Vec<datacraft_core::port::Relationship>, PortError> {

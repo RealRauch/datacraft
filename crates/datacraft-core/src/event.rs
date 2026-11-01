@@ -256,6 +256,11 @@ pub enum Event {
         /// Number of result rows.
         rows: usize,
     },
+    /// One VBA module's source was loaded over the bus (step 17.2, L5).
+    VbaModuleLoaded {
+        /// The module including its decoded source.
+        module: crate::vba::VbaModule,
+    },
     /// A command could not be executed; the reason is precise and
     /// user-renderable (LESSONS #4 — no silent swallowing).
     Failed {

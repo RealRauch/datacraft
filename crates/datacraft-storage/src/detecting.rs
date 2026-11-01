@@ -145,6 +145,14 @@ impl StoragePort for DetectingPort {
             Some(Backend::Sqlite(_)) | None => Ok(Vec::new()),
         }
     }
+
+    fn vba_project(&self) -> Result<Option<datacraft_core::vba::VbaProject>, PortError> {
+        match &self.backend {
+            Some(Backend::Jet(port)) => port.vba_project(),
+            // SQLite has no VBA project.
+            Some(Backend::Sqlite(_)) | None => Ok(None),
+        }
+    }
 }
 
 /// The two recognized header families.

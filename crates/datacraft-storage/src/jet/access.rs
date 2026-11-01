@@ -321,6 +321,14 @@ fn text(value: &StorageValue) -> Option<String> {
     }
 }
 
+#[cfg(test)]
+impl AccessStorage {
+    /// Test seam: assembles a tree without a database file.
+    pub(crate) fn from_entries(entries: Vec<AccessStorageEntry>) -> Self {
+        Self { entries }
+    }
+}
+
 impl Jet4TableReader {
     /// Macros named in the `MSysObjects` catalog, in storage order.
     pub fn macro_names(&self) -> Result<Vec<String>, StorageError> {

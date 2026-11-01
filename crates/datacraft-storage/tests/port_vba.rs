@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 
 use datacraft_core::port::StoragePort;
 use datacraft_storage::detecting::DetectingPort;
-use datacraft_storage::jet::StoredModuleKind;
 use datacraft_storage::port_adapter::Jet4Port;
 
 fn fixture(name: &str) -> PathBuf {
@@ -26,7 +25,10 @@ fn jet_port_maps_the_northwind_vba_project() {
         .expect("northwind has a project");
     assert_eq!(project.modules.len(), 18);
     assert_eq!(project.modules[0].name, "Utilities");
-    assert_eq!(project.modules[0].kind, StoredModuleKind::Standard);
+    assert_eq!(
+        project.modules[0].kind,
+        datacraft_core::vba::VbaModuleKind::Standard
+    );
     assert!(project.modules[0].source.contains("Attribute VB_Name"));
     port.close();
     assert!(port.vba_project().expect("closed port answers").is_none());

@@ -52,7 +52,7 @@ impl App {
                 name: name.to_owned(),
             },
             // Macros are a read-only inventory (step 17.1) — no delete.
-            datacraft_core::ObjectKind::Macro => return,
+            datacraft_core::ObjectKind::Macro | ObjectKind::Module => return,
         };
         self.dispatch(command);
     }
@@ -69,7 +69,9 @@ impl App {
                 report: object.to_owned(),
                 table: table.to_owned(),
             },
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro => return,
+            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => {
+                return;
+            }
         };
         self.dispatch(command);
     }
@@ -86,7 +88,9 @@ impl App {
                 report: object.to_owned(),
                 field: field.to_owned(),
             },
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro => return,
+            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => {
+                return;
+            }
         };
         self.dispatch(command);
     }
@@ -111,7 +115,9 @@ impl App {
                 report: object.to_owned(),
                 control,
             },
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro => return,
+            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => {
+                return;
+            }
         };
         self.dispatch(command);
     }
@@ -146,7 +152,7 @@ impl App {
                     def.controls.clone(),
                 ))
             }
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro => None,
+            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => None,
         }
     }
 

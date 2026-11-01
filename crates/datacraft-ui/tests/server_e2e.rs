@@ -370,3 +370,46 @@ fn opens_an_ace_fixture_over_the_wire() {
         "{snapshot}"
     );
 }
+
+#[test]
+fn vba_project_and_module_source_cross_the_wire() {
+    let northwind = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("northwind2007.accdb");
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": northwind.to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"inspect"}),
+            json!({"jsonrpc":"2.0","id":3,"method":"dispatch",
+                   "params":{"LoadVbaModule":{"module":"Utilities"}}}),
+            json!({"jsonrpc":"2.0","id":4,"method":"dispatch",
+                   "params":{"OpenObject":{"kind":"module","name":"Utilities"}}}),
+        ],
+    );
+    let snapshot = &result_of(&responses[1]);
+    let modules = snapshot["database"]["vba"]["modules"]
+        .as_array()
+        .expect("module list");
+    assert_eq!(modules.len(), 18, "{snapshot}");
+    assert_eq!(modules[0]["name"], "Utilities", "{snapshot}");
+    assert_eq!(modules[0]["kind"], "standard", "{snapshot}");
+    assert!(snapshot["database"]["vba_error"].is_null(), "{snapshot}");
+
+    let loaded = &result_of(&responses[2])["events"][0]["VbaModuleLoaded"]["module"];
+    assert_eq!(loaded["name"], "Utilities", "{loaded}");
+    assert!(
+        loaded["source"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Attribute VB_Name = \"Utilities\""),
+        "{loaded}"
+    );
+
+    let opened = &result_of(&responses[3])["events"][0]["TabOpened"];
+    assert_eq!(opened["object"]["kind"], "module", "{opened}");
+}

@@ -91,6 +91,9 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
             Some(tab) if tab.object_kind == "macro" => {
                 crate::macro_viewer::macro_viewer_ui(app, &tab, ui);
             }
+            Some(tab) if tab.object_kind == "module" => {
+                crate::vba_viewer::vba_viewer_ui(app, &tab, ui);
+            }
             Some(tab) => match app.tab_mode(tab.id) {
                 TabMode::Datasheet => crate::datasheet::datasheet_ui(app, &tab, ui),
                 TabMode::Design => crate::design::design_ui(app, &tab, ui),
@@ -112,7 +115,6 @@ enum WorkspaceIntent {
 fn has_view_toggle(object_kind: &str) -> bool {
     matches!(object_kind, "table" | "query" | "form" | "report")
 }
-
 fn apply(app: &mut App, intent: WorkspaceIntent) {
     match intent {
         WorkspaceIntent::Activate(tab_id) => {

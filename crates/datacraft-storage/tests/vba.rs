@@ -58,7 +58,7 @@ fn northwind_vba_project_decodes_every_module_with_its_source() {
         utilities.source
     );
     assert!(utilities.source.contains("Option Compare Database"));
-    assert!(utilities.source.contains("Public Function"));
+    assert!(utilities.source.contains("Public Enum StringIDEnum"));
 
     let form = project
         .modules

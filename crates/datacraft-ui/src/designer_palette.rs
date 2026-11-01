@@ -124,7 +124,7 @@ fn palette_data(
             .iter()
             .find(|report| report.name.eq_ignore_ascii_case(object))
             .map(|report| report.source.clone()),
-        ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro => None,
+        ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => None,
     }
     .unwrap_or_default();
     let fields = db

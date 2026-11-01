@@ -38,6 +38,8 @@ pub mod snapshot;
 pub mod sql_engine;
 pub mod state;
 pub mod transport;
+pub mod vba;
+mod vba_dispatch;
 
 pub use ids::TabId;
 
@@ -53,6 +55,8 @@ pub enum ObjectKind {
     Report,
     /// Named macro object (step 17.1, item L4) — read-only inventory.
     Macro,
+    /// VBA module (step 17.2, item L5) — extracted source, never executed.
+    Module,
 }
 
 impl ObjectKind {
@@ -64,6 +68,7 @@ impl ObjectKind {
             ObjectKind::Form => "form",
             ObjectKind::Report => "report",
             ObjectKind::Macro => "macro",
+            ObjectKind::Module => "module",
         }
     }
 }
@@ -114,6 +119,7 @@ mod tests {
         assert_eq!(ObjectKind::Form.slug(), "form");
         assert_eq!(ObjectKind::Report.slug(), "report");
         assert_eq!(ObjectKind::Macro.slug(), "macro");
+        assert_eq!(ObjectKind::Module.slug(), "module");
     }
 
     proptest! {

@@ -19,6 +19,7 @@ pub mod row;
 pub mod tdef;
 pub(crate) mod text;
 pub mod usage_map;
+pub mod vba;
 pub mod writer;
 pub mod writer_rows;
 pub mod writer_tables;
@@ -35,4 +36,5 @@ pub use queries::{NativeQuery, NativeQueryColumn, NativeQueryKind, OBJECT_TYPE_Q
 pub use reader::{Jet4TableReader, JetTableData};
 pub use row::{decode_row, decode_row_jet3};
 pub use tdef::{JetColumn, JetTableDef, JetType};
+pub use vba::{StoredModuleKind, StoredVbaModule, StoredVbaProject};
 pub use writer::Jet4Writer;

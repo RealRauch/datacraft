@@ -240,6 +240,7 @@ impl Core {
             Command::SetReportGrouping { report, group_by } => {
                 self.set_report_grouping(&report, group_by)
             }
+            Command::LoadVbaModule { module } => self.load_vba_module(&module),
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
             Command::OpenDatabase { path, password } => self.open_database(path, password),
@@ -289,6 +290,10 @@ impl Core {
                 .macros
                 .iter()
                 .any(|m| m.name.eq_ignore_ascii_case(&object.name)),
+            ObjectKind::Module => db
+                .vba_project
+                .as_ref()
+                .is_some_and(|project| project.module(&object.name).is_some()),
         };
         if !exists {
             return failed(PortError::TableNotFound(object.name).to_string());
