@@ -75,16 +75,59 @@ fn text_columns_map_their_descriptor_length() {
     );
 }
 
+/// Private copy of the pinned fixture — writes never touch the original.
+fn fixture_copy(stem: &str) -> PathBuf {
+    let path =
+        std::env::temp_dir().join(format!("datacraft-port-{}-{stem}.mdb", std::process::id()));
+    std::fs::copy(fixture(), &path).expect("copy the fixture");
+    path
+}
+
 #[test]
-fn writes_are_rejected_as_unsupported() {
+fn writes_require_an_open_database() {
+    let mut port = Jet4Port::new();
+    let def = TableDef::new("New", vec![]);
+    assert!(matches!(
+        port.create_table(&def),
+        Err(PortError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        port.drop_table("Table1"),
+        Err(PortError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        port.insert_row("Table1", &[]),
+        Err(PortError::Unsupported { .. })
+    ));
+}
+
+#[test]
+fn drop_table_is_unsupported_until_the_delete_flow() {
     let mut port = Jet4Port::new();
     port.open(&fixture()).expect("fixture must open");
-    let def = TableDef::new("New", vec![]);
-    let err = port.create_table(&def).expect_err("read-only backend");
-    assert!(matches!(err, PortError::Unsupported { .. }), "{err}");
-    assert!(err.to_string().contains("read-only"), "{err}");
-    let err = port.drop_table("Table1").expect_err("read-only backend");
-    assert!(matches!(err, PortError::Unsupported { .. }), "{err}");
+    let err = port
+        .drop_table("Table1")
+        .expect_err("drop is not wired yet");
+    assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
+    assert!(err.to_string().contains("11.4"), "{err}");
+}
+
+#[test]
+fn create_table_writes_a_private_copy_only() {
+    let path = fixture_copy("create");
+    let mut port = Jet4Port::new();
+    port.open(&path).expect("copy opens");
+    let def = TableDef::new(
+        "Written",
+        vec![datacraft_core::schema::FieldDef::new(
+            "note",
+            datacraft_core::schema::FieldKind::Memo,
+        )],
+    );
+    port.create_table(&def).expect("create on the copy");
+    assert!(port.tables().iter().any(|t| t.name == "Written"));
+    port.close();
+    let _ = std::fs::remove_file(&path);
 }
 
 #[test]

@@ -79,7 +79,7 @@ fn insert_row_appends_and_persists_across_a_reopen() {
     assert_eq!(after[before][0], FieldValue::Text("new".into()));
     port.close();
 
-    let mut reopened = opened(&scratch.0);
+    let reopened = opened(&scratch.0);
     let rows = reopened
         .read_rows("Table1", RowRange { start: 0, len: 100 })
         .expect("reopen reads the inserted row");
@@ -125,7 +125,7 @@ fn create_table_and_insert_through_the_port_persist() {
     .expect("insert a row with memo and OLE");
     port.close();
 
-    let mut reopened = opened(&scratch.0);
+    let reopened = opened(&scratch.0);
     let rows = reopened
         .read_rows("People", RowRange { start: 0, len: 10 })
         .expect("read back");

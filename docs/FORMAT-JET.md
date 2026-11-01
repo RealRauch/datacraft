@@ -294,6 +294,26 @@ Verified by `decode(encode(decode(x))) == decode(x)` over **155 rows across
   — executable proxies in CI: our decoder + `mdb-export` both read the
   written files (the oracle test runs on ubuntu/macOS CI).
 
+## Port write-through (2026-11-01, step 11.1)
+
+`Jet4Port` exposes the writer behind `StoragePort`: `insert_row` and
+`create_table` run a read-modify-write on a private copy of the file bytes,
+persist the result to the same path and swap in a fresh reader — a failed
+operation leaves both file and in-memory state untouched. The domain -> Jet
+column mapping (with its lossiness) is documented in `src/port_write.rs`:
+
+- text `max_len` becomes a byte budget of `2 * max_len` (UTF-16, variable
+  slot); memo/OLE use the inline long-value form; numeric widths, decimal
+  scale (17-byte `Numeric`), date, currency, GUID and boolean map 1:1.
+- **`Unsupported` today:** `AutoNumber` (the writer does not maintain the
+  AutoNumber counter yet) and attachment/complex columns (M4).
+- `drop_table` is `Unsupported` until the navigation-pane delete flow
+  (step 11.4).
+
+Verified end-to-end on the pinned fixture: an inserted row (text, byte,
+integer, long, double, date, currency, boolean) reads back through our
+decoder after reopen **and** through `mdb-export` (mdbtools 1.0.1).
+
 ## Jet 3 (Access 97) read path (2026-11-01 — step 10.6, BACKLOG L1)
 
 Source: MDB Tools HACKING (public documentation), black-box verified by the

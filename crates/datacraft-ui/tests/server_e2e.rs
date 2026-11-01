@@ -114,26 +114,72 @@ fn opens_a_sqlite_database_over_the_wire() {
 }
 
 #[test]
-fn the_read_only_backend_rejects_writes_over_the_wire() {
+fn jet_writes_persist_over_the_wire_and_drops_stay_precise() {
+    // Writes land on a private copy — fixtures are immutable evidence.
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-e2e-{}-jet-write.mdb",
+        std::process::id()
+    ));
+    std::fs::copy(fixture(), &path).expect("copy the fixture");
+
     let mut core = Core::new(Box::new(DetectingPort::new()));
     let responses = session(
         &mut core,
         &[
             json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
-                   "params":{"OpenDatabase":{"path": fixture().to_string_lossy()}}}),
+                   "params":{"OpenDatabase":{"path": path.to_string_lossy()}}}),
             json!({"jsonrpc":"2.0","id":2,"method":"dispatch",
                    "params":{"CreateTable":{"definition":{
-                       "name":"New","fields":[]}}}}),
+                       "name":"Written",
+                       "fields":[{"name":"note","kind":{"type":"memo"},
+                                  "properties":{"caption":null,"input_mask":null,
+                                  "format":null,"default_value":null,
+                                  "validation_rule":null,"validation_text":null,
+                                  "required":false,"allow_zero_length":false,
+                                  "indexed":"none"}}]}}}}),
+            json!({"jsonrpc":"2.0","id":3,"method":"dispatch",
+                   "params":{"InsertRow":{"table":"Written",
+                       "values":[{"Text":"over the wire"}]}}}),
+            json!({"jsonrpc":"2.0","id":4,"method":"dispatch",
+                   "params":{"DropTable":{"table":"Written"}}}),
         ],
     );
-    let events = &result_of(&responses[1])["events"];
+    assert_eq!(
+        result_of(&responses[1])["events"][0]["TableCreated"]["table"],
+        "Written",
+        "{responses:?}"
+    );
+    assert_eq!(
+        result_of(&responses[2])["events"][0]["RowInserted"]["table"],
+        "Written",
+        "{responses:?}"
+    );
+    let failed = &result_of(&responses[3])["events"];
     assert!(
-        events[0]["Failed"]["reason"]
+        failed[0]["Failed"]["reason"]
             .as_str()
             .unwrap_or_default()
-            .contains("read-only"),
-        "{events}"
+            .contains("11.4"),
+        "{failed}"
     );
+
+    // Reopen verifies the write persisted.
+    let mut reopened = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut reopened,
+        &[json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                  "params":{"OpenDatabase":{"path": path.to_string_lossy()}}})],
+    );
+    let snapshot = &result_of(&responses[0])["snapshot"]["database"]["tables"];
+    assert!(
+        snapshot
+            .as_array()
+            .expect("tables")
+            .iter()
+            .any(|t| t["name"] == "Written"),
+        "{snapshot}"
+    );
+    let _ = std::fs::remove_file(&path);
 }
 
 #[test]

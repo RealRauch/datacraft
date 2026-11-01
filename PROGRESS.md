@@ -122,7 +122,7 @@
 | 10.8 | Fixture Pin Integrity — Manifest & CI Hash Gate (t3) | ✅ |
 | 10.9 | Final Documentation & Release Prep (h34) | ✅ |
 | 10.10 | Phase 10 Quality Gate Review | ✅ |
-| 11.1 | Port Write-Through (insert_row, Jet4Port, port_write.rs) | ⬜ |
+| 11.1 | Port Write-Through (insert_row, Jet4Port, port_write.rs) | 🔄 |
 | 11.2 | Core: InsertRow-Command | ⬜ |
 | 11.3 | Ribbon + Neue-Tabelle-Flow | ⬜ |
 | 11.4 | Nav-Pane-Löschflüsse | ⬜ |

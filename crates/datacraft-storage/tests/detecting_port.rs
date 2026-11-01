@@ -168,20 +168,25 @@ fn sqlite_writes_relationships_and_close_delegate_through_detection() {
 }
 
 #[test]
-fn jet_paths_report_the_backend_limitations() {
+fn jet_writes_delegate_through_detection_on_a_copy() {
+    // Writes land on a private copy — the pinned fixture stays immutable.
+    let path = scratch_path("jet-copy.mdb");
+    std::fs::copy(fixture(), &path).expect("copy the fixture");
+    let _scratch = Scratch(path.clone());
+
     let mut port = DetectingPort::new();
-    port.open(&fixture()).expect("open Jet4");
+    port.open(&path).expect("open the Jet copy");
+    let err = port
+        .insert_row("Table1", &[FieldValue::Null])
+        .expect_err("arity mismatch is a write failure before touching the file");
+    assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
+
+    let def = TableDef::new("Written", vec![FieldDef::new("y", FieldKind::Memo)]);
+    port.create_table(&def)
+        .expect("create delegates to the Jet writer");
+    assert!(port.tables().iter().any(|t| t.name == "Written"));
     assert!(matches!(
-        port.insert_row("Table1", &[FieldValue::Null]),
-        Err(PortError::Unsupported { .. })
-    ));
-    let def = TableDef::new("x", vec![FieldDef::new("y", FieldKind::Memo)]);
-    assert!(matches!(
-        port.create_table(&def),
-        Err(PortError::Unsupported { .. })
-    ));
-    assert!(matches!(
-        port.drop_table("Table1"),
+        port.drop_table("Written"),
         Err(PortError::Unsupported { .. })
     ));
     assert!(port.relationships().is_ok());

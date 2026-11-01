@@ -25,7 +25,9 @@ use datacraft_core::schema::{
 use crate::error::StorageError;
 use crate::jet::reader::Jet4TableReader;
 use crate::jet::tdef::{JetColumn, JetTableDef, flags};
+use crate::jet::writer::Jet4Writer;
 use crate::jet::{JetType, OBJECT_TYPE_TABLE};
+use crate::port_write;
 use crate::types::FormatVersion;
 
 /// The Jet4 read backend as a [`StoragePort`] (read-only).
@@ -33,6 +35,8 @@ use crate::types::FormatVersion;
 pub struct Jet4Port {
     reader: Option<Jet4TableReader>,
     tables: Vec<TableDef>,
+    /// TDEF page of every catalogued table (the writer's identity).
+    pages: Vec<(String, u32)>,
     path: Option<PathBuf>,
 }
 
@@ -54,13 +58,17 @@ impl StoragePort for Jet4Port {
             FormatVersion::Jet4 => DatabaseFormat::Jet4,
             FormatVersion::Ace => DatabaseFormat::Ace,
         };
-        let tables = self.collect_tables(&reader)?;
+        let entries = collect_tables(&reader)?;
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
         );
+        self.tables = entries.iter().map(|(def, _)| def.clone()).collect();
+        self.pages = entries
+            .into_iter()
+            .map(|(def, page)| (def.name, page))
+            .collect();
         self.reader = Some(reader);
-        self.tables = tables;
         self.path = Some(path.to_path_buf());
         Ok(OpenedDatabase { name, format })
     }
@@ -68,6 +76,7 @@ impl StoragePort for Jet4Port {
     fn close(&mut self) {
         self.reader = None;
         self.tables.clear();
+        self.pages.clear();
         self.path = None;
     }
 
@@ -75,12 +84,21 @@ impl StoragePort for Jet4Port {
         self.tables.clone()
     }
 
-    fn create_table(&mut self, _definition: &TableDef) -> Result<(), PortError> {
-        Err(read_only())
+    fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
+        let columns = port_write::table_to_columns(definition)?;
+        let name = definition.name.clone();
+        self.with_writer(|writer| writer.create_table(&name, &columns))?;
+        Ok(())
     }
 
     fn drop_table(&mut self, _name: &str) -> Result<String, PortError> {
-        Err(read_only())
+        if self.reader.is_none() {
+            return Err(no_database());
+        }
+        Err(PortError::Unsupported {
+            reason: "dropping Jet tables lands with the navigation-pane delete flow                      (step 11.4)"
+                .to_owned(),
+        })
     }
 
     fn relationships(&self) -> Result<Vec<datacraft_core::port::Relationship>, PortError> {
@@ -126,12 +144,28 @@ impl StoragePort for Jet4Port {
             .collect())
     }
 
-    fn insert_row(&mut self, _table: &str, _values: &[FieldValue]) -> Result<(), PortError> {
-        Err(PortError::Unsupported {
-            reason: "the Jet4 backend's row inserts arrive with the write path \
-                     (Phase 11, BACKLOG H40)"
-                .to_owned(),
-        })
+    fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        if self.reader.is_none() {
+            return Err(no_database());
+        }
+        let Some(page) = self
+            .pages
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(table))
+            .map(|(_, page)| *page)
+        else {
+            return Err(PortError::TableNotFound(table.to_owned()));
+        };
+        let Some(def) = self
+            .tables
+            .iter()
+            .find(|def| def.name.eq_ignore_ascii_case(table))
+        else {
+            return Err(PortError::TableNotFound(table.to_owned()));
+        };
+        let stored = port_write::to_storage_values(&def.fields, values)?;
+        self.with_writer(|writer| writer.insert_row(page, &stored))?;
+        Ok(())
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
@@ -168,25 +202,50 @@ fn to_field_value(value: &crate::types::StorageValue) -> FieldValue {
 }
 
 impl Jet4Port {
-    /// Enumerates user tables through the catalog and maps their TDEF
-    /// descriptors onto domain definitions.
-    fn collect_tables(&self, reader: &Jet4TableReader) -> Result<Vec<TableDef>, PortError> {
-        let mut tables = Vec::new();
-        for entry in reader.catalog().map_err(map_open)? {
-            if entry.object_type != OBJECT_TYPE_TABLE {
-                continue;
-            }
-            let Some(tdef_page) = entry.tdef_page else {
-                continue;
-            };
-            if entry.name.starts_with("MSys") {
-                continue;
-            }
-            let def = JetTableDef::decode(&reader.file, tdef_page).map_err(map_open)?;
-            tables.push(table_def(&entry.name, &def));
-        }
-        Ok(tables)
+    /// Runs one writer operation on a private copy of the file, persists the
+    /// result and swaps in the refreshed reader/catalog. A failed operation
+    /// leaves the file and the in-memory state untouched.
+    fn with_writer<T>(
+        &mut self,
+        op: impl FnOnce(&mut Jet4Writer) -> Result<T, StorageError>,
+    ) -> Result<T, PortError> {
+        let path = self.path.clone().ok_or_else(no_database)?;
+        let bytes = self.reader.as_ref().ok_or_else(no_database)?.file.clone();
+        let mut writer = Jet4Writer::new(bytes).map_err(map_write)?;
+        let out = op(&mut writer).map_err(map_write)?;
+        let bytes = writer.into_file();
+        std::fs::write(&path, &bytes).map_err(|e| PortError::WriteFailed {
+            detail: format!("{}: {e}", path.display()),
+        })?;
+        let reader = Jet4TableReader::new(bytes).map_err(map_open)?;
+        let entries = collect_tables(&reader)?;
+        self.tables = entries.iter().map(|(def, _)| def.clone()).collect();
+        self.pages = entries
+            .into_iter()
+            .map(|(def, page)| (def.name, page))
+            .collect();
+        self.reader = Some(reader);
+        Ok(out)
     }
+}
+
+/// Enumerates user tables through the catalog with their TDEF pages.
+fn collect_tables(reader: &Jet4TableReader) -> Result<Vec<(TableDef, u32)>, PortError> {
+    let mut tables = Vec::new();
+    for entry in reader.catalog().map_err(map_open)? {
+        if entry.object_type != OBJECT_TYPE_TABLE {
+            continue;
+        }
+        let Some(tdef_page) = entry.tdef_page else {
+            continue;
+        };
+        if entry.name.starts_with("MSys") {
+            continue;
+        }
+        let def = JetTableDef::decode(&reader.file, tdef_page).map_err(map_open)?;
+        tables.push((table_def(&entry.name, &def), tdef_page));
+    }
+    Ok(tables)
 }
 
 /// Maps one table's descriptors onto a validated domain definition.
@@ -239,9 +298,18 @@ fn text_max_len(column: &JetColumn) -> u16 {
     }
 }
 
-fn read_only() -> PortError {
+fn no_database() -> PortError {
     PortError::Unsupported {
-        reason: "the Jet4 backend is read-only — the writer workstream is BACKLOG H9".to_owned(),
+        reason: "no database is open".to_owned(),
+    }
+}
+
+fn map_write(error: StorageError) -> PortError {
+    match error {
+        StorageError::Unsupported { reason } => PortError::Unsupported { reason },
+        other => PortError::WriteFailed {
+            detail: other.to_string(),
+        },
     }
 }
 
