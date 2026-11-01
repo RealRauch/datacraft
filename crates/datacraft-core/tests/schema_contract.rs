@@ -109,6 +109,7 @@ fn default_properties_validate_for_every_kind() {
         FieldKind::Boolean { tri_state: true },
         FieldKind::Binary(BinaryKind::OleObject),
         FieldKind::Binary(BinaryKind::Attachment),
+        FieldKind::Guid,
     ];
     for kind in kinds {
         ok(FieldProperties::default().validate_for(&kind));
@@ -282,6 +283,16 @@ fn boolean_binary_guid_currency_accept_only_their_family() {
     .validate_value(&FieldValue::Decimal(-12345)));
 }
 
+#[test]
+fn guid_kind_accepts_only_guid_values() {
+    let kind = FieldKind::Guid;
+    ok(kind.validate());
+    ok(kind.validate_value(&FieldValue::Guid([7u8; 16])));
+    err_contains(kind.validate_value(&FieldValue::Text("x".into())), "guid");
+    err_contains(kind.validate_value(&FieldValue::Integer(1)), "guid");
+    assert_eq!(kind.family(), "guid");
+}
+
 // ---------------------------------------------------------------------------
 // field definitions
 // ---------------------------------------------------------------------------
@@ -363,6 +374,7 @@ fn field_kinds_survive_json_round_trip() {
         FieldKind::AutoNumber(AutoKind::ReplicationId),
         FieldKind::Boolean { tri_state: true },
         FieldKind::Binary(BinaryKind::Attachment),
+        FieldKind::Guid,
     ];
     let json = serde_json::to_string(&kinds).expect("serialize kinds");
     let back: Vec<FieldKind> = serde_json::from_str(&json).expect("deserialize kinds");
