@@ -152,3 +152,33 @@ fn the_module_kind_slug_and_serde_name_are_stable() {
         "\"standard\""
     );
 }
+
+#[test]
+fn analyze_vba_returns_the_headless_analysis_over_the_bus() {
+    let mut core = opened_core();
+    let events = core.dispatch(Command::AnalyzeVba);
+    match events.as_slice() {
+        [Event::VbaAnalyzed { analysis }] => {
+            assert_eq!(analysis.call_graph.len(), 2);
+            assert!(analysis.sql_literals.is_empty());
+            assert!(analysis.table_references.is_empty());
+            assert!(analysis.unused_modules.is_empty());
+        }
+        other => panic!("expected analysis event, got {other:?}"),
+    }
+
+    let mut bare = Core::new(Box::new(MockPort::new()));
+    assert!(matches!(
+        bare.dispatch(Command::AnalyzeVba).as_slice(),
+        [Event::Failed { reason }] if reason.contains("no database")
+    ));
+    let mut no_project = Core::new(Box::new(MockPort::new()));
+    no_project.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("plain.mdb"),
+        password: None,
+    });
+    assert!(matches!(
+        no_project.dispatch(Command::AnalyzeVba).as_slice(),
+        [Event::Failed { reason }] if reason.contains("no VBA project")
+    ));
+}
