@@ -14,7 +14,8 @@ use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::form::{ControlKind, FormDef};
 use datacraft_core::palette::{
-    TOOLBOX, field_palette, free_slot, toolbox_control, unique_control_name,
+    TOOLBOX, field_palette, free_slot, place_toolbox_control, toolbox_control,
+    unique_control_name,
 };
 use datacraft_core::port::MockPort;
 use datacraft_core::report::ReportDef;
@@ -205,6 +206,36 @@ fn a_full_canvas_has_no_free_slot() {
         height: 24.0,
     }];
     assert!(free_slot(8.0, (120.0, 24.0), &occupied, (120.0, 24.0)).is_none());
+}
+
+#[test]
+fn toolbox_controls_land_in_the_next_free_slot() {
+    let placed =
+        place_toolbox_control("text_box", 8.0, (640.0, 400.0), &[]).expect("placed");
+    assert_eq!(placed.name, "Text");
+    assert_eq!(
+        placed.rect,
+        Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 120.0,
+            height: 24.0
+        }
+    );
+
+    let again = place_toolbox_control(
+        "text_box",
+        8.0,
+        (640.0, 400.0),
+        std::slice::from_ref(&placed),
+    )
+    .expect("second slot");
+    assert_eq!(again.name, "Text2");
+    assert!(!overlaps(again.rect, placed.rect));
+
+    assert!(place_toolbox_control("ghost", 8.0, (640.0, 400.0), &[]).is_none());
+    // A subform (200 x 120) does not fit the 120 x 24 canvas.
+    assert!(place_toolbox_control("subform", 8.0, (120.0, 24.0), &[]).is_none());
 }
 
 #[test]
