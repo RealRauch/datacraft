@@ -19,3 +19,6 @@ c2c3352c71aa3985bd620a322521eb9f67391cbb19ba9fefc376a24575896df7  testV2007.accd
 
 # source: andipaetzold/mdb-reader@3dc637a test/data/V2016/attachments.accdb (pristine)
 1362f6bf865db294a382bbb05ef6af14c4f776768f436d458d3e028a1cdf45bc  attachmentsV2016.accdb
+
+# source: jahlborn/jackcess@be0a2139 src/test/data/V2000/queryTestV2000.mdb (pristine)
+03b303034e1d64779d9dff1e19d9e21d59d8fa440dc5da9dbcfd85ad051eb5ea  queryTestV2000.mdb
