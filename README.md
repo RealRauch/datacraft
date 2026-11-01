@@ -45,8 +45,9 @@ _By the ArtCraft team._
 > serializable snapshot with JSON-RPC/MCP and CLI clients; the egui shell has
 > the Access layout with datasheets, the QBE grid, the form/report canvas, the
 > relationship mapper, a German UI (system-detected, English fallback; ADR-4)
-> with a File-tab language switcher, and a UI-owned `ui.json` for language and
-> window geometry (ADR-5). Expect breaking changes. The honest, step-by-step
+> with File-tab language and appearance switchers, and a UI-owned `ui.json`
+> for language, appearance and the full window geometry (position, size,
+> maximized; ADR-5). Expect breaking changes. The honest, step-by-step
 > picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
 > the verified compatibility claims are in
 > [Compatibility matrix](#compatibility-matrix-verified-2026-11-01).

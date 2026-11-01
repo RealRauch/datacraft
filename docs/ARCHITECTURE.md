@@ -348,14 +348,15 @@ settings file sits at `<platform config dir>/datacraft/ui.json` (serde JSON,
 config dir resolved without a new dependency), stores language, appearance and
 window geometry, and treats unknown values as defaults
 instead of failing. Precedence: explicit setting > `DATACRAFT_LANGUAGE` >
-system detection > auto. Writes are atomic by decision — a sibling temporary
-file renamed over the target, so an interrupted save can never truncate the
-file; the current implementation still writes in place, and BACKLOG U13
-closes that gap. The stored geometry is the inner window size; position,
-maximized state and off-screen rescue follow with U13. The language switcher
-sits in the File ribbon group for now because no Options dialog exists yet;
-it moves into the backstage with U7, whereas the model keeps it under
-File ▸ Options ▸ Interface language.
+system detection > auto. Writes are atomic — a sibling temporary file renamed
+over the target, so an interrupted save can never truncate the file. The
+stored geometry is the inner size plus the outer position and the maximized
+state; a saved position that lands off-screen is rescued onto the visible
+monitor on the first frame (step 22.2, U13). The language and appearance
+switchers
+sit in the File ribbon group for now because no Options dialog exists yet;
+they move into the backstage with U7, whereas the model keeps the language
+under File ▸ Options ▸ Interface language.
 
 **Decision record (ADR-6, 2026-11-01): the look rebase adopts the WordCraft
 neutral system; the accent family stays DataCraft teal.** Neutral tokens,

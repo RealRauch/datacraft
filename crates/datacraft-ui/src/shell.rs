@@ -20,7 +20,8 @@ pub(crate) const STATUS_TABLES: &str = "{database} ({format}) — {count} tables
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        self.capture_window_size(ui.ctx());
+        self.rescue_window_position(ui.ctx());
+        self.capture_window_geometry(ui.ctx());
         crate::appearance::apply(ui.ctx(), self.appearance_setting());
         crate::theme::apply(ui.ctx());
         let tokens = tokens(ui.visuals());

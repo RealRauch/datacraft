@@ -63,11 +63,7 @@ fn main() -> eframe::Result {
         .map(crate::settings::Settings::load)
         .unwrap_or_default();
 
-    let mut viewport = egui::ViewportBuilder::default().with_min_inner_size([960.0, 600.0]);
-    viewport = match settings.window {
-        Some(window) => viewport.with_inner_size([window.width, window.height]),
-        None => viewport.with_inner_size([1280.0, 800.0]),
-    };
+    let mut viewport = crate::window::viewport(settings.window);
     if let Some(icon) = window_icon() {
         viewport = viewport.with_icon(icon);
     }

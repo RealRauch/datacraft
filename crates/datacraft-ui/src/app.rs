@@ -71,6 +71,8 @@ pub struct App {
     pub(crate) settings: crate::settings::Settings,
     /// Path of `ui.json`; `None` keeps settings session-only (tests).
     pub(crate) settings_path: Option<std::path::PathBuf>,
+    /// Whether the restored window position was already checked (step 22.2).
+    pub(crate) position_rescued: bool,
 }
 
 /// View mode of a document tab (presentation state).
@@ -114,6 +116,7 @@ impl App {
             vba_search: String::new(),
             settings: crate::settings::Settings::default(),
             settings_path: None,
+            position_rescued: false,
         }
     }
 
