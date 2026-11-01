@@ -9,15 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 2 — Storage Engine Core (Pure Rust)
-
-**Scope (Steps):**
-
-- **2.1 StorageEngine Trait Boundary**
-- **2.2 Jet Page Layer & File Header Decoder**
-- **2.3 Table Definition & Data Decoder**
-- **2.4 libmdb Test Oracle & Golden-File Tests**
-- **2.5 Phase 2 Quality Gate Review**
 ### Phase 3 — Data Model & Schema
 
 **Scope (Steps):**
@@ -100,7 +91,7 @@
 | 2.2 | Jet Page Layer & File Header Decoder | ✅ |
 | 2.3 | Table Definition & Data Decoder | ✅ |
 | 2.4 | libmdb Test Oracle & Golden-File Tests | ✅ |
-| 2.5 | Phase 2 Quality Gate Review | ⬜ |
+| 2.5 | Phase 2 Quality Gate Review | ✅ |
 | 3.1 | Access Data Types & Field Properties | ⬜ |
 | 3.2 | Schema Persistence with Serde | ⬜ |
 | 3.3 | Phase 3 Quality Gate Review | ⬜ |

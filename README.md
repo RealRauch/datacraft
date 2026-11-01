@@ -31,11 +31,11 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phase 1 (Blueprint & Skeleton) is
-> complete, and the Phase 2 checkpoint — the pure-Rust storage engine core —
-> is merged onto `main` with its final quality-gate review still open. Expect
-> breaking changes. The honest, step-by-step picture lives in
-> [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md).
+> **DataCraft is in early development.** Phases 1–2 are complete: the
+> pure-Rust storage engine core reads Jet4 `.mdb` files and is cross-checked
+> against the libmdb oracle in CI. Expect breaking changes. The honest,
+> step-by-step picture lives in [BACKLOG.md](BACKLOG.md) and
+> [PROGRESS.md](PROGRESS.md).
 
 ## Why DataCraft
 
@@ -117,7 +117,7 @@ Nine phases take DataCraft from skeleton to release:
 | Phase | Delivers | Status |
 | --- | --- | --- |
 | 1 — Blueprint & Skeleton | architecture blueprint, workspace, CI gates, testing policy | ✅ |
-| 2 — Storage Engine Core | `StorageEngine` trait, Jet page layer, TDEF/TDAT decoder, libmdb oracle | 🔄 final review |
+| 2 — Storage Engine Core | `StorageEngine` trait, Jet page layer, TDEF/TDAT decoder, libmdb oracle | ✅ |
 | 3 — Data Model & Schema | Access data types, field properties, serde persistence | ⬜ |
 | 4 — Headless Core & Command API | command bus, state query, test IDs, JSON-RPC stub | ⬜ |
 | 5 — UI Skeleton (egui) | app shell, ribbon, navigation pane, tabbed workspace | ⬜ |

@@ -29,3 +29,16 @@
 - **1.3 CI Pipeline & Quality Gates**
 - **1.4 Phase 1 Quality Gate Review**
 **Verification:** Gate review passed locally (exit codes measured directly): fmt 0, clippy -D warnings 0, cargo test 5 sections ok, cargo llvm-cov --exclude datacraft-ui --fail-under-lines 95 exit 0, file-size gate OK (max file 89 lines). Items K1/K2/H1/H2/H3 archived; M1 (design-layer persistence) added as open decision. (checkpoint: 930a289)
+
+---
+
+### Phase 2 — Storage Engine Core (Pure Rust)
+
+**Scope (Steps):**
+
+- **2.1 StorageEngine Trait Boundary**
+- **2.2 Jet Page Layer & File Header Decoder**
+- **2.3 Table Definition & Data Decoder**
+- **2.4 libmdb Test Oracle & Golden-File Tests**
+- **2.5 Phase 2 Quality Gate Review**
+**Verification:** Gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace all sections ok, cargo llvm-cov --exclude datacraft-ui --fail-under-lines 95 exit 0, file-size gate OK (max .rs file 456 lines). LESSONS self-review clean: no unsafe, no bare unwrap on parse paths (single invariant expect at catalog.rs:108 guarded by the filter above), evil-input suite present, dependency direction ui⊥storage holds, CI fully green on main incl. oracle job (run 41257090455). Backlog H4-H7 archived; open survivors: T3 (fixture pin), H9 (writer workstream), L1/L2, H8. (checkpoint: e81a0cd)
