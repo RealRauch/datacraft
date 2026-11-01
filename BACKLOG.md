@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T02:54
+# BACKLOG.md — Open items (As of: 2026-11-01T03:12
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -25,12 +25,6 @@
 - **Location:** `datacraft-storage/src/jet/` (writer), post-Phase-4 workstream
 - **Scope:** Jet4 write milestone from ARCHITECTURE §6 (create tables, insert/update rows, usage-map allocation, index maintenance deferred). UI write commands route to `InMemoryEngine` until this lands; then the `Jet4Backend` gains write capability. Bit-for-bit goal: writes must open without repair prompts in MS Access — proven by golden round-trips + oracle.
 - **Acceptance:** Access opens written files without repair; decode(encode(decode(x))) == decode(x) over fixtures; write-path coverage >= gate.
-
-### [ ] H21 — Compose the real Jet4Port in the UI binary (composition root) — 🟠
-- **Location:** `crates/datacraft-ui/src/main.rs` (composition root), `app.rs` (App::new signature)
-- **Problem:** The UI shell still composes `MockPort` (App::new constructs it internally), so File > Open Database "opens" an in-memory mock instead of a real .mdb file. The Jet4Port adapter exists (H16) but is unreachable from the binary.
-- **Scope:** App::new takes `Box<dyn StoragePort>`; the binary's main() (composition root) constructs `Jet4Port::new()` and injects it — the ui crate itself keeps depending on core only (layering rule ui -> core); the bin target is the one place allowed to name storage. Land with step 6.2 (datasheet needs real rows anyway); until then the mock stays the documented Phase 5 backend.
-- **Acceptance:** Opening the committed fixture through the UI shows its user tables in the navigation pane; the crate-level dependency graph stays ui -> core; canonical verification set green.
 
 ---
 
@@ -96,3 +90,7 @@
 - H18 — Ribbon bar — spec-driven Access-style ribbon — done (step 5.2 (test 483bca0, feat 14ec049))
 - H19 — Navigation pane — snapshot-driven object list — done (step 5.3 (feat a706624))
 - H20 — Tabbed document workspace — strip and placeholders — done (step 5.4 (test 4a3a280, feat 015459d))
+- H22 — Shared grid core — virtual-scroll and hit-test math — done (step 6.1 (test 62820e4, feat c256a10))
+- H21 — Compose the real Jet4Port in the UI binary (composition root) — done (step 6.2 (feat 8410069): App::new takes the port; main.rs composes Jet4Port as the documented composition root)
+- H23 — Datasheet view — port read_rows, row mapping, real composition — done (step 6.2 (tests 704fc10/e606a07/2a7d3be, feats 8b97c26/8410069))
+- H24 — Table design view — read-only design grid and kind display names — done (step 6.3 (core 3e6fe9a, ui 06c2982); design-time schema editing deferred to H9 (documented in the UI))

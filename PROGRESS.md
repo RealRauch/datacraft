@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 6 — Datasheet & Design View
-
-**Scope (Steps):**
-
-- **6.1 Shared Grid Core**
-- **6.2 Datasheet View & Record Navigation**
-- **6.3 Table Design View**
-- **6.4 Phase 6 Quality Gate Review**
 ### Phase 7 — QBE Query Builder
 
 **Scope (Steps):**
@@ -80,10 +72,10 @@
 | 5.3 | Navigation Pane | ✅ |
 | 5.4 | Tabbed Document Workspace | ✅ |
 | 5.5 | Phase 5 Quality Gate Review | ✅ |
-| 6.1 | Shared Grid Core | ⬜ |
-| 6.2 | Datasheet View & Record Navigation | ⬜ |
-| 6.3 | Table Design View | ⬜ |
-| 6.4 | Phase 6 Quality Gate Review | ⬜ |
+| 6.1 | Shared Grid Core | ✅ |
+| 6.2 | Datasheet View & Record Navigation | ✅ |
+| 6.3 | Table Design View | ✅ |
+| 6.4 | Phase 6 Quality Gate Review | ✅ |
 | 7.1 | Relationship Mapper Pane | ⬜ |
 | 7.2 | QBE Grid | ⬜ |
 | 7.3 | Query Engine Integration | ⬜ |

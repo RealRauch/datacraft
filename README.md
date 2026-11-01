@@ -31,13 +31,13 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–5 are complete: the
+> **DataCraft is in early development.** Phases 1–6 are complete: the
 > pure-Rust storage engine core reads Jet4 `.mdb` files (cross-checked
 > against the libmdb oracle in CI), the headless command bus drives a
-> serializable snapshot with JSON-RPC support, and the egui shell now has
-> the Access layout — ribbon, navigation pane, tabbed workspace, status
-> bar. Expect breaking changes. The honest, step-by-step picture lives in
-> [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md).
+> serializable snapshot with JSON-RPC support, the egui shell has the
+> Access layout, and real databases open as datasheets with a read-only
+> design view. Expect breaking changes. The honest, step-by-step picture
+> lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md).
 
 ## Why DataCraft
 
@@ -67,6 +67,7 @@ _By the ArtCraft team._
 | **Domain model & schema** | Access field kinds (Short Text … OLE/Attachment) with typed properties and validation semantics; versioned `.datacraft` schema document (serde, migration ladder) per ADR-1 |
 | **Headless command bus** | Total reducer (`dispatch` → deterministic events, failures as `Failed` events), serializable `inspect()` snapshots, deterministic test IDs, JSON-RPC 2.0 codec with full error semantics — GUI and agents speak the same language |
 | **Desktop shell** | Four-region egui shell (spec-driven ribbon, snapshot-driven navigation pane with click-to-open, tabbed workspace with close/activate, status bar) — all strings and logic computed in core, paint code renders only |
+| **Datasheet & design view** | Real fixture databases open through the composition root; virtualized datasheet over cached rows with Access-style cell rendering; read-only design grid with Access type names and a full property sheet |
 | **CI quality gates** | Coverage ≥ 95 % lines, every `.rs` file < 500 lines, zero `TODO`/`FIXME`/`HACK`/`XXX`, `rustfmt --check`, `clippy -D warnings`, test matrix on ubuntu-latest, windows-latest, macos-latest |
 | **Docs & process** | Architecture blueprint, Jet/ACE binary-format knowledge base, testing policy and the clean-room playbook |
 
@@ -125,7 +126,7 @@ Nine phases take DataCraft from skeleton to release:
 | 3 — Data Model & Schema | Access data types, field properties, serde persistence | ✅ |
 | 4 — Headless Core & Command API | command bus, state query, test IDs, JSON-RPC stub | ✅ |
 | 5 — UI Skeleton (egui) | app shell, ribbon, navigation pane, tabbed workspace | ✅ |
-| 6 — Datasheet & Design View | shared grid core, datasheet, table design view | ⬜ |
+| 6 — Datasheet & Design View | shared grid core, datasheet, table design view | ✅ |
 | 7 — QBE Query Builder | relationship mapper, QBE grid, query engine | ⬜ |
 | 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime | ⬜ |
 | 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep | ⬜ |

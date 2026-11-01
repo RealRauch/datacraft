@@ -132,3 +132,109 @@
 - **Scope:** Logical Access domain model in core (ARCHITECTURE §7): `FieldKind` (Text{max_len}, Memo, Number(NumericKind), DateTime, Currency, AutoNumber(AutoKind), Boolean{tri_state}, Binary(BinaryKind)), numeric/auto/binary sub-kinds, `IndexMode`, typed `FieldProperties` (caption, input mask, format, default value, validation rule/text, required, allow zero length, indexed) with per-kind validation semantics, and a domain `FieldValue` the later command bus validates against. Storage keeps its physical types and maps them onto this model in Phase 4 (storage -> core is the allowed dependency direction).
 - **Acceptance:** Unit + proptest coverage per kind (boundaries, property validity rules, JSON round-trips); no core dependency on storage; canonical verification set green.
 - **Done:** step 3.1 (test 7cf9a31, feat 1271f33)
+
+---
+
+### [x] H13 — Command dispatch core — commands, events, state, storage port — 🟠
+- **Location:** `datacraft-core/src/{command,event,state,port}.rs`
+- **Scope:** Command dispatch core per ARCHITECTURE §5: `Command` (OpenDatabase/CloseDatabase/CreateTable/DropTable/OpenObject/CloseTab/SetActiveTab/ToggleNavPane — QBE and form commands join in their phases), `Event` (DatabaseOpened ... Failed), `AppState` reducer, `Core::dispatch(&mut self, Command) -> Vec<Event>` (total: failures become `Event::Failed`). Storage I/O sits behind a core-owned `StoragePort` trait (port error taxonomy); storage backends implement it (direction `storage -> core` preserved). `MockPort` ships in core as the stable test backend (mirrors storage's mock).
+- **Acceptance:** Contract tests over the full command set incl. failure paths (double open, unknown table, unknown tab, required-open violations); event order deterministic (close-database closes tabs first, drop-table closes dependent tabs first); canonical verification set green.
+- **Done:** step 4.1 (test baa4f16, feat f796480)
+
+---
+
+### [x] H14 — State query API and deterministic test IDs — 🟠
+- **Location:** `datacraft-core/src/snapshot.rs` (+ test-id helpers on ObjectId/TabState)
+- **Scope:** Serializable `UiStateSnapshot` (the headless test seam, ARCHITECTURE §5): database name/path/format, table list, nav pane visibility, tabs with object kind/name, active tab. Deterministic test-ID composition per the §5 convention: `navpane.<expanded|collapsed>.<ObjectId::ui_test_id()>` and `workspace.tab.<kind>.<name>`; containers derive IDs from `ObjectId`, never invent them. `Core::inspect()` returns the snapshot.
+- **Acceptance:** Snapshot JSON asserted in contract tests (structure + test ids + determinism: two inspects of equal state are byte-identical); every dispatch outcome observable in the snapshot; canonical verification set green.
+- **Done:** step 4.2 (test da774ad, feat 1b4a9be)
+
+---
+
+### [x] H15 — JSON-RPC transport codec stub (headless seam) — 🟠
+- **Location:** `datacraft-core/src/transport.rs`
+- **Scope:** JSON-RPC 2.0 codec stub (decision default 8: stdio transport in Phase 9): `handle_json(core, request_json) -> response_json` implementing methods `dispatch` (params = Command; result = events + snapshot) and `inspect` (result = snapshot). Full JSON-RPC error semantics (-32700 parse, -32600 invalid request, -32601 unknown method, -32602 invalid params). The stub is synchronous and server-less; the Phase 9.1 MCP endpoint is a thin stdio loop over it.
+- **Acceptance:** Round-trip contract tests: valid requests produce correct result/error envelopes; malformed JSON/methods/params map to the right codes; every response parses as JSON-RPC 2.0; canonical verification set green.
+- **Done:** step 4.3 (test ceecb24, feat a0c5137)
+
+---
+
+### [x] H17 — App shell and layout — four-region egui shell over the core — 🟠
+- **Location:** `datacraft-core/src/present.rs` (presentation helpers), `datacraft-ui/src/{main,app}.rs`
+- **Scope:** App shell per ARCHITECTURE §8 (logic in core, UI renders): eframe app struct hosting a `Core`, panel skeleton (ribbon top, navigation left, workspace center, status bottom), window title/icon preserved from Phase 1. Presentation strings (status line) computed by pure, tested functions in core from the snapshot: `status_line(&UiStateSnapshot) -> String`. UI crate stays coverage-excluded (exception #1); clippy/test gates still apply.
+- **Acceptance:** Core-side contract tests for the presentation helpers (no database / open database / hidden nav pane variants); the binary builds and opens the four-region shell; canonical verification set green.
+- **Done:** step 5.1 (test 5ed94ed, feat 666acd7)
+
+---
+
+### [x] H12 — GUID field kind — plain Replication ID columns unmodelable — 🟠
+- **Location:** `datacraft-core/src/schema/field.rs` (FieldKind), `datacraft-storage` (Phase 4 JetType mapping)
+- **Problem:** No `FieldKind` variant accepts `FieldValue::Guid` — Jet/ACE GUID columns that are NOT AutoNumbers (Access UI: Number with FieldSize "Replication ID") cannot be modeled. Found while closing step 3.1/3.2 coverage: every kind rejects Guid values, so the Phase 4 storage->core mapping has no target for plain Guid columns.
+- **Scope:** Decide the modeling (Number(NumericKind::ReplicationId) — Access-faithful — vs a dedicated FieldKind::Guid), implement validate_value to accept FieldValue::Guid, extend the family/mismatch tables, document the decision in docs/FORMAT-JET.md or ARCHITECTURE §7. Do it before the Phase 4 storage mapping step.
+- **Acceptance:** A Guid column of a real fixture maps to a FieldKind that accepts FieldValue::Guid; family/mismatch coverage stays >= gate.
+- **Done:** decided: dedicated FieldKind::Guid; implemented with H16 (tests f4c96d3/e1bb1bb, adapter 67a3b64); decision documented in docs/FORMAT-JET.md "Domain mapping"
+
+---
+
+### [x] H16 — StoragePort adapter — Jet4 backend implements the core port — 🟠
+- **Location:** `datacraft-storage/src/port_adapter.rs` (new), required before Phase 5 opens real files
+- **Scope:** Implement core's `StoragePort` for the Jet4 reader backend: open (format detection via existing header decoder), close, tables (catalog -> `TableDef` mapping incl. the H12 decision for Guid columns), create_table/drop_table -> precise `PortError::Unsupported` until the writer workstream (H9) lands. Seam tests on BOTH sides per LESSONS #2: storage-side contract tests against the committed fixtures, core-side tests already exist against the mock.
+- **Acceptance:** A real fixture opens through `Core` with the Jet4 adapter; schema fields map to the core domain model; every port method tested on the storage side; canonical verification set green.
+- **Done:** step within Phase 5 (tests 96bc864/aacc8ab, feat 67a3b64); includes the multi-page TDEF decoder extension; seam tests on both sides per LESSONS #2
+
+---
+
+### [x] H18 — Ribbon bar — spec-driven Access-style ribbon — 🟠
+- **Location:** `datacraft-core/src/ribbon.rs` (spec + tests), `datacraft-ui/src/ribbon.rs` (rendering)
+- **Scope:** Ribbon data model in core (pure, tested): tabs File/Home/Create/External Data/Database Tools, groups, actions with stable ids and labels; the UI renders buttons from the spec and dispatches Commands (Home > Navigation Pane -> ToggleNavPane; File > Open Database -> text-field path + OpenDatabase; File > Close Database; Create-group actions render disabled with tooltips until their phases land). No layout or dispatch logic in paint code beyond spec lookups.
+- **Acceptance:** Core-side spec tests (unique ids/labels, every enabled action maps to a Command, disabled actions declare their phase); UI renders the spec; canonical verification set green.
+- **Done:** step 5.2 (test 483bca0, feat 14ec049)
+
+---
+
+### [x] H19 — Navigation pane — snapshot-driven object list — 🟠
+- **Location:** `datacraft-ui/src/nav_pane.rs`, snapshot-driven (no new core model)
+- **Scope:** Navigation pane rendering from `UiStateSnapshot`: table list with the convention test ids as egui push_ids, click dispatches `OpenObject` (single click = open, deterministic and testable), visibility follows `nav_pane_visible`, empty states for "no database" and "database without tables". Widgets derive IDs from the snapshot — never invent them (ARCHITECTURE §5).
+- **Acceptance:** Rendering is fully snapshot-driven (no hidden state), every listed table uses `navpane.<state>.node.<kind>.<name>` as its egui id salt; canonical verification set green.
+- **Done:** step 5.3 (feat a706624)
+
+---
+
+### [x] H20 — Tabbed document workspace — strip and placeholders — 🟠
+- **Location:** `datacraft-ui/src/workspace.rs`, snapshot-driven
+- **Scope:** Tabbed document workspace: tab strip from `UiStateSnapshot.tabs` (active highlight from `active_tab`), per-tab close buttons dispatch `CloseTab`, clicking a tab dispatches `SetActiveTab`, central area renders a per-object placeholder (table tabs: "Datasheet arrives in Phase 6"); push_ids use the `workspace.tab.<kind>.<name>` convention. Placeholder text is a tested pure function in core (`tab_placeholder(kind, name)`).
+- **Acceptance:** Strip/placeholder logic tested in core; UI renders strip + placeholders; canonical verification set green.
+- **Done:** step 5.4 (test 4a3a280, feat 015459d)
+
+---
+
+### [x] H22 — Shared grid core — virtual-scroll and hit-test math — 🟠
+- **Location:** `datacraft-core/src/grid.rs`, used by the datasheet (6.2) and the design grid (6.3)
+- **Scope:** Shared grid core per ARCHITECTURE §8 — pure, window-free layout math: row metrics (row/header height defaults), virtual-scroll math (visible row range for a viewport, scroll clamping), column hit-testing and column span geometry from a width vector. The datasheet and the design grid share these functions so virtualization behaves identically in both views.
+- **Acceptance:** Unit + proptest coverage (ranges stay inside 0..row_count, clamped scroll is a fixpoint, hit-testing inverse of span geometry); canonical verification set green.
+- **Done:** step 6.1 (test 62820e4, feat c256a10)
+
+---
+
+### [x] H21 — Compose the real Jet4Port in the UI binary (composition root) — 🟠
+- **Location:** `crates/datacraft-ui/src/main.rs` (composition root), `app.rs` (App::new signature)
+- **Problem:** The UI shell still composes `MockPort` (App::new constructs it internally), so File > Open Database "opens" an in-memory mock instead of a real .mdb file. The Jet4Port adapter exists (H16) but is unreachable from the binary.
+- **Scope:** App::new takes `Box<dyn StoragePort>`; the binary's main() (composition root) constructs `Jet4Port::new()` and injects it — the ui crate itself keeps depending on core only (layering rule ui -> core); the bin target is the one place allowed to name storage. Land with step 6.2 (datasheet needs real rows anyway); until then the mock stays the documented Phase 5 backend.
+- **Acceptance:** Opening the committed fixture through the UI shows its user tables in the navigation pane; the crate-level dependency graph stays ui -> core; canonical verification set green.
+- **Done:** step 6.2 (feat 8410069): App::new takes the port; main.rs composes Jet4Port as the documented composition root
+
+---
+
+### [x] H23 — Datasheet view — port read_rows, row mapping, real composition — 🟠
+- **Location:** `datacraft-core/src/port.rs` (read_rows), `datacraft-storage/src/port_adapter.rs` (row mapping), `datacraft-ui/src/datasheet.rs`, main.rs composition (H21)
+- **Scope:** Datasheet view over real rows: (1) StoragePort gains `read_rows(table, start, len) -> Result<Vec<Vec<FieldValue>>, PortError>` with the domain row vocabulary (storage maps StorageValue -> FieldValue 1:1); (2) the Jet4 adapter implements it over the existing row decode; (3) the UI renders a virtualized datasheet per table tab using the grid core (windowed reads per frame region, convention test ids `datasheet.<table>.cell.<row>.<col>`); (4) H21: the binary's composition root injects Jet4Port (App::new takes the port) so real files open.
+- **Acceptance:** Port contract tests on both sides (mock + real fixture rows, out-of-range windows); FieldValue mapping round-trips every storage variant; the fixture opens through the UI composition with its tables visible; canonical verification set green.
+- **Done:** step 6.2 (tests 704fc10/e606a07/2a7d3be, feats 8b97c26/8410069)
+
+---
+
+### [x] H24 — Table design view — read-only design grid and kind display names — 🟠
+- **Location:** `datacraft-core/src/present.rs` (kind display), `datacraft-core/src/snapshot.rs` (FieldSnapshot.kind_display), `datacraft-ui/src/design.rs`
+- **Scope:** Read-only table design view: Access-style kind display names (Short Text, Long Text, Byte/Integer/Long Integer/Single/Double/Decimal, Date/Time, Currency, AutoNumber flavors, Yes/No, OLE Object/Attachment, GUID) computed in core and carried on the snapshot; the UI renders a design grid (field name / data type / summary) per table tab with a per-tab Datasheet|Design mode toggle and a selected-field property panel. Design-time schema EDITING (add/rename/drop fields, save) needs the write path and is deferred to H9.
+- **Acceptance:** Kind-display contract tests per kind (incl. decimal precision/scale in the size column); snapshot carries kind_display; UI renders grid + properties; canonical verification set green.
+- **Done:** step 6.3 (core 3e6fe9a, ui 06c2982); design-time schema editing deferred to H9 (documented in the UI)
