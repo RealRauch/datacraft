@@ -162,7 +162,7 @@
 | 23.2 | egui headless UI tests with egui_kittest (T5) | ✅ |
 | 23.3 | Native-query decode errors surface at open (M10) | ✅ |
 | 23.4 | Phase 23 Quality Gate Review | ✅ |
-| 24.1 | Jet AutoNumber counter maintenance on insert (M8) | ⬜ |
+| 24.1 | Jet AutoNumber counter maintenance on insert (M8) | ✅ |
 | 24.2 | Jet table drops through the writer (M7) | ⬜ |
 | 24.3 | Design-time schema editing, ALTER TABLE (M9) | ⬜ |
 | 24.4 | Phase 24 Quality Gate Review | ⬜ |
