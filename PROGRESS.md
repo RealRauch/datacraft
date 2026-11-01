@@ -9,15 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 20 — Look & Typography (WordCraft neutrals, Teal accent) *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **20.1 Theme rebase: neutral tokens, Teal accent (U1)**
-- **20.2 Typography: Inter + type rungs (U2)**
-- **20.3 Original vector iconography (U3)**
-- **20.4 Dark mode: Appearance Light/Dark/System (U4)**
-- **20.5 Phase 20 Quality Gate Review**
 ### Phase 21 — Access UI Alignment *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -156,7 +147,7 @@
 | 20.2 | Typography: Inter + type rungs (U2) | ✅ |
 | 20.3 | Original vector iconography (U3) | ✅ |
 | 20.4 | Dark mode: Appearance Light/Dark/System (U4) | ✅ |
-| 20.5 | Phase 20 Quality Gate Review | ⬜ |
+| 20.5 | Phase 20 Quality Gate Review | ✅ |
 | 21.1 | Contextual ribbon tabs + Views split-button (U5) | ⬜ |
 | 21.2 | Quick Access Toolbar (U6) | ⬜ |
 | 21.3 | File backstage page (U7) | ⬜ |

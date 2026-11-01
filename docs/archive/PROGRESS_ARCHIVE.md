@@ -260,3 +260,16 @@
 - **19.2 Language switcher in the UI (I5)**
 - **19.3 Phase 19 Quality Gate Review**
 **Verification:** Gate passed: fmt 0, clippy -D warnings 0, workspace tests green (UI 39 unit + 10 e2e), file-size gate 0 after the app.rs split (195df3c), fixture manifest 14/14 OK (the Phase-18 note said 15/15 — the manifest has 14 entries, corrected here), CI debt scan clean, docs_validate clean. Coverage 93.46% local, unchanged from Phase 18 (UI crate excluded); Linux CI remains the binding >=95% gate (TESTING §2). I5 verified: live switch, immediate persistence, Auto→detection and the full precedence chain headless-tested; settings live only in ui.json and the sidecar is untouched. Commits: 6af3622/d898120 (19.1), d765cec/745f84f (19.2), 195df3c (gate split). (checkpoint: 195df3c)
+
+---
+
+### Phase 20 — Look & Typography (WordCraft neutrals, Teal accent) *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **20.1 Theme rebase: neutral tokens, Teal accent (U1)**
+- **20.2 Typography: Inter + type rungs (U2)**
+- **20.3 Original vector iconography (U3)**
+- **20.4 Dark mode: Appearance Light/Dark/System (U4)**
+- **20.5 Phase 20 Quality Gate Review**
+**Verification:** fmt --check and clippy -D warnings green; cargo test --workspace green; file-size gate green; local Windows coverage 91.98 % lines unchanged (datacraft-ui excluded by registry #1, platform gap documented in docs/TESTING.md §3); before/after light and dark screenshots under docs/phase-20 reviewed at the gate; the empty-workspace canvas defect found by the screenshots was fixed inline (F3). (checkpoint: 82e456a)

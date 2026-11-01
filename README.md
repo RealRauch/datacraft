@@ -33,11 +33,12 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–19 are complete; Phase 20
-> (the look rebase) has landed its feature steps — the neutral token system
-> with the teal accent, the Inter/JetBrains Mono type scale, the original
-> vector iconography and Light/Dark/System appearance (steps 20.1–20.4); the
-> phase quality gate follows.
+> **DataCraft is in early development.** Phases 1–20 are complete: the UI
+> shell now wears the rebased look (neutral tokens, teal accent,
+> Inter/JetBrains Mono typography, original vector iconography and
+> Light/Dark/System appearance). Phase 21 (Access UI alignment: contextual
+> ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX,
+> keyboard) is next.
 > The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
 > `.accdb` files (Jet4/ACE cross-checked against the libmdb oracle in CI) and
 > writes verified Jet4 table/row paths; the headless command bus drives a
@@ -209,7 +210,8 @@ Seventeen delivered phases and the planned UI work:
 | 16 — Complex Values & Encryption | attachments/multi-value/version history, RC4 passwords, Jet3 remainders | ✅ |
 | 17 — Macros, VBA & Docs Accuracy | read-only macro inventory, VBA extraction/viewer/static analysis, verified compatibility matrix | ✅ |
 | 18–19 — UI Localization & Settings | i18n kernel, complete German catalog, `ui.json`, language switcher | ✅ |
-| 20–21 — Look & Typography, Access UI Alignment | neutral tokens, Inter/JetBrains Mono typography, original vector iconography and Light/Dark/System appearance (steps 20.1–20.4 landed), Access UI alignment | ⬜ |
+| 20 — Look & Typography | neutral tokens, Inter/JetBrains Mono typography, original vector iconography, Light/Dark/System appearance | ✅ |
+| 21 — Access UI Alignment | contextual ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX, keyboard | ⬜ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
