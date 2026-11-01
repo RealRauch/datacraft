@@ -158,3 +158,15 @@
 - **12.5 Datasheet im Icon-Look (Teal-Header, Zeilenselektor)**
 - **12.6 Phase 12 Quality Gate Review**
 **Verification:** Final gate review passed (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 41 sections ok, llvm-cov >=95 lines exit 0, file-size clean, fixture manifest verified. App wears the icon palette (teal tile field as theme colour, paper chrome, ink text); ribbon/nav/status/datasheet follow Access structure. Visual acceptance (optically appealing) is the user's look at the running app. (checkpoint: 2400d58)
+
+---
+
+### Phase 13 — SQL- & SQLite-Integration
+
+**Scope (Steps):**
+
+- **13.1 SQLite-Datenquelle & Detection (H35)**
+- **13.2 SQLite-Writes & InsertRow-Command (H36)**
+- **13.3 SQL-Engine & UI-Fenster (H37)**
+- **13.4 Phase 13 Quality Gate Review**
+**Verification:** Quality gate review passed: fmt, clippy -D warnings, cargo test --workspace, coverage 95.05% (ui excluded), file-size gate (<500 lines), docs_validate clean, no TODO/FIXME/HACK/XXX. Review findings fixed in c9cdf67 (read-only SQLite files read and reject writes precisely; mapping tests split). Phase commits: ca61638/5a04e94 (13.1), 99ddb0b/390c79c (13.2), 1a58292/0400f63 (13.3), c9cdf67 (gate).
