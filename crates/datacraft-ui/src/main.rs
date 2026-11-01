@@ -29,6 +29,7 @@ mod ribbon;
 mod settings;
 mod shell;
 mod sql_window;
+mod icons;
 mod theme;
 mod vba_viewer;
 mod workspace;
