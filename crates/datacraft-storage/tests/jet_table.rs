@@ -452,3 +452,39 @@ fn overclaimed_var_entries_read_adjacent_bytes_structurally() {
     let values = decode_row(&row, &def, &file, PAGE).expect("structurally decodable");
     assert_eq!(values.len(), 3);
 }
+
+/// Column type 0x11 (BACKLOG L2 decision): a fixed-storage long binary —
+/// the fixture's MSysAccessObjects rows embed OLE compound documents
+/// (the `D0 CF 11 E0 A1 B1 1A E1` signature, verified on the fixture).
+#[test]
+fn column_type_0x11_decodes_as_fixed_long_binary() {
+    let columns = vec![JetColumn::new(
+        "Data",
+        JetType::LongBinary,
+        0x03,
+        0,
+        0,
+        16,
+    )];
+    let mut file = file_shell(2);
+    write_tdef(&mut file, 1, 1, 0x53, &columns);
+    let def = JetTableDef::decode(&file, 1).expect("0x11 decodes since the L2 decision");
+    assert_eq!(def.columns[0].data_type, JetType::LongBinary);
+    assert_eq!(def.columns[0].data_type.storage_type(), StorageDataType::Binary);
+
+    // A row carrying the OLE compound-file signature decodes to Binary.
+    let mut blob = vec![0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+    blob.extend_from_slice(&[0u8; 8]);
+    let row = build_row(1, &blob, &[], &[true]);
+    write_data_page(&mut file, 2, 1, &[row]);
+    let reader = Jet4TableReader::new(file).expect("opens");
+    let data = reader.read_table(1).expect("reads");
+    assert_eq!(
+        data.rows[0][0],
+        StorageValue::Binary({
+            let mut b = vec![0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+            b.extend_from_slice(&[0u8; 8]);
+            b
+        })
+    );
+}
