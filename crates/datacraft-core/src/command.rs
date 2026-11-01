@@ -65,6 +65,29 @@ pub enum Command {
         /// Zero-based index in the table's live-row order.
         row: usize,
     },
+    /// Previews a journaled write batch and stores it for confirmation
+    /// (step 11.11, M2). Nothing is written until `ApplyWrite`.
+    PreviewWrite {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// The batch (indices address the evolving row set).
+        ops: Vec<crate::journal::WriteOp>,
+    },
+    /// Applies the pending journal identified by `token` (step 11.11, M2).
+    ApplyWrite {
+        /// Token from the preview.
+        token: u64,
+    },
+    /// Rolls the last applied journal back (inverse operations).
+    RollbackWrite {
+        /// Token of the applied journal.
+        token: u64,
+    },
+    /// Discards the pending journal without writing anything.
+    DiscardWrite {
+        /// Token from the preview.
+        token: u64,
+    },
     /// Opens the object in a tab (re-activates an existing tab instead of
     /// opening a second one for the same object).
     OpenObject(ObjectId),

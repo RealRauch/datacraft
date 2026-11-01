@@ -211,6 +211,60 @@ impl StoragePort for Jet4Port {
         self.with_writer(|writer| writer.delete_row(page, row))?;
         Ok(())
     }
+
+    fn write_row_ops(
+        &mut self,
+        table: &str,
+        ops: &[datacraft_core::port::RowWriteOp],
+    ) -> Result<(), PortError> {
+        if self.reader.is_none() {
+            return Err(no_database());
+        }
+        let page = self.page_of(table)?;
+        let definition = self.definition_of(table)?.clone();
+        // Validate and map every operation before a single byte is written.
+        let mut prepared = Vec::with_capacity(ops.len());
+        for op in ops {
+            prepared.push(match op {
+                datacraft_core::port::RowWriteOp::Insert(values) => {
+                    PreparedOp::Insert(port_write::to_storage_values(&definition.fields, values)?)
+                }
+                datacraft_core::port::RowWriteOp::Update { row, values } => PreparedOp::Update {
+                    row: *row,
+                    values: port_write::to_storage_values_for_update(&definition.fields, values)?,
+                },
+                datacraft_core::port::RowWriteOp::Delete { row } => {
+                    PreparedOp::Delete { row: *row }
+                }
+            });
+        }
+        // One writer session: the file is persisted only when every
+        // operation succeeded — the batch is atomic on this backend.
+        self.with_writer(|writer| {
+            for op in &prepared {
+                match op {
+                    PreparedOp::Insert(values) => writer.insert_row(page, values)?,
+                    PreparedOp::Update { row, values } => writer.update_row(page, *row, values)?,
+                    PreparedOp::Delete { row } => writer.delete_row(page, *row)?,
+                }
+            }
+            Ok(())
+        })?;
+        Ok(())
+    }
+}
+
+/// One validated operation of a batch write (domain values mapped to the
+/// storage vocabulary before any byte is written).
+enum PreparedOp {
+    Insert(Vec<crate::types::StorageValue>),
+    Update {
+        row: usize,
+        values: Vec<crate::types::StorageValue>,
+    },
+    Delete {
+        row: usize,
+    },
 }
 
 /// Maps one stored value onto the domain vocabulary (1:1 — the variants

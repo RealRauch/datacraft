@@ -50,6 +50,42 @@ pub enum Event {
         /// Zero-based index in the live-row order at delete time.
         row: usize,
     },
+    /// A write batch was previewed and awaits confirmation (step 11.11).
+    WritePreviewed {
+        /// Canonical table name.
+        table: String,
+        /// Confirmation token for `ApplyWrite`.
+        token: u64,
+        /// The diff, one entry per operation.
+        changes: Vec<crate::journal::RowChange>,
+    },
+    /// A previewed write batch was applied (step 11.11).
+    WriteApplied {
+        /// Canonical table name.
+        table: String,
+        /// Token of the applied journal.
+        token: u64,
+        /// Rows appended.
+        inserted: usize,
+        /// Rows replaced.
+        updated: usize,
+        /// Rows removed.
+        deleted: usize,
+        /// Inverse operations in reverse application order.
+        rollback: Vec<crate::journal::WriteOp>,
+    },
+    /// The last applied journal was rolled back (step 11.11).
+    WriteRolledBack {
+        /// Canonical table name.
+        table: String,
+        /// Token of the rolled-back journal.
+        token: u64,
+    },
+    /// A previewed write batch was discarded without writing.
+    WriteDiscarded {
+        /// Token of the discarded journal.
+        token: u64,
+    },
     /// A new tab was opened (followed by `ActiveTabChanged`).
     TabOpened {
         /// Assigned tab id.

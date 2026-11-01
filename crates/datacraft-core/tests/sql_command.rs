@@ -124,7 +124,9 @@ fn the_cached_result_is_exposed_and_cleared_by_failures() {
 #[test]
 fn materialization_failures_are_precise() {
     // The table is catalogued but its rows cannot be read through the port.
-    let mut core = Core::new(Box::new(MockPort::with_tables(vec![table()])));
+    let mut port = MockPort::with_tables(vec![table()]);
+    port.with_read_failure("rows are unreadable");
+    let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
     });

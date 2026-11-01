@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use datacraft_core::port::{PortError, RowRange, StoragePort};
+use datacraft_core::port::{PortError, RowRange, RowWriteOp, StoragePort};
 use datacraft_core::schema::{BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_storage::StorageError;
 use datacraft_storage::StorageValue;
@@ -469,4 +469,41 @@ fn rows_behind_an_overflow_pointer_are_not_updated() {
         .expect_err("overflow row");
     assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
     assert!(err.to_string().contains("overflow"), "{err}");
+}
+
+#[test]
+fn a_batch_applies_in_order() {
+    let scratch = Scratch(scratch_copy("batch"));
+    let mut port = opened(&scratch.0);
+    let before = read_all(&port, "Table1");
+    let mut appended = table1_values();
+    appended[0] = FieldValue::Text("appended".into());
+    let ops = vec![RowWriteOp::Delete { row: 1 }, RowWriteOp::Insert(appended)];
+    port.write_row_ops("Table1", &ops).expect("apply the batch");
+    let after = read_all(&port, "Table1");
+    assert_eq!(after.len(), before.len());
+    assert_eq!(after[0], before[0]);
+    assert_eq!(after[1][0], FieldValue::Text("appended".into()));
+}
+
+#[test]
+fn a_failed_batch_leaves_the_file_untouched() {
+    let scratch = Scratch(scratch_copy("batch-atomic"));
+    let mut port = opened(&scratch.0);
+    let before = read_all(&port, "Table1");
+    let ops = vec![
+        RowWriteOp::Update {
+            row: 0,
+            values: table1_values(),
+        },
+        RowWriteOp::Delete { row: 99 },
+    ];
+    let err = port
+        .write_row_ops("Table1", &ops)
+        .expect_err("the batch fails on the second operation");
+    assert!(matches!(err, PortError::OutOfRange { .. }), "{err:?}");
+    assert_eq!(read_all(&port, "Table1"), before, "nothing was written");
+    port.close();
+    let reopened = opened(&scratch.0);
+    assert_eq!(read_all(&reopened, "Table1"), before);
 }

@@ -14,6 +14,7 @@ pub mod form;
 pub mod forms;
 pub mod grid;
 pub mod ids;
+pub mod journal;
 pub mod palette;
 pub mod port;
 pub mod present;

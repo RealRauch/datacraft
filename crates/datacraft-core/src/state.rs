@@ -34,6 +34,12 @@ pub struct AppState {
     /// Result of the last successful SQL run (not projected into the
     /// snapshot; the UI renders it from the core's state).
     pub sql_result: Option<crate::sql_engine::SqlResult>,
+    /// Next confirmation token the journal assigns (monotonic).
+    pub next_write_token: u64,
+    /// Previewed write batch awaiting confirmation (step 11.11, M2).
+    pub pending_write: Option<crate::journal::PendingWrite>,
+    /// Last applied write batch, kept for rollback (step 11.11, M2).
+    pub last_applied: Option<crate::journal::AppliedWrite>,
 }
 
 impl AppState {
@@ -42,6 +48,7 @@ impl AppState {
         Self {
             nav_pane_visible: true,
             next_tab_id: 1,
+            next_write_token: 1,
             ..Self::default()
         }
     }

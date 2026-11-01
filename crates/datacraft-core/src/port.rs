@@ -142,8 +142,41 @@ pub trait StoragePort {
     ) -> Result<(), PortError>;
     /// Deletes the row at `row` (zero-based live-row index).
     fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError>;
+    /// Applies a batch of row operations in order (step 11.11, M2). Indices
+    /// address the row set as it evolves through the batch. Backends apply
+    /// the batch atomically where they can (Jet does); the default applies
+    /// the operations one by one.
+    fn write_row_ops(&mut self, table: &str, ops: &[RowWriteOp]) -> Result<(), PortError> {
+        for op in ops {
+            match op {
+                RowWriteOp::Insert(values) => self.insert_row(table, values)?,
+                RowWriteOp::Update { row, values } => self.update_row(table, *row, values)?,
+                RowWriteOp::Delete { row } => self.delete_row(table, *row)?,
+            }
+        }
+        Ok(())
+    }
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
+}
+
+/// One row operation of a batch write (the journal's port vocabulary).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum RowWriteOp {
+    /// Appends a row.
+    Insert(Vec<FieldValue>),
+    /// Replaces the row at `row`.
+    Update {
+        /// Zero-based live-row index in the evolving row set.
+        row: usize,
+        /// Full positional value list.
+        values: Vec<FieldValue>,
+    },
+    /// Removes the row at `row`.
+    Delete {
+        /// Zero-based live-row index in the evolving row set.
+        row: usize,
+    },
 }
 
 /// Window slice shared by implementations: start beyond the count is an
@@ -175,6 +208,7 @@ pub struct MockPort {
     opened: Option<OpenedDatabase>,
     open_fail: Option<String>,
     write_fail: Option<String>,
+    read_fail: Option<String>,
     /// Number of successful `open` calls (observability for tests).
     pub open_calls: usize,
     /// Number of `close` calls (observability for tests).
@@ -230,6 +264,13 @@ impl MockPort {
     /// Builder: makes every subsequent write fail with `detail`.
     pub fn with_write_failure(&mut self, detail: impl Into<String>) -> &mut Self {
         self.write_fail = Some(detail.into());
+        self
+    }
+
+    /// Builder: makes every subsequent row read fail with `detail`
+    /// (materialization-failure tests).
+    pub fn with_read_failure(&mut self, detail: impl Into<String>) -> &mut Self {
+        self.read_fail = Some(detail.into());
         self
     }
 
@@ -312,14 +353,20 @@ impl StoragePort for MockPort {
                 reason: "no database is open".to_owned(),
             });
         }
-        let Some(rows) = self
+        if let Some(detail) = &self.read_fail {
+            return Err(PortError::Unsupported {
+                reason: detail.clone(),
+            });
+        }
+        // A catalogued table without a row entry is an empty table.
+        let def = self.table_def(table)?;
+        let empty: Vec<Vec<FieldValue>> = Vec::new();
+        let rows = self
             .rows
             .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(table))
+            .find(|(key, _)| key.eq_ignore_ascii_case(&def.name))
             .map(|(_, rows)| rows)
-        else {
-            return Err(PortError::TableNotFound(table.to_owned()));
-        };
+            .unwrap_or(&empty);
         let (start, end) = window_slice(table, range, rows.len())?;
         Ok(rows[start..end].to_vec())
     }
