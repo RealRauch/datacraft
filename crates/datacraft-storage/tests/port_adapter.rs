@@ -213,3 +213,26 @@ fn read_rows_maps_storage_values_to_domain_values() {
     // Values are domain values, not storage values: spot-check a mapped row.
     let _ = FieldValue::Null;
 }
+
+#[test]
+fn relationships_read_from_msysrelationships() {
+    use datacraft_core::port::StoragePort as _;
+
+    let mut port = Jet4Port::new();
+    port.open(&fixture()).expect("fixture must open");
+    let rels = port.relationships().expect("relationships read");
+    // The fixture carries the two NavPane system relationships; every
+    // mapping names all four ends.
+    assert!(!rels.is_empty(), "fixture has relationships");
+    for rel in &rels {
+        assert!(!rel.table.is_empty() && !rel.column.is_empty());
+        assert!(!rel.related_table.is_empty() && !rel.related_column.is_empty());
+    }
+    let nav_pane_pair = rels.iter().find(|r| {
+        r.table == "MSysNavPaneGroups" && r.column == "GroupCategoryID"
+    });
+    assert!(
+        nav_pane_pair.is_some(),
+        "the documented fixture relationship must map: {rels:?}"
+    );
+}
