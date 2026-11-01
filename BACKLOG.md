@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T04:17
+# BACKLOG.md — Open items (As of: 2026-11-01T04:34
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -16,11 +16,6 @@
 
 > No open items.
 
-### [ ] H8 — CLI client as fourth headless command-bus client — 🟠
-- **Location:** new crate `crates/datacraft-cli` (bin `datacraft-cli`), step 9.4
-- **Scope:** Fourth client of the command bus (besides GUI, MCP/JSON-RPC server, test harness): args → `Command` variants → `dispatch()` → human-readable or `--json` output of events and `inspect()` snapshots. No logic — transport only; shares the transport layer with the Phase 9.1 MCP server. Exit codes meaningful and deterministic output for headless tests.
-- **Acceptance:** Every command-bus operation reachable from the shell; round-trip tests assert JSON snapshots; crate rules respected (ui/cli never touch storage directly).
-
 ### [ ] H9 — Jet4 writer workstream (create tables, write rows) — 🟠
 - **Location:** `datacraft-storage/src/jet/` (writer), post-Phase-4 workstream
 - **Scope:** Jet4 write milestone from ARCHITECTURE §6 (create tables, insert/update rows, usage-map allocation, index maintenance deferred). UI write commands route to `InMemoryEngine` until this lands; then the `Jet4Backend` gains write capability. Bit-for-bit goal: writes must open without repair prompts in MS Access — proven by golden round-trips + oracle.
@@ -30,6 +25,11 @@
 - **Location:** `datacraft-core/src/form.rs` (ReportDef sharing the canvas), `datacraft-ui/src/report_design.rs`
 - **Scope:** Report canvas: ReportDef shares the ControlKind canvas (page geometry instead of form size, print-oriented defaults); report design + print preview runtime; grouped/aggregate printing lands after the expression service (M1). Deferred from Phase 8 (forms landed first; the canvas math, palette and sidecar persistence are shared and already proven).
 - **Acceptance:** A report design persists in the sidecar, renders a print-preview runtime over source rows, and passes the canonical verification set.
+
+### [ ] H34 — Final documentation and release prep — 🟠
+- **Location:** README.md, docs/ARCHITECTURE.md, docs/HANDOFF removal check, workspace docs
+- **Scope:** Final documentation and release prep for the Phase 1-9 plan: README reflects the delivered feature set (storage read, command bus, JSON-RPC + MCP endpoint, E2E harness, CLI), the architecture table names all four clients and the new crates, the roadmap table closes Phase 9, stale session notes are cleaned up. No new features.
+- **Acceptance:** Docs build coherent with the tree (spot-checked paths exist), roadmap/status tables truthful, canonical verification set green.
 
 ---
 
@@ -105,3 +105,6 @@
 - H28 — WYSIWYG canvas — snap-to-grid math and form skeleton — done (step 8.1 (feat 414499e))
 - H29 — Access control types — palette, placement commands, drag — done (step 8.2 (feat e959928))
 - H30 — Form runtime — data binding, record navigation, sidecar file IO — done (step 8.3 (feat 7a189b8); report canvas deferred as H31)
+- H32 — MCP stdio endpoint — serve loop and datacraft-mcp binary — done (step 9.1 (feat 617e259))
+- H33 — Headless E2E harness — full stack over the wire — done (step 9.2 (test 245b49a))
+- H8 — CLI client as fourth headless command-bus client — done (step 9.4 (test 917174f, feat d31c759))

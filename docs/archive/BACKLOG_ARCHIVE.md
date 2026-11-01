@@ -286,3 +286,27 @@
 - **Scope:** Form runtime and data binding: FormDef gains a source table; Command::SetFormSource whitelists against the database; bound control fields validate against the source table (LESSONS #5) at bind time; the runtime view renders bound values for the current record with prev/next navigation (record index is UI state per tab) and a precise read-only note (edits land with H9); Command::SaveDesignDocument/LoadDesignDocument persist the sidecar to/from a real .datacraft file (all gates: version check on load, deterministic bytes). Report canvas (print layout) is deferred as its own item.
 - **Acceptance:** Binding whitelist tests (unknown source, unknown bound field), SetFormSource observable, runtime values verified via port rows through a mock, sidecar save/load round-trip through the filesystem incl. version gate, canonical verification set green.
 - **Done:** step 8.3 (feat 7a189b8); report canvas deferred as H31
+
+---
+
+### [x] H32 — MCP stdio endpoint — serve loop and datacraft-mcp binary — 🟠
+- **Location:** `datacraft-core/src/transport.rs` (serve loop over Read/Write), new bin target `datacraft-mcp` in the ui crate (composition root: Core + Jet4Port)
+- **Scope:** Stdio JSON-RPC 2.0 server (decision default 8): `serve(reader, writer, core)` reads line-delimited requests, answers via the existing codec (one response per line, flush per response, malformed lines still answer with -32700), EOF ends the session; `serve_stdio` wraps stdin/stdout. The `datacraft-mcp` bin composes Core over the real Jet4 port and runs the loop — the MCP endpoint agents connect to.
+- **Acceptance:** Serve-loop contract tests over in-memory streams (request/response correlation, malformed input resilience, EOF); end-to-end open-database through the loop; canonical verification set green.
+- **Done:** step 9.1 (feat 617e259)
+
+---
+
+### [x] H33 — Headless E2E harness — full stack over the wire — 🟠
+- **Location:** `crates/datacraft-ui/tests/server_e2e.rs` (harness = serve() over in-memory streams + the real Jet4 port against the committed fixture)
+- **Scope:** Headless E2E harness: drive the FULL stack over the wire — spawn serve() with the Jet4Port-composed Core, send JSON-RPC lines (open the committed fixture, inspect tables, run the schema/table lifecycle with a read-only rejection, QBE + RunQuery), assert on the response JSON (events + snapshots), never on pixels. The harness is the template agents copy for automation.
+- **Acceptance:** E2E suite covering open/inspect/create-drop/query flows over the wire; deterministic (fixture-backed); canonical verification set green.
+- **Done:** step 9.2 (test 245b49a)
+
+---
+
+### [x] H8 — CLI client as fourth headless command-bus client — 🟠
+- **Location:** new crate `crates/datacraft-cli` (bin `datacraft-cli`), step 9.4
+- **Scope:** Fourth client of the command bus (besides GUI, MCP/JSON-RPC server, test harness): args → `Command` variants → `dispatch()` → human-readable or `--json` output of events and `inspect()` snapshots. No logic — transport only; shares the transport layer with the Phase 9.1 MCP server. Exit codes meaningful and deterministic output for headless tests.
+- **Acceptance:** Every command-bus operation reachable from the shell; round-trip tests assert JSON snapshots; crate rules respected (ui/cli never touch storage directly).
+- **Done:** step 9.4 (test 917174f, feat d31c759)

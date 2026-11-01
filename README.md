@@ -31,7 +31,7 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–8 are complete: the
+> **DataCraft is in early development.** The Phase 1–9 plan is complete: the
 > pure-Rust storage engine core reads Jet4 `.mdb` files (cross-checked
 > against the libmdb oracle in CI), the headless command bus drives a
 > serializable snapshot with JSON-RPC support, the egui shell has the
@@ -73,6 +73,7 @@ _By the ArtCraft team._
 | **Headless command bus** | Total reducer (`dispatch` → deterministic events, failures as `Failed` events), serializable `inspect()` snapshots, deterministic test IDs, JSON-RPC 2.0 codec with full error semantics — GUI and agents speak the same language |
 | **Desktop shell** | Four-region egui shell (spec-driven ribbon, snapshot-driven navigation pane with click-to-open, tabbed workspace with close/activate, status bar) — all strings and logic computed in core, paint code renders only |
 | **Datasheet & design view** | Real fixture databases open through the composition root; virtualized datasheet over cached rows with Access-style cell rendering; read-only design grid with Access type names and a full property sheet |
+| **Headless automation** | `datacraft-mcp` — a stdio JSON-RPC 2.0 endpoint agents spawn; the headless E2E harness drives the full stack over the wire against real fixtures; `datacraft-cli` (open/exec/repl) as the fourth command-bus client with deterministic exit codes |
 | **Forms** | WYSIWYG designer with snap-to-grid drag, the Access toolbox palette (Label/Text Box/Check Box/Combo Box/Button/Subform), whitelisted data binding, runtime record navigation, and sidecar persistence (versioned .datacraft, database-name checked) |
 | **Relationships & QBE** | Relationship mapper window fed by MSysRelationships through the port; Access-style QBE grid (table/field/sort/show/criteria rows, schema-whitelisted, persisted in the sidecar); in-memory query engine with typed predicate coercion, AND/OR composition and stable multi-key sorts — no SQL parser |
 | **CI quality gates** | Coverage ≥ 95 % lines, every `.rs` file < 500 lines, zero `TODO`/`FIXME`/`HACK`/`XXX`, `rustfmt --check`, `clippy -D warnings`, test matrix on ubuntu-latest, windows-latest, macos-latest |
@@ -90,8 +91,15 @@ it automatically on build).
 ```bash
 git clone https://github.com/RealRauch/datacraft
 cd datacraft
-cargo run -p datacraft-ui        # the desktop shell window (Phase 1 skeleton)
+cargo run -p datacraft-ui        # the desktop shell
 cargo test --workspace           # unit, integration, proptest and golden-file tests
+```
+
+Headless clients of the same command bus:
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"inspect"}' | cargo run -p datacraft-ui --bin datacraft-mcp
+cargo run -p datacraft-cli -- open fixtures/testV2000.mdb --json
 ```
 
 The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
@@ -106,14 +114,20 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 
 | Layer | Crate | Job |
 | --- | --- | --- |
-| core | `datacraft-core` | domain model, command bus, application state, UI-state snapshots, deterministic test IDs (Phases 3–4) |
-| storage | `datacraft-storage` | `StorageEngine` trait, pure-Rust Jet/ACE backends, libmdb oracle (`cfg(test)` only) (Phase 2+) |
-| ui | `datacraft-ui` | eframe/egui desktop shell — binary `datacraft` (Phase 5+) |
+| core | `datacraft-core` | domain model, schema, command bus, query engine, application state, snapshots, JSON-RPC transport (Phases 3–4, 7) |
+| storage | `datacraft-storage` | `StorageEngine` trait, pure-Rust Jet/ACE backends + `StoragePort` adapter, libmdb oracle (`cfg(test)` only) (Phase 2+) |
+| ui | `datacraft-ui` | eframe/egui desktop shell (`datacraft`) and the MCP endpoint binary (`datacraft-mcp`) (Phase 5+) |
+| cli | `datacraft-cli` | the fourth command-bus client — binary `datacraft-cli` (Phase 9) |
 
 ```text
-datacraft-ui (egui) ──────► datacraft-core (command bus) ──► datacraft-storage (Jet/ACE)
-JSON-RPC / MCP (Phase 9) ──┘
+datacraft-ui (egui) ───────► datacraft-core (command bus) ──► datacraft-storage (Jet/ACE)
+datacraft-cli (shell) ──────┘            ▲
+JSON-RPC / MCP (datacraft-mcp) ──────────┘
 ```
+
+Dependency direction is one-way and review-enforced: `ui → core`,
+`cli → core`, `storage → core`, `core → nothing`; the binary targets
+are the composition roots that name storage.
 
 The UI never touches storage directly — every client speaks the same command
 language, and a ribbon button dispatches the identical `Command` as an MCP
@@ -136,7 +150,7 @@ Nine phases take DataCraft from skeleton to release:
 | 6 — Datasheet & Design View | shared grid core, datasheet, table design view | ✅ |
 | 7 — QBE Query Builder | relationship mapper, QBE grid, query engine | ✅ |
 | 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime | ✅ (reports: H31) |
-| 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep | ⬜ |
+| 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
