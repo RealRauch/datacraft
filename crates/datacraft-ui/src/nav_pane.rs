@@ -71,6 +71,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                                     .as_deref()
                                     .is_some_and(|active| active.eq_ignore_ascii_case(&name));
                                 ui.horizontal(|ui| {
+                                    crate::icons::icon(ui, kind.slug(), is_active);
                                     if ui.selectable_label(is_active, &name).clicked() {
                                         intent = Some((kind, name.clone()));
                                     }

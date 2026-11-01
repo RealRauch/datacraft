@@ -4,71 +4,90 @@
 //! monochrome ink strokes plus a teal accent, and returns whether the name
 //! is known. Keys are the existing stable ids — ribbon action ids and
 //! `ObjectKind::slug()` values — never invented labels. No image assets.
+//!
+//! Section painters live beside this file: `file` (open/close/save/load and
+//! pane actions), `data` (tables, queries, SQL, relationships) and
+//! `objects` (forms, reports, macros, modules).
+
+use eframe::egui;
+use eframe::egui::{Color32, Pos2, Rect, Stroke, StrokeKind};
+
+use crate::theme::tokens;
+
+mod data;
+mod file;
+mod objects;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use datacraft_core::ObjectKind;
-    use datacraft_core::ribbon::ribbon_spec;
-    use eframe::egui;
-    use eframe::egui::Color32;
+mod tests;
 
-    /// Paints one icon into a headless pass and reports dispatch + shapes.
-    fn paint_once(name: &str) -> (bool, usize) {
-        let ctx = egui::Context::default();
-        let mut dispatched = false;
-        let output = ctx.run_pass(egui::RawInput::default(), |ctx| {
-            let painter = ctx.layer_painter(egui::LayerId::background());
-            let rect = egui::Rect::from_min_size(egui::pos2(10.0, 10.0), egui::vec2(16.0, 16.0));
-            dispatched = paint(&painter, rect, name, ink(), accent());
-        });
-        (dispatched, output.shapes.len())
-    }
+/// Icon box in points (nav pane rows, document tabs, ribbon buttons).
+pub const ICON_SIZE: f32 = 16.0;
 
-    fn ink() -> Color32 {
-        Color32::from_rgb(0x24, 0x24, 0x24)
+/// Paints the icon named `name` into `rect`. Returns whether the name is
+/// known; unknown names paint nothing.
+pub fn paint(
+    painter: &egui::Painter,
+    rect: Rect,
+    name: &str,
+    ink: Color32,
+    accent: Color32,
+) -> bool {
+    match name {
+        "open_database" => file::open_database(painter, rect, ink, accent),
+        "close_database" => file::close_database(painter, rect, ink, accent),
+        "save_design" => file::save_design(painter, rect, ink, accent),
+        "load_design" => file::load_design(painter, rect, ink, accent),
+        "toggle_nav_pane" => file::nav_pane(painter, rect, ink, accent),
+        "import_file" => file::import_file(painter, rect, ink, accent),
+        "table" => data::table(painter, rect, ink, accent),
+        "table_design" => data::table_design(painter, rect, ink, accent),
+        "query_design" | "query" => data::query(painter, rect, ink, accent),
+        "query_sql" => data::sql(painter, rect, ink, accent),
+        "relationships" => data::relationships(painter, rect, ink, accent),
+        "form_design" | "form" => objects::form(painter, rect, ink, accent),
+        "report_design" | "report" => objects::report(painter, rect, ink, accent),
+        "macro" => objects::macro_object(painter, rect, ink, accent),
+        "module" => objects::module(painter, rect, ink, accent),
+        _ => return false,
     }
+    true
+}
 
-    fn accent() -> Color32 {
-        Color32::from_rgb(0x0F, 0x8B, 0x7E)
-    }
+/// Paints a 16 px icon inside a UI row; `active` swaps ink to accent ink.
+pub fn icon(ui: &mut egui::Ui, name: &str, active: bool) {
+    let tokens = tokens(ui.visuals());
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(ICON_SIZE, ICON_SIZE), egui::Sense::hover());
+    let ink = if active {
+        tokens.accent_text
+    } else {
+        tokens.text_muted
+    };
+    paint(ui.painter(), rect, name, ink, tokens.accent);
+}
 
-    /// Every ribbon action id from the core spec resolves to an icon.
-    #[test]
-    fn every_ribbon_action_has_an_icon() {
-        for tab in &ribbon_spec().tabs {
-            for group in &tab.groups {
-                for action in &group.actions {
-                    let (dispatched, shapes) = paint_once(action.id);
-                    assert!(dispatched, "ribbon action {:?} has no icon", action.id);
-                    assert!(shapes > 0, "ribbon action {:?} paints nothing", action.id);
-                }
-            }
-        }
-    }
+fn pt(rect: Rect, x: f32, y: f32) -> Pos2 {
+    rect.min + egui::vec2(rect.width() * x, rect.height() * y)
+}
 
-    /// Every object kind (nav pane, document tabs) resolves to an icon.
-    #[test]
-    fn every_object_kind_has_an_icon() {
-        for kind in [
-            ObjectKind::Table,
-            ObjectKind::Query,
-            ObjectKind::Form,
-            ObjectKind::Report,
-            ObjectKind::Macro,
-            ObjectKind::Module,
-        ] {
-            let (dispatched, shapes) = paint_once(kind.slug());
-            assert!(dispatched, "object kind {:?} has no icon", kind.slug());
-            assert!(shapes > 0, "object kind {:?} paints nothing", kind.slug());
-        }
-    }
+fn line(painter: &egui::Painter, rect: Rect, a: (f32, f32), b: (f32, f32), stroke: Stroke) {
+    painter.line_segment([pt(rect, a.0, a.1), pt(rect, b.0, b.1)], stroke);
+}
 
-    /// An unknown key is a no-op, never a panic or a stray shape.
-    #[test]
-    fn unknown_names_paint_nothing() {
-        let (dispatched, shapes) = paint_once("no_such_icon");
-        assert!(!dispatched);
-        assert_eq!(shapes, 0);
+fn polyline(
+    painter: &egui::Painter,
+    rect: Rect,
+    points: &[(f32, f32)],
+    stroke: Stroke,
+    closed: bool,
+) {
+    let mut points: Vec<Pos2> = points.iter().map(|(x, y)| pt(rect, *x, *y)).collect();
+    if closed {
+        points.push(points[0]);
     }
+    painter.add(egui::Shape::line(points, stroke));
+}
+
+fn rect_stroke(painter: &egui::Painter, rect: Rect, stroke: Stroke) {
+    painter.rect_stroke(rect, 1, stroke, StrokeKind::Inside);
 }

@@ -13,7 +13,9 @@ use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
 use crate::app::App;
 use crate::i18n::{t, tr};
+use crate::icons;
 use crate::settings::LanguageSetting;
+use crate::theme::GEOMETRY;
 use crate::theme::fonts;
 use crate::theme::tokens;
 
@@ -68,7 +70,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                         ui.push_id(id, |ui| match &action.state {
                             ActionState::Enabled => {
                                 if action.id == "table" {
-                                    if ribbon_button(ui, t(action.label)) {
+                                    if ribbon_button(ui, t(action.label), action.id) {
                                         app.create_table_flow();
                                     }
                                 } else if action.id == "open_database" {
@@ -78,25 +80,22 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                                 .desired_width(180.0)
                                                 .hint_text(t("path to .mdb")),
                                         );
-                                        if ribbon_button(ui, t(action.label)) {
+                                        if ribbon_button(ui, t(action.label), action.id) {
                                             intent = Some(Command::OpenDatabase {
                                                 path: app.open_path.clone().into(),
                                                 password: None,
                                             });
                                         }
                                     });
-                                } else if ribbon_button(ui, t(action.label))
+                                } else if ribbon_button(ui, t(action.label), action.id)
                                     && let Some(command) = command_for(action.id, app)
                                 {
                                     intent = Some(command);
                                 }
                             }
                             ActionState::DisabledIn { phase } => {
-                                ui.add_enabled(false, ribbon_button_shape(t(action.label)))
-                                    .on_disabled_hover_text(tr(
-                                        "arrives in {phase}",
-                                        &[("phase", phase)],
-                                    ));
+                                ribbon_button_disabled(ui, t(action.label), action.id)
+                                    .on_hover_text(tr("arrives in {phase}", &[("phase", phase)]));
                             }
                         });
                     }
@@ -165,18 +164,75 @@ fn language_group(ui: &mut egui::Ui, app: &mut App) {
     ui.separator();
 }
 
-/// An Access-sized command button (comfortable hit target).
-fn ribbon_button(ui: &mut egui::Ui, label: &str) -> bool {
-    ui.add(ribbon_button_shape(label)).clicked()
+/// An Access-sized command button (icon above the label).
+fn ribbon_button(ui: &mut egui::Ui, label: &str, icon: &str) -> bool {
+    ribbon_button_response(ui, label, icon, true).clicked()
 }
 
-fn ribbon_button_shape(label: &str) -> egui::Button<'static> {
-    egui::Button::new(
-        egui::RichText::new(label.to_owned())
-            .size(fonts::CONTROL.size)
-            .strong(),
-    )
-    .min_size(egui::vec2(0.0, 28.0))
+/// The disabled twin: painted muted, hovers with the phase hint.
+fn ribbon_button_disabled(ui: &mut egui::Ui, label: &str, icon: &str) -> egui::Response {
+    ribbon_button_response(ui, label, icon, false)
+}
+
+/// Custom-painted command button. A real egui button cannot host the vector
+/// icon, so the button is allocated and painted here; the AccessKit label
+/// keeps label-based addressing intact.
+fn ribbon_button_response(
+    ui: &mut egui::Ui,
+    label: &str,
+    icon: &str,
+    enabled: bool,
+) -> egui::Response {
+    let tokens = tokens(ui.visuals());
+    let font = egui::FontId::new(fonts::CONTROL.size, egui::FontFamily::Proportional);
+    let measure = ui
+        .painter()
+        .layout_no_wrap(label.to_owned(), font.clone(), tokens.text);
+    let width = (measure.size().x + 18.0).max(52.0);
+    let sense = if enabled {
+        egui::Sense::click()
+    } else {
+        egui::Sense::hover()
+    };
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 44.0), sense);
+
+    let visuals = if enabled {
+        *ui.style().interact(&response)
+    } else {
+        ui.style().visuals.widgets.noninteractive
+    };
+    ui.painter().rect(
+        rect,
+        GEOMETRY.widget_corner_radius,
+        visuals.weak_bg_fill,
+        visuals.bg_stroke,
+        egui::StrokeKind::Inside,
+    );
+
+    let ink = if enabled {
+        visuals.fg_stroke.color
+    } else {
+        tokens.text_disabled
+    };
+    let accent = if enabled {
+        tokens.accent
+    } else {
+        tokens.text_disabled
+    };
+    let icon_rect = egui::Rect::from_center_size(
+        egui::pos2(rect.center().x, rect.top() + 13.0),
+        egui::vec2(icons::ICON_SIZE, icons::ICON_SIZE),
+    );
+    icons::paint(ui.painter(), icon_rect, icon, ink, accent);
+
+    let galley = ui.painter().layout_no_wrap(label.to_owned(), font, ink);
+    ui.painter().galley(
+        egui::pos2(rect.center().x, rect.bottom() - 12.0) - galley.size() / 2.0,
+        galley,
+        ink,
+    );
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
+    response
 }
 
 /// Maps a static ribbon action onto its command. `None` for the

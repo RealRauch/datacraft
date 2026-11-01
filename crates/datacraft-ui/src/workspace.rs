@@ -45,6 +45,7 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                 for tab in &snapshot.tabs {
                     ui.push_id(&tab.ui_test_id, |ui| {
                         let is_active = Some(tab.id) == snapshot.active_tab;
+                        crate::icons::icon(ui, &tab.object_kind, is_active);
                         if ui.selectable_label(is_active, &tab.object_name).clicked() {
                             intent = Some(WorkspaceIntent::Activate(tab.id));
                         }
