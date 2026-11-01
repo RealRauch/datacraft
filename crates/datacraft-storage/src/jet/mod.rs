@@ -5,6 +5,7 @@
 
 pub mod catalog;
 pub mod data_page;
+pub mod encode;
 pub mod header;
 pub mod lval;
 pub mod page;
@@ -13,6 +14,7 @@ pub mod row;
 pub mod tdef;
 pub mod usage_map;
 pub mod writer;
+pub mod writer_tables;
 
 pub use catalog::{CATALOG_TDEF_PAGE, CatalogEntry, OBJECT_TYPE_TABLE};
 pub use data_page::DataPage;

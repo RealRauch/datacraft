@@ -24,8 +24,8 @@ const TDEF_USED_PAGES_AT: usize = 47;
 /// Read-modify-write access to a Jet4/ACE file buffer.
 #[derive(Debug)]
 pub struct Jet4Writer {
-    header: FileHeader,
-    file: Vec<u8>,
+    pub(crate) header: FileHeader,
+    pub(crate) file: Vec<u8>,
 }
 
 impl Jet4Writer {
@@ -129,7 +129,7 @@ impl Jet4Writer {
     /// `table_type` must be `0x4E`/`0x53`, `num_cols <= max_cols`, and
     /// `tdef_len` at least the 55-byte fixed header. Freed TDEF pages
     /// (re-filled with `ff 00 ff ff …`) fail this precisely.
-    fn ensure_plausible_tdef(&self, tdef_page: u32) -> Result<(), StorageError> {
+    pub(crate) fn ensure_plausible_tdef(&self, tdef_page: u32) -> Result<(), StorageError> {
         let page = self.header.page_slice(&self.file, tdef_page)?;
         if page_type(page) != PAGE_TYPE_TDEF {
             return Err(StorageError::Corrupt {
@@ -159,6 +159,18 @@ impl Jet4Writer {
     pub fn allocate_page(&mut self, tdef_page: u32) -> Result<u32, StorageError> {
         // Guard: the table definition must exist (validated by the map read).
         let _ = self.tdef_used_pages(tdef_page)?;
+        let page_no = self.append_page()?;
+        let (map_ref, mut used) = self.table_used_map(tdef_page)?;
+        used.set(page_no)?;
+        self.rewrite_map_row(map_ref, &used)?;
+        Ok(page_no)
+    }
+
+    /// Appends one page at EOF, marks it allocated in the global free map,
+    /// and returns its page number. No table ownership — the table-map bit
+    /// is [`Jet4Writer::allocate_page`]'s addition (TDEF and usage pages
+    /// are globally allocated only).
+    pub(crate) fn append_page(&mut self) -> Result<u32, StorageError> {
         let page_no = self.header.page_count as u32;
         self.file.resize(self.file.len() + self.header.page_size, 0);
         self.header.page_count += 1;
@@ -172,15 +184,11 @@ impl Jet4Writer {
         }
         global.clear(page_no)?;
         self.rewrite_map_row(MapRef { page: 1, row: 0 }, &global)?;
-
-        let (map_ref, mut used) = self.table_used_map(tdef_page)?;
-        used.set(page_no)?;
-        self.rewrite_map_row(map_ref, &used)?;
         Ok(page_no)
     }
 
     /// Fetches and decodes one usage-map row.
-    fn map_row(&self, map_ref: MapRef) -> Result<UsageMap, StorageError> {
+    pub(crate) fn map_row(&self, map_ref: MapRef) -> Result<UsageMap, StorageError> {
         let page = self.header.page_slice(&self.file, map_ref.page)?;
         if page_type(page) != PAGE_TYPE_DATA {
             return Err(StorageError::Corrupt {
@@ -204,7 +212,11 @@ impl Jet4Writer {
     /// back-to-front. Row slot indices (and therefore `(page, row)` map
     /// references) are preserved; offsets and the free-space field are
     /// recomputed (verified formula: `lowest_row_start - (14 + 2*count)`).
-    fn rewrite_map_row(&mut self, map_ref: MapRef, map: &UsageMap) -> Result<(), StorageError> {
+    pub(crate) fn rewrite_map_row(
+        &mut self,
+        map_ref: MapRef,
+        map: &UsageMap,
+    ) -> Result<(), StorageError> {
         let base = self.header.page_offset(map_ref.page)? as usize;
         let page_size = self.header.page_size;
         let page = &self.file[base..base + page_size];

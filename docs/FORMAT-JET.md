@@ -244,3 +244,27 @@ against the data-page scan (`owner == tdef`): **zero contradictions on all
   free-page reclaim is not needed for the write milestone (the fixture
   carries 27 zeroed pages that the global map marks allocated; they are
   preserved untouched).
+
+## Catalog insert recipe (writer — verified 2026-11-01, step 10.2)
+
+Decoded from real table rows of both fixture writers (jackcess `Table1`,
+Access `Table2`–`Table4`) — identical shape:
+
+- **Id** = the table's TDEF page number (both writers agree).
+- **ParentId** = `0x0F000001` (the "Tables" container row's Id; container
+  rows themselves use the magic Ids `0x0F000001`–`3`).
+- **Type** = 1 (table), **Flags** = 0 (user tables), **Owner** = the 2-byte
+  binary `E5 A3` (user-created; system rows carry `E4 A1`).
+- **DateCreate/DateUpdate** = OLE automation date, identical values.
+- **LvProp** = NULL is accepted on catalog rows (system rows carry NULL);
+  real writers store an LVAL-referenced property pack (single LVAL record,
+  935–2194 bytes, `MR2\0` header per HACKING). DataCraft writes NULL and
+  documents the divergence until the LVAL writer lands.
+- A new table's **usage page** (data page, owner 0) carries two rows:
+  used map (row 0) and free map (row 1), both initially empty.
+- **Free-map polarity**: bit set = page has room for another row. Observed
+  bracket on the fixture: a page with 75 free bytes is unmarked, pages with
+  966+ bytes are marked. The writer marks conservatively at ≥ 512 bytes.
+- **Data-page offset table order**: sorted by **descending offset** — the
+  physically lowest row is the offset table's LAST entry; appends extend
+  the table and place the row between the offset table and the lowest row.

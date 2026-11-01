@@ -154,7 +154,7 @@ fn decode_fixed(row: &[u8], col: &JetColumn) -> Result<StorageValue, StorageErro
 /// Storage length of a fixed column; numerics always occupy 17 bytes
 /// regardless of the stored length (booleans never reach byte decoding —
 /// their value lives in the null mask).
-fn fixed_len(col: &JetColumn) -> usize {
+pub(crate) fn fixed_len(col: &JetColumn) -> usize {
     match col.data_type {
         JetType::Numeric => 17,
         _ => col.len as usize,
