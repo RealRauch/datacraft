@@ -12,7 +12,7 @@ use datacraft_core::event::Event;
 use datacraft_core::ids::TabId;
 use datacraft_core::port::{DatabaseFormat, MockPort, PortError};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
-use datacraft_core::{command::Command, ObjectId};
+use datacraft_core::{ObjectId, command::Command};
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -27,7 +27,10 @@ fn opened_core() -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
     });
-    assert!(matches!(events.as_slice(), [Event::DatabaseOpened { .. }]), "{events:?}");
+    assert!(
+        matches!(events.as_slice(), [Event::DatabaseOpened { .. }]),
+        "{events:?}"
+    );
     core
 }
 
@@ -36,16 +39,10 @@ fn customers_def() -> TableDef {
         "Customers",
         vec![
             FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
-            FieldDef::new(
-                "name",
-                FieldKind::Text {
-                    max_len: 50,
-                },
-            ),
+            FieldDef::new("name", FieldKind::Text { max_len: 50 }),
         ],
     )
 }
-
 
 fn open_customers(core: &mut Core) -> TabId {
     let events = core.dispatch(Command::OpenObject(ObjectId::new(
@@ -53,7 +50,10 @@ fn open_customers(core: &mut Core) -> TabId {
         "Customers",
     )));
     match events.as_slice() {
-        [Event::TabOpened { tab_id, .. }, Event::ActiveTabChanged { .. }] => *tab_id,
+        [
+            Event::TabOpened { tab_id, .. },
+            Event::ActiveTabChanged { .. },
+        ] => *tab_id,
         other => panic!("expected tab open pair, got {other:?}"),
     }
 }
@@ -137,7 +137,9 @@ fn close_database_closes_open_tabs_first() {
     assert_eq!(
         core.dispatch(Command::CloseDatabase),
         vec![
-            Event::TabClosed { tab_id: TabId::new(1) },
+            Event::TabClosed {
+                tab_id: TabId::new(1)
+            },
             Event::DatabaseClosed,
         ]
     );
@@ -183,7 +185,9 @@ fn create_table_requires_an_open_database() {
 fn create_table_rejects_invalid_definitions() {
     let mut core = opened_core();
     let invalid = TableDef::new("", vec![FieldDef::new("id", FieldKind::Currency)]);
-    let reason = failed_reason(&core.dispatch(Command::CreateTable { definition: invalid }));
+    let reason = failed_reason(&core.dispatch(Command::CreateTable {
+        definition: invalid,
+    }));
     assert!(reason.contains("name"), "{reason}");
 }
 
@@ -193,10 +197,7 @@ fn create_table_rejects_duplicates_case_insensitively() {
     core.dispatch(Command::CreateTable {
         definition: customers_def(),
     });
-    let lower = TableDef::new(
-        "customers",
-        vec![FieldDef::new("id", FieldKind::Currency)],
-    );
+    let lower = TableDef::new("customers", vec![FieldDef::new("id", FieldKind::Currency)]);
     let reason = failed_reason(&core.dispatch(Command::CreateTable { definition: lower }));
     assert!(reason.contains("duplicate"), "{reason}");
 }
@@ -213,7 +214,9 @@ fn drop_table_closes_dependent_tabs_before_dropping() {
             table: "Customers".into(),
         }),
         vec![
-            Event::TabClosed { tab_id: TabId::new(1) },
+            Event::TabClosed {
+                tab_id: TabId::new(1)
+            },
             Event::TableDropped {
                 table: "Customers".into(),
             },
@@ -334,9 +337,13 @@ fn closing_the_active_tab_activates_the_next_lower_tab() {
     )));
     // Active is now tab 2; closing it activates tab 1.
     assert_eq!(
-        core.dispatch(Command::CloseTab { tab_id: TabId::new(2) }),
+        core.dispatch(Command::CloseTab {
+            tab_id: TabId::new(2)
+        }),
         vec![
-            Event::TabClosed { tab_id: TabId::new(2) },
+            Event::TabClosed {
+                tab_id: TabId::new(2)
+            },
             Event::ActiveTabChanged {
                 tab_id: Some(TabId::new(1)),
             },
@@ -344,9 +351,13 @@ fn closing_the_active_tab_activates_the_next_lower_tab() {
     );
     // Closing the last tab clears the activation.
     assert_eq!(
-        core.dispatch(Command::CloseTab { tab_id: TabId::new(1) }),
+        core.dispatch(Command::CloseTab {
+            tab_id: TabId::new(1)
+        }),
         vec![
-            Event::TabClosed { tab_id: TabId::new(1) },
+            Event::TabClosed {
+                tab_id: TabId::new(1)
+            },
             Event::ActiveTabChanged { tab_id: None },
         ]
     );
@@ -366,17 +377,25 @@ fn closing_a_background_tab_keeps_the_active_tab() {
         datacraft_core::ObjectKind::Table,
         "Orders",
     )));
-    core.dispatch(Command::SetActiveTab { tab_id: TabId::new(1) });
+    core.dispatch(Command::SetActiveTab {
+        tab_id: TabId::new(1),
+    });
     assert_eq!(
-        core.dispatch(Command::CloseTab { tab_id: TabId::new(2) }),
-        vec![Event::TabClosed { tab_id: TabId::new(2) }]
+        core.dispatch(Command::CloseTab {
+            tab_id: TabId::new(2)
+        }),
+        vec![Event::TabClosed {
+            tab_id: TabId::new(2)
+        }]
     );
 }
 
 #[test]
 fn close_tab_unknown_id_fails() {
     let mut core = opened_core();
-    let reason = failed_reason(&core.dispatch(Command::CloseTab { tab_id: TabId::new(9) }));
+    let reason = failed_reason(&core.dispatch(Command::CloseTab {
+        tab_id: TabId::new(9),
+    }));
     assert!(reason.contains("9"), "{reason}");
 }
 
@@ -395,7 +414,9 @@ fn set_active_tab_is_observable() {
         "Orders",
     )));
     assert_eq!(
-        core.dispatch(Command::SetActiveTab { tab_id: TabId::new(1) }),
+        core.dispatch(Command::SetActiveTab {
+            tab_id: TabId::new(1)
+        }),
         vec![Event::ActiveTabChanged {
             tab_id: Some(TabId::new(1)),
         }]
@@ -405,7 +426,9 @@ fn set_active_tab_is_observable() {
 #[test]
 fn set_active_tab_unknown_id_fails() {
     let mut core = opened_core();
-    let reason = failed_reason(&core.dispatch(Command::SetActiveTab { tab_id: TabId::new(7) }));
+    let reason = failed_reason(&core.dispatch(Command::SetActiveTab {
+        tab_id: TabId::new(7),
+    }));
     assert!(reason.contains("7"), "{reason}");
 }
 

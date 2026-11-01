@@ -5,7 +5,15 @@
 //! maps to one command, every observable outcome is queryable as serializable
 //! state. See `docs/ARCHITECTURE.md` §5.
 
+pub mod command;
+pub mod core;
+pub mod event;
+pub mod ids;
+pub mod port;
 pub mod schema;
+pub mod state;
+
+pub use ids::TabId;
 
 use serde::{Deserialize, Serialize};
 
