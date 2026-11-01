@@ -44,12 +44,12 @@ fn opened_core() -> Core {
 }
 
 fn open(core: &mut Core, name: &str) -> TabId {
-    let events = core.dispatch(Command::OpenObject(ObjectId::new(
-        ObjectKind::Table,
-        name,
-    )));
+    let events = core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Table, name)));
     match events.as_slice() {
-        [Event::TabOpened { tab_id, .. }, Event::ActiveTabChanged { .. }] => *tab_id,
+        [
+            Event::TabOpened { tab_id, .. },
+            Event::ActiveTabChanged { .. },
+        ] => *tab_id,
         other => panic!("expected tab open pair, got {other:?}"),
     }
 }
@@ -159,5 +159,11 @@ fn bulk_close_commands_round_trip_over_the_json_rpc_wire() {
             .to_string(),
     );
     let response: Value = serde_json::from_str(&raw).expect("response parses");
-    assert_eq!(response["result"]["snapshot"]["tabs"].as_array().unwrap().len(), 0);
+    assert_eq!(
+        response["result"]["snapshot"]["tabs"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
 }

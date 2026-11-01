@@ -53,9 +53,35 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                     ui.push_id(&tab.ui_test_id, |ui| {
                         let is_active = Some(tab.id) == snapshot.active_tab;
                         crate::icons::icon(ui, &tab.object_kind, is_active);
-                        if ui.selectable_label(is_active, &tab.object_name).clicked() {
+                        let label = ui.selectable_label(is_active, &tab.object_name);
+                        if label.clicked() {
                             intent = Some(WorkspaceIntent::Activate(tab.id));
                         }
+                        if label.middle_clicked() {
+                            intent = Some(WorkspaceIntent::Close(tab.id));
+                        }
+                        label.context_menu(|ui| {
+                            if menu_item(ui, format!("{}.menu.close", tab.ui_test_id), t("Close")) {
+                                intent = Some(WorkspaceIntent::Close(tab.id));
+                                ui.close();
+                            }
+                            if menu_item(
+                                ui,
+                                format!("{}.menu.close_others", tab.ui_test_id),
+                                t("Close Others"),
+                            ) {
+                                intent = Some(WorkspaceIntent::CloseOthers(tab.id));
+                                ui.close();
+                            }
+                            if menu_item(
+                                ui,
+                                format!("{}.menu.close_all", tab.ui_test_id),
+                                t("Close All"),
+                            ) {
+                                intent = Some(WorkspaceIntent::CloseAll);
+                                ui.close();
+                            }
+                        });
                         if ui.small_button("✕").clicked() {
                             intent = Some(WorkspaceIntent::Close(tab.id));
                         }
@@ -109,6 +135,13 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
 enum WorkspaceIntent {
     Activate(TabId),
     Close(TabId),
+    CloseOthers(TabId),
+    CloseAll,
+}
+
+/// One context-menu item with its convention test id.
+fn menu_item(ui: &mut egui::Ui, id: String, label: &str) -> bool {
+    ui.push_id(id, |ui| ui.button(label)).inner.clicked()
 }
 
 fn apply(app: &mut App, intent: WorkspaceIntent) {
@@ -118,6 +151,12 @@ fn apply(app: &mut App, intent: WorkspaceIntent) {
         }
         WorkspaceIntent::Close(tab_id) => {
             app.dispatch(Command::CloseTab { tab_id });
+        }
+        WorkspaceIntent::CloseOthers(tab_id) => {
+            app.dispatch(Command::CloseOtherTabs { tab_id });
+        }
+        WorkspaceIntent::CloseAll => {
+            app.dispatch(Command::CloseAllTabs);
         }
     }
 }

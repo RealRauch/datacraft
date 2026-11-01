@@ -258,6 +258,8 @@ impl Core {
             Command::OpenObject(object) => self.open_object(object, None),
             Command::OpenObjectInMode { object, mode } => self.open_object(object, Some(mode)),
             Command::CloseTab { tab_id } => self.close_tab(tab_id),
+            Command::CloseOtherTabs { tab_id } => self.close_other_tabs(tab_id),
+            Command::CloseAllTabs => self.close_all_tabs(),
             Command::SetActiveTab { tab_id } => self.set_active_tab(tab_id),
             Command::SetTabMode { tab_id, mode } => self.set_tab_mode(tab_id, mode),
         }
@@ -363,6 +365,49 @@ impl Core {
             return events;
         }
         vec![Event::TabClosed { tab_id }]
+    }
+
+    /// Closes every tab but `tab_id` (step 21.6, item U10); the kept tab
+    /// stays open and becomes active.
+    fn close_other_tabs(&mut self, tab_id: TabId) -> Vec<Event> {
+        if !self.state.tabs.iter().any(|tab| tab.id == tab_id) {
+            return failed(format!("unknown tab {tab_id}"));
+        }
+        let closed: Vec<TabId> = self
+            .state
+            .tabs
+            .iter()
+            .filter(|tab| tab.id != tab_id)
+            .map(|tab| tab.id)
+            .collect();
+        self.state.tabs.retain(|tab| tab.id == tab_id);
+        let mut events: Vec<Event> = closed
+            .into_iter()
+            .map(|tab_id| Event::TabClosed { tab_id })
+            .collect();
+        if self.state.active_tab != Some(tab_id) {
+            self.state.active_tab = Some(tab_id);
+            events.push(Event::ActiveTabChanged {
+                tab_id: Some(tab_id),
+            });
+        }
+        events
+    }
+
+    /// Closes every tab (step 21.6, item U10); the workspace ends empty.
+    fn close_all_tabs(&mut self) -> Vec<Event> {
+        if self.state.tabs.is_empty() {
+            return failed("no tabs are open");
+        }
+        let closed: Vec<TabId> = self.state.tabs.iter().map(|tab| tab.id).collect();
+        self.state.tabs.clear();
+        self.state.active_tab = None;
+        let mut events: Vec<Event> = closed
+            .into_iter()
+            .map(|tab_id| Event::TabClosed { tab_id })
+            .collect();
+        events.push(Event::ActiveTabChanged { tab_id: None });
+        events
     }
 
     fn set_active_tab(&mut self, tab_id: TabId) -> Vec<Event> {

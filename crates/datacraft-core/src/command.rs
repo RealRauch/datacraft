@@ -118,6 +118,14 @@ pub enum Command {
         /// The tab to close.
         tab_id: TabId,
     },
+    /// Closes every tab except `tab_id` and activates the kept tab
+    /// (step 21.6, item U10).
+    CloseOtherTabs {
+        /// The tab to keep.
+        tab_id: TabId,
+    },
+    /// Closes every document tab (step 21.6, item U10).
+    CloseAllTabs,
     /// Makes an existing tab the active one.
     SetActiveTab {
         /// The tab to activate.

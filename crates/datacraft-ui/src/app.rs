@@ -18,6 +18,8 @@ use datacraft_core::query_engine::QueryResult;
 use datacraft_core::schema::FieldValue;
 use datacraft_core::snapshot::UiStateSnapshot;
 
+mod grid_state;
+
 /// Root application state.
 pub struct App {
     core: Core,
@@ -186,69 +188,6 @@ impl App {
         self.sql_error.as_deref()
     }
 
-    /// Row data of one table tab (cached; `None` until loaded).
-    pub fn rows_for(&self, tab_id: TabId) -> Option<&Vec<Vec<FieldValue>>> {
-        self.rows.get(&tab_id)
-    }
-
-    /// Query result of one query tab (cached; `None` until run).
-    pub fn results_for(&self, tab_id: TabId) -> Option<&QueryResult> {
-        self.results.get(&tab_id)
-    }
-
-    /// Buffered cells of a datasheet's new-record row, padded to the
-    /// table's column count (step 11.7).
-    pub fn new_row_cells(&self, tab_id: TabId, columns: usize) -> Vec<String> {
-        let mut cells = self.new_row.get(&tab_id).cloned().unwrap_or_default();
-        cells.resize(columns, String::new());
-        cells
-    }
-
-    /// Stores the edited new-record cells of a datasheet tab.
-    pub fn set_new_row_cells(&mut self, tab_id: TabId, cells: Vec<String>) {
-        self.new_row.insert(tab_id, cells);
-    }
-
-    /// Clears the buffered new-record cells of a datasheet tab (after a
-    /// successful insert).
-    pub fn clear_new_row(&mut self, tab_id: TabId) {
-        self.new_row.remove(&tab_id);
-    }
-
-    /// Effective column widths of a datasheet tab: the session's resized
-    /// widths padded/truncated to the current column count (step 21.4).
-    pub fn column_widths(&self, tab_id: TabId, columns: usize) -> Vec<f32> {
-        let stored = self
-            .column_widths
-            .get(&tab_id)
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        datacraft_core::grid::effective_widths(
-            stored,
-            columns,
-            datacraft_core::grid::DEFAULT_COLUMN_WIDTH,
-        )
-    }
-
-    /// Stores the session widths of a datasheet tab after a resize.
-    pub fn set_column_widths(&mut self, tab_id: TabId, widths: Vec<f32>) {
-        self.column_widths.insert(tab_id, widths);
-    }
-
-    /// Effective column widths of the SQL window's result grid.
-    pub fn sql_column_widths(&self, columns: usize) -> Vec<f32> {
-        datacraft_core::grid::effective_widths(
-            &self.sql_column_widths,
-            columns,
-            datacraft_core::grid::DEFAULT_COLUMN_WIDTH,
-        )
-    }
-
-    /// Stores the SQL window's result grid widths after a resize.
-    pub fn set_sql_column_widths(&mut self, widths: Vec<f32>) {
-        self.sql_column_widths = widths;
-    }
-
     /// Domain definition of a table (the new-record row needs field kinds).
     pub fn table_definition(&self, table: &str) -> Option<&datacraft_core::schema::TableDef> {
         self.core.table_definition(table)
@@ -382,6 +321,27 @@ impl App {
     /// Loads rows for every open table tab and drops caches after
     /// database/table changes.
     fn maintain_caches(&mut self, events: &[Event]) {
+        // A closed tab's presentation caches are never addressable again.
+        let closed: Vec<TabId> = events
+            .iter()
+            .filter_map(|event| match event {
+                Event::TabClosed { tab_id } => Some(*tab_id),
+                _ => None,
+            })
+            .collect();
+        for tab_id in closed {
+            self.rows.remove(&tab_id);
+            self.results.remove(&tab_id);
+            self.new_row.remove(&tab_id);
+            self.column_widths.remove(&tab_id);
+            self.previews.remove(&tab_id);
+            self.record_cursor.remove(&tab_id);
+            self.design_selection.remove(&tab_id);
+            self.form_selection.remove(&tab_id);
+            self.form_record.remove(&tab_id);
+            self.preview_page.remove(&tab_id);
+            self.drags.retain(|(id, _), _| *id != tab_id);
+        }
         if events
             .iter()
             .any(|e| matches!(e, Event::DatabaseClosed | Event::TableDropped { .. }))
