@@ -1,16 +1,18 @@
-//! Contract suite for the ribbon specification (step 5.2, item H18).
+//! Contract suite for the ribbon specification (step 5.2, item H18;
+//! contextual tabs in step 21.1, item U5).
 //!
 //! ARCHITECTURE §5 test-ID convention: `ribbon.<tab>.<group>.<action>`.
 //! The spec is static data in core (tested here); the UI renders buttons
 //! from it and maps enabled actions to commands — no dispatch logic in
 //! paint code beyond that mapping.
 
-use datacraft_core::ribbon::{ActionState, ribbon_spec};
+use datacraft_core::ribbon::{ActionState, rendered_tabs, ribbon_spec};
 
-const DISPATCHABLE_ACTIONS: [&str; 11] = [
+const DISPATCHABLE_ACTIONS: [&str; 12] = [
     "ribbon.file.open.open_database",
     "ribbon.file.database.close_database",
     "ribbon.home.view.toggle_nav_pane",
+    "ribbon.home.views.view_mode",
     "ribbon.create.queries.query_design",
     "ribbon.create.forms.form_design",
     "ribbon.create.reports.report_design",
@@ -37,10 +39,84 @@ fn the_spec_carries_the_five_access_tabs_in_order() {
 }
 
 #[test]
+fn contextual_tabs_cover_every_kind_with_a_design_view() {
+    let spec = ribbon_spec();
+    let contexts: Vec<&str> = spec
+        .contextual_tabs
+        .iter()
+        .map(|entry| entry.context)
+        .collect();
+    assert_eq!(contexts, ["table", "query", "form", "report"]);
+    let ids: Vec<&str> = spec
+        .contextual_tabs
+        .iter()
+        .map(|entry| entry.tab.id)
+        .collect();
+    assert_eq!(ids, ["table_tools", "query_tools", "form_tools", "report_tools"]);
+    let labels: Vec<&str> = spec
+        .contextual_tabs
+        .iter()
+        .map(|entry| entry.tab.label)
+        .collect();
+    assert_eq!(
+        labels,
+        ["Table Tools", "Query Tools", "Form Tools", "Report Tools"]
+    );
+}
+
+#[test]
+fn rendered_tabs_appends_the_matching_contextual_tab_last() {
+    let base: Vec<&str> = rendered_tabs(None).iter().map(|tab| tab.id).collect();
+    assert_eq!(
+        base,
+        ["file", "home", "create", "external_data", "database_tools"]
+    );
+    let table: Vec<&str> = rendered_tabs(Some("table"))
+        .iter()
+        .map(|tab| tab.id)
+        .collect();
+    assert_eq!(
+        table,
+        [
+            "file",
+            "home",
+            "create",
+            "external_data",
+            "database_tools",
+            "table_tools"
+        ]
+    );
+    let macro: Vec<&str> = rendered_tabs(Some("macro"))
+        .iter()
+        .map(|tab| tab.id)
+        .collect();
+    assert_eq!(
+        macro,
+        ["file", "home", "create", "external_data", "database_tools"],
+        "kinds without a design view get no contextual tab"
+    );
+    for kind in ["query", "form", "report"] {
+        assert_eq!(
+            rendered_tabs(Some(kind)).last().map(|tab| tab.id),
+            Some(match kind {
+                "query" => "query_tools",
+                "form" => "form_tools",
+                _ => "report_tools",
+            })
+        );
+    }
+}
+
+#[test]
 fn every_action_has_a_unique_convention_test_id() {
     let spec = ribbon_spec();
     let mut ids: Vec<String> = Vec::new();
-    for tab in &spec.tabs {
+    let tabs = spec.tabs.iter().chain(
+        spec.contextual_tabs
+            .iter()
+            .map(|entry| &entry.tab),
+    );
+    for tab in tabs {
         for group in &tab.groups {
             for action in &group.actions {
                 let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
@@ -84,9 +160,29 @@ fn enabled_actions_exactly_match_the_ui_dispatch_mapping() {
 }
 
 #[test]
+fn contextual_tab_actions_are_dispatchable() {
+    for entry in &ribbon_spec().contextual_tabs {
+        for group in &entry.tab.groups {
+            for action in &group.actions {
+                assert!(
+                    matches!(action.state, ActionState::Enabled),
+                    "{} arrives in a later phase, not as a contextual command",
+                    action.id
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn disabled_actions_declare_their_arriving_phase() {
     let spec = ribbon_spec();
-    for tab in &spec.tabs {
+    let tabs = spec.tabs.iter().chain(
+        spec.contextual_tabs
+            .iter()
+            .map(|entry| &entry.tab),
+    );
+    for tab in tabs {
         for group in &tab.groups {
             for action in &group.actions {
                 match &action.state {
@@ -107,7 +203,12 @@ fn disabled_actions_declare_their_arriving_phase() {
 #[test]
 fn labels_are_non_empty_everywhere() {
     let spec = ribbon_spec();
-    for tab in &spec.tabs {
+    let tabs = spec.tabs.iter().chain(
+        spec.contextual_tabs
+            .iter()
+            .map(|entry| &entry.tab),
+    );
+    for tab in tabs {
         assert!(!tab.label.is_empty());
         for group in &tab.groups {
             assert!(!group.label.is_empty());

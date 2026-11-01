@@ -343,21 +343,22 @@ fn next_name(used: Vec<String>, prefix: &str) -> String {
 mod tests {
     use super::*;
     use datacraft_core::port::MockPort;
+    use datacraft_core::ribbon::rendered_tabs;
 
     /// Seam contract (LESSONS #2): every enabled spec action except the
-    /// input-bound open_database maps to a command; nothing else does.
+    /// input-bound `open_database`, the state-bound `view_mode` and the
+    /// UI-flow `table` maps to a command; nothing else does.
     #[test]
     fn every_enabled_action_maps_to_a_command() {
         let app = App::new(Box::new(MockPort::new()));
-        for tab in &ribbon_spec().tabs {
+        for tab in rendered_tabs(Some("table")) {
             for group in &tab.groups {
                 for action in &group.actions {
                     let mapped = command_for(action.id, &app);
                     match &action.state {
-                        ActionState::Enabled if action.id != "open_database" => {
-                            if action.id == "table" {
-                                continue;
-                            }
+                        ActionState::Enabled
+                            if !matches!(action.id, "open_database" | "view_mode" | "table") =>
+                        {
                             assert!(
                                 mapped.is_some(),
                                 "enabled action {} has no mapping",
