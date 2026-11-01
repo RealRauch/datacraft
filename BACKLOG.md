@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T14:48
+# BACKLOG.md — Open items (As of: 2026-11-01T17:45
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -15,6 +15,31 @@
 ## 🟠 HIGH
 
 > No open items.
+
+### [ ] I1 — i18n kernel in the UI crate — 🟠
+- **Location:** `crates/datacraft-ui/src/i18n.rs` (neu) + `crates/datacraft-ui/src/i18n/` (Katalog-Module), `crates/datacraft-ui/Cargo.toml` (neue Dependency `sys-locale`); Modell: WordCraft `crates/ui-egui/src/i18n.rs`; ADR-4 in `docs/ARCHITECTURE.md` §15
+- **Approach:** `t()`/`tr()` with the English source string as the lookup key (gettext pattern); embedded German catalog tables; a missing translation falls back to the English source unchanged (incremental coverage never breaks a build). `Lang` selection: setting `"auto"` (default) → system detection via `sys-locale` (`de*` → German, anything else → English), `DATACRAFT_LANGUAGE` environment override wins over detection. The current language lives in UI state only — ADR-4: UI settings never write into core, the `.datacraft` sidecar or the wire; headless clients (MCP/CLI) stay English. **New dependency `sys-locale` (ui crate only) = Medium content gate → pause for release before landing.**
+- **Acceptance:** `t()` returns the English source for unknown keys; detection unit-tested (locale strings → language mapping incl. `None`/non-`de` fallback); env override beats detection; core untouched (`git diff crates/datacraft-core` empty); canonical verification set green.
+
+### [ ] I2 — All UI literals through t() — 🟠
+- **Location:** `crates/datacraft-ui/src/*.rs` (nav_pane.rs, workspace.rs, datasheet.rs, design.rs, qbe.rs, relationships.rs, sql_window.rs, form_design.rs, form_runtime.rs, report_design.rs, designer_palette.rs, shell.rs, ribbon.rs, app.rs `notice_for`, flows.rs); ADR-4
+- **Approach:** every hardcoded user-facing literal in the paint code goes through `t()` (~88 literals today). Data-dependent display text is localized in the UI from locale-neutral snapshot data: field-type names from the `FieldSnapshot.kind` enum (not the English `kind_display` string), Yes/No cell text from `FieldValue`, the status line from snapshot counts/format. Ribbon labels render via `t(spec.label)` (the English spec label is the key); toasts/hints become template functions with `{name}`-style placeholders. Core is not modified; `inspect()` JSON stays byte-identical in every language (wire-stability test).
+- **Acceptance:** no user-facing English literals left in paint code (grep allow-list: technical glyphs `✕`/`◀`/`▶` only); `git diff crates/datacraft-core` empty; wire-stability test green (fixture `inspect()` before/after byte-equal); canonical verification set green.
+
+### [ ] I3 — German catalog complete — 🟠
+- **Location:** `crates/datacraft-ui/src/i18n/` (de tables), `crates/datacraft-ui/src/i18n.rs` (parity tests)
+- **Approach:** full German translation of every catalog key using Access terminology (Datenblatt, Entwurfsansicht, Navigationsbereich, Datei/Start/Erstellen/Externe Daten/Datenbanktools). Parity tests enforce: every key present in the German tables, non-empty, and diffed against the English source so nothing drifts silently. Layout sanity: longer German strings must not truncate in ribbon group captions and the status bar (checked in the manual gate run, noted in PROGRESS).
+- **Acceptance:** parity tests green; the app shows German on a German system and English otherwise (fallback proven); canonical verification set green.
+
+### [ ] U1 — Theme rebase: WordCraft-style neutral tokens, Teal accent — 🟠
+- **Location:** `crates/datacraft-ui/src/theme.rs` (token system), paint sites referencing theme constants; ADR-6 in `docs/ARCHITECTURE.md` §15; model: WordCraft `crates/ui-egui/src/theme.rs`
+- **Approach:** token-based theme adopting the model's **neutral** system: chrome/title bar `#F0F0F0`, ribbon `#F9F9F9`, canvas `#E6E6E6`, panel `#FAFAFA`, text `#242424`/`#616161`/`#A8A8A8`, borders `#E1E1E1`/`#C8C8C8`, hover `#E6E6E6`, pressed `#D6D6D6`. **The accent family stays DataCraft teal and is derived from it — no accent colour is copied from the model (its blue is explicitly rejected):** accent `#0F8B7E`, accent_text `#0B6B60`, checked/selection `#DCE9E4` (existing TEAL_WASH), on_accent `#F8F4EA` (ON_TEAL). Geometry from the model: item_spacing (6,4), button_padding (8,3), corner radii windows 8 / menus 6 / widgets 4, 1 px strokes. The derivation rule ("accent tokens are teal derivatives, never the model's blue") is pinned by a unit test.
+- **Acceptance:** all four regions render from tokens; accent-token test green (teal derivatives only); the brand icon's teal still matches the UI accent; before/after screenshots reviewed in the phase gate; canonical verification set green.
+
+### [ ] U2 — Typography: Inter + type rungs — 🟠
+- **Location:** `assets/fonts/` (neu: Inter-Regular/-Medium/-SemiBold TTF, JetBrainsMono-Regular optional — OFL, attribution file), `crates/datacraft-ui/src/theme.rs` (font definitions); model: WordCraft `theme.rs` font setup
+- **Approach:** embed the fonts via `include_bytes!` and register families like the model: proportional Inter first (egui defaults stay as fallback), named families `"medium"`/`"semibold"` (InterMedium/InterSemiBold → Inter → egui defaults), mono for the SQL editor. Type rungs: Chrome 12.5 px (tracking −0.012 em), Control 11.5 px, Caption 11.0 px (+0.018 em); egui styles Body/Button 12.5, Small 10.5, Heading 17 semibold. **New font assets = Medium content gate** (license/attribution required before landing).
+- **Acceptance:** all four regions use the rung scale; German strings lay out without truncation (gate check against I3's catalog); licences recorded in an attribution file; canonical verification set green.
 
 ---
 
@@ -60,6 +85,51 @@
 - **Approach:** `AddField`/`DropField`/`RenameField`/`SetFieldProperties` commands through the port, rewriting the TDEF while preserving row data; the design grid becomes editable with save/cancel and dispatches exactly one command per edit; shapes the writer cannot alter answer a precise `Unsupported`.
 - **Acceptance:** Design-view edits persist across a reopen with row data preserved; oracle check on the changed file; UI edits dispatch one command each; failures leave the file and state untouched.
 
+### [ ] I4 — App settings store (ui.json) — 🟡
+- **Location:** `crates/datacraft-ui/src/settings.rs` (neu), Config-Dir-Auflösung handgerollt (`%APPDATA%`/`XDG_CONFIG_HOME`/`~/Library/Application Support`, Fallback Home — keine neue Dependency); ADR-5 in `docs/ARCHITECTURE.md` §15
+- **Approach:** serde JSON at `<config>/datacraft/ui.json` storing `language` (`"auto"`/`"de"`/`"en"`) and window geometry now, appearance later (U4). Unknown values fall back to defaults instead of failing (WordCraft `ui.json` pattern). Strictly UI-owned — settings are **never** written into the `.datacraft` sidecar or any core state (ADR-5); loaded at startup, saved on change/close.
+- **Acceptance:** settings round-trip across restarts; corrupt/empty file → defaults, no panic; precedence per ADR-5 (setting > env > detection > auto); sidecar files untouched by the settings path; canonical verification set green.
+
+### [ ] I5 — Language switcher in the UI — 🟡
+- **Location:** `crates/datacraft-ui/src/ribbon.rs` (File tab group; moves into the backstage with U7), `app.rs`, `settings.rs` (I4); ADR-4/ADR-5
+- **Approach:** a language menu (Auto/Deutsch/English) in the File ribbon tab; selection persists to `ui.json`; precedence Setting > Env > Detection > Auto. Switching applies immediately — `t()` reads the current language each frame (WordCraft per-frame refresh pattern), no restart required.
+- **Acceptance:** switch applies live; persistence across restarts; `Auto` resolves per detection; headless test for the full precedence chain; canonical verification set green.
+
+### [ ] U3 — Original vector iconography (ribbon, nav pane, tabs) — 🟡
+- **Location:** `crates/datacraft-ui/src/icons.rs` (neu, reines Painter-Modul), `ribbon.rs`, `nav_pane.rs`, `workspace.rs`; model: WordCraft `crates/ui-egui/src/icons.rs`
+- **Approach:** original egui vector painter functions per icon (open/save/close/table/query/form/report/relationships/SQL/design …), mapped from the existing stable ids (ribbon action ids, `ObjectKind`) — never invented keys. Monochrome ink strokes with teal accents, no external image assets (clean-room and asset-free besides fonts).
+- **Acceptance:** every ribbon action, nav-pane object kind and document tab shows an icon; all icons live in one module and are painted at paint time; label-based addressing stays intact (kittest-ready, coordinate with T5); canonical verification set green.
+
+### [ ] U4 — Dark mode: Appearance Light/Dark/System — 🟡
+- **Location:** `crates/datacraft-ui/src/theme.rs` (dark token set + `Appearance`), `settings.rs` (I4) for persistence; model: WordCraft `desktop_theme.rs`/`theme.rs`; ADR-6
+- **Approach:** `Appearance { Light, Dark, System }` (default `System`) — both palettes installed per frame and egui picks by OS preference, exactly like the model. **Dark accents use the teal pendant (≈ `#3FA799`, dark on-accent ink), never the model's light blue.** WCAG contrast tests (4.5:1 text on accent, 3:1 borders) against the teal variants; unknown persisted appearance values fall back to the default.
+- **Acceptance:** System mode follows OS appearance live; persistence via `ui.json` (I4); contrast tests green for both palettes; canonical verification set green.
+
+### [ ] U5 — Contextual ribbon tabs + „Views" split-button — 🟡
+- **Location:** `crates/datacraft-core/src/ribbon.rs`, `command.rs`, `state.rs`, `snapshot.rs` (SetTabMode — Domänenzustand); `crates/datacraft-ui/src/ribbon.rs`, `workspace.rs`
+- **Approach:** the Home ribbon gains a "Views" group with a View split-button switching the active tab's mode (Datasheet/Design per object kind) — the Access convention, replacing the tab-strip toggle which is removed. When an object tab is active, contextual tabs (e.g. "Table Tools") render after "Database Tools", spec-driven from core. `tab_mode` moves from the UI-local HashMap into core state (`SetTabMode` command + `TabSnapshot.mode`) so agents see and drive it — this is document state, **not** a UI setting (ADR-4 boundary respected).
+- **Acceptance:** mode switch only via the Views button; snapshot exposes per-tab mode; contextual tabs appear per active kind; ribbon seam test updated; headless wire tests for `SetTabMode`; canonical verification set green.
+
+### [ ] U6 — Quick Access Toolbar — 🟡
+- **Location:** `crates/datacraft-ui/src/ribbon.rs` (QAT strip), `crates/datacraft-core/src/ribbon.rs` (QAT spec entries)
+- **Approach:** a compact top strip per the Access QAT convention, spec-driven from core like every ribbon region, starting with Save Design. Undo/Redo entries are declared but rendered disabled until the command bus gains a history (explicitly out of scope here; follow-up item owns them). QAT buttons dispatch exactly the same commands as their ribbon counterparts.
+- **Acceptance:** QAT renders and dispatches Save; Undo/Redo render disabled with a tooltip naming the follow-up; test ids per convention; canonical verification set green.
+
+### [ ] U7 — File backstage page — 🟡
+- **Location:** `crates/datacraft-ui/src/backstage.rs` (neu), `workspace.rs`/`ribbon.rs`, `settings.rs` (I4) für Recent; model: WordCraft `crates/ui-egui/src/backstage/`
+- **Approach:** activating the File tab renders a full-page backstage view (Open, Close Database, Recent Databases once I4 lands, New Table flow entry) instead of a ribbon tab with inline path inputs; the path TextEdits leave the ribbon. Every flow dispatches the same single commands as today.
+- **Acceptance:** open/close flows work from the backstage (one command each); the File tab shows the backstage page; test ids per convention; canonical verification set green.
+
+### [ ] U8 — Datasheet UX: column resize, header sort, row shading — 🟡
+- **Location:** `crates/datacraft-core/src/grid.rs` (pure math), `command.rs`/`qbe.rs` (sort mapping), `crates/datacraft-ui/src/datasheet.rs`
+- **Approach:** draggable column separators (per-session widths as presentation state in the App; hit-test/min-width math as pure functions in core `grid.rs` per the §8 principle), header click/right-click sort asc/desc mapped onto the query sort model — one command per action —, Access-style alternating row shading plus an edit marker on the selected/edited row.
+- **Acceptance:** columns resize by drag; header sort dispatches one command per action; grid math unit-tested in core; canonical verification set green.
+
+### [ ] U9 — Nav pane: category dropdown, context menu, group sort — 🟡
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs`; pure ordering helpers in core; model: WordCraft `panes.rs` patterns
+- **Approach:** the "All Access Objects" label becomes a (single-entry) category dropdown per the Access convention; objects are opened/deleted via a context menu (Open/Design/Delete), replacing the always-visible ✕ button; group headers gain a sort menu (name/type) implemented as a pure ordering function over the snapshot-derived list.
+- **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
+
 ---
 
 ## 🟢 LOW
@@ -80,6 +150,27 @@
 - **Location:** `crates/datacraft-storage/src/` (`MSysAccessStorage` → CFBF-Reassembly), `crates/datacraft-core/src/vba/` (neu: dir-/Modul-Stream-Decoder), UI-Viewer-Modul; `command.rs`
 - **Ansatz:** Embedded Compound File reassemblieren, `dir`-/Modul-Streams je `[MS-OVBA]` decodieren, Quelltext pro Modul ins Domain-Modell; Viewer (Modulbaum + Quelle + Volltextsuche) wie jedes andere DB-Objekt; headless statische Analyse (Call-Graph, eingebettete SQL-Literale, Tabellen-/Query-Referenzen, ungenutzte Module) — MCP-freundlich. Oracle: Referenz-*Outputs* als Golden-Daten, nie Code (Clean-Room-Muster wie H7). **Keine Ausführung** (ADR-2-Grenze).
 - **Acceptance:** Fixture mit VBA-Projekt; Extraction deterministisch/stabil; Viewer + Analyse über Bus/MCP; ADR-2-Grenze (kein Interpreter) in Tests verankert.
+
+### [ ] I6 — Failure-reason localization (post-V1) — 🟢
+- **Location:** `crates/datacraft-core/src/core.rs` + Dispatch-Module (erst stabile Failure-Codes), `crates/datacraft-ui/src/i18n/` (UI-seitige Zuordnung); ADR-4
+- **Problem:** `Event::Failed.reason` strings are English on the wire (~120 sites); localizing them inside core would put language into core (ADR-4 violation), so V1 keeps them English — agents key on data, not prose.
+- **Approach:** two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
+- **Acceptance:** every dispatch failure carries a stable code; the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs) switch to code assertions.
+
+### [ ] U10 — Tabs: middle-click close, context menu — 🟢
+- **Location:** `crates/datacraft-ui/src/workspace.rs`, `crates/datacraft-core/src/command.rs` (CloseAllTabs/CloseOtherTabs)
+- **Approach:** middle-click closes a tab; a right-click menu offers Close / Close Others / Close All — the latter two as new bus commands (one command per action, no UI-side loops over tabs), matching the §3 principle that every GUI action is exactly one command. Kind icons ride in with U3.
+- **Acceptance:** all three actions dispatch commands; headless wire tests for the new commands; test ids per convention; canonical verification set green.
+
+### [ ] U11 — Window title & status-bar conventions — 🟢
+- **Location:** `crates/datacraft-ui/src/main.rs`/`shell.rs`, `app.rs`
+- **Approach:** the viewport title follows the Access convention `{db} : Database ({format})` (localized via I2's catalog), updated on open/close without per-frame churn; with no database open the plain app name shows. The status bar gains an indicator slot (filter state placeholder) consistent with the Access status bar.
+- **Acceptance:** the title reflects the open database and clears on close; localized in both languages; the status indicator renders its disabled state; canonical verification set green.
+
+### [ ] U12 — Keyboard: shortcuts & ribbon key tips — 🟢
+- **Location:** `crates/datacraft-ui/src/` (new input handling in shell.rs or a small keys.rs), `ribbon.rs` (key tip overlay); model: WordCraft `crates/ui-egui/src/keytips.rs`
+- **Approach:** Ctrl+S (Save Design), Ctrl+W (Close Tab), Esc (cancel cell edit / close menu) mapped to the same single commands as their buttons; Alt reveals ribbon key tips rendered from the spec ids (never invented labels). Keyboard documentation rides with M6's README accuracy pass, not here.
+- **Acceptance:** shortcuts dispatch one command each; key tips visible after Alt and match the spec; headless-testable where egui permits (coordinate with T5); canonical verification set green.
 
 ---
 

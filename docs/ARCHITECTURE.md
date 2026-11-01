@@ -297,3 +297,41 @@ defined re-evaluation gate. Ring model, rationale and gate: `docs/ROADMAP.md`
 is command-bus-first (headless JSON-RPC/MCP + CLI); an embedded *existing*
 sandboxed language behind a reserved, unimplemented `ScriptEngine` trait is a
 post-Ring-4 decision — never a custom DSL (`docs/ROADMAP.md` §4).
+
+## 15. Localization, settings & look — decision record
+
+**Decision record (ADR-4, 2026-11-01): UI localization lives entirely in the
+UI layer.** UI settings — the display language first among them — never write
+into other areas of the app: `datacraft-core`, the `.datacraft` sidecar and
+the wire stay free of language state. Core remains locale-neutral and
+English; snapshots and events are byte-identical regardless of the UI
+language, so MCP/CLI agents see one stable contract. The translation layer
+follows the WordCraft (`crates/ui-egui/src/i18n.rs`) pattern: `t()`/`tr()`
+with the English source string as the lookup key, an embedded German catalog,
+and a graceful fallback — a missing translation renders the English source.
+Language selection: setting `"auto"` (default) → system detection via
+`sys-locale` (`de*` → German, anything else → English), overridable by the
+`DATACRAFT_LANGUAGE` environment variable. V1 scope is the UI surface
+(ribbon, nav pane, views, status bar, toasts); `Event::Failed.reason` texts
+stay English until core carries stable failure codes (BACKLOG I6).
+
+**Decision record (ADR-5, 2026-11-01): app settings live in a UI-owned
+`ui.json`, strictly separate from the sidecar.** The `.datacraft` sidecar is
+per-database design data (ADR-1) and must not absorb app preferences. The
+settings file sits at `<platform config dir>/datacraft/ui.json` (serde JSON,
+config dir resolved without a new dependency), stores language and window
+geometry now and appearance later, and treats unknown values as defaults
+instead of failing. Precedence: explicit setting > `DATACRAFT_LANGUAGE` >
+system detection > auto.
+
+**Decision record (ADR-6, 2026-11-01): the look rebase adopts the WordCraft
+neutral system; the accent family stays DataCraft teal.** Neutral tokens,
+geometry (corner radii 8/6/4, 1 px strokes, spacing) and typography (Inter
+families, type rungs Chrome 12.5 / Control 11.5 / Caption 11.0 px) come from
+the WordCraft `ui-egui` theme as the optical model. **No accent colour is
+copied from the model** — its blue is explicitly rejected; every
+accent-adjacent token (accent, accent_text, checked/selection, hover wash,
+on_accent, and the dark-mode pendants) derives from the brand teal
+`#0F8B7E`. Dark mode ships as `Appearance { Light, Dark, System }` (default
+System) with WCAG contrast tests against the teal variants. Fonts are openly
+licensed (OFL) and attributed.
