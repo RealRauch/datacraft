@@ -41,3 +41,9 @@ c2c3352c71aa3985bd620a322521eb9f67391cbb19ba9fefc376a24575896df7  testV2007.accd
 # source: andipaetzold/mdb-reader@3dc637a test/encryption/data/office-agile-4.2.accdb
 # (Office Agile AES encryption — precise Unsupported, no decrypt)
 bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2  officeAgile42.accdb
+
+# source: jahlborn/jackcess@be0a2139 src/test/data/V1997/testV1997.mdb (pristine)
+27788b47e17412427830e80c2cb69366885aa11b12c61422de73029194bef135  testV1997.mdb
+
+# source: jahlborn/jackcess@be0a2139 src/test/data/V1997/test2V1997.mdb (pristine)
+ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668  test2V1997.mdb

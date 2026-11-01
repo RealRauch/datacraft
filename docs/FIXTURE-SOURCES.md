@@ -99,6 +99,8 @@ MIT-licensed JS reader; test databases include material nobody else ships:
 | mdb-reader `V2000_no-password.mdb` @ 3dc637a (negative control) | 237 568 | `2a3298b87c4004270b75b02f43b25c0f89af6dd37720d704d4b9e3ba5109eb53` |
 | mdb-reader `V2010_with-password.accdb` @ 3dc637a (ACE Office encryption) | 319 488 | `03566c5aec35394a293ce5cdb400cb931b3ef3bb7f303bb202810209d00a655e` |
 | mdb-reader `office-agile-4.2.accdb` @ 3dc637a (Office Agile AES) | 315 392 | `bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2` |
+| jackcess `V1997/testV1997.mdb` @ be0a2139 (pristine, Jet3) | 118 784 | `27788b47e17412427830e80c2cb69366885aa11b12c61422de73029194bef135` |
+| jackcess `V1997/test2V1997.mdb` @ be0a2139 (pristine, Jet3 jump-table row) | 137 216 | `ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668` |
 
 The query fixture is pinned as `fixtures/queryTestV2000.mdb` (jackcess V2000,
 provenance in `fixtures/manifest`; native saved queries for the MSysQueries
