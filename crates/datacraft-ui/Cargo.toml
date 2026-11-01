@@ -12,6 +12,7 @@ name = "datacraft"
 path = "src/main.rs"
 
 [dependencies]
+datacraft-core = { workspace = true }
 eframe = "0.37.0"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 

@@ -1,14 +1,19 @@
 //! DataCraft desktop shell (eframe/egui).
 //!
-//! Phase 1 skeleton: proves the GUI stack builds and opens a window. The full
-//! layout (ribbon, navigation pane, tabbed workspace) is built in Phase 5 on
-//! top of the headless core (see `docs/ARCHITECTURE.md` §3/§5).
+//! Phase 5 skeleton: the four-region shell (ribbon, navigation pane,
+//! tabbed workspace, status bar) driven by the headless core
+//! (`docs/ARCHITECTURE.md` §5). The ribbon grows in step 5.2, the
+//! navigation pane in 5.3 and the workspace in 5.4.
 //!
 //! Coverage policy: this crate is rendering glue only — logic lives in
 //! `datacraft-core`; the crate is excluded from the coverage gate
 //! (exception registry in `docs/TESTING.md`).
 
+mod app;
+
 use eframe::egui;
+
+use crate::app::App;
 
 /// Embedded 64 px brand render (assets/app-icon, Crafting Apps office-symbol
 /// grammar — see `assets/app-icon/README.md`).
@@ -38,19 +43,11 @@ fn main() -> eframe::Result {
         viewport,
         ..Default::default()
     };
-    eframe::run_native("DataCraft", options, Box::new(|_cc| Ok(Box::new(App))))
-}
-
-/// Root application state. Phase 5 replaces this stub with the MDI layout
-/// driven by `datacraft-core` commands.
-#[derive(Default)]
-struct App;
-
-impl eframe::App for App {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        ui.heading("DataCraft");
-        ui.label("Phase 1 skeleton — UI layout arrives in Phase 5.");
-    }
+    eframe::run_native(
+        "DataCraft",
+        options,
+        Box::new(|_cc| Ok(Box::new(App::new()))),
+    )
 }
 
 #[cfg(test)]
@@ -63,5 +60,22 @@ mod tests {
         assert_eq!(icon.width, 64);
         assert_eq!(icon.height, 64);
         assert_eq!(icon.rgba.len(), 64 * 64 * 4);
+    }
+
+    #[test]
+    fn app_starts_with_a_closed_visible_shell() {
+        let app = App::new();
+        assert!(app.snapshot().database.is_none());
+        assert!(app.snapshot().nav_pane_visible);
+        assert!(app.snapshot().tabs.is_empty());
+    }
+
+    #[test]
+    fn dispatch_refreshes_the_snapshot() {
+        let mut app = App::new();
+        app.dispatch(datacraft_core::command::Command::ToggleNavPane);
+        assert!(!app.snapshot().nav_pane_visible);
+        app.dispatch(datacraft_core::command::Command::ToggleNavPane);
+        assert!(app.snapshot().nav_pane_visible);
     }
 }

@@ -47,7 +47,13 @@ fn open_database_states_name_format_and_table_count() {
 
 #[test]
 fn format_names_are_human_readable() {
-    assert_eq!(datacraft_core::port::DatabaseFormat::Jet3.to_string(), "Jet3");
-    assert_eq!(datacraft_core::port::DatabaseFormat::Jet4.to_string(), "Jet4");
+    assert_eq!(
+        datacraft_core::port::DatabaseFormat::Jet3.to_string(),
+        "Jet3"
+    );
+    assert_eq!(
+        datacraft_core::port::DatabaseFormat::Jet4.to_string(),
+        "Jet4"
+    );
     assert_eq!(datacraft_core::port::DatabaseFormat::Ace.to_string(), "Ace");
 }
