@@ -89,6 +89,39 @@ pub(super) fn sql(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Col
     );
 }
 
+/// View switch: a datasheet grid beside a design frame, joined by an
+/// accent rule (the Views split-button, step 21.1).
+pub(super) fn view_mode(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {
+    let stroke = Stroke::new(1.2, ink);
+    let sheet = Rect::from_min_max(pt(rect, 0.04, 0.20), pt(rect, 0.42, 0.80));
+    rect_stroke(painter, sheet, stroke);
+    line(painter, rect, (0.04, 0.38), (0.42, 0.38), stroke);
+    line(painter, rect, (0.23, 0.38), (0.23, 0.80), stroke);
+    let design = Rect::from_min_max(pt(rect, 0.58, 0.20), pt(rect, 0.96, 0.80));
+    rect_stroke(painter, design, stroke);
+    line(
+        painter,
+        rect,
+        (0.58, 0.38),
+        (0.96, 0.38),
+        Stroke::new(1.8, accent),
+    );
+    line(
+        painter,
+        rect,
+        (0.50, 0.50),
+        (0.50, 0.50),
+        Stroke::new(1.0, accent),
+    );
+    polyline(
+        painter,
+        rect,
+        &[(0.46, 0.44), (0.52, 0.50), (0.46, 0.56)],
+        Stroke::new(1.0, accent),
+        false,
+    );
+}
+
 /// Relationships: two linked tables.
 pub(super) fn relationships(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {
     let stroke = Stroke::new(1.2, ink);

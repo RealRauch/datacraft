@@ -100,6 +100,27 @@ pub struct DatabaseState {
     pub vba_error: Option<String>,
 }
 
+/// View mode of one document tab (step 21.1, item U5) — document state,
+/// not a UI setting (ADR-4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum TabMode {
+    /// The datasheet/data view (the default every tab opens in).
+    #[default]
+    Datasheet,
+    /// The design view.
+    Design,
+}
+
+impl TabMode {
+    /// The other view — the Views split-button's primary action.
+    pub const fn toggled(self) -> Self {
+        match self {
+            TabMode::Datasheet => TabMode::Design,
+            TabMode::Design => TabMode::Datasheet,
+        }
+    }
+}
+
 /// State of one open document tab.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TabState {
@@ -107,6 +128,9 @@ pub struct TabState {
     pub id: TabId,
     /// The object shown in the tab.
     pub object: ObjectId,
+    /// Current view mode (step 21.1, U5).
+    #[serde(default)]
+    pub mode: TabMode,
 }
 
 impl TabState {

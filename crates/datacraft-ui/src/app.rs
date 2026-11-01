@@ -30,8 +30,6 @@ pub struct App {
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
     /// Query results per query tab, refreshed when the QBE model changes.
     results: HashMap<TabId, QueryResult>,
-    /// View mode per tab (Datasheet default; table Design is read-only).
-    pub tab_mode: HashMap<TabId, TabMode>,
     /// Selected control per form-design tab.
     form_selection: HashMap<TabId, String>,
     /// Drag accumulation per (tab, control): (dx, dy), present while dragging.
@@ -75,16 +73,6 @@ pub struct App {
     pub(crate) position_rescued: bool,
 }
 
-/// View mode of a document tab (presentation state).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum TabMode {
-    /// The datasheet (default).
-    #[default]
-    Datasheet,
-    /// The read-only design grid.
-    Design,
-}
-
 impl App {
     /// Creates the app over the given storage backend (the binary's
     /// composition root injects the real Jet4 port, BACKLOG H21).
@@ -98,7 +86,6 @@ impl App {
             active_ribbon_tab: "home",
             rows: HashMap::new(),
             results: HashMap::new(),
-            tab_mode: HashMap::new(),
             form_selection: HashMap::new(),
             preview_page: HashMap::new(),
             previews: HashMap::new(),
@@ -248,24 +235,10 @@ impl App {
             .unwrap_or(&[])
     }
 
-    /// View mode of a tab (defaults to the datasheet).
-    pub fn tab_mode(&self, tab_id: TabId) -> TabMode {
-        self.tab_mode.get(&tab_id).copied().unwrap_or_default()
-    }
-
     /// One extracted VBA module (the viewer's read-only data source,
     /// step 17.2).
     pub fn vba_module(&self, name: &str) -> Option<&datacraft_core::vba::VbaModule> {
         self.core.vba_module(name)
-    }
-
-    /// Toggles a tab between datasheet and design view.
-    pub fn toggle_tab_mode(&mut self, tab_id: TabId) {
-        let next = match self.tab_mode(tab_id) {
-            TabMode::Datasheet => TabMode::Design,
-            TabMode::Design => TabMode::Datasheet,
-        };
-        self.tab_mode.insert(tab_id, next);
     }
 
     /// Current runtime record of a form tab (defaults to the first).

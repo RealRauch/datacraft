@@ -116,6 +116,13 @@ pub enum Event {
         /// The newly active tab, if any.
         tab_id: Option<TabId>,
     },
+    /// A tab's view mode changed (step 21.1, item U5).
+    TabModeSet {
+        /// The tab whose view changed.
+        tab_id: TabId,
+        /// The view after the change.
+        mode: crate::state::TabMode,
+    },
     /// The navigation pane visibility changed.
     NavPaneToggled {
         /// Visibility after the toggle.

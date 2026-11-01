@@ -50,7 +50,10 @@ fn opened_core() -> Core {
 fn open(core: &mut Core, kind: ObjectKind, name: &str) -> TabId {
     let events = core.dispatch(Command::OpenObject(ObjectId::new(kind, name)));
     match events.as_slice() {
-        [Event::TabOpened { tab_id, .. }, Event::ActiveTabChanged { .. }] => *tab_id,
+        [
+            Event::TabOpened { tab_id, .. },
+            Event::ActiveTabChanged { .. },
+        ] => *tab_id,
         other => panic!("expected tab open pair, got {other:?}"),
     }
 }
@@ -151,6 +154,9 @@ fn set_tab_mode_round_trips_over_the_json_rpc_wire() {
         .to_string(),
     );
     let response: Value = serde_json::from_str(&raw).expect("response parses");
-    assert_eq!(response["result"]["events"][0]["TabModeSet"]["mode"], "Design");
+    assert_eq!(
+        response["result"]["events"][0]["TabModeSet"]["mode"],
+        "Design"
+    );
     assert_eq!(response["result"]["snapshot"]["tabs"][0]["mode"], "Design");
 }

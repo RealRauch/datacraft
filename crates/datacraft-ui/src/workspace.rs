@@ -1,17 +1,18 @@
-//! Tabbed document workspace (step 5.4, item H20).
+//! Tabbed document workspace (step 5.4, item H20; view modes in 21.1).
 //!
 //! Tab strip and central area render purely from the snapshot: tabs carry
 //! their convention test ids (`workspace.tab.<kind>.<name>`) as push_id
 //! salts, clicking activates (`SetActiveTab`), the ✕ closes
-//! (`CloseTab`), and the central area shows the phase placeholder for the
-//! active tab. Intents are collected during paint and applied after —
-//! no per-frame snapshot clones, no hidden state.
+//! (`CloseTab`), and the central area shows the active tab's view — the
+//! mode lives in the core and changes only through the ribbon's Views
+//! split-button (step 21.1, U5). Intents are collected during paint and
+//! applied after — no per-frame snapshot clones, no hidden state.
 
 use eframe::egui;
 
-use crate::app::TabMode;
 use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
+use datacraft_core::state::TabMode;
 
 use crate::app::App;
 use crate::i18n::t;
@@ -48,7 +49,6 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 let snapshot = app.snapshot();
-                let mut toggled: Option<TabId> = None;
                 for tab in &snapshot.tabs {
                     ui.push_id(&tab.ui_test_id, |ui| {
                         let is_active = Some(tab.id) == snapshot.active_tab;
@@ -56,24 +56,11 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                         if ui.selectable_label(is_active, &tab.object_name).clicked() {
                             intent = Some(WorkspaceIntent::Activate(tab.id));
                         }
-                        if has_view_toggle(&tab.object_kind)
-                            && ui
-                                .small_button(match app.tab_mode(tab.id) {
-                                    TabMode::Datasheet => t("Design"),
-                                    TabMode::Design => t("Data"),
-                                })
-                                .clicked()
-                        {
-                            toggled = Some(tab.id);
-                        }
                         if ui.small_button("✕").clicked() {
                             intent = Some(WorkspaceIntent::Close(tab.id));
                         }
                     });
                     ui.separator();
-                }
-                if let Some(tab_id) = toggled {
-                    app.toggle_tab_mode(tab_id);
                 }
             });
         });
@@ -90,15 +77,15 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                 .active_tab
                 .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id).cloned());
             match active {
-                Some(tab) if tab.object_kind == "form" => match app.tab_mode(tab.id) {
+                Some(tab) if tab.object_kind == "form" => match tab.mode {
                     TabMode::Datasheet => crate::form_runtime::form_runtime_ui(app, &tab, ui),
                     TabMode::Design => crate::form_design::form_design_ui(app, &tab, ui),
                 },
-                Some(tab) if tab.object_kind == "report" => match app.tab_mode(tab.id) {
+                Some(tab) if tab.object_kind == "report" => match tab.mode {
                     TabMode::Datasheet => crate::report_design::report_preview_ui(app, &tab, ui),
                     TabMode::Design => crate::report_design::report_design_ui(app, &tab, ui),
                 },
-                Some(tab) if tab.object_kind == "query" => match app.tab_mode(tab.id) {
+                Some(tab) if tab.object_kind == "query" => match tab.mode {
                     TabMode::Datasheet => crate::datasheet::query_results_ui(app, &tab, ui),
                     TabMode::Design => crate::qbe::qbe_ui(app, &tab, ui),
                 },
@@ -108,7 +95,7 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                 Some(tab) if tab.object_kind == "module" => {
                     crate::vba_viewer::vba_viewer_ui(app, &tab, ui);
                 }
-                Some(tab) => match app.tab_mode(tab.id) {
+                Some(tab) => match tab.mode {
                     TabMode::Datasheet => crate::datasheet::datasheet_ui(app, &tab, ui),
                     TabMode::Design => crate::design::design_ui(app, &tab, ui),
                 },
@@ -124,11 +111,6 @@ enum WorkspaceIntent {
     Close(TabId),
 }
 
-/// Read-only viewers (macro inventory, later the VBA source) have no
-/// datasheet/design split.
-fn has_view_toggle(object_kind: &str) -> bool {
-    matches!(object_kind, "table" | "query" | "form" | "report")
-}
 fn apply(app: &mut App, intent: WorkspaceIntent) {
     match intent {
         WorkspaceIntent::Activate(tab_id) => {

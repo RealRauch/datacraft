@@ -52,11 +52,49 @@ pub struct RibbonTab {
     pub groups: Vec<RibbonGroup>,
 }
 
+/// One contextual tab (step 21.1, item U5): rendered after the base tabs
+/// while a tab of the matching object kind is active.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContextualTab {
+    /// Object-kind slug the tab belongs to (`"table"`, `"query"`, …).
+    pub context: &'static str,
+    /// The tab itself.
+    pub tab: RibbonTab,
+}
+
 /// The static ribbon specification.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RibbonSpec {
-    /// Tabs in render order (File first, like Access).
+    /// Base tabs in render order (File first, like Access).
     pub tabs: Vec<RibbonTab>,
+    /// Contextual tabs, appended after `tabs` while their kind is active.
+    pub contextual_tabs: Vec<ContextualTab>,
+}
+
+/// The Views group shared by Home and every contextual tab: the Access
+/// split-button that owns the only mode-switch affordance (step 21.1).
+fn views_group() -> RibbonGroup {
+    RibbonGroup {
+        id: "views",
+        label: "Views",
+        actions: vec![RibbonAction {
+            id: "view_mode",
+            label: "View",
+            state: ActionState::Enabled,
+        }],
+    }
+}
+
+/// One contextual tab carrying the shared Views group.
+fn contextual_tab(context: &'static str, id: &'static str, label: &'static str) -> ContextualTab {
+    ContextualTab {
+        context,
+        tab: RibbonTab {
+            id,
+            label,
+            groups: vec![views_group()],
+        },
+    }
 }
 
 /// The ribbon specification of the current feature set.
@@ -105,15 +143,18 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
         RibbonTab {
             id: "home",
             label: "Home",
-            groups: vec![RibbonGroup {
-                id: "view",
-                label: "View",
-                actions: vec![RibbonAction {
-                    id: "toggle_nav_pane",
-                    label: "Navigation Pane",
-                    state: ActionState::Enabled,
-                }],
-            }],
+            groups: vec![
+                RibbonGroup {
+                    id: "view",
+                    label: "View",
+                    actions: vec![RibbonAction {
+                        id: "toggle_nav_pane",
+                        label: "Navigation Pane",
+                        state: ActionState::Enabled,
+                    }],
+                },
+                views_group(),
+            ],
         },
         RibbonTab {
             id: "create",
@@ -202,9 +243,31 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
             ],
         },
     ],
+    contextual_tabs: vec![
+        contextual_tab("table", "table_tools", "Table Tools"),
+        contextual_tab("query", "query_tools", "Query Tools"),
+        contextual_tab("form", "form_tools", "Form Tools"),
+        contextual_tab("report", "report_tools", "Report Tools"),
+    ],
 });
 
 /// The shared ribbon specification.
 pub fn ribbon_spec() -> &'static RibbonSpec {
     &RIBBON
+}
+
+/// Tabs to render for the active object kind: the base tabs followed by
+/// the matching contextual tab, if the kind has one (step 21.1, item U5).
+pub fn rendered_tabs(active_kind: Option<&str>) -> Vec<&'static RibbonTab> {
+    let spec = ribbon_spec();
+    let mut tabs: Vec<&'static RibbonTab> = spec.tabs.iter().collect();
+    if let Some(kind) = active_kind {
+        tabs.extend(
+            spec.contextual_tabs
+                .iter()
+                .filter(|entry| entry.context == kind)
+                .map(|entry| &entry.tab),
+        );
+    }
+    tabs
 }

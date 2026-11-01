@@ -11,7 +11,7 @@ use crate::event::Event;
 use crate::ids::TabId;
 use crate::port::{PortError, StoragePort};
 use crate::snapshot::UiStateSnapshot;
-use crate::state::{AppState, TabState};
+use crate::state::{AppState, TabMode, TabState};
 
 /// The headless application core: reducer + state + storage port.
 pub struct Core {
@@ -258,6 +258,7 @@ impl Core {
             Command::OpenObject(object) => self.open_object(object),
             Command::CloseTab { tab_id } => self.close_tab(tab_id),
             Command::SetActiveTab { tab_id } => self.set_active_tab(tab_id),
+            Command::SetTabMode { tab_id, mode } => self.set_tab_mode(tab_id, mode),
         }
     }
 
@@ -316,6 +317,7 @@ impl Core {
         self.state.tabs.push(TabState {
             id: tab_id,
             object: object.clone(),
+            mode: TabMode::Datasheet,
         });
         self.state.active_tab = Some(tab_id);
         vec![
@@ -350,6 +352,23 @@ impl Core {
         vec![Event::ActiveTabChanged {
             tab_id: Some(tab_id),
         }]
+    }
+
+    /// Switches one tab's view (step 21.1, item U5). Only kinds with a
+    /// design view accept the switch; the failure is precise.
+    fn set_tab_mode(&mut self, tab_id: TabId, mode: TabMode) -> Vec<Event> {
+        let Some(tab) = self.state.tabs.iter_mut().find(|tab| tab.id == tab_id) else {
+            return failed(format!("unknown tab {tab_id}"));
+        };
+        if !tab.object.kind.has_design_view() {
+            return failed(format!(
+                "the {} tab {:?} has no design view",
+                tab.object.kind.slug(),
+                tab.object.name
+            ));
+        }
+        tab.mode = mode;
+        vec![Event::TabModeSet { tab_id, mode }]
     }
 
     /// Activation rule: the highest remaining tab id below the closed one,

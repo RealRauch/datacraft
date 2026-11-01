@@ -52,7 +52,10 @@ fn contextual_tabs_cover_every_kind_with_a_design_view() {
         .iter()
         .map(|entry| entry.tab.id)
         .collect();
-    assert_eq!(ids, ["table_tools", "query_tools", "form_tools", "report_tools"]);
+    assert_eq!(
+        ids,
+        ["table_tools", "query_tools", "form_tools", "report_tools"]
+    );
     let labels: Vec<&str> = spec
         .contextual_tabs
         .iter()
@@ -86,12 +89,12 @@ fn rendered_tabs_appends_the_matching_contextual_tab_last() {
             "table_tools"
         ]
     );
-    let macro: Vec<&str> = rendered_tabs(Some("macro"))
+    let read_only: Vec<&str> = rendered_tabs(Some("macro"))
         .iter()
         .map(|tab| tab.id)
         .collect();
     assert_eq!(
-        macro,
+        read_only,
         ["file", "home", "create", "external_data", "database_tools"],
         "kinds without a design view get no contextual tab"
     );
@@ -111,11 +114,10 @@ fn rendered_tabs_appends_the_matching_contextual_tab_last() {
 fn every_action_has_a_unique_convention_test_id() {
     let spec = ribbon_spec();
     let mut ids: Vec<String> = Vec::new();
-    let tabs = spec.tabs.iter().chain(
-        spec.contextual_tabs
-            .iter()
-            .map(|entry| &entry.tab),
-    );
+    let tabs = spec
+        .tabs
+        .iter()
+        .chain(spec.contextual_tabs.iter().map(|entry| &entry.tab));
     for tab in tabs {
         for group in &tab.groups {
             for action in &group.actions {
@@ -177,11 +179,10 @@ fn contextual_tab_actions_are_dispatchable() {
 #[test]
 fn disabled_actions_declare_their_arriving_phase() {
     let spec = ribbon_spec();
-    let tabs = spec.tabs.iter().chain(
-        spec.contextual_tabs
-            .iter()
-            .map(|entry| &entry.tab),
-    );
+    let tabs = spec
+        .tabs
+        .iter()
+        .chain(spec.contextual_tabs.iter().map(|entry| &entry.tab));
     for tab in tabs {
         for group in &tab.groups {
             for action in &group.actions {
@@ -203,11 +204,10 @@ fn disabled_actions_declare_their_arriving_phase() {
 #[test]
 fn labels_are_non_empty_everywhere() {
     let spec = ribbon_spec();
-    let tabs = spec.tabs.iter().chain(
-        spec.contextual_tabs
-            .iter()
-            .map(|entry| &entry.tab),
-    );
+    let tabs = spec
+        .tabs
+        .iter()
+        .chain(spec.contextual_tabs.iter().map(|entry| &entry.tab));
     for tab in tabs {
         assert!(!tab.label.is_empty());
         for group in &tab.groups {

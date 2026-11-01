@@ -61,7 +61,11 @@ fn every_ui_key_is_translated_and_no_entry_is_orphaned() {
 /// ribbon and toolbox specs plus the constants shared with the tests.
 fn dynamic_keys() -> BTreeSet<String> {
     let mut keys = BTreeSet::new();
-    for tab in &ribbon_spec().tabs {
+    let tabs = ribbon_spec()
+        .tabs
+        .iter()
+        .chain(ribbon_spec().contextual_tabs.iter().map(|entry| &entry.tab));
+    for tab in tabs {
         keys.insert(tab.label.to_owned());
         for group in &tab.groups {
             keys.insert(group.label.to_owned());

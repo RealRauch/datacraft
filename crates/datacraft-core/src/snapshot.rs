@@ -142,6 +142,10 @@ pub struct TabSnapshot {
     pub object_name: String,
     /// `workspace.tab.<kind>.<name>`.
     pub ui_test_id: String,
+    /// Current view mode (step 21.1, item U5).
+    pub mode: crate::state::TabMode,
+    /// Whether the tab has a second (design) view (step 21.1, item U5).
+    pub has_design_view: bool,
 }
 
 impl UiStateSnapshot {
@@ -238,6 +242,8 @@ impl UiStateSnapshot {
                     object_kind: tab.object.kind.slug().to_owned(),
                     object_name: tab.object.name.clone(),
                     ui_test_id: tab.ui_test_id(),
+                    mode: tab.mode,
+                    has_design_view: tab.object.kind.has_design_view(),
                 })
                 .collect(),
             active_tab: state.active_tab,

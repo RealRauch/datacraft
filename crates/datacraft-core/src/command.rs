@@ -115,6 +115,14 @@ pub enum Command {
         /// The tab to activate.
         tab_id: TabId,
     },
+    /// Switches one tab between its datasheet and design view (step 21.1,
+    /// item U5) — the Views split-button's single action.
+    SetTabMode {
+        /// The tab whose view changes.
+        tab_id: TabId,
+        /// The target view.
+        mode: crate::state::TabMode,
+    },
     /// Shows or hides the navigation pane.
     ToggleNavPane,
     /// Shows or hides the relationship mapper (Access opens it as a

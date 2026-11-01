@@ -72,6 +72,15 @@ impl ObjectKind {
             ObjectKind::Module => "module",
         }
     }
+
+    /// Whether tabs of this kind have a second (design) view (step 21.1,
+    /// item U5). The read-only inventory viewers have exactly one view.
+    pub fn has_design_view(self) -> bool {
+        matches!(
+            self,
+            ObjectKind::Table | ObjectKind::Query | ObjectKind::Form | ObjectKind::Report
+        )
+    }
 }
 
 /// Stable identifier of a database object (kind + name) — the anchor for
