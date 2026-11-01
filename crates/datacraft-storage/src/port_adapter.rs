@@ -33,6 +33,7 @@ use crate::jet::tdef::{JetColumn, JetTableDef, flags};
 use crate::jet::writer::Jet4Writer;
 use crate::jet::{JetType, OBJECT_TYPE_TABLE};
 use crate::mapping::to_field_value;
+use crate::port_errors::{map_open, map_open_with_path, map_write, no_database};
 use crate::port_write;
 use crate::types::FormatVersion;
 
@@ -56,11 +57,12 @@ impl Jet4Port {
 }
 
 impl StoragePort for Jet4Port {
-    fn open(&mut self, path: &Path) -> Result<OpenedDatabase, PortError> {
+    fn open(&mut self, path: &Path, password: Option<&str>) -> Result<OpenedDatabase, PortError> {
         let bytes = std::fs::read(path).map_err(|e| PortError::OpenFailed {
             detail: format!("{}: {e}", path.display()),
         })?;
-        let reader = Jet4TableReader::new(bytes).map_err(map_open)?;
+        let reader = Jet4TableReader::new_with_password(bytes, password)
+            .map_err(|error| map_open_with_path(error, path))?;
         let format = match reader.header().format {
             FormatVersion::Jet3 => DatabaseFormat::Jet3,
             FormatVersion::Jet4 => DatabaseFormat::Jet4,
@@ -332,14 +334,24 @@ impl Jet4Port {
         op: impl FnOnce(&mut Jet4Writer) -> Result<T, StorageError>,
     ) -> Result<T, PortError> {
         let path = self.path.clone().ok_or_else(no_database)?;
-        let bytes = self.reader.as_ref().ok_or_else(no_database)?.file.clone();
+        let (bytes, encryption) = {
+            let reader = self.reader.as_ref().ok_or_else(no_database)?;
+            (reader.file.clone(), reader.encryption().copied())
+        };
         let mut writer = Jet4Writer::new(bytes).map_err(map_write)?;
         let out = op(&mut writer).map_err(map_write)?;
-        let bytes = writer.into_file();
-        std::fs::write(&path, &bytes).map_err(|e| PortError::WriteFailed {
+        let decrypted = writer.into_file();
+        // The writer works on decrypted bytes; the on-disk file keeps the
+        // header region encrypted and, for protected databases, every page
+        // after page 0 (step 16.2, M5).
+        let reader = Jet4TableReader::from_decrypted(decrypted, encryption).map_err(map_open)?;
+        let header = reader.header().clone();
+        let mut disk = reader.file.clone();
+        crate::jet::crypto::encrypt_file(&mut disk, &header, encryption.as_ref())
+            .map_err(map_open)?;
+        std::fs::write(&path, &disk).map_err(|e| PortError::WriteFailed {
             detail: format!("{}: {e}", path.display()),
         })?;
-        let reader = Jet4TableReader::new(bytes).map_err(map_open)?;
         let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
         let entries = collect_tables(&reader, &complex)?;
         self.tables = entries.iter().map(|(def, _)| def.clone()).collect();
@@ -440,41 +452,6 @@ fn field_def(
     let mut field = FieldDef::new(&column.name, kind);
     field.properties.required = !nullable;
     Ok(field)
-}
-
-fn no_database() -> PortError {
-    PortError::Unsupported {
-        reason: "no database is open".to_owned(),
-    }
-}
-
-fn map_write(error: StorageError) -> PortError {
-    match error {
-        StorageError::Unsupported { reason } => PortError::Unsupported { reason },
-        StorageError::OutOfRange {
-            table,
-            start,
-            len,
-            row_count,
-        } => PortError::OutOfRange {
-            table,
-            start,
-            len,
-            row_count,
-        },
-        other => PortError::WriteFailed {
-            detail: other.to_string(),
-        },
-    }
-}
-
-fn map_open(error: StorageError) -> PortError {
-    match error {
-        StorageError::Unsupported { reason } => PortError::Unsupported { reason },
-        other => PortError::OpenFailed {
-            detail: other.to_string(),
-        },
-    }
 }
 
 #[cfg(test)]

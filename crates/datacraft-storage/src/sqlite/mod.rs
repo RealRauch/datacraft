@@ -36,7 +36,8 @@ impl SqlitePort {
 }
 
 impl StoragePort for SqlitePort {
-    fn open(&mut self, path: &Path) -> Result<OpenedDatabase, PortError> {
+    fn open(&mut self, path: &Path, _password: Option<&str>) -> Result<OpenedDatabase, PortError> {
+        // SQLite has no database password; the flag is ignored.
         read_magic(path)?;
         let (conn, writable) = open_database(path)?;
         let tables = collect_tables(&conn)?;

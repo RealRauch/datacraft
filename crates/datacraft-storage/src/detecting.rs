@@ -38,18 +38,18 @@ impl DetectingPort {
 }
 
 impl StoragePort for DetectingPort {
-    fn open(&mut self, path: &Path) -> Result<OpenedDatabase, PortError> {
+    fn open(&mut self, path: &Path, password: Option<&str>) -> Result<OpenedDatabase, PortError> {
         let magic = sniff(path)?;
         let opened = match magic {
             Magic::Jet => {
                 let mut port = Jet4Port::new();
-                let opened = port.open(path)?;
+                let opened = port.open(path, password)?;
                 self.backend = Some(Backend::Jet(port));
                 opened
             }
             Magic::Sqlite => {
                 let mut port = SqlitePort::new();
-                let opened = port.open(path)?;
+                let opened = port.open(path, password)?;
                 self.backend = Some(Backend::Sqlite(port));
                 opened
             }

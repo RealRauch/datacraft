@@ -33,6 +33,10 @@ pub enum Command {
     OpenDatabase {
         /// Filesystem path of the `.mdb`/`.accdb` file.
         path: PathBuf,
+        /// Database password for protected files (step 16.2, M5); omitted
+        /// by older clients and `None` for unprotected files.
+        #[serde(default)]
+        password: Option<String>,
     },
     /// Closes the open database and all of its tabs.
     CloseDatabase,

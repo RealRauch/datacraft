@@ -65,15 +65,11 @@ fn open_json_keeps_the_password_optional() {
         serde_json::from_str(r#"{"OpenDatabase":{"path":"shop.mdb"}}"#).expect("old JSON");
     assert!(matches!(
         without,
-        Command::OpenDatabase {
-            password: None,
-            ..
-        }
+        Command::OpenDatabase { password: None, .. }
     ));
-    let with: Command = serde_json::from_str(
-        r#"{"OpenDatabase":{"path":"shop.mdb","password":"secret"}}"#,
-    )
-    .expect("password JSON");
+    let with: Command =
+        serde_json::from_str(r#"{"OpenDatabase":{"path":"shop.mdb","password":"secret"}}"#)
+            .expect("password JSON");
     assert!(matches!(
         with,
         Command::OpenDatabase {

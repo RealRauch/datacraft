@@ -203,8 +203,18 @@ fn overflow_rows_resolve_through_the_row_pointer() {
 
 #[test]
 fn reader_accepts_jet3_files_since_l1() {
-    let mut file = file_shell(1);
-    file[0x14..0x18].copy_from_slice(&0x0000_0000u32.to_le_bytes()); // Jet3
+    // A minimal Jet3 shell: 2048-byte pages, an unprotected password field
+    // (empty plaintext XOR the fixed key) and the fixed-key RC4 header
+    // region every real file carries (step 16.2 / M5).
+    let mut file = vec![0u8; 2 * 2048];
+    file[0..4].copy_from_slice(&[0x00, 0x01, 0x00, 0x00]);
+    file[4..20].copy_from_slice(b"Standard Jet DB\0");
+    file[0x14..0x18].copy_from_slice(&0x0000_0000u32.to_le_bytes());
+    file[0x42..0x56].copy_from_slice(&datacraft_storage::jet::crypto::JET3_PASSWORD_KEY);
+    datacraft_storage::jet::crypto::rc4(
+        &datacraft_storage::jet::crypto::HEADER_RC4_KEY,
+        &mut file[0x18..0x18 + datacraft_storage::jet::crypto::JET3_HEADER_REGION],
+    );
     let reader = Jet4TableReader::new(file).expect("Jet3 opens since step 10.6 (L1)");
     assert_eq!(reader.header().format, FormatVersion::Jet3);
     assert_eq!(reader.header().page_size, 2048);

@@ -61,6 +61,9 @@ pub struct App {
     pub(crate) last_notice: Option<String>,
     /// Buffered cells of the datasheet's new-record row per table tab.
     new_row: HashMap<TabId, Vec<String>>,
+    /// Open database-password prompt (step 16.2, M5; the state and paint
+    /// live in `password_prompt.rs`).
+    pub(crate) password_prompt: Option<crate::password_prompt::PasswordPrompt>,
 }
 
 /// View mode of a document tab (presentation state).
@@ -100,6 +103,7 @@ impl App {
             last_notice: None,
             sidecar_path: String::new(),
             new_row: HashMap::new(),
+            password_prompt: None,
         }
     }
 
@@ -116,6 +120,8 @@ impl App {
         } else {
             notice_for(&events)
         };
+        // Password flow (step 16.2, M5) lives in `password_prompt.rs`.
+        self.handle_password_events(&events);
         if events
             .iter()
             .any(|event| matches!(event, Event::DatabaseOpened { .. }))

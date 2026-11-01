@@ -32,6 +32,7 @@ fn core() -> Core {
     let mut core = Core::new(Box::new(port));
     let events = core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     assert!(
         matches!(events[0], Event::DatabaseOpened { .. }),
@@ -129,6 +130,7 @@ fn materialization_failures_are_precise() {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     let err = core
         .run_sql("SELECT * FROM customers")

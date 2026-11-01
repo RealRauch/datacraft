@@ -27,10 +27,7 @@ fn run(core: &mut Core, args: &[&str]) -> (Outcome, String) {
 #[test]
 fn the_open_flag_passes_the_password() {
     let mut core = core_with_password();
-    let (outcome, text) = run(
-        &mut core,
-        &["open", "shop.mdb", "-p", "secret", "--json"],
-    );
+    let (outcome, text) = run(&mut core, &["open", "shop.mdb", "-p", "secret", "--json"]);
     assert_eq!(outcome, Outcome::Ok, "{text}");
     assert!(text.contains("DatabaseOpened"), "{text}");
 }

@@ -13,11 +13,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{PortError, RowRange, StoragePort};
 use datacraft_core::schema::FieldValue;
+use datacraft_storage::StorageError;
 use datacraft_storage::detecting::DetectingPort;
 use datacraft_storage::jet::crypto::{self, HEADER_RC4_KEY, PageEncryption};
 use datacraft_storage::jet::{FileHeader, Jet4TableReader};
 use datacraft_storage::port_adapter::Jet4Port;
-use datacraft_storage::StorageError;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -33,7 +33,7 @@ fn open(name: &str, password: Option<&str>) -> Result<DetectingPort, PortError> 
     Ok(port)
 }
 
-fn all_rows(port: &DetectingPort, table: &str) -> Vec<Vec<FieldValue>> {
+fn all_rows(port: &impl StoragePort, table: &str) -> Vec<Vec<FieldValue>> {
     port.read_rows(
         table,
         RowRange {
@@ -85,7 +85,7 @@ fn encrypted_jet4_copy(stem: &str, db_key: u32, password: &str) -> Scratch {
     }
     region[0x42 - 0x18..0x6a - 0x18].copy_from_slice(&field);
     bytes[0x18..0x18 + 128].copy_from_slice(&region);
-    crypto::encrypt_file(&mut bytes, &header, &PageEncryption { db_key })
+    crypto::encrypt_file(&mut bytes, &header, Some(&PageEncryption { db_key }))
         .expect("encrypt the copy");
     let path = scratch_path(stem);
     std::fs::write(&path, &bytes).expect("write the encrypted copy");
@@ -95,10 +95,7 @@ fn encrypted_jet4_copy(stem: &str, db_key: u32, password: &str) -> Scratch {
 #[test]
 fn a_password_protected_jet4_file_requires_the_password() {
     let err = open("passwordV2000.mdb", None).expect_err("password is required");
-    assert!(
-        matches!(err, PortError::PasswordRequired { .. }),
-        "{err:?}"
-    );
+    assert!(matches!(err, PortError::PasswordRequired { .. }), "{err:?}");
 }
 
 #[test]
@@ -280,7 +277,8 @@ fn jet3_password_and_page_encryption_decode_through_the_reader() {
     }
     region[0x42 - 0x18..0x56 - 0x18].copy_from_slice(&field);
     file[0x18..0x18 + 126].copy_from_slice(&region);
-    crypto::encrypt_file(&mut file, &header, &PageEncryption { db_key }).expect("encrypt Jet3");
+    crypto::encrypt_file(&mut file, &header, Some(&PageEncryption { db_key }))
+        .expect("encrypt Jet3");
 
     let err = Jet4TableReader::new_with_password(file.clone(), None).expect_err("no password");
     assert!(matches!(err, StorageError::PasswordRequired), "{err:?}");
@@ -291,5 +289,8 @@ fn jet3_password_and_page_encryption_decode_through_the_reader() {
         Jet4TableReader::new_with_password(file, Some("secret")).expect("correct password");
     let table = reader.read_table(1).expect("the encrypted page decodes");
     assert_eq!(table.rows.len(), 1);
-    assert_eq!(table.rows[0][0], datacraft_storage::StorageValue::Text("alpha".into()));
+    assert_eq!(
+        table.rows[0][0],
+        datacraft_storage::StorageValue::Text("alpha".into())
+    );
 }

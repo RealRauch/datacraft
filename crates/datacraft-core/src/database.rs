@@ -12,11 +12,23 @@ use crate::schema::{FieldValue, TableDef};
 use crate::state::DatabaseState;
 
 impl crate::core::Core {
-    pub(crate) fn open_database(&mut self, path: std::path::PathBuf) -> Vec<Event> {
+    pub(crate) fn open_database(
+        &mut self,
+        path: std::path::PathBuf,
+        password: Option<String>,
+    ) -> Vec<Event> {
         if self.state.database.is_some() {
             return failed("a database is already open — close it first");
         }
-        match self.port.open(&path) {
+        match self.port.open(&path, password.as_deref()) {
+            // Dedicated events let every client react without parsing prose
+            // (the UI prompt, the CLI exit code, the MCP agent).
+            Err(PortError::PasswordRequired { .. }) => {
+                vec![Event::PasswordRequired { path }]
+            }
+            Err(PortError::WrongPassword { .. }) => {
+                vec![Event::PasswordRejected { path }]
+            }
             Err(e) => failed(e.to_string()),
             Ok(opened) => {
                 let name = opened.name.clone();

@@ -65,7 +65,8 @@ fn shop_database() -> Scratch {
 fn open_shop() -> (SqlitePort, Scratch) {
     let scratch = shop_database();
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open generated sqlite file");
+    port.open(&scratch.0, None)
+        .expect("open generated sqlite file");
     (port, scratch)
 }
 
@@ -84,7 +85,9 @@ fn kind(port: &SqlitePort, table: &str, name: &str) -> FieldKind {
 #[test]
 fn opens_a_sqlite_file_with_the_sqlite_format() {
     let (mut port, scratch) = open_shop();
-    let opened = port.open(&scratch.0).expect("reopen the generated file");
+    let opened = port
+        .open(&scratch.0, None)
+        .expect("reopen the generated file");
     assert_eq!(opened.format, DatabaseFormat::Sqlite);
     assert_eq!(
         opened.name,
@@ -233,7 +236,7 @@ fn opening_a_file_that_is_not_sqlite_fails_with_a_precise_error() {
     std::fs::write(&path, b"not a database at all").expect("write junk");
     let _scratch = Scratch(path.clone());
     let mut port = SqlitePort::new();
-    let err = port.open(&path).expect_err("junk must be rejected");
+    let err = port.open(&path, None).expect_err("junk must be rejected");
     match err {
         PortError::OpenFailed { detail } => {
             assert!(detail.contains("SQLite"), "{detail}");
@@ -271,7 +274,7 @@ fn create_table_rejects_two_autonumbers() {
     conn.execute_batch("CREATE TABLE seed (x INTEGER); DROP TABLE seed;")
         .expect("force the header");
     let mut port = SqlitePort::new();
-    port.open(&path).expect("open empty database");
+    port.open(&path, None).expect("open empty database");
     let def = TableDef::new(
         "two",
         vec![
@@ -298,7 +301,7 @@ fn decimal_without_scale_stores_as_an_integer() {
     conn.execute_batch("CREATE TABLE seed (x INTEGER); DROP TABLE seed;")
         .expect("force the header");
     let mut port = SqlitePort::new();
-    port.open(&path).expect("open empty database");
+    port.open(&path, None).expect("open empty database");
     let def = TableDef::new(
         "d",
         vec![FieldDef::new(
@@ -331,7 +334,7 @@ fn integer_storage_in_a_datetime_column_reads_as_a_date() {
     let _scratch = Scratch(path.clone());
 
     let mut port = SqlitePort::new();
-    port.open(&path).expect("open the database");
+    port.open(&path, None).expect("open the database");
     let rows = port
         .read_rows("times", RowRange { start: 0, len: 1 })
         .expect("read datetime");
@@ -348,7 +351,7 @@ fn a_corrupt_sqlite_file_reports_a_located_read_error() {
     let _scratch = Scratch(path.clone());
 
     let mut port = SqlitePort::new();
-    let err = port.open(&path).expect_err("corrupt files fail");
+    let err = port.open(&path, None).expect_err("corrupt files fail");
     match err {
         PortError::OpenFailed { detail } => {
             assert!(detail.contains("reading"), "{detail}");
@@ -370,7 +373,8 @@ fn a_read_only_file_still_reads_and_rejects_writes_precisely() {
     std::fs::set_permissions(&scratch.0, permissions).expect("make the file read-only");
 
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("read-only files still open");
+    port.open(&scratch.0, None)
+        .expect("read-only files still open");
     let rows = port
         .read_rows("customers", RowRange { start: 0, len: 10 })
         .expect("reads work");

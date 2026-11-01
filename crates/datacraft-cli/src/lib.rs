@@ -49,10 +49,12 @@ pub fn run_with_streams(
     let Some(command) = args.first() else {
         return usage(
             out,
-            "usage: datacraft-cli (open <path> | exec <json> | repl) [--json] [--db <path>]",
+            "usage: datacraft-cli (open <path> | exec <json> | repl) [--json] \
+             [--db <path>] [-p <password>]",
         );
     };
     let json_output = args.iter().any(|a| a == "--json");
+    let password = flag_value(args, &["-p", "--password"]);
     let db_path = args
         .iter()
         .position(|a| a == "--db")
@@ -62,9 +64,14 @@ pub fn run_with_streams(
     match command.as_str() {
         "open" => {
             let Some(path) = args.get(1).filter(|p| !p.as_str().starts_with("--")) else {
-                return usage(out, "usage: datacraft-cli open <path>");
+                return usage(out, "usage: datacraft-cli open <path> [-p <password>]");
             };
-            run_command(core, open_command(path), json_output, out)
+            run_command(
+                core,
+                open_command(path, password.as_deref()),
+                json_output,
+                out,
+            )
         }
         "exec" => {
             let Some(json) = args.get(1) else {
@@ -75,21 +82,15 @@ pub fn run_with_streams(
             };
             let mut events = Vec::new();
             if let Some(path) = db_path {
-                events.extend(core.dispatch(open_command(&path)));
-                if events
-                    .iter()
-                    .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }))
-                {
+                events.extend(core.dispatch(open_command(&path, password.as_deref())));
+                if failed(&events) {
                     print_events(core, &events, json_output, out);
                     return Outcome::CommandFailed;
                 }
             }
             events.extend(core.dispatch(command));
             print_events(core, &events, json_output, out);
-            if events
-                .iter()
-                .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }))
-            {
+            if failed(&events) {
                 Outcome::CommandFailed
             } else {
                 Outcome::Ok
@@ -97,7 +98,7 @@ pub fn run_with_streams(
         }
         "repl" => {
             if let Some(path) = db_path {
-                core.dispatch(open_command(&path));
+                core.dispatch(open_command(&path, password.as_deref()));
             }
             repl(core, reader, out);
             Outcome::Ok
@@ -114,10 +115,7 @@ fn run_command(
 ) -> Outcome {
     let events = core.dispatch(command);
     print_events(core, &events, json_output, out);
-    if events
-        .iter()
-        .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }))
-    {
+    if failed(&events) {
         Outcome::CommandFailed
     } else {
         Outcome::Ok
@@ -130,9 +128,7 @@ fn print_events(
     json_output: bool,
     out: &mut dyn Write,
 ) {
-    let failed = events
-        .iter()
-        .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }));
+    let has_failure = failed(events);
     if json_output {
         let payload = serde_json::json!({
             "events": events,
@@ -143,9 +139,30 @@ fn print_events(
         for event in events {
             let _ = writeln!(out, "{event:?}");
         }
-        let status = if failed { "failed" } else { "ok" };
+        let status = if has_failure { "failed" } else { "ok" };
         let _ = writeln!(out, "{status}");
     }
+}
+
+/// Whether the events include a rejected command (including the dedicated
+/// password events, step 16.2 / M5).
+fn failed(events: &[datacraft_core::event::Event]) -> bool {
+    events.iter().any(|event| {
+        matches!(
+            event,
+            datacraft_core::event::Event::Failed { .. }
+                | datacraft_core::event::Event::PasswordRequired { .. }
+                | datacraft_core::event::Event::PasswordRejected { .. }
+        )
+    })
+}
+
+/// Value of a `-p`/`--password` flag (the first occurrence wins).
+fn flag_value(args: &[String], flags: &[&str]) -> Option<String> {
+    args.iter()
+        .position(|arg| flags.contains(&arg.as_str()))
+        .and_then(|index| args.get(index + 1))
+        .cloned()
 }
 
 fn usage(out: &mut dyn Write, message: &str) -> Outcome {
@@ -159,9 +176,11 @@ pub fn repl(core: &mut Core, reader: &mut dyn std::io::BufRead, writer: &mut dyn
     transport::serve(reader, writer, core);
 }
 
-fn open_command(path: &str) -> Command {
-    serde_json::from_value(serde_json::json!({"OpenDatabase": {"path": path}}))
-        .expect("the open command shape is fixed")
+fn open_command(path: &str, password: Option<&str>) -> Command {
+    serde_json::from_value(
+        serde_json::json!({"OpenDatabase": {"path": path, "password": password}}),
+    )
+    .expect("the open command shape is fixed")
 }
 
 #[cfg(test)]
@@ -172,7 +191,7 @@ mod tests {
     /// Open-command JSON stays in the command vocabulary (transport only).
     #[test]
     fn open_deserializes_into_the_command_language() {
-        let command = open_command("shop.mdb");
+        let command = open_command("shop.mdb", None);
         assert!(matches!(command, Command::OpenDatabase { .. }));
     }
 

@@ -39,6 +39,7 @@ fn seeded_core() -> Core {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
+        password: None,
     });
     core.dispatch(Command::CreateTable {
         definition: table("Customers"),
@@ -115,7 +116,7 @@ fn null_and_typed_values_pass_through_unchanged() {
             FieldValue::Guid([9u8; 16]),
         ]],
     );
-    port.open(Path::new("m.mdb")).expect("mock opens");
+    port.open(Path::new("m.mdb"), None).expect("mock opens");
     let rows = port
         .read_rows("T", RowRange { start: 0, len: 10 })
         .expect("read");

@@ -36,6 +36,7 @@ fn opened_core() -> Core {
     let mut core = Core::new(Box::new(MockPort::new()));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
+        password: None,
     });
     core.dispatch(Command::CreateTable {
         definition: customers(),

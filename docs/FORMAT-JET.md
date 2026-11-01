@@ -16,7 +16,7 @@
 | Magic | 0x00 | 4 | `00 01 00 00` (u32 LE = 0x100) |
 | Product string | 0x04 | 16 | NUL-terminated `"Standard Jet DB"` (`.mdb`) / `"Standard ACE DB"` (`.accdb`) |
 | Version | 0x14 | 4 | u32 LE: `0x00000000` Jet3 (A97), `0x00000001` Jet4 (A2000–2003), `0x00000002` ACE 2007, `0x00000103` ACE 2010 |
-| Encrypted region | 0x18 | 126 (Jet3) / 128 (Jet4) | RC4, key `0x6b39dac7` — contains collation, code page, creation date. **Not decoded by DataCraft yet** (password detection planned). |
+| Encrypted region | 0x18 | 126 (Jet3) / 128 (Jet4/ACE) | RC4, key `C7 DA 39 6B` (LE `0x6b39dac7`) — contains code page, database key, password field, creation date. Decoded/validated since M5 (see "Encryption and passwords"). |
 
 - **Page size is not stored in the file.** It follows from the generation:
   Jet3 = 2048 bytes, Jet4/ACE = 4096 bytes.
@@ -445,6 +445,40 @@ Verified against `fixtures/complexDataV2007.accdb` (jackcess V2007) and
   insert/update/create); the writer does not build flat tables yet.
 - **Oracle:** mdb-tools hides the `f_` tables; `tests/oracle.rs` skips them and
   the complex columns, while the parent table's scalar columns still compare.
+
+## Encryption and passwords (2026-11-01, step 16.2, item M5)
+
+Verified against `fixtures/passwordV2000.mdb` / `passwordV2000-none.mdb`
+(Jet4 password `"password"`), `fixtures/passwordV2010.accdb` and
+`fixtures/officeAgile42.accdb` (mdb-reader test data), plus generated
+page-encrypted copies of the pinned fixtures.
+
+- **Header region:** bytes 0x18..0x96 (Jet3, 126) / 0x18..0x98 (Jet4/ACE,
+  128) are RC4-encrypted with the fixed key `C7 DA 39 6B` **in every file**,
+  including unprotected ones. The reader decrypts it on open; the writer
+  re-encrypts it on every persist (RC4 is symmetric).
+- **Database key:** the decrypted dword at 0x3e. Non-zero = every page after
+  page 0 is RC4-encrypted with the 4-byte key `db_key XOR page_number`
+  (LE). Page 0's body outside the header region stays plaintext.
+- **Jet3 password:** 20 bytes at 0x42, XOR a documented fixed key
+  (`86 FB EC 37 5D 44 9C FA C6 5E 28 E6 13 B6 8A 60 54 94 7B 36`),
+  CP1252 text, NUL/space padded. Empty plaintext = no password.
+- **Jet4 password:** 40 bytes at 0x42 = 20 UTF-16LE characters XOR a 4-byte
+  mask. The mask is the integer part of the OLE creation-date double at
+  0x72 as 4 LE bytes (`44568.67…` → `18 AE 00 00`). Empty plaintext = no
+  password (the stored field is then the repeated mask).
+- **ACE 2007+:** Office encryption (RC4 CryptoAPI or AES) replaces the page
+  cipher; a non-zero database key, a non-empty password field and/or the
+  descriptor length at 0x299 mark it. DataCraft answers a precise
+  `Unsupported` and does not attempt a decrypt.
+- **Client path:** `StoragePort::open(path, password)`; `OpenDatabase` carries
+  an optional `password` (serde-default, so old JSON stays valid). Missing →
+  `PasswordRequired`, wrong → `WrongPassword` (`Event::PasswordRequired` /
+  `Event::PasswordRejected`); the UI raises its prompt, the CLI accepts
+  `-p`/`--password`, MCP agents pass the same command field.
+- **Writes:** the port's read-modify-write keeps encrypted files encrypted —
+  the writer re-encrypts the header region and every page with the same
+  database key; newly appended pages use their page number.
 
 ## SQLite backend (2026-11-01, step 13.1, BACKLOG H35)
 

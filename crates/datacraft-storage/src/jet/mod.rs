@@ -5,6 +5,7 @@
 
 pub mod catalog;
 pub mod complex;
+pub mod crypto;
 pub mod data_page;
 pub mod encode;
 pub mod header;

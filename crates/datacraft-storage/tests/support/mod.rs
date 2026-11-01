@@ -16,6 +16,10 @@ pub fn file_shell(pages: usize) -> Vec<u8> {
     file[3] = 0x00;
     file[4..20].copy_from_slice(b"Standard Jet DB\0");
     file[0x14..0x18].copy_from_slice(&0x0000_0001u32.to_le_bytes());
+    // Real files store the page-0 header region RC4-encrypted with the fixed
+    // key (step 16.2 / M5); the reader decrypts it back to these zeros.
+    let region = &mut file[0x18..0x18 + datacraft_storage::jet::crypto::JET4_HEADER_REGION];
+    datacraft_storage::jet::crypto::rc4(&datacraft_storage::jet::crypto::HEADER_RC4_KEY, region);
     file
 }
 

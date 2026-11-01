@@ -54,7 +54,7 @@ fn people() -> TableDef {
 fn updates_and_deletes_persist_across_reopen() {
     let scratch = empty_database("rowops");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     port.create_table(&people()).expect("create people");
     port.insert_row(
         "people",
@@ -90,7 +90,7 @@ fn updates_and_deletes_persist_across_reopen() {
     port.close();
 
     let mut reopened = SqlitePort::new();
-    reopened.open(&scratch.0).expect("reopen");
+    reopened.open(&scratch.0, None).expect("reopen");
     let rows = reopened
         .read_rows("people", RowRange { start: 0, len: 10 })
         .expect("read rows");
@@ -104,7 +104,7 @@ fn updates_and_deletes_persist_across_reopen() {
 fn row_operations_out_of_range_are_rejected() {
     let scratch = empty_database("rowops-bounds");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     port.create_table(&people()).expect("create people");
     port.insert_row(
         "people",
@@ -144,7 +144,7 @@ fn row_operations_out_of_range_are_rejected() {
 fn update_arity_and_autonumber_only_tables() {
     let scratch = empty_database("rowops-arity");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     port.create_table(&people()).expect("create people");
     port.insert_row(
         "people",

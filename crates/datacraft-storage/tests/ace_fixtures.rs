@@ -76,7 +76,7 @@ fn detection_reports_ace_for_every_pinned_fixture() {
     for (name, _, generation) in pinned() {
         let mut port = DetectingPort::new();
         let opened = port
-            .open(&fixture(name))
+            .open(&fixture(name), None)
             .unwrap_or_else(|e| panic!("{name}: {e}"));
         assert_eq!(opened.format, DatabaseFormat::Ace, "{generation}");
         assert!(!port.tables().is_empty(), "{generation} tables");
@@ -124,7 +124,7 @@ fn every_pinned_ace_table_decodes_rows() {
     ];
     for (name, _, generation) in pinned() {
         let mut port = DetectingPort::new();
-        port.open(&fixture(name))
+        port.open(&fixture(name), None)
             .unwrap_or_else(|e| panic!("{name}: {e}"));
         for table in port.tables() {
             port.read_rows(
@@ -158,7 +158,7 @@ fn every_pinned_ace_table_decodes_rows() {
 fn ace_values_match_the_mdb_tools_export() {
     use datacraft_core::schema::FieldValue;
     let mut port = DetectingPort::new();
-    port.open(&fixture("testV2007.accdb"))
+    port.open(&fixture("testV2007.accdb"), None)
         .expect("open ACE 2007");
     let rows = port
         .read_rows(
@@ -199,7 +199,7 @@ fn ace_values_match_the_mdb_tools_export() {
 #[test]
 fn ace_relationships_are_reported() {
     let mut port = DetectingPort::new();
-    port.open(&fixture("attachmentsV2016.accdb"))
+    port.open(&fixture("attachmentsV2016.accdb"), None)
         .expect("open ACE 2016");
     let relationships = port.relationships().expect("read relationships");
     assert!(!relationships.is_empty(), "the fixture carries catalog FKs");
@@ -215,7 +215,9 @@ fn a_truncated_ace_file_is_rejected_precisely() {
     ));
     std::fs::write(&path, &file).expect("write truncated fixture");
     let mut port = DetectingPort::new();
-    let err = port.open(&path).expect_err("truncated files are corrupt");
+    let err = port
+        .open(&path, None)
+        .expect_err("truncated files are corrupt");
     let _ = std::fs::remove_file(&path);
     match err {
         datacraft_core::port::PortError::OpenFailed { detail } => {

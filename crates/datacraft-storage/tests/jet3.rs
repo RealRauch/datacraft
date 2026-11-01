@@ -14,12 +14,18 @@ use datacraft_storage::{FormatVersion, StorageError, StorageValue};
 
 const PAGE: usize = 2048;
 
-/// Jet3 file shell: signature, product string, version dword 0.
+/// Jet3 file shell: signature, product string, version dword 0, and the
+/// page-0 header region RC4-encrypted with the fixed key (as every real
+/// file stores it — step 16.2 / M5).
 fn shell(pages: usize) -> Vec<u8> {
     let mut file = vec![0u8; PAGE * (pages + 1)];
     file[0..4].copy_from_slice(&[0x00, 0x01, 0x00, 0x00]);
     file[4..20].copy_from_slice(b"Standard Jet DB\0");
     file[0x14..0x18].copy_from_slice(&0u32.to_le_bytes());
+    // Unprotected password field: the empty plaintext XOR the fixed key.
+    file[0x42..0x56].copy_from_slice(&datacraft_storage::jet::crypto::JET3_PASSWORD_KEY);
+    let region = &mut file[0x18..0x18 + datacraft_storage::jet::crypto::JET3_HEADER_REGION];
+    datacraft_storage::jet::crypto::rc4(&datacraft_storage::jet::crypto::HEADER_RC4_KEY, region);
     file
 }
 

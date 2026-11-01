@@ -51,7 +51,7 @@ fn sqlite_database() -> Scratch {
 #[test]
 fn detects_a_jet4_fixture() {
     let mut port = DetectingPort::new();
-    let opened = port.open(&fixture()).expect("open the Jet4 fixture");
+    let opened = port.open(&fixture(), None).expect("open the Jet4 fixture");
     assert_eq!(opened.format, DatabaseFormat::Jet4);
     assert_eq!(opened.name, "testV2000");
     assert!(!port.tables().is_empty());
@@ -61,7 +61,7 @@ fn detects_a_jet4_fixture() {
 fn detects_a_sqlite_file_and_serves_its_rows() {
     let scratch = sqlite_database();
     let mut port = DetectingPort::new();
-    let opened = port.open(&scratch.0).expect("open the SQLite file");
+    let opened = port.open(&scratch.0, None).expect("open the SQLite file");
     assert_eq!(opened.format, DatabaseFormat::Sqlite);
     assert_eq!(port.tables().len(), 1);
     let rows = port
@@ -74,9 +74,9 @@ fn detects_a_sqlite_file_and_serves_its_rows() {
 fn a_jet_file_and_a_sqlite_file_can_follow_each_other() {
     let scratch = sqlite_database();
     let mut port = DetectingPort::new();
-    let jet = port.open(&fixture()).expect("open Jet4");
+    let jet = port.open(&fixture(), None).expect("open Jet4");
     assert_eq!(jet.format, DatabaseFormat::Jet4);
-    let sqlite = port.open(&scratch.0).expect("open SQLite");
+    let sqlite = port.open(&scratch.0, None).expect("open SQLite");
     assert_eq!(sqlite.format, DatabaseFormat::Sqlite);
     assert_eq!(port.tables().len(), 1);
 }
@@ -87,7 +87,7 @@ fn rejects_unknown_files_with_a_precise_error() {
     std::fs::write(&path, b"neither jet nor sqlite").expect("write junk");
     let _scratch = Scratch(path.clone());
     let mut port = DetectingPort::new();
-    let err = port.open(&path).expect_err("junk must be rejected");
+    let err = port.open(&path, None).expect_err("junk must be rejected");
     match err {
         PortError::OpenFailed { detail } => {
             assert!(detail.contains("unrecognized"), "{detail}");
@@ -103,7 +103,9 @@ fn rejects_an_empty_file_without_panicking() {
     std::fs::write(&path, b"").expect("write empty file");
     let _scratch = Scratch(path.clone());
     let mut port = DetectingPort::new();
-    let err = port.open(&path).expect_err("an empty file has no magic");
+    let err = port
+        .open(&path, None)
+        .expect_err("an empty file has no magic");
     assert!(matches!(err, PortError::OpenFailed { .. }), "{err:?}");
 }
 
@@ -131,7 +133,7 @@ fn sqlite_writes_relationships_and_close_delegate_through_detection() {
     let _scratch = Scratch(path.clone());
 
     let mut port = DetectingPort::new();
-    port.open(&path).expect("open SQLite");
+    port.open(&path, None).expect("open SQLite");
     let relationships = port.relationships().expect("relationships delegate");
     assert_eq!(relationships.len(), 1);
 
@@ -175,7 +177,7 @@ fn jet_writes_delegate_through_detection_on_a_copy() {
     let _scratch = Scratch(path.clone());
 
     let mut port = DetectingPort::new();
-    port.open(&path).expect("open the Jet copy");
+    port.open(&path, None).expect("open the Jet copy");
     let err = port
         .insert_row("Table1", &[FieldValue::Null])
         .expect_err("arity mismatch is a write failure before touching the file");
@@ -217,8 +219,8 @@ fn a_failed_open_keeps_the_previous_database() {
     let _scratch = Scratch(path.clone());
 
     let mut port = DetectingPort::new();
-    port.open(&fixture()).expect("open Jet4");
-    assert!(port.open(&path).is_err());
+    port.open(&fixture(), None).expect("open Jet4");
+    assert!(port.open(&path, None).is_err());
     assert!(
         !port.tables().is_empty(),
         "the previous backend stays intact"

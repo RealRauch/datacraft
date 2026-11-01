@@ -48,6 +48,7 @@ fn core_with_rows() -> Core {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     core
 }
@@ -213,6 +214,7 @@ fn the_profile_rejects_unqualified_families() {
     let mut core = Core::new(Box::new(MockPort::new()));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     core.dispatch(Command::CreateTable {
         definition: TableDef::new(
@@ -343,6 +345,7 @@ fn the_profile_rejects_guid_autonumbers() {
     let mut core = Core::new(Box::new(MockPort::new()));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     core.dispatch(Command::CreateTable {
         definition: TableDef::new(
@@ -371,6 +374,7 @@ fn preview_errors_cover_missing_tables_updates_and_reads() {
     assert!(reason.contains("no database"), "{reason}");
     bare.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     let reason = failure(&bare.dispatch(Command::PreviewWrite {
         table: "Ghost".into(),
@@ -407,6 +411,7 @@ fn preview_errors_cover_missing_tables_updates_and_reads() {
     let mut broken = Core::new(Box::new(port));
     broken.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     let reason = failure(&broken.dispatch(Command::PreviewWrite {
         table: "Customers".into(),
@@ -449,6 +454,7 @@ fn apply_and_discard_error_paths_are_precise() {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     let token = preview_token(&core.dispatch(Command::PreviewWrite {
         table: "Customers".into(),

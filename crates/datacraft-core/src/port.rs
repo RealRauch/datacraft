@@ -55,6 +55,16 @@ pub enum PortError {
         /// Actual row count of the table.
         row_count: usize,
     },
+    /// The database is password-protected and no password was supplied.
+    PasswordRequired {
+        /// Filesystem path of the database.
+        path: String,
+    },
+    /// The supplied password does not match the stored database password.
+    WrongPassword {
+        /// Filesystem path of the database.
+        path: String,
+    },
 }
 
 impl std::fmt::Display for PortError {
@@ -73,6 +83,12 @@ impl std::fmt::Display for PortError {
                 f,
                 "row window {start}+{len} of {table:?} is out of range ({row_count} rows)"
             ),
+            Self::PasswordRequired { path } => {
+                write!(f, "{path}: the database is password-protected")
+            }
+            Self::WrongPassword { path } => {
+                write!(f, "{path}: the database password is wrong")
+            }
         }
     }
 }
@@ -207,8 +223,13 @@ impl NativeQuery {
 /// The storage seam of the command core. Implementors must be deterministic
 /// and must not block indefinitely.
 pub trait StoragePort {
-    /// Opens the database at `path`.
-    fn open(&mut self, path: &std::path::Path) -> Result<OpenedDatabase, PortError>;
+    /// Opens the database at `path`; `password` is `None` for unprotected
+    /// files (step 16.2, M5). Backends without passwords ignore it.
+    fn open(
+        &mut self,
+        path: &std::path::Path,
+        password: Option<&str>,
+    ) -> Result<OpenedDatabase, PortError>;
     /// Closes the open database (idempotent).
     fn close(&mut self);
     /// Catalog of table definitions in storage order.

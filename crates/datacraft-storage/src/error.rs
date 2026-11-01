@@ -49,6 +49,10 @@ pub enum StorageError {
         /// Number of pages the file actually holds.
         page_count: usize,
     },
+    /// The database is password-protected and no password was supplied.
+    PasswordRequired,
+    /// The supplied database password does not match the stored one.
+    WrongPassword,
 }
 
 impl fmt::Display for StorageError {
@@ -80,6 +84,11 @@ impl fmt::Display for StorageError {
                     "page {page} beyond end of file (file has {page_count} pages)"
                 )
             }
+            Self::PasswordRequired => write!(
+                f,
+                "the database is password-protected; a password is required"
+            ),
+            Self::WrongPassword => write!(f, "the database password is wrong"),
         }
     }
 }
@@ -149,6 +158,20 @@ mod tests {
         let s = page.to_string();
         assert!(s.contains("page 7"), "page in display: {s}");
         assert!(s.contains("3 pages"), "page count in display: {s}");
+    }
+
+    #[test]
+    fn password_errors_are_self_describing() {
+        assert!(
+            StorageError::PasswordRequired
+                .to_string()
+                .contains("password is required")
+        );
+        assert!(
+            StorageError::WrongPassword
+                .to_string()
+                .contains("password is wrong")
+        );
     }
 
     #[test]

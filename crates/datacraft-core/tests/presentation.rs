@@ -16,6 +16,7 @@ fn open_core(path: &str) -> Core {
     let mut core = Core::new(Box::new(MockPort::new()));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from(path),
+        password: None,
     });
     core
 }

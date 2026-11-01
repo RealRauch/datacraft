@@ -18,6 +18,7 @@ mod flows;
 mod form_design;
 mod form_runtime;
 mod nav_pane;
+mod password_prompt;
 mod qbe;
 mod relationships;
 mod report_design;
@@ -95,6 +96,7 @@ mod tests {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(datacraft_core::command::Command::OpenDatabase {
             path: "memory.mock".into(),
+            password: None,
         });
         app.set_sql_text("SELECT 1 AS one");
         app.run_sql();
@@ -111,6 +113,7 @@ mod tests {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(datacraft_core::command::Command::OpenDatabase {
             path: "memory.mock".into(),
+            password: None,
         });
         app.set_sql_text("DELETE FROM nothing");
         app.run_sql();
@@ -127,6 +130,7 @@ mod tests {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(datacraft_core::command::Command::OpenDatabase {
             path: "memory.mock".into(),
+            password: None,
         });
         app.create_table_flow();
         let snapshot = app.snapshot();
@@ -150,6 +154,7 @@ mod tests {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(datacraft_core::command::Command::OpenDatabase {
             path: "memory.mock".into(),
+            password: None,
         });
         app.dispatch(datacraft_core::command::Command::CreateForm {
             name: "Card".into(),
@@ -178,6 +183,7 @@ mod tests {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(Command::OpenDatabase {
             path: "shop.mdb".into(),
+            password: None,
         });
         assert_eq!(app.sidecar_path, "shop.datacraft");
 
@@ -231,6 +237,7 @@ mod tests {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(Command::OpenDatabase {
             path: "memory.mock".into(),
+            password: None,
         });
         app.dispatch(Command::CreateTable {
             definition: TableDef::new(
@@ -298,6 +305,7 @@ mod tests {
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(Command::OpenDatabase {
             path: "memory.mock".into(),
+            password: None,
         });
         app.dispatch(Command::CreateTable {
             definition: TableDef::new(

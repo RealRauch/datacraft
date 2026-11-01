@@ -35,7 +35,7 @@ fn main() {
     std::fs::copy(source, &target).expect("copies the pinned fixture");
 
     let mut port = Jet4Port::new();
-    port.open(&target).expect("opens the fixture copy");
+    port.open(&target, None).expect("opens the fixture copy");
     let table = gate_table();
     port.create_table(&table)
         .expect("creates the GateCheck table");

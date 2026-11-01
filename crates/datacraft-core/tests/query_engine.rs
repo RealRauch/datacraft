@@ -229,6 +229,7 @@ fn seeded_core() -> Core {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
+        password: None,
     });
     core.dispatch(Command::CreateTable {
         definition: customers_def(),

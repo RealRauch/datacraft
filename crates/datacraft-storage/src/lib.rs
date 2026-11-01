@@ -9,6 +9,7 @@ pub mod jet;
 pub(crate) mod mapping;
 pub mod mock;
 pub mod port_adapter;
+pub(crate) mod port_errors;
 pub(crate) mod port_native;
 pub mod port_write;
 pub mod sqlite;

@@ -23,7 +23,7 @@ fn fixture(name: &str) -> PathBuf {
 
 fn open(name: &str) -> DetectingPort {
     let mut port = DetectingPort::new();
-    port.open(&fixture(name))
+    port.open(&fixture(name), None)
         .unwrap_or_else(|e| panic!("open {name}: {e}"));
     port
 }

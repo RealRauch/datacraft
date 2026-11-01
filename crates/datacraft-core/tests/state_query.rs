@@ -33,6 +33,7 @@ fn opened_with_customers() -> Core {
     let mut core = core();
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
+        password: None,
     });
     core.dispatch(Command::CreateTable {
         definition: customers_def(),
@@ -176,6 +177,7 @@ proptest! {
             let mut core = Core::new(Box::new(MockPort::new()));
             core.dispatch(Command::OpenDatabase {
                 path: PathBuf::from(format!("{name}.mdb")),
+                password: None,
             });
             core.dispatch(Command::CreateTable { definition: customers_def() });
             core.inspect().to_json()
@@ -265,6 +267,7 @@ fn database_and_table_guards_answer_precisely() {
     )));
     failing.dispatch(Command::OpenDatabase {
         path: std::path::PathBuf::from("db.mdb"),
+        password: None,
     });
     let definition = datacraft_core::schema::TableDef::new("T", Vec::new());
     match failing
@@ -281,6 +284,7 @@ fn query_and_tab_guards_name_the_missing_object() {
     let mut core = Core::new(Box::new(MockPort::new()));
     core.dispatch(Command::OpenDatabase {
         path: std::path::PathBuf::from("db.mdb"),
+        password: None,
     });
     match core
         .dispatch(Command::RunQuery { query: "q".into() })

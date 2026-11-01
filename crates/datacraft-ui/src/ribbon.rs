@@ -77,6 +77,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                         if ribbon_button(ui, action.label) {
                                             intent = Some(Command::OpenDatabase {
                                                 path: app.open_path.clone().into(),
+                                                password: None,
                                             });
                                         }
                                     });

@@ -36,6 +36,7 @@ fn opened_db() -> Core {
     let mut core = Core::new(Box::new(MockPort::new()));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
+        password: None,
     });
     core.dispatch(Command::CreateTable {
         definition: customers_def(),
@@ -200,6 +201,7 @@ fn loading_rejects_foreign_and_future_documents() {
     let mut other = Core::new(Box::new(MockPort::new()));
     other.dispatch(Command::OpenDatabase {
         path: PathBuf::from("other.mdb"),
+        password: None,
     });
     other.dispatch(Command::CreateTable {
         definition: customers_def(),

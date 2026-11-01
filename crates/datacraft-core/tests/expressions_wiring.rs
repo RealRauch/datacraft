@@ -62,6 +62,7 @@ fn core_with(table: TableDef, rows: Vec<Vec<FieldValue>>) -> Core {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     core
 }

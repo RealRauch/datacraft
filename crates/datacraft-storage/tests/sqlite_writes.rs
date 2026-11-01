@@ -55,7 +55,7 @@ fn people() -> TableDef {
 fn creates_a_table_and_persists_inserted_rows_across_reopen() {
     let scratch = empty_database("writes");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     port.create_table(&people()).expect("create people");
     port.insert_row(
         "people",
@@ -78,7 +78,9 @@ fn creates_a_table_and_persists_inserted_rows_across_reopen() {
     port.close();
 
     let mut reopened = SqlitePort::new();
-    reopened.open(&scratch.0).expect("reopen the database");
+    reopened
+        .open(&scratch.0, None)
+        .expect("reopen the database");
     let tables = reopened.tables();
     assert_eq!(tables.len(), 1);
     assert_eq!(tables[0].name, "people");
@@ -101,7 +103,7 @@ fn creates_a_table_and_persists_inserted_rows_across_reopen() {
 fn drop_table_removes_it_from_the_catalog_and_the_file() {
     let scratch = empty_database("drop");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     port.create_table(&people()).expect("create people");
     assert_eq!(
         port.drop_table("PEOPLE").expect("drop case-insensitively"),
@@ -110,7 +112,7 @@ fn drop_table_removes_it_from_the_catalog_and_the_file() {
     assert!(port.tables().is_empty());
     port.close();
     let mut reopened = SqlitePort::new();
-    reopened.open(&scratch.0).expect("reopen");
+    reopened.open(&scratch.0, None).expect("reopen");
     assert!(reopened.tables().is_empty());
 }
 
@@ -118,7 +120,7 @@ fn drop_table_removes_it_from_the_catalog_and_the_file() {
 fn insert_errors_are_precise() {
     let scratch = empty_database("errors");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     port.create_table(&people()).expect("create people");
 
     let missing = port
@@ -153,7 +155,7 @@ fn insert_errors_are_precise() {
 fn create_table_rejects_an_invalid_definition() {
     let scratch = empty_database("invalid");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     let invalid = TableDef::new("", vec![FieldDef::new("x", FieldKind::Memo)]);
     let err = port
         .create_table(&invalid)
@@ -165,7 +167,7 @@ fn create_table_rejects_an_invalid_definition() {
 fn create_table_rejects_replication_id_autonumbers() {
     let scratch = empty_database("replication");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     let def = TableDef::new(
         "guids",
         vec![FieldDef::new(
@@ -183,7 +185,7 @@ fn create_table_rejects_replication_id_autonumbers() {
 fn value_families_round_trip_through_sqlite_storage() {
     let scratch = empty_database("families");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     let def = TableDef::new(
         "families",
         vec![
@@ -229,7 +231,7 @@ fn value_families_round_trip_through_sqlite_storage() {
 fn every_domain_kind_creates_and_reads_back() {
     let scratch = empty_database("kinds");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     let def = TableDef::new(
         "kinds",
         vec![
@@ -303,7 +305,7 @@ fn every_domain_kind_creates_and_reads_back() {
 fn a_table_with_only_an_autonumber_inserts_default_values() {
     let scratch = empty_database("defaults");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     let def = TableDef::new(
         "counters",
         vec![FieldDef::new(
@@ -327,7 +329,7 @@ fn a_table_with_only_an_autonumber_inserts_default_values() {
 fn writes_fail_precisely_for_duplicates_not_null_and_user_autonumbers() {
     let scratch = empty_database("failures");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&scratch.0, None).expect("open empty database");
     let mut def = TableDef::new(
         "strict",
         vec![
@@ -381,7 +383,7 @@ fn foreign_keys_resolve_the_referenced_primary_key() {
     let _scratch = Scratch(path.clone());
 
     let mut port = SqlitePort::new();
-    port.open(&path).expect("open the database");
+    port.open(&path, None).expect("open the database");
     let relationships = port.relationships().expect("read foreign keys");
     assert_eq!(
         relationships,
@@ -407,7 +409,7 @@ fn an_unresolvable_foreign_key_is_reported() {
     let _scratch = Scratch(path.clone());
 
     let mut port = SqlitePort::new();
-    port.open(&path).expect("open the database");
+    port.open(&path, None).expect("open the database");
     let err = port
         .relationships()
         .expect_err("the unresolved key must be reported");
@@ -419,12 +421,12 @@ fn opening_a_missing_file_and_the_path_accessor_are_exact() {
     let path = scratch_path("missing");
     let _ = std::fs::remove_file(&path);
     let mut port = SqlitePort::new();
-    let err = port.open(&path).expect_err("missing files fail");
+    let err = port.open(&path, None).expect_err("missing files fail");
     assert!(matches!(err, PortError::OpenFailed { .. }), "{err:?}");
     assert!(port.path().is_none());
 
     let scratch = empty_database("accessor");
-    port.open(&scratch.0).expect("open existing file");
+    port.open(&scratch.0, None).expect("open existing file");
     assert_eq!(port.path(), Some(scratch.0.as_path()));
     port.close();
     assert!(port.path().is_none());
@@ -444,7 +446,7 @@ fn guid_columns_read_text_and_non_guid_blobs() {
     let _scratch = Scratch(path.clone());
 
     let mut port = SqlitePort::new();
-    port.open(&path).expect("open the database");
+    port.open(&path, None).expect("open the database");
     let rows = port
         .read_rows("things", RowRange { start: 0, len: 10 })
         .expect("read guid values");

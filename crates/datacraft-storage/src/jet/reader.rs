@@ -28,13 +28,50 @@ pub struct JetTableData {
 pub struct Jet4TableReader {
     pub(crate) header: FileHeader,
     pub(crate) file: Vec<u8>,
+    /// Page encryption of the file (non-zero database key).
+    encryption: Option<crate::jet::crypto::PageEncryption>,
 }
 
 impl Jet4TableReader {
     /// Takes ownership of the raw file bytes and validates the header.
+    /// Password-protected files answer `PasswordRequired`.
     pub fn new(file: Vec<u8>) -> Result<Self, StorageError> {
+        Self::new_with_password(file, None)
+    }
+
+    /// Opens a file, decrypting the page-0 header region, validating the
+    /// database password and decrypting every page when the database key is
+    /// non-zero (step 16.2, M5).
+    pub fn new_with_password(
+        mut file: Vec<u8>,
+        password: Option<&str>,
+    ) -> Result<Self, StorageError> {
         let header = FileHeader::decode(&file, file.len() as u64)?;
-        Ok(Self { header, file })
+        let encryption = crate::jet::crypto::decrypt_file(&mut file, &header, password)?;
+        Ok(Self {
+            header,
+            file,
+            encryption,
+        })
+    }
+
+    /// Builds a reader over already-decrypted bytes (the writer handoff:
+    /// avoids asking for the password again).
+    pub(crate) fn from_decrypted(
+        file: Vec<u8>,
+        encryption: Option<crate::jet::crypto::PageEncryption>,
+    ) -> Result<Self, StorageError> {
+        let header = FileHeader::decode(&file, file.len() as u64)?;
+        Ok(Self {
+            header,
+            file,
+            encryption,
+        })
+    }
+
+    /// Page encryption state for the writer's re-encryption pass.
+    pub fn encryption(&self) -> Option<&crate::jet::crypto::PageEncryption> {
+        self.encryption.as_ref()
     }
 
     /// The decoded file header.

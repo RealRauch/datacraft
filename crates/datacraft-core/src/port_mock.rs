@@ -19,6 +19,8 @@ pub struct MockPort {
     open_fail: Option<String>,
     write_fail: Option<String>,
     read_fail: Option<String>,
+    /// When set, `open` requires this database password (M5 tests).
+    password: Option<String>,
     /// Number of successful `open` calls (observability for tests).
     pub open_calls: usize,
     /// Number of `close` calls (observability for tests).
@@ -84,6 +86,12 @@ impl MockPort {
         self
     }
 
+    /// Builder: requires `password` on `open` (database-password flow, M5).
+    pub fn with_password(&mut self, password: impl Into<String>) -> &mut Self {
+        self.password = Some(password.into());
+        self
+    }
+
     /// Resolves a table definition case-insensitively.
     fn table_def(&self, table: &str) -> Result<&TableDef, PortError> {
         self.tables
@@ -104,11 +112,30 @@ fn out_of_range(table: &str, row: usize, row_count: usize) -> PortError {
 }
 
 impl StoragePort for MockPort {
-    fn open(&mut self, path: &std::path::Path) -> Result<OpenedDatabase, PortError> {
+    fn open(
+        &mut self,
+        path: &std::path::Path,
+        password: Option<&str>,
+    ) -> Result<OpenedDatabase, PortError> {
         if let Some(detail) = &self.open_fail {
             return Err(PortError::OpenFailed {
                 detail: detail.clone(),
             });
+        }
+        if let Some(expected) = &self.password {
+            match password {
+                None => {
+                    return Err(PortError::PasswordRequired {
+                        path: path.display().to_string(),
+                    });
+                }
+                Some(given) if given != expected => {
+                    return Err(PortError::WrongPassword {
+                        path: path.display().to_string(),
+                    });
+                }
+                Some(_) => {}
+            }
         }
         self.open_calls += 1;
         let name = path
@@ -322,7 +349,7 @@ mod tests {
         port.with_row_data("T", vec![vec![FieldValue::Integer(1)]]);
         port.update_row("t", 0, &[FieldValue::Integer(2)])
             .expect("case-insensitive update");
-        port.open(std::path::Path::new("memory.mock"))
+        port.open(std::path::Path::new("memory.mock"), None)
             .expect("open the mock");
         assert_eq!(
             port.read_rows("T", RowRange { start: 0, len: 1 })
@@ -377,7 +404,7 @@ mod tests {
         }
         port.insert_row("t", &[FieldValue::Integer(1)])
             .expect("valid insert");
-        port.open(std::path::Path::new("memory.mock"))
+        port.open(std::path::Path::new("memory.mock"), None)
             .expect("open the mock");
         assert_eq!(
             port.read_rows("T", RowRange { start: 0, len: 1 })

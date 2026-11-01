@@ -44,7 +44,7 @@ impl Drop for Scratch {
 
 fn opened(path: &Path) -> Jet4Port {
     let mut port = Jet4Port::new();
-    port.open(path).expect("open the fixture copy");
+    port.open(path, None).expect("open the fixture copy");
     port
 }
 

@@ -48,6 +48,7 @@ fn core_with_table() -> Core {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("memory.mock"),
+        password: None,
     });
     core
 }

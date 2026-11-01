@@ -20,6 +20,7 @@ fn core() -> Core {
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
+        password: None,
     });
     core
 }

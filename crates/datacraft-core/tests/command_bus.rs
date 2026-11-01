@@ -26,6 +26,7 @@ fn opened_core() -> Core {
     let mut core = core();
     let events = core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
+        password: None,
     });
     assert!(
         matches!(events.as_slice(), [Event::DatabaseOpened { .. }]),
@@ -92,6 +93,7 @@ fn open_database_reports_name_and_format() {
     assert_eq!(
         core.dispatch(Command::OpenDatabase {
             path: PathBuf::from("shop.mdb"),
+            password: None,
         }),
         vec![Event::DatabaseOpened {
             name: "shop".into(),
@@ -105,13 +107,15 @@ fn open_database_surfaces_port_failures_as_failed() {
     let mut core = Core::new(Box::new(MockPort::failing_open("disk unreadable")));
     let reason = failed_reason(&core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("broken.mdb"),
+        password: None,
     }));
     assert!(reason.contains("disk unreadable"), "{reason}");
     // The core stays closed: a later open can succeed.
     core = Core::new(Box::new(MockPort::new()));
     assert!(matches!(
         core.dispatch(Command::OpenDatabase {
-            path: PathBuf::from("ok.mdb")
+            path: PathBuf::from("ok.mdb"),
+            password: None,
         })
         .as_slice(),
         [Event::DatabaseOpened { .. }]
@@ -123,6 +127,7 @@ fn a_second_open_is_rejected_while_one_is_open() {
     let mut core = opened_core();
     let reason = failed_reason(&core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("other.mdb"),
+        password: None,
     }));
     assert!(reason.contains("already open"), "{reason}");
 }
@@ -441,6 +446,7 @@ fn port_write_failures_surface_as_failed_events() {
     let mut core = Core::new(Box::new(MockPort::failing_writes("read-only file")));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("ro.mdb"),
+        password: None,
     });
     let reason = failed_reason(&core.dispatch(Command::CreateTable {
         definition: customers_def(),

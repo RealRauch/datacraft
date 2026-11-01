@@ -178,9 +178,12 @@ engine reads every source through the port (see `docs/FORMAT-JET.md`
 **Format milestones:** JET4 (`.mdb`) read → ACE (`.accdb`) read → JET4 write →
 ACE write. Each milestone: spec → decoder/encoder → proptest round-trip →
 golden files → oracle comparison. Landed so far: Jet4 read, Jet3 (Access 97)
-read, embedded-OLE columns (fixed 0x11 long binary), and the Jet4 writer core
-(tables + rows, usage-map-consistent; Phase 10) — update/delete, LVAL-chain
-writes and the Access-repair gate are the remaining write-path work.
+read, embedded-OLE columns (fixed 0x11 long binary), ACE complex values
+(attachments, multi-value, version history; Phase 16), Jet3/Jet4 RC4 database
+passwords and page encryption (Phase 16; ACE Office encryption stays a precise
+`Unsupported`), and the Jet4 writer core (tables + rows, usage-map-consistent;
+Phase 10) — update/delete, LVAL-chain writes and the Access-repair gate are the
+remaining write-path work.
 
 ## 7. Domain data model (preview of Phase 3)
 

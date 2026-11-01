@@ -262,4 +262,15 @@ pub enum Event {
         /// Why the command failed.
         reason: String,
     },
+    /// The database is password-protected and the open command carried no
+    /// password (step 16.2, M5) — the UI raises its prompt.
+    PasswordRequired {
+        /// The file that needs a password.
+        path: std::path::PathBuf,
+    },
+    /// The supplied password does not match the database (step 16.2, M5).
+    PasswordRejected {
+        /// The file whose password was rejected.
+        path: std::path::PathBuf,
+    },
 }

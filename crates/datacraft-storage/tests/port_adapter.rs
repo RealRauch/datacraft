@@ -22,7 +22,7 @@ fn fixture() -> PathBuf {
 #[test]
 fn opens_the_real_fixture_with_format_and_user_tables() {
     let mut port = Jet4Port::new();
-    let opened = port.open(&fixture()).expect("fixture must open");
+    let opened = port.open(&fixture(), None).expect("fixture must open");
     assert_eq!(opened.format, DatabaseFormat::Jet4);
     assert_eq!(opened.name, "testV2000");
 
@@ -39,7 +39,7 @@ fn opens_the_real_fixture_with_format_and_user_tables() {
 #[test]
 fn every_mapped_table_is_a_valid_domain_definition() {
     let mut port = Jet4Port::new();
-    port.open(&fixture()).expect("fixture must open");
+    port.open(&fixture(), None).expect("fixture must open");
     for table in port.tables() {
         table
             .validate()
@@ -55,7 +55,7 @@ fn every_mapped_table_is_a_valid_domain_definition() {
 #[test]
 fn text_columns_map_their_descriptor_length() {
     let mut port = Jet4Port::new();
-    port.open(&fixture()).expect("fixture must open");
+    port.open(&fixture(), None).expect("fixture must open");
     let tables = port.tables();
     let text_max_lens: Vec<u16> = tables
         .iter()
@@ -104,7 +104,7 @@ fn writes_require_an_open_database() {
 #[test]
 fn drop_table_is_unsupported_with_a_pointer() {
     let mut port = Jet4Port::new();
-    port.open(&fixture()).expect("fixture must open");
+    port.open(&fixture(), None).expect("fixture must open");
     let err = port
         .drop_table("Table1")
         .expect_err("drop is not wired yet");
@@ -116,7 +116,7 @@ fn drop_table_is_unsupported_with_a_pointer() {
 fn create_table_writes_a_private_copy_only() {
     let path = fixture_copy("create");
     let mut port = Jet4Port::new();
-    port.open(&path).expect("copy opens");
+    port.open(&path, None).expect("copy opens");
     let def = TableDef::new(
         "Written",
         vec![datacraft_core::schema::FieldDef::new(
@@ -134,7 +134,7 @@ fn create_table_writes_a_private_copy_only() {
 fn open_failures_are_precise() {
     let mut port = Jet4Port::new();
     let err = port
-        .open(Path::new("definitely-missing-424242.mdb"))
+        .open(Path::new("definitely-missing-424242.mdb"), None)
         .expect_err("missing file");
     assert!(
         err.to_string().contains("definitely-missing-424242"),
@@ -144,7 +144,7 @@ fn open_failures_are_precise() {
     let mut garbage = std::env::temp_dir();
     garbage.push(format!("datacraft-garbage-{}.mdb", std::process::id()));
     std::fs::write(&garbage, [0u8; 4096]).expect("write garbage fixture");
-    let err = port.open(&garbage).expect_err("garbage file");
+    let err = port.open(&garbage, None).expect_err("garbage file");
     assert!(matches!(err, PortError::OpenFailed { .. }), "{err}");
     let _ = std::fs::remove_file(&garbage);
 }
@@ -152,13 +152,13 @@ fn open_failures_are_precise() {
 #[test]
 fn close_is_idempotent_and_clears_the_catalog() {
     let mut port = Jet4Port::new();
-    port.open(&fixture()).expect("fixture must open");
+    port.open(&fixture(), None).expect("fixture must open");
     assert!(!port.tables().is_empty());
     port.close();
     assert!(port.tables().is_empty());
     port.close();
     // Re-open after close re-attaches.
-    port.open(&fixture()).expect("re-open");
+    port.open(&fixture(), None).expect("re-open");
     assert!(!port.tables().is_empty());
 }
 
@@ -169,7 +169,7 @@ fn tables_behind_multi_page_tdefs_decode() {
     // docs/FORMAT-JET.md). The adapter must surface the table, not fail
     // the whole open.
     let mut port = Jet4Port::new();
-    port.open(&fixture()).expect("fixture must open");
+    port.open(&fixture(), None).expect("fixture must open");
     let names: Vec<String> = port.tables().into_iter().map(|t| t.name).collect();
     assert!(
         names.iter().any(|n| n == "Table2"),
@@ -183,7 +183,7 @@ fn read_rows_maps_storage_values_to_domain_values() {
     use datacraft_core::schema::FieldValue;
 
     let mut port = Jet4Port::new();
-    port.open(&fixture()).expect("fixture must open");
+    port.open(&fixture(), None).expect("fixture must open");
     let tables = port.tables();
     let with_rows = tables
         .iter()
@@ -269,7 +269,7 @@ fn relationships_read_from_msysrelationships() {
         .join("fixtures")
         .join("testV2000-access-touched.mdb");
     let mut port = Jet4Port::new();
-    port.open(&touched).expect("fixture must open");
+    port.open(&touched, None).expect("fixture must open");
     let rels = port.relationships().expect("relationships read");
     // The fixture carries the two NavPane system relationships; every
     // mapping names all four ends.
@@ -299,7 +299,7 @@ fn jet3_fixtures_open_through_the_port() {
     let path = std::env::temp_dir().join("datacraft-jet3-port.mdb");
     std::fs::write(&path, jet3_catalog_shell()).unwrap();
     let mut port = Jet4Port::new();
-    let opened = port.open(&path).expect("jet3 opens since step 10.6");
+    let opened = port.open(&path, None).expect("jet3 opens since step 10.6");
     assert!(matches!(
         opened.format,
         datacraft_core::port::DatabaseFormat::Jet3
@@ -315,8 +315,15 @@ fn jet3_catalog_shell() -> Vec<u8> {
     const PAGE: usize = 2048;
     let mut file = vec![0u8; PAGE * 4];
     file[0..4].copy_from_slice(&[0x00, 0x01, 0x00, 0x00]);
-    file[4..20].copy_from_slice(b"Standard Jet DB ");
+    file[4..20].copy_from_slice(b"Standard Jet DB\x00");
     file[0x14..0x18].copy_from_slice(&0u32.to_le_bytes());
+    // Unprotected Jet3 password field + the fixed-key header region
+    // (step 16.2 / M5).
+    file[0x42..0x56].copy_from_slice(&datacraft_storage::jet::crypto::JET3_PASSWORD_KEY);
+    datacraft_storage::jet::crypto::rc4(
+        &datacraft_storage::jet::crypto::HEADER_RC4_KEY,
+        &mut file[0x18..0x18 + datacraft_storage::jet::crypto::JET3_HEADER_REGION],
+    );
     // Page 2: catalog TDEF ('VC' header, 35-byte block, three columns).
     let base = 2 * PAGE;
     file[base] = 0x02;
