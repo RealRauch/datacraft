@@ -23,12 +23,7 @@ fn sample_document() -> SchemaDocument {
     id.properties.indexed = IndexMode::NoDuplicates;
     id.properties.required = true;
 
-    let mut name = FieldDef::new(
-        "name",
-        FieldKind::Text {
-            max_len: 50,
-        },
-    );
+    let mut name = FieldDef::new("name", FieldKind::Text { max_len: 50 });
     name.properties.allow_zero_length = true;
     name.properties.caption = Some("Customer name".into());
 
@@ -46,10 +41,7 @@ fn sample_document() -> SchemaDocument {
     note.properties.format = Some("@".into());
     let orders = TableDef::new(
         "Orders",
-        vec![
-            FieldDef::new("order_id", FieldKind::Currency),
-            note,
-        ],
+        vec![FieldDef::new("order_id", FieldKind::Currency), note],
     );
 
     SchemaDocument::new("shop").with_tables(vec![customers, orders])
@@ -108,7 +100,7 @@ fn document_validates_tables_and_database_name() {
 fn document_json_roundtrip_preserves_everything() {
     let doc = sample_document();
     ok(doc.validate());
-    let json = doc.to_json().expect("serialize");
+    let json = doc.to_json();
     let back = SchemaDocument::from_json(&json).expect("deserialize");
     assert_eq!(back, doc);
 }
@@ -118,14 +110,17 @@ fn serialization_is_deterministic() {
     let a = sample_document();
     let b = sample_document();
     assert_eq!(a, b);
-    assert_eq!(a.to_json().unwrap(), b.to_json().unwrap());
-    assert_eq!(a.to_json().unwrap(), a.to_json().unwrap());
+    assert_eq!(a.to_json(), b.to_json());
+    assert_eq!(a.to_json(), a.to_json());
 }
 
 #[test]
 fn serialized_document_is_pretty_and_versioned() {
-    let json = sample_document().to_json().unwrap();
-    assert!(json.contains("\"schema_version\""), "missing version field: {json}");
+    let json = sample_document().to_json();
+    assert!(
+        json.contains("\"schema_version\""),
+        "missing version field: {json}"
+    );
     assert!(json.contains('\n'), "expected pretty-printed JSON: {json}");
 }
 
@@ -142,12 +137,15 @@ fn malformed_json_is_a_parse_error_with_detail() {
 
 #[test]
 fn future_versions_are_rejected_precisely() {
-    let mut json = sample_document().to_json().unwrap();
+    let mut json = sample_document().to_json();
     json = json.replace("\"schema_version\": 1", "\"schema_version\": 99");
     let err = SchemaDocument::from_json(&json)
         .expect_err("future version must be rejected")
         .to_string();
-    assert!(err.contains("99"), "error must name the found version: {err}");
+    assert!(
+        err.contains("99"),
+        "error must name the found version: {err}"
+    );
     assert!(
         err.contains("newer") || err.contains("supported"),
         "error must explain the gate: {err}"
@@ -156,7 +154,7 @@ fn future_versions_are_rejected_precisely() {
 
 #[test]
 fn the_current_version_parses() {
-    let json = sample_document().to_json().unwrap();
+    let json = sample_document().to_json();
     ok(SchemaDocument::from_json(&json).map(|_| ()));
 }
 
@@ -165,7 +163,7 @@ fn older_versions_migrate_forward_to_the_current_version() {
     // v1 is the initial version — the migration ladder starts here. Loading
     // a v1 document must produce a valid current document unchanged; the
     // ladder rejects versions it has no step for (see version_zero test).
-    let json = sample_document().to_json().unwrap();
+    let json = sample_document().to_json();
     assert!(json.contains("\"schema_version\": 1"));
     let doc = SchemaDocument::from_json(&json).expect("v1 parses");
     assert_eq!(doc.schema_version, 1);
@@ -174,7 +172,7 @@ fn older_versions_migrate_forward_to_the_current_version() {
 
 #[test]
 fn version_zero_is_unsupported() {
-    let mut json = sample_document().to_json().unwrap();
+    let mut json = sample_document().to_json();
     json = json.replace("\"schema_version\": 1", "\"schema_version\": 0");
     let err = SchemaDocument::from_json(&json)
         .expect_err("version 0 never existed")
@@ -221,7 +219,10 @@ fn save_and_load_round_trip_through_the_filesystem() {
 fn loading_a_missing_file_is_an_io_error() {
     let result = SchemaDocument::load(&PathBuf::from("definitely-missing-424242.datacraft"));
     let err = result.expect_err("expected io error").to_string();
-    assert!(err.to_lowercase().contains("i/o") || err.to_lowercase().contains("io"), "{err}");
+    assert!(
+        err.to_lowercase().contains("i/o") || err.to_lowercase().contains("io"),
+        "{err}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -233,10 +234,10 @@ proptest! {
     #[test]
     fn database_name_json_roundtrip(name in "[a-z][a-z0-9_]{0,30}") {
         let doc = SchemaDocument::new(name.clone());
-        let json = doc.to_json().unwrap();
+        let json = doc.to_json();
         let back = SchemaDocument::from_json(&json).unwrap();
+        prop_assert_eq!(&back.database_name, &name);
         prop_assert_eq!(back, doc);
-        prop_assert_eq!(back.database_name, name);
     }
 
     /// Field properties of every shape round-trip through the document.
@@ -247,8 +248,8 @@ proptest! {
             FieldKind::Text { max_len: 10 },
         )]);
         let doc = SchemaDocument::new("db").with_tables(vec![table]);
-        let back = SchemaDocument::from_json(&doc.to_json().unwrap()).unwrap();
-        prop_assert_eq!(back.tables[0].name, name);
+        let back = SchemaDocument::from_json(&doc.to_json()).unwrap();
+        prop_assert_eq!(&back.tables[0].name, &name);
     }
 }
 
@@ -266,10 +267,8 @@ fn properties_survive_the_document_round_trip_verbatim() {
         allow_zero_length: false,
         indexed: IndexMode::DuplicatesOk,
     };
-    let doc = SchemaDocument::new("db").with_tables(vec![TableDef::new(
-        "t",
-        vec![field],
-    )]);
-    let back = SchemaDocument::from_json(&doc.to_json().unwrap()).unwrap();
-    assert_eq!(back.tables[0].fields[0].properties, field.properties);
+    let expected_props = field.properties.clone();
+    let doc = SchemaDocument::new("db").with_tables(vec![TableDef::new("t", vec![field])]);
+    let back = SchemaDocument::from_json(&doc.to_json()).unwrap();
+    assert_eq!(&back.tables[0].fields[0].properties, &expected_props);
 }

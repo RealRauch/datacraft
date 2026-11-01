@@ -284,3 +284,76 @@ impl FieldKind {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Table-driven: every kind rejects a value of the wrong family with a
+    /// mismatch naming both sides (covers all mismatch arms and family
+    /// names end-to-end).
+    #[test]
+    fn every_kind_rejects_a_wrong_family_value() {
+        let cases: &[(FieldKind, FieldValue)] = &[
+            (FieldKind::Text { max_len: 5 }, FieldValue::Integer(1)),
+            (FieldKind::Memo, FieldValue::Binary(vec![])),
+            (
+                FieldKind::Number(NumericKind::Byte),
+                FieldValue::Text("1".into()),
+            ),
+            (
+                FieldKind::Number(NumericKind::Integer),
+                FieldValue::Text("1".into()),
+            ),
+            (
+                FieldKind::Number(NumericKind::LongInteger),
+                FieldValue::Boolean(true),
+            ),
+            (
+                FieldKind::Number(NumericKind::Single),
+                FieldValue::Integer(1),
+            ),
+            (
+                FieldKind::Number(NumericKind::Double),
+                FieldValue::Integer(1),
+            ),
+            (
+                FieldKind::Number(NumericKind::Decimal {
+                    precision: 5,
+                    scale: 2,
+                }),
+                FieldValue::Integer(1),
+            ),
+            (FieldKind::DateTime, FieldValue::Text("2020".into())),
+            (FieldKind::Currency, FieldValue::Integer(1)),
+            (
+                FieldKind::Boolean { tri_state: false },
+                FieldValue::Integer(1),
+            ),
+            (
+                FieldKind::Binary(BinaryKind::OleObject),
+                FieldValue::Text("x".into()),
+            ),
+        ];
+        for (kind, value) in cases {
+            let err = kind
+                .validate_value(value)
+                .expect_err("wrong family must be rejected");
+            match err {
+                SchemaError::KindMismatch { expected, found } => {
+                    assert_eq!(expected, kind.family(), "expected side for {kind:?}");
+                    assert_eq!(found, value.family(), "found side for {value:?}");
+                }
+                other => panic!("expected KindMismatch for {kind:?}, got {other:?}"),
+            }
+        }
+    }
+
+    /// Attachment fields accept binary values and report their family.
+    #[test]
+    fn attachment_kind_accepts_binary_values() {
+        let kind = FieldKind::Binary(BinaryKind::Attachment);
+        assert!(kind.validate_value(&FieldValue::Binary(vec![9])).is_ok());
+        assert_eq!(kind.family(), "binary");
+    }
+}

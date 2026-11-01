@@ -7,7 +7,7 @@
 use std::fmt;
 
 /// Errors raised while validating field kinds, properties or values.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum SchemaError {
     /// A field kind violates its own invariants (e.g. text `max_len` 0).
     InvalidKind {
@@ -64,6 +64,20 @@ pub enum SchemaError {
         /// Concrete rule that was violated.
         detail: String,
     },
+    /// A schema document carries a version this DataCraft cannot read.
+    UnsupportedVersion {
+        /// Version found in the document.
+        found: u64,
+        /// Highest version this DataCraft supports.
+        supported: u64,
+    },
+    /// The document is not well-formed JSON or misses required fields.
+    Parse {
+        /// Underlying parser detail.
+        detail: String,
+    },
+    /// Reading or writing the sidecar file failed.
+    Io(std::io::Error),
 }
 
 impl fmt::Display for SchemaError {
@@ -104,12 +118,52 @@ impl fmt::Display for SchemaError {
             Self::DuplicateName { name } => {
                 write!(
                     f,
-                    "duplicate field name {name:?}: field names are case-insensitive"
+                    "duplicate name {name:?}: object names are case-insensitive"
                 )
             }
             Self::InvalidName { detail } => write!(f, "invalid name: {detail}"),
+            Self::UnsupportedVersion { found, supported } => write!(
+                f,
+                "schema document version {found} is not supported — this DataCraft \
+                 reads and writes versions up to {supported}"
+            ),
+            Self::Parse { detail } => write!(f, "malformed schema document: {detail}"),
+            Self::Io(e) => write!(f, "schema document I/O error: {e}"),
         }
     }
 }
 
-impl std::error::Error for SchemaError {}
+impl From<std::io::Error> for SchemaError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e)
+    }
+}
+
+impl std::error::Error for SchemaError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Io(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Only the I/O variant chains an underlying error source; the rest are
+    /// self-contained (contract for error handling in clients).
+    #[test]
+    fn io_errors_chain_their_source() {
+        let io: SchemaError = std::io::Error::other("disk full").into();
+        assert!(std::error::Error::source(&io).is_some());
+        assert!(io.to_string().contains("disk full"));
+
+        let parse = SchemaError::Parse {
+            detail: "bad".to_owned(),
+        };
+        assert!(std::error::Error::source(&parse).is_none());
+        assert!(parse.to_string().contains("bad"));
+    }
+}

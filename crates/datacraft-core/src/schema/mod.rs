@@ -6,12 +6,14 @@
 //! their physical types onto it.
 
 mod def;
+mod document;
 mod error;
 mod field;
 mod properties;
 mod value;
 
 pub use def::{FieldDef, TableDef};
+pub use document::{SCHEMA_VERSION, SchemaDocument};
 pub use error::SchemaError;
 pub use field::{AutoKind, BinaryKind, FieldKind, NumericKind};
 pub use properties::{FieldProperties, IndexMode};

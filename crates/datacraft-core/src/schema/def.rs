@@ -41,26 +41,34 @@ impl FieldDef {
     }
 
     /// Validates a value against this field: required-ness and zero-length
-    /// rules first, then the kind's own value rules.
+    /// rules first, then the kind's own value rules. AutoNumber rejections
+    /// gain the field name for precise diagnostics.
     pub fn validate_value(&self, value: &FieldValue) -> Result<(), SchemaError> {
-        if matches!(value, FieldValue::Null) {
-            if self.properties.required {
-                return Err(SchemaError::NullNotAllowed {
-                    field: self.name.clone(),
-                });
+        match self.kind.validate_value(value) {
+            Err(SchemaError::EngineAssigned { field: None }) => Err(SchemaError::EngineAssigned {
+                field: Some(self.name.clone()),
+            }),
+            other => {
+                if matches!(value, FieldValue::Null) {
+                    if self.properties.required {
+                        return Err(SchemaError::NullNotAllowed {
+                            field: self.name.clone(),
+                        });
+                    }
+                    return Ok(());
+                }
+                if let FieldValue::Text(s) = value
+                    && s.is_empty()
+                    && !self.properties.allow_zero_length
+                    && matches!(self.kind, FieldKind::Text { .. } | FieldKind::Memo)
+                {
+                    return Err(SchemaError::EmptyStringNotAllowed {
+                        field: self.name.clone(),
+                    });
+                }
+                other
             }
-            return Ok(());
         }
-        if let FieldValue::Text(s) = value
-            && s.is_empty()
-            && !self.properties.allow_zero_length
-            && matches!(self.kind, FieldKind::Text { .. } | FieldKind::Memo)
-        {
-            return Err(SchemaError::EmptyStringNotAllowed {
-                field: self.name.clone(),
-            });
-        }
-        self.kind.validate_value(value)
     }
 }
 
@@ -103,7 +111,7 @@ impl TableDef {
 
 /// Object names must not be empty or whitespace-only (Access enforces this
 /// in the UI; we enforce it at the model boundary).
-fn validate_object_name(name: &str) -> Result<(), SchemaError> {
+pub(crate) fn validate_object_name(name: &str) -> Result<(), SchemaError> {
     if name.trim().is_empty() {
         Err(SchemaError::InvalidName {
             detail: "names must not be empty or whitespace-only".to_owned(),

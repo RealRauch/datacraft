@@ -49,3 +49,29 @@ impl FieldValue {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every variant reports its family name — mismatch diagnostics name
+    /// both sides, so all families must be stable.
+    #[test]
+    fn family_names_cover_every_variant() {
+        let cases: [(FieldValue, &str); 10] = [
+            (FieldValue::Null, "null"),
+            (FieldValue::Boolean(true), "boolean"),
+            (FieldValue::Integer(1), "integer"),
+            (FieldValue::Float(1.0), "float"),
+            (FieldValue::Currency(1), "currency"),
+            (FieldValue::DateTime(1.0), "date/time"),
+            (FieldValue::Decimal(1), "decimal"),
+            (FieldValue::Text("t".into()), "text"),
+            (FieldValue::Binary(vec![]), "binary"),
+            (FieldValue::Guid([0; 16]), "guid"),
+        ];
+        for (value, family) in cases {
+            assert_eq!(value.family(), family, "family of {value:?}");
+        }
+    }
+}
