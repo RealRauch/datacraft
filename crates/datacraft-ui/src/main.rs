@@ -76,7 +76,8 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "DataCraft",
         options,
-        Box::new(move |_cc| {
+        Box::new(move |cc| {
+            crate::theme::fonts::install(&cc.egui_ctx);
             let mut app = App::new(Box::new(datacraft_storage::detecting::DetectingPort::new()));
             app.set_settings_path(settings_path);
             app.apply_settings(settings);

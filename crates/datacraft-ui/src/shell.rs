@@ -10,6 +10,7 @@ use datacraft_core::snapshot::UiStateSnapshot;
 
 use crate::app::App;
 use crate::i18n::{t, tr};
+use crate::theme::fonts;
 use crate::theme::tokens;
 
 /// Status-line keys with a table count (the catalog parity test enumerates
@@ -52,10 +53,14 @@ impl eframe::App for App {
                             .find(|t| t.id == id)
                             .map(|t| (t.object_kind.clone(), t.object_name.clone()))
                     });
-                    ui.label(status_label(
-                        self.snapshot(),
-                        active.as_ref().map(|(k, n)| (k.as_str(), n.as_str())),
-                    ));
+                    ui.label(
+                        egui::RichText::new(status_label(
+                            self.snapshot(),
+                            active.as_ref().map(|(k, n)| (k.as_str(), n.as_str())),
+                        ))
+                        .size(fonts::CHROME.size)
+                        .extra_letter_spacing(fonts::CHROME.tracking_points()),
+                    );
                     if let Some(reason) = self.last_error() {
                         ui.colored_label(tokens.danger, reason);
                     } else if let Some(notice) = self.last_notice() {

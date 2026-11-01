@@ -14,6 +14,7 @@ use datacraft_core::ribbon::{ActionState, ribbon_spec};
 use crate::app::App;
 use crate::i18n::{t, tr};
 use crate::settings::LanguageSetting;
+use crate::theme::fonts;
 use crate::theme::tokens;
 
 /// Renders the ribbon in Access structure (step 12.2): a tab strip row on
@@ -106,7 +107,8 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                     |ui| {
                         ui.label(
                             egui::RichText::new(t(group.label))
-                                .small()
+                                .size(fonts::CAPTION.size)
+                                .extra_letter_spacing(fonts::CAPTION.tracking_points())
                                 .color(tokens.text_muted),
                         );
                     },
@@ -153,7 +155,8 @@ fn language_group(ui: &mut egui::Ui, app: &mut App) {
             |ui| {
                 ui.label(
                     egui::RichText::new(t("Language"))
-                        .small()
+                        .size(fonts::CAPTION.size)
+                        .extra_letter_spacing(fonts::CAPTION.tracking_points())
                         .color(tokens.text_muted),
                 );
             },
@@ -168,8 +171,12 @@ fn ribbon_button(ui: &mut egui::Ui, label: &str) -> bool {
 }
 
 fn ribbon_button_shape(label: &str) -> egui::Button<'static> {
-    egui::Button::new(egui::RichText::new(label.to_owned()).strong())
-        .min_size(egui::vec2(0.0, 28.0))
+    egui::Button::new(
+        egui::RichText::new(label.to_owned())
+            .size(fonts::CONTROL.size)
+            .strong(),
+    )
+    .min_size(egui::vec2(0.0, 28.0))
 }
 
 /// Maps a static ribbon action onto its command. `None` for the

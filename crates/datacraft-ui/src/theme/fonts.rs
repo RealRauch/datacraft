@@ -7,6 +7,156 @@
 //! (−0.012 em), Control 11.5, Caption 11.0 (+0.018 em), plus egui's
 //! Body/Button 12.5, Small 10.5 and Heading 17 semibold.
 
+use std::sync::Arc;
+
+use eframe::egui;
+
+const INTER_REGULAR: &[u8] = include_bytes!("../../../../assets/fonts/Inter-Regular.ttf");
+const INTER_MEDIUM: &[u8] = include_bytes!("../../../../assets/fonts/Inter-Medium.ttf");
+const INTER_SEMIBOLD: &[u8] = include_bytes!("../../../../assets/fonts/Inter-SemiBold.ttf");
+const JETBRAINS_MONO: &[u8] = include_bytes!("../../../../assets/fonts/JetBrainsMono-Regular.ttf");
+
+/// Named family for the Inter Medium cut.
+pub const FAMILY_MEDIUM: &str = "medium";
+/// Named family for the Inter SemiBold cut.
+pub const FAMILY_SEMIBOLD: &str = "semibold";
+
+/// egui `Body` and `Button` size.
+pub const BODY_SIZE: f32 = 12.5;
+/// egui `Small` size.
+pub const SMALL_SIZE: f32 = 10.5;
+/// egui `Heading` size (rendered in the SemiBold family).
+pub const HEADING_SIZE: f32 = 17.0;
+/// egui `Monospace` size.
+pub const MONO_SIZE: f32 = 12.0;
+
+/// A type rung: size in points and tracking in em.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TypeRung {
+    /// Font size in points.
+    pub size: f32,
+    /// Tracking in em (negative tightens).
+    pub tracking_em: f32,
+}
+
+impl TypeRung {
+    /// Tracking in points for this rung.
+    pub const fn tracking_points(self) -> f32 {
+        self.size * self.tracking_em
+    }
+}
+
+/// Chrome rung: status bar and other chrome strips.
+pub const CHROME: TypeRung = TypeRung {
+    size: 12.5,
+    tracking_em: -0.012,
+};
+
+/// Control rung: compact command labels (ribbon buttons).
+pub const CONTROL: TypeRung = TypeRung {
+    size: 11.5,
+    tracking_em: 0.0,
+};
+
+/// Caption rung: ribbon group captions and small annotations.
+pub const CAPTION: TypeRung = TypeRung {
+    size: 11.0,
+    tracking_em: 0.018,
+};
+
+/// Font definitions with Inter (and its named cuts) in front of egui's
+/// default faces, and JetBrains Mono in front of egui's monospace faces.
+pub fn font_definitions() -> egui::FontDefinitions {
+    let mut definitions = egui::FontDefinitions::default();
+    for (name, bytes) in [
+        ("inter_regular", INTER_REGULAR),
+        ("inter_medium", INTER_MEDIUM),
+        ("inter_semibold", INTER_SEMIBOLD),
+        ("jetbrains_mono", JETBRAINS_MONO),
+    ] {
+        definitions.font_data.insert(
+            name.to_owned(),
+            Arc::new(egui::FontData::from_static(bytes)),
+        );
+    }
+
+    let proportional = definitions
+        .families
+        .get(&egui::FontFamily::Proportional)
+        .cloned()
+        .unwrap_or_default();
+    definitions.families.insert(
+        egui::FontFamily::Proportional,
+        prepend(&["inter_regular"], &proportional),
+    );
+    for (family, faces) in [
+        (FAMILY_MEDIUM, ["inter_medium", "inter_regular"]),
+        (FAMILY_SEMIBOLD, ["inter_semibold", "inter_regular"]),
+    ] {
+        definitions.families.insert(
+            egui::FontFamily::Name(family.into()),
+            prepend(&faces, &proportional),
+        );
+    }
+
+    let monospace = definitions
+        .families
+        .get(&egui::FontFamily::Monospace)
+        .cloned()
+        .unwrap_or_default();
+    definitions.families.insert(
+        egui::FontFamily::Monospace,
+        prepend(&["jetbrains_mono"], &monospace),
+    );
+    definitions
+}
+
+fn prepend(faces: &[&str], fallback: &[String]) -> Vec<String> {
+    faces
+        .iter()
+        .map(|face| (*face).to_owned())
+        .chain(fallback.iter().cloned())
+        .collect()
+}
+
+/// Registers the embedded fonts and installs the type scale in both themes.
+pub fn install(ctx: &egui::Context) {
+    ctx.set_fonts(font_definitions());
+    ctx.all_styles_mut(|style| {
+        for (text_style, size, family) in [
+            (
+                egui::TextStyle::Body,
+                BODY_SIZE,
+                egui::FontFamily::Proportional,
+            ),
+            (
+                egui::TextStyle::Button,
+                BODY_SIZE,
+                egui::FontFamily::Proportional,
+            ),
+            (
+                egui::TextStyle::Small,
+                SMALL_SIZE,
+                egui::FontFamily::Proportional,
+            ),
+            (
+                egui::TextStyle::Heading,
+                HEADING_SIZE,
+                egui::FontFamily::Name(FAMILY_SEMIBOLD.into()),
+            ),
+            (
+                egui::TextStyle::Monospace,
+                MONO_SIZE,
+                egui::FontFamily::Monospace,
+            ),
+        ] {
+            style
+                .text_styles
+                .insert(text_style, egui::FontId::new(size, family));
+        }
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,19 +245,19 @@ mod tests {
         install(&ctx);
         for theme in [egui::Theme::Light, egui::Theme::Dark] {
             let style = ctx.style_of(theme);
-            let body = style.text_styles[&egui::TextStyle::Body];
+            let body = &style.text_styles[&egui::TextStyle::Body];
             assert_eq!(body.size, BODY_SIZE);
             assert_eq!(body.family, egui::FontFamily::Proportional);
             assert_eq!(style.text_styles[&egui::TextStyle::Button].size, BODY_SIZE);
             assert_eq!(style.text_styles[&egui::TextStyle::Small].size, SMALL_SIZE);
 
-            let heading = style.text_styles[&egui::TextStyle::Heading];
+            let heading = &style.text_styles[&egui::TextStyle::Heading];
             assert_eq!(heading.size, HEADING_SIZE);
             assert_eq!(
                 heading.family,
                 egui::FontFamily::Name(FAMILY_SEMIBOLD.into())
             );
-            let mono = style.text_styles[&egui::TextStyle::Monospace];
+            let mono = &style.text_styles[&egui::TextStyle::Monospace];
             assert_eq!(mono.family, egui::FontFamily::Monospace);
             assert_eq!(mono.size, 12.0);
         }
@@ -121,6 +271,9 @@ mod tests {
         install(&ctx);
         let style = ctx.style_of(egui::Theme::Light);
         assert_eq!(style.text_styles[&egui::TextStyle::Body].size, BODY_SIZE);
-        assert_eq!(style.text_styles[&egui::TextStyle::Heading].size, HEADING_SIZE);
+        assert_eq!(
+            style.text_styles[&egui::TextStyle::Heading].size,
+            HEADING_SIZE
+        );
     }
 }

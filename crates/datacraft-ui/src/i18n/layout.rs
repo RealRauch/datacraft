@@ -24,7 +24,10 @@ const STATUS_BUDGET: f32 = 640.0;
 fn german_ribbon_group_captions_fit_their_column() {
     let mut widths = Vec::new();
     run(|ctx| {
-        let font = egui::FontId::proportional(10.0);
+        let font = egui::FontId::new(
+            crate::theme::fonts::CAPTION.size,
+            egui::FontFamily::Proportional,
+        );
         for tab in &ribbon_spec().tabs {
             for group in &tab.groups {
                 let label = translate(Lang::German, group.label);
@@ -45,7 +48,10 @@ fn german_ribbon_group_captions_fit_their_column() {
 fn german_status_lines_fit_the_minimum_window() {
     let mut widths = Vec::new();
     run(|ctx| {
-        let font = egui::FontId::proportional(14.0);
+        let font = egui::FontId::new(
+            crate::theme::fonts::CHROME.size,
+            egui::FontFamily::Proportional,
+        );
         let plural = translate(Lang::German, crate::shell::STATUS_TABLES)
             .replace("{database}", "shop")
             .replace("{format}", "Jet4")
@@ -68,9 +74,13 @@ fn german_status_lines_fit_the_minimum_window() {
     }
 }
 
-/// Runs one egui pass so the default fonts are laid out and measurable.
+/// Runs one egui pass so the shipped fonts are laid out and measurable.
 fn run(measure: impl FnMut(&egui::Context)) {
     let ctx = egui::Context::default();
+    // Measure against the shipped typography (step 20.2): the budget must
+    // reflect Inter and the rung scale, not egui's defaults.
+    crate::theme::fonts::install(&ctx);
+    crate::theme::apply(&ctx);
     let mut output = ctx.run_pass(egui::RawInput::default(), measure);
     // Headless: there is no painter that would apply the font-atlas delta.
     output.textures_delta.clear();
