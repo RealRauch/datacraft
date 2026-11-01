@@ -133,7 +133,13 @@ lengths as well), then per-variable column usage-map pointers terminated by
 `0xFFFF` (real files sometimes end the block without the terminator — treat
 running out of bytes as the end). Descriptor storage order need not match the
 `col_num` order — MSysObjects stores its descriptors alphabetically; row null
-masks follow `col_num` (see "Rows").
+masks follow `col_num` (see "Rows"). The **logical column order** of a table
+is the `col_num` (creation) order, not the descriptor storage order —
+verified via the CI mdb-export comparison (mdb-export lists MSysObjects
+columns as Id, ParentId, Name, Type, DateCreate, DateUpdate, Owner, Flags,
+Database, Connect, ForeignName, RmtInfoShort, RmtInfoLong, Lv, LvProp,
+LvModule, LvExtra = col_num 0–16); decoded columns are therefore presented
+sorted by `col_num`.
 
 ## Real-row tail semantics (RESOLVED 2026-11-01 — BACKLOG T2)
 

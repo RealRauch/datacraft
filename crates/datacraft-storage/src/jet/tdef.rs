@@ -269,9 +269,6 @@ impl JetTableDef {
         let num_real_idx = le::u32(b, 43, "num_real_idx")? as usize;
         let _used_pages = le::u32(b, 47, "used_pages")?;
         let _free_pages = le::u32(b, 51, "free_pages")?;
-        eprintln!(
-            "DBG tdef: ncols={num_cols} var={num_var_cols} idx={num_idx} real={num_real_idx} type={table_type:#04x}"
-        );
         let mut at = 55 + num_real_idx * 12;
         let mut columns = Vec::with_capacity(num_cols);
         for _ in 0..num_cols {
@@ -346,6 +343,12 @@ impl JetTableDef {
                 ptr = u16::from_le_bytes([b[at], b[at + 1]]);
             }
         }
+        // Logical column order is the column-id (creation) order — descriptor
+        // storage order can diverge from it (MSysObjects stores them
+        // alphabetically), and both the null mask and the logical schema
+        // follow the id space (docs/FORMAT-JET.md "Rows"). Stable sort:
+        // duplicate ids keep storage order (hostile-file tolerance).
+        columns.sort_by_key(|c| c.column_id);
         Ok(Self {
             table_type,
             num_rows,
