@@ -39,6 +39,8 @@ pub struct App {
     form_selection: HashMap<TabId, String>,
     /// Drag accumulation per (tab, control): (dx, dy), present while dragging.
     drags: HashMap<(TabId, String), (f32, f32)>,
+    /// Current runtime record index per form tab.
+    form_record: HashMap<TabId, usize>,
     /// Selected design-grid field index per tab.
     design_selection: HashMap<TabId, usize>,
 }
@@ -69,6 +71,7 @@ impl App {
             tab_mode: HashMap::new(),
             form_selection: HashMap::new(),
             drags: HashMap::new(),
+            form_record: HashMap::new(),
             design_selection: HashMap::new(),
         }
     }
@@ -107,6 +110,16 @@ impl App {
             TabMode::Design => TabMode::Datasheet,
         };
         self.tab_mode.insert(tab_id, next);
+    }
+
+    /// Current runtime record of a form tab (defaults to the first).
+    pub fn form_record(&self, tab_id: TabId) -> usize {
+        self.form_record.get(&tab_id).copied().unwrap_or(0)
+    }
+
+    /// Moves the runtime record cursor of a form tab.
+    pub fn set_form_record(&mut self, tab_id: TabId, record: usize) {
+        self.form_record.insert(tab_id, record);
     }
 
     /// Selected control of a form-design tab (if any).
@@ -172,10 +185,22 @@ impl App {
             if self.rows.contains_key(&tab.id) {
                 continue;
             }
+            // Table tabs read their own rows; form tabs read their source.
+            let source_name = if tab.object_kind == "form" {
+                db.forms
+                    .iter()
+                    .find(|f| f.name == tab.object_name)
+                    .map(|f| f.source.clone())
+            } else {
+                Some(tab.object_name.clone())
+            };
+            let Some(source_name) = source_name.filter(|n| !n.is_empty()) else {
+                continue;
+            };
             let Some(definition) = db
                 .tables
                 .iter()
-                .find(|t| t.name.eq_ignore_ascii_case(&tab.object_name))
+                .find(|t| t.name.eq_ignore_ascii_case(&source_name))
             else {
                 continue;
             };

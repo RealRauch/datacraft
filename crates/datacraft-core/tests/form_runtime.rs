@@ -25,10 +25,21 @@ fn customers_def() -> TableDef {
 }
 
 fn opened_core() -> Core {
+    let mut core = opened_db();
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
+    core
+}
+
+fn opened_db() -> Core {
     let mut core = Core::new(Box::new(MockPort::new()));
-    core.dispatch(Command::OpenDatabase { path: PathBuf::from("shop.mdb") });
-    core.dispatch(Command::CreateTable { definition: customers_def() });
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+    });
+    core.dispatch(Command::CreateTable {
+        definition: customers_def(),
+    });
     core
 }
 
@@ -38,7 +49,12 @@ fn text_box(name: &str, bound: Option<&str>) -> ControlDef {
         kind: ControlKind::TextBox {
             bound_field: bound.map(str::to_owned),
         },
-        rect: Rect { x: 8.0, y: 8.0, width: 120.0, height: 24.0 },
+        rect: Rect {
+            x: 8.0,
+            y: 8.0,
+            width: 120.0,
+            height: 24.0,
+        },
     }
 }
 
@@ -102,12 +118,6 @@ fn bound_fields_validate_against_the_source() {
 #[test]
 fn setting_a_source_validates_existing_bindings() {
     let mut core = opened_core();
-    core.dispatch(Command::AddFormControl {
-        form: "Card".into(),
-        control: text_box("loose_box", Some("whatever")),
-    });
-    // No source set yet -> the loose binding was rejected at add time;
-    // use a label (unbound) plus a manual bound control via source flip.
     core.dispatch(Command::SetFormSource {
         form: "Card".into(),
         table: "Customers".into(),
@@ -118,16 +128,18 @@ fn setting_a_source_validates_existing_bindings() {
     });
     // Switching to a source without that field is refused.
     core.dispatch(Command::CreateTable {
-        definition: TableDef::new(
-            "Orders",
-            vec![FieldDef::new("total", FieldKind::Currency)],
-        ),
+        definition: TableDef::new("Orders", vec![FieldDef::new("total", FieldKind::Currency)]),
     });
     let reason = failed_reason(&core.dispatch(Command::SetFormSource {
         form: "Card".into(),
         table: "Orders".into(),
     }));
     assert!(reason.contains("name"), "{reason}");
+    // The original source survives the refusal.
+    assert_eq!(
+        core.inspect().database.unwrap().forms[0].source,
+        "Customers"
+    );
 }
 
 #[test]
@@ -146,17 +158,17 @@ fn the_design_document_saves_and_loads() {
         form: "Card".into(),
         control: text_box("name_box", Some("name")),
     });
-    core.dispatch(Command::CreateQuery { name: "Active".into() });
+    core.dispatch(Command::CreateQuery {
+        name: "Active".into(),
+    });
 
     assert_eq!(
         core.dispatch(Command::SaveDesignDocument { path: path.clone() }),
-        vec![Event::DesignDocumentSaved {
-            path: path.clone(),
-        }]
+        vec![Event::DesignDocumentSaved { path: path.clone() }]
     );
 
-    // A fresh core loses the design layer, then reloads it.
-    let mut core = opened_core();
+    // A fresh core (database without design layer) reloads it.
+    let mut core = opened_db();
     assert!(core.inspect().database.unwrap().forms.is_empty());
     assert_eq!(
         core.dispatch(Command::LoadDesignDocument { path: path.clone() }),
@@ -185,21 +197,21 @@ fn loading_rejects_foreign_and_future_documents() {
 
     // A different database must not adopt the document.
     let mut other = Core::new(Box::new(MockPort::new()));
-    other.dispatch(Command::OpenDatabase { path: PathBuf::from("other.mdb") });
-    other.dispatch(Command::CreateTable { definition: customers_def() });
+    other.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("other.mdb"),
+    });
+    other.dispatch(Command::CreateTable {
+        definition: customers_def(),
+    });
     other.dispatch(Command::CreateForm { name: "X".into() });
-    let reason = failed_reason(&other.dispatch(Command::LoadDesignDocument {
-        path: path.clone(),
-    }));
+    let reason = failed_reason(&other.dispatch(Command::LoadDesignDocument { path: path.clone() }));
     assert!(reason.contains("shop"), "{reason}");
 
     // A future version is rejected precisely.
     let mut json = std::fs::read_to_string(&path).unwrap();
     json = json.replace("\"schema_version\": 1", "\"schema_version\": 99");
     std::fs::write(&path, json).unwrap();
-    let reason = failed_reason(&core.dispatch(Command::LoadDesignDocument {
-        path: path.clone(),
-    }));
+    let reason = failed_reason(&core.dispatch(Command::LoadDesignDocument { path: path.clone() }));
     assert!(reason.contains("99"), "{reason}");
     let _ = std::fs::remove_file(&path);
 }

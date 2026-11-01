@@ -119,4 +119,24 @@ pub enum Command {
         /// Control name (case-insensitive).
         control: String,
     },
+    /// Assigns a form's source table (whitelisted; existing bindings
+    /// re-validated).
+    SetFormSource {
+        /// Target form name (case-insensitive).
+        form: String,
+        /// Source table name.
+        table: String,
+    },
+    /// Writes the design layer (forms + queries) to a `.datacraft`
+    /// sidecar file (ADR-1).
+    SaveDesignDocument {
+        /// Target file path.
+        path: std::path::PathBuf,
+    },
+    /// Loads forms + queries from a sidecar file (version gate enforced;
+    /// the database name must match the open database).
+    LoadDesignDocument {
+        /// Source file path.
+        path: std::path::PathBuf,
+    },
 }

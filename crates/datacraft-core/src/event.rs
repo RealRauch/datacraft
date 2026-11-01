@@ -89,6 +89,27 @@ pub enum Event {
         /// Canonical control name.
         control: String,
     },
+    /// A form's source table was assigned.
+    FormSourceSet {
+        /// Canonical form name.
+        form: String,
+        /// Canonical table name.
+        table: String,
+    },
+    /// The design layer was written to a sidecar file.
+    DesignDocumentSaved {
+        /// The file written.
+        path: std::path::PathBuf,
+    },
+    /// The design layer was loaded from a sidecar file.
+    DesignDocumentLoaded {
+        /// The file read.
+        path: std::path::PathBuf,
+        /// Number of forms loaded.
+        forms: usize,
+        /// Number of queries loaded.
+        queries: usize,
+    },
     /// A form was deleted.
     FormDropped {
         /// Canonical form name.

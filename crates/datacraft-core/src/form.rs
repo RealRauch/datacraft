@@ -80,6 +80,10 @@ pub struct ControlDef {
 pub struct FormDef {
     /// Form name (unique in its database, case-insensitive).
     pub name: String,
+    /// Source table for bound controls (empty until assigned; whitelisted
+    /// by `Command::SetFormSource`).
+    #[serde(default)]
+    pub source: String,
     /// Snap grid in points (Access-like default: 8).
     pub grid: f32,
     /// Canvas size (default 640 x 400).
@@ -94,6 +98,7 @@ impl FormDef {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
+            source: String::new(),
             grid: 8.0,
             size: CanvasSize::default(),
             controls: Vec::new(),
