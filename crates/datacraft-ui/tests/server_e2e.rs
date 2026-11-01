@@ -198,3 +198,77 @@ fn the_design_document_round_trips_over_the_wire() {
     assert_eq!(loaded["forms"], 1, "{loaded}");
     let _ = std::fs::remove_file(&path);
 }
+
+#[test]
+fn creates_and_fills_a_sqlite_table_over_the_wire() {
+    use datacraft_core::command::Command;
+    use datacraft_core::schema::{
+        AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
+    };
+
+    let path = scratch_sqlite("writes");
+    let definition = TableDef::new(
+        "people",
+        vec![
+            FieldDef::new("id", FieldKind::AutoNumber(AutoKind::LongInteger)),
+            FieldDef::new("name", FieldKind::Text { max_len: 40 }),
+            FieldDef::new("score", FieldKind::Number(NumericKind::Double)),
+        ],
+    );
+    let create = serde_json::to_value(Command::CreateTable { definition })
+        .expect("serialize CreateTable");
+    let insert = serde_json::to_value(Command::InsertRow {
+        table: "people".into(),
+        values: vec![
+            FieldValue::Null,
+            FieldValue::Text("Ada".into()),
+            FieldValue::Float(2.5),
+        ],
+    })
+    .expect("serialize InsertRow");
+
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": path.to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"dispatch","params":create}),
+            json!({"jsonrpc":"2.0","id":3,"method":"dispatch","params":insert}),
+        ],
+    );
+    assert_eq!(
+        result_of(&responses[1])["events"][0]["TableCreated"]["table"],
+        "people",
+        "{responses:?}"
+    );
+    assert_eq!(
+        result_of(&responses[2])["events"][0]["RowInserted"]["table"],
+        "people",
+        "{responses:?}"
+    );
+
+    // Persistence: a fresh core reopens the file and reads the row back.
+    let mut reopened = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut reopened,
+        &[json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                  "params":{"OpenDatabase":{"path": path.to_string_lossy()}}})],
+    );
+    assert_eq!(
+        result_of(&responses[0])["events"][0]["DatabaseOpened"]["format"],
+        "sqlite",
+        "{responses:?}"
+    );
+    let rows = reopened
+        .read_rows(
+            "people",
+            datacraft_core::port::RowRange { start: 0, len: 10 },
+        )
+        .expect("the inserted row persisted");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0][0], FieldValue::Integer(1));
+    assert_eq!(rows[0][1], FieldValue::Text("Ada".into()));
+    assert_eq!(rows[0][2], FieldValue::Float(2.5));
+    let _ = std::fs::remove_file(&path);
+}
