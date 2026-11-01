@@ -107,12 +107,6 @@
 - **Approach:** Ctrl+S (Save Design), Ctrl+W (Close Tab), Esc (cancel cell edit / close menu) mapped to the same single commands as their buttons; Alt reveals ribbon key tips rendered from the spec ids (never invented labels). Keyboard documentation rides with M6's README accuracy pass, not here. Scope guard at `fd7f662`: the model's keytips are a four-phase state machine (Tabs → Commands → Legacy → Backstage) including Word-2003 sequences and numeric QAT badges; DataCraft takes only the Tabs and Commands phases.
 - **Acceptance:** shortcuts dispatch one command each; key tips visible after Alt and match the spec; headless-testable where egui permits (coordinate with T5); canonical verification set green.
 
-### [ ] F3 — F3 — Empty workspace never painted the canvas token — 🟢
-- **Location:** `crates/datacraft-ui/src/workspace.rs` (empty-state branch)
-- **Problem:** with no open tabs the workspace returned before painting the central panel, so the window clear colour (black) showed through instead of `tokens.canvas`; found in the Phase 20 gate screenshots.
-- **Fix:** wrap the empty-state message in the same `CentralPanel` frame as the populated workspace (6 lines, Low class), committed with the Phase 20 gate.
-- **Acceptance:** an empty workspace renders the canvas token in both palettes.
-
 ---
 
 ## 🔵 TEST GAPS
@@ -205,3 +199,4 @@
 - U2 — Typography: Inter + type rungs — done (done in `aef71e9` (RED `e8a6c6c`) — Inter 4.1 and JetBrains Mono 2.304 embedded unmodified with SIL OFL licenses and attribution; rung scale installed in both themes; German layout budgets now measured on the shipped fonts)
 - U3 — Original vector iconography (ribbon, nav pane, tabs) — done (done in `824f546` (RED `0c2ca4e`) — one name-keyed painter dispatcher in `icons.rs` with `file`/`data`/`objects` section painters; every ribbon action id and object kind is dispatched and paints; ribbon buttons, nav-pane rows and document tabs carry icons; AccessKit labels preserved)
 - U4 — Dark mode: Appearance Light/Dark/System — done (done in `0866cd9` (RED `731155a`) — Appearance Light/Dark/System (default System) persisted in `ui.json`, both palettes installed per theme, tokens picked per frame, dark teal pendant #3FA799 with WCAG contrast tests for both palettes; Linux live-follow polls the XDG portal every 4 s via `gdbus` with a tested parser)
+- F3 — F3 — Empty workspace never painted the canvas token — done (fixed inline in `612b114` during the Phase 20 gate — the empty workspace now paints the canvas token in both palettes)

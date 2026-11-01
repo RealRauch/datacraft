@@ -574,3 +574,12 @@
 - **Approach:** `Appearance { Light, Dark, System }` (default `System`) — both palettes are installed at theme-apply time (`set_visuals_of(Theme::Light/Dark)`), the token set is picked per frame from `ctx.global_style().visuals.dark_mode`, and the theme preference follows the setting, exactly like the model. **Dark accents use the teal pendant (≈ `#3FA799`, dark on-accent ink), never the model's light blue (`#7A93F0`).** WCAG contrast tests (4.5:1 text on accent, 3:1 borders) against the teal variants; unknown persisted appearance values fall back to the default. Linux caveat: `system_theme` is `None` there, so the model polls the XDG desktop portal's `color-scheme` every 4 s (`desktop_theme.rs`) — without that the "System follows OS live" acceptance fails on Linux.
 - **Acceptance:** System mode follows OS appearance live; persistence via `ui.json` (I4); contrast tests green for both palettes; canonical verification set green.
 - **Done:** done in `0866cd9` (RED `731155a`) — Appearance Light/Dark/System (default System) persisted in `ui.json`, both palettes installed per theme, tokens picked per frame, dark teal pendant #3FA799 with WCAG contrast tests for both palettes; Linux live-follow polls the XDG portal every 4 s via `gdbus` with a tested parser
+
+---
+
+### [x] F3 — F3 — Empty workspace never painted the canvas token — 🟢
+- **Location:** `crates/datacraft-ui/src/workspace.rs` (empty-state branch)
+- **Problem:** with no open tabs the workspace returned before painting the central panel, so the window clear colour (black) showed through instead of `tokens.canvas`; found in the Phase 20 gate screenshots.
+- **Fix:** wrap the empty-state message in the same `CentralPanel` frame as the populated workspace (6 lines, Low class), committed with the Phase 20 gate.
+- **Acceptance:** an empty workspace renders the canvas token in both palettes.
+- **Done:** fixed inline in `612b114` during the Phase 20 gate — the empty workspace now paints the canvas token in both palettes
