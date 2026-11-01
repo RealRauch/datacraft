@@ -1,0 +1,12 @@
+---
+source: crates/datacraft-ui/tests/ui_kittest.rs
+expression: tree_dump(&harness)
+---
+Button|     1|
+Label||1
+Label||alpha
+Label||1 row
+TextRun||1 row
+Label||*
+Button|Add record|
+Label||Empty cells are Null; AutoNumber assigns itself.

@@ -1,0 +1,17 @@
+---
+source: crates/datacraft-ui/tests/ui_kittest.rs
+expression: tree_dump(&harness)
+---
+Button|Save|
+Button|Undo| disabled
+Button|Redo| disabled
+Button|File|
+Button|Home|
+Button|Create|
+Button|External Data|
+Button|Database Tools|
+Button|Navigation Pane|
+Label||View
+TextRun||View
+Button|View| disabled
+Label||Views

@@ -5,7 +5,7 @@
 //! persistence and the Access-style viewport title through the public
 //! app surface.
 
-use super::*;
+use crate::app::App;
 
 #[test]
 fn startup_settings_apply_the_language_and_survive_a_restart() {

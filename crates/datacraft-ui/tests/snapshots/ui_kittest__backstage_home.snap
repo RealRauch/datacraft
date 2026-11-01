@@ -1,0 +1,24 @@
+---
+source: crates/datacraft-ui/tests/ui_kittest.rs
+expression: tree_dump(&harness)
+---
+Button|← Back|
+Label||File
+TextRun||File
+Button|Home|
+Button|Open|
+Button|Save|
+Button|Info|
+Button|Options|
+Label||Home
+TextRun||Home
+Label||shop (Jet4)
+TextRun||shop (Jet4)
+Label||shop.mdb
+TextRun||shop.mdb
+Label||Tables: 1
+TextRun||Tables: 1
+Button|Open Database|
+Button|Close Database|
+Button|New Table|
+Button|Save Design|

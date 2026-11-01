@@ -1,0 +1,7 @@
+---
+source: crates/datacraft-ui/tests/ui_kittest.rs
+expression: tree_dump(&harness)
+---
+Button|All Access Objects|
+DisclosureTriangle|Tables|
+Button|Customers|

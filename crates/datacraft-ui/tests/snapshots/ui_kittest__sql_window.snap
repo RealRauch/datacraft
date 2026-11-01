@@ -1,0 +1,22 @@
+---
+source: crates/datacraft-ui/tests/ui_kittest.rs
+expression: tree_dump(&harness)
+---
+Window|SQL|
+Button|Hide|
+Label||Statement
+TextRun||Statement
+Button|Close|
+MultilineTextInput||SELECT 1 AS one;
+TextRun||SELECT 1 AS one;
+Button|Run|
+Label||one SELECT/WITH statement · read-only
+TextRun||one SELECT/WITH statement · read-only
+Splitter|Resize window right edge|
+Splitter|Resize window left edge|
+Splitter|Resize window bottom edge|
+Splitter|Resize window top edge|
+Splitter|Resize window bottom-right corner|
+Splitter|Resize window top-right corner|
+Splitter|Resize window bottom-left corner|
+Splitter|Resize window top-left corner|

@@ -24,4 +24,6 @@ sys-locale = "0.3.2"
 workspace = true
 
 [dev-dependencies]
+egui_kittest = "0.37.0"
+insta = "1.49.0"
 rusqlite = { workspace = true }
