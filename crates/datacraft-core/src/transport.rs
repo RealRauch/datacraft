@@ -85,3 +85,27 @@ fn error_response(id: Value, code: i64, message: &str) -> String {
 fn render(value: Value) -> String {
     value.to_string()
 }
+
+/// Serves line-delimited JSON-RPC requests from , writing one
+/// response line per request to  (flushed immediately). Blank
+/// lines are skipped silently; EOF ends the session. The MCP endpoint
+/// (decision default 8) is exactly this loop over stdin/stdout.
+pub fn serve(reader: &mut dyn std::io::BufRead, writer: &mut dyn std::io::Write, core: &mut Core) {
+    let mut line = String::new();
+    loop {
+        line.clear();
+        match reader.read_line(&mut line) {
+            Ok(0) | Err(_) => return,
+            Ok(_) => {}
+        }
+        let request = line.trim();
+        if request.is_empty() {
+            continue;
+        }
+        let response = handle_json(core, request);
+        if writeln!(writer, "{response}").is_err() {
+            return;
+        }
+        let _ = writer.flush();
+    }
+}
