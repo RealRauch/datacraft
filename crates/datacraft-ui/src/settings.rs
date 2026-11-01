@@ -251,6 +251,7 @@ mod tests {
         let path = dir.join("ui.json");
         let settings = Settings {
             language: LanguageSetting::German,
+            appearance: Appearance::Light,
             window: Some(WindowSize {
                 width: 1280.0,
                 height: 800.0,
@@ -292,6 +293,23 @@ mod tests {
                 height: 700.0
             })
         );
+    }
+
+    #[test]
+    fn appearance_round_trips_and_unknown_values_fall_back() {
+        let dir = temp_dir("appearance");
+        let path = dir.join("ui.json");
+        std::fs::write(&path, r#"{"appearance":"dark"}"#).expect("write");
+        assert_eq!(Settings::load(&path).appearance, Appearance::Dark);
+        std::fs::write(&path, r#"{"appearance":"neon"}"#).expect("write");
+        assert_eq!(Settings::load(&path).appearance, Appearance::System);
+
+        let settings = Settings {
+            appearance: Appearance::Light,
+            ..Settings::default()
+        };
+        settings.save(&path).expect("save");
+        assert_eq!(Settings::load(&path), settings);
     }
 
     #[test]

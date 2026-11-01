@@ -216,6 +216,7 @@ mod tests {
         ];
         for token in [
             t.accent,
+            t.accent_fill,
             t.accent_text,
             t.checked,
             t.on_accent,
@@ -319,5 +320,96 @@ mod tests {
         );
         assert_eq!(once.spacing.item_spacing, twice.spacing.item_spacing);
         assert_eq!(once.spacing.button_padding, twice.spacing.button_padding);
+    }
+
+    /// Dark mode follows `visuals.dark_mode` (step 20.4, U4).
+    #[test]
+    fn tokens_follow_the_visuals_dark_mode() {
+        assert_eq!(*tokens(&egui::Visuals::light()), LIGHT);
+        assert_eq!(*tokens(&egui::Visuals::dark()), DARK);
+        assert_ne!(DARK.accent, LIGHT.accent);
+        assert_ne!(DARK.canvas, LIGHT.canvas);
+        assert_ne!(DARK.panel, LIGHT.panel);
+    }
+
+    /// The dark accent family uses the teal pendant, never the model's blue.
+    #[test]
+    fn dark_tokens_use_the_teal_pendant() {
+        assert_eq!(DARK.accent, Color32::from_rgb(0x3F, 0xA7, 0x99));
+        assert_eq!(DARK.accent_text, Color32::from_rgb(0x9A, 0xD9, 0xCF));
+        assert_eq!(DARK.on_accent, Color32::from_rgb(0x10, 0x16, 0x14));
+        let model_blue = [
+            Color32::from_rgb(0x3B, 0x5B, 0xDB),
+            Color32::from_rgb(0x2B, 0x47, 0xB5),
+            Color32::from_rgb(0x7A, 0x93, 0xF0),
+            Color32::from_rgb(0x9C, 0xB0, 0xF5),
+        ];
+        for token in [
+            DARK.accent,
+            DARK.accent_fill,
+            DARK.accent_text,
+            DARK.checked,
+            DARK.on_accent,
+        ] {
+            assert!(
+                !model_blue.contains(&token),
+                "dark token {token:?} is the model's blue, which ADR-6 rejects"
+            );
+        }
+    }
+
+    fn relative_luminance(color: Color32) -> f32 {
+        fn channel(value: u8) -> f32 {
+            let value = f32::from(value) / 255.0;
+            if value <= 0.039_28 {
+                value / 12.92
+            } else {
+                ((value + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        0.2126 * channel(color.r()) + 0.7152 * channel(color.g()) + 0.0722 * channel(color.b())
+    }
+
+    fn contrast(a: Color32, b: Color32) -> f32 {
+        let (a, b) = (relative_luminance(a), relative_luminance(b));
+        (a.max(b) + 0.05) / (a.min(b) + 0.05)
+    }
+
+    /// WCAG: 4.5:1 for text, 3:1 for non-text indicators — both palettes
+    /// (acceptance U4).
+    #[test]
+    fn contrast_is_accessible_in_both_palettes() {
+        for palette in [LIGHT, DARK] {
+            for (name, foreground, background, minimum) in [
+                ("text on panel", palette.text, palette.panel, 4.5),
+                ("muted text on panel", palette.text_muted, palette.panel, 4.5),
+                ("danger on panel", palette.danger, palette.panel, 4.5),
+                (
+                    "on_accent on accent_fill",
+                    palette.on_accent,
+                    palette.accent_fill,
+                    4.5,
+                ),
+                (
+                    "accent_text on checked",
+                    palette.accent_text,
+                    palette.checked,
+                    4.5,
+                ),
+                (
+                    "accent_text on panel",
+                    palette.accent_text,
+                    palette.panel,
+                    3.0,
+                ),
+                ("accent on canvas", palette.accent, palette.canvas, 3.0),
+            ] {
+                let ratio = contrast(foreground, background);
+                assert!(
+                    ratio >= minimum,
+                    "{name}: {ratio:.2}:1 is below the {minimum}:1 minimum"
+                );
+            }
+        }
     }
 }

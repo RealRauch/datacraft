@@ -11,6 +11,7 @@
 //! (exception registry in `docs/TESTING.md`).
 
 mod app;
+mod appearance;
 mod datasheet;
 mod design;
 mod designer_palette;
@@ -18,6 +19,7 @@ mod flows;
 mod form_design;
 mod form_runtime;
 mod i18n;
+mod icons;
 mod labels;
 mod macro_viewer;
 mod nav_pane;
@@ -29,11 +31,9 @@ mod ribbon;
 mod settings;
 mod shell;
 mod sql_window;
-mod icons;
 mod theme;
 mod vba_viewer;
 mod workspace;
-
 use eframe::egui;
 
 use crate::app::App;
