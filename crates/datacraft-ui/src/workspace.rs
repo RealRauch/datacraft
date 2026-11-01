@@ -14,6 +14,7 @@ use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
 
 use crate::app::App;
+use crate::i18n::t;
 
 /// Renders the tab strip and the central placeholder area.
 pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
@@ -22,9 +23,9 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
     if empty {
         ui.centered_and_justified(|ui| {
             if no_database {
-                ui.weak("Open a database from the File ribbon tab.");
+                ui.weak(t("Open a database from the File ribbon tab."));
             } else {
-                ui.weak("No open documents");
+                ui.weak(t("No open documents"));
             }
         });
         return;
@@ -47,8 +48,8 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                         if has_view_toggle(&tab.object_kind)
                             && ui
                                 .small_button(match app.tab_mode(tab.id) {
-                                    TabMode::Datasheet => "Design",
-                                    TabMode::Design => "Data",
+                                    TabMode::Datasheet => t("Design"),
+                                    TabMode::Design => t("Data"),
                                 })
                                 .clicked()
                         {
@@ -99,7 +100,7 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                 TabMode::Design => crate::design::design_ui(app, &tab, ui),
             },
             None => {
-                ui.centered_and_justified(|ui| ui.weak("Select a tab"));
+                ui.centered_and_justified(|ui| ui.weak(t("Select a tab")));
             }
         }
     });

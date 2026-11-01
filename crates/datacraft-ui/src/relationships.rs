@@ -9,6 +9,7 @@ use eframe::egui;
 use datacraft_core::command::Command;
 
 use crate::app::App;
+use crate::i18n::{plural, t};
 
 /// Box geometry for the canvas.
 const BOX_SIZE: egui::Vec2 = egui::Vec2::new(150.0, 64.0);
@@ -25,13 +26,17 @@ pub fn mapper_window(app: &mut App, ui: &mut egui::Ui) {
         return;
     };
     let mut close = false;
-    egui::Window::new("Relationships")
+    egui::Window::new(t("Relationships"))
         .id(egui::Id::unique("datacraft.relationships"))
         .default_width(640.0)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.strong(format!("{} relationships", db.relationships.len()));
-                if ui.small_button("Close").clicked() {
+                ui.strong(plural(
+                    db.relationships.len(),
+                    "{count} relationship",
+                    "{count} relationships",
+                ));
+                if ui.small_button(t("Close")).clicked() {
                     close = true;
                 }
             });
@@ -45,7 +50,7 @@ pub fn mapper_window(app: &mut App, ui: &mut egui::Ui) {
                 ));
             }
             if db.relationships.is_empty() {
-                ui.weak("This database has no relationships.");
+                ui.weak(t("This database has no relationships."));
             }
             ui.separator();
 

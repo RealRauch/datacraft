@@ -7,6 +7,7 @@
 use eframe::egui;
 
 use crate::app::App;
+use crate::i18n::t;
 
 /// Renders the macro tab of the workspace.
 pub fn macro_viewer_ui(
@@ -15,7 +16,7 @@ pub fn macro_viewer_ui(
     ui: &mut egui::Ui,
 ) {
     let Some(db) = app.snapshot().database.as_ref() else {
-        ui.weak("No database open");
+        ui.weak(t("No database open"));
         return;
     };
     let Some(macro_def) = db
@@ -23,31 +24,34 @@ pub fn macro_viewer_ui(
         .iter()
         .find(|macro_def| macro_def.name.eq_ignore_ascii_case(&tab.object_name))
     else {
-        ui.weak("Macro is no longer available");
+        ui.weak(t("Macro is no longer available"));
         return;
     };
 
     ui.horizontal(|ui| {
         ui.heading(&macro_def.name);
         ui.label(if macro_def.definition_decoded {
-            "read-only inventory"
+            t("read-only inventory")
         } else {
-            "name only — definition not decoded"
+            t("name only — definition not decoded")
         });
     });
     ui.separator();
     if !macro_def.definition_decoded {
-        ui.weak(
-            "Jet 3 keeps macro definitions inside MSysAccessObjects; that compound-file \
-             storage is not decoded yet, so only the catalog name is shown.",
-        );
+        ui.weak(t(
+            "Jet 3 keeps macro definitions inside MSysAccessObjects; that compound-file storage is not decoded yet, so only the catalog name is shown.",
+        ));
         return;
     }
     if macro_def.actions.is_empty() {
-        ui.weak("The macro definition carries no readable argument records.");
+        ui.weak(t(
+            "The macro definition carries no readable argument records.",
+        ));
         return;
     }
-    ui.label("Definition arguments (coarse action list, storage order):");
+    ui.label(t(
+        "Definition arguments (coarse action list, storage order):",
+    ));
     egui::ScrollArea::vertical().show(ui, |ui| {
         for (index, action) in macro_def.actions.iter().enumerate() {
             ui.horizontal(|ui| {

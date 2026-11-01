@@ -11,11 +11,11 @@
 use eframe::egui;
 
 use datacraft_core::grid::GridMetrics;
-use datacraft_core::present::display_value;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
-use crate::i18n::plural;
+use crate::i18n::{plural, t};
+use crate::labels::value_label;
 use crate::theme::{HAIRLINE, INK, ON_TEAL, TEAL};
 
 /// Default column width (points) before any resize logic lands.
@@ -33,17 +33,17 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .and_then(|db| db.tables.iter().find(|t| t.ui_test_id == tab.ui_test_id))
         .map(|t| t.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>())
     else {
-        ui.label("Table no longer exists");
+        ui.label(t("Table no longer exists"));
         return;
     };
     let Some(rows) = app.rows_for(tab.id) else {
-        ui.label("Loading rows…");
+        ui.label(t("Loading rows…"));
         return;
     };
     let cursor = app.record_cursor(tab.id);
     let body: Vec<Vec<String>> = rows
         .iter()
-        .map(|row| row.iter().map(display_value).collect())
+        .map(|row| row.iter().map(value_label).collect())
         .collect();
     let row_count = body.len();
     grid_ui(ui, &metrics, &columns, &body, cursor, |_ui, row_idx| {
@@ -76,10 +76,10 @@ fn new_row_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &mut egu
         });
     ui.horizontal(|ui| {
         ui.add_space(SELECTOR_WIDTH);
-        if ui.button("Add record").clicked() {
+        if ui.button(t("Add record")).clicked() {
             add = true;
         }
-        ui.weak("Empty cells are Null; AutoNumber assigns itself.");
+        ui.weak(t("Empty cells are Null; AutoNumber assigns itself."));
     });
     app.set_new_row_cells(tab.id, cells);
     if add {
@@ -91,7 +91,7 @@ fn new_row_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &mut egu
 pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let metrics = GridMetrics::default();
     let Some(result) = app.results_for(tab.id) else {
-        ui.centered_and_justified(|ui| ui.weak("The query produced no runnable result yet."));
+        ui.centered_and_justified(|ui| ui.weak(t("The query produced no runnable result yet.")));
         return;
     };
     let cursor = app.record_cursor(tab.id);
@@ -99,13 +99,20 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let body: Vec<Vec<String>> = result
         .rows
         .iter()
-        .map(|row| row.iter().map(display_value).collect())
+        .map(|row| row.iter().map(value_label).collect())
         .collect();
     let row_count = body.len();
     grid_ui(ui, &metrics, &columns, &body, cursor, |_ui, row_idx| {
         app.set_record_cursor(tab.id, row_idx, row_count);
     });
-    ui.label(egui::RichText::new(format!("{row_count} result rows")).small());
+    ui.label(
+        egui::RichText::new(plural(
+            row_count,
+            "{count} result row",
+            "{count} result rows",
+        ))
+        .small(),
+    );
 }
 
 /// The shared Access grid: teal header band, ink hairlines, a clickable

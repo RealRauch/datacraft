@@ -11,11 +11,12 @@ use datacraft_core::vba::VbaModuleKind;
 use datacraft_core::{ObjectId, ObjectKind};
 
 use crate::app::App;
+use crate::i18n::{t, tr};
 
 /// Renders the VBA module tab of the workspace.
 pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let Some(db) = app.snapshot().database.as_ref() else {
-        ui.weak("No database open");
+        ui.weak(t("No database open"));
         return;
     };
     let Some(project) = db.vba.clone() else {
@@ -23,11 +24,11 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             Some(reason) => {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
-                    format!("VBA extraction failed: {reason}"),
+                    tr("VBA extraction failed: {reason}", &[("reason", reason)]),
                 );
             }
             None => {
-                ui.weak("The open database has no VBA project.");
+                ui.weak(t("The open database has no VBA project."));
             }
         }
         return;
@@ -38,10 +39,10 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .resizable(true)
         .default_size(260.0)
         .show(ui, |ui| {
-            ui.label(egui::RichText::new("VBA modules").strong());
+            ui.label(egui::RichText::new(t("VBA modules")).strong());
             ui.add(
                 egui::TextEdit::singleline(&mut app.vba_search)
-                    .hint_text("Search modules and source"),
+                    .hint_text(t("Search modules and source")),
             );
             let needle = app.vba_search.to_lowercase();
             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -49,11 +50,13 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     if !needle.is_empty() && !module.name.to_lowercase().contains(&needle) {
                         continue;
                     }
-                    let label = format!(
-                        "{}  ({}, {} lines)",
-                        module.name,
-                        kind_label(module.kind),
-                        module.lines
+                    let label = tr(
+                        "{name}  ({kind}, {lines} lines)",
+                        &[
+                            ("name", &module.name),
+                            ("kind", kind_label(module.kind)),
+                            ("lines", &module.lines.to_string()),
+                        ],
                     );
                     if ui
                         .selectable_label(module.name.eq_ignore_ascii_case(&active), label)
@@ -70,7 +73,7 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
 
     let Some(module) = app.vba_module(&active) else {
-        ui.weak("The selected module is no longer part of the project.");
+        ui.weak(t("The selected module is no longer part of the project."));
         return;
     };
     let source = module.source.clone();
@@ -78,8 +81,11 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let lines = module.lines();
     ui.horizontal(|ui| {
         ui.heading(&active);
-        ui.label(format!("{} — {lines} lines", kind_label(kind)));
-        ui.weak("read-only; VBA is never executed");
+        ui.label(tr(
+            "{kind} — {lines} lines",
+            &[("kind", kind_label(kind)), ("lines", &lines.to_string())],
+        ));
+        ui.weak(t("read-only; VBA is never executed"));
     });
     ui.separator();
     let needle = app.vba_search.to_lowercase();
@@ -99,16 +105,16 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             }
         }
         if shown == 0 {
-            ui.weak("No source line matches the search.");
+            ui.weak(t("No source line matches the search."));
         }
     });
 }
 
 fn kind_label(kind: VbaModuleKind) -> &'static str {
     match kind {
-        VbaModuleKind::Standard => "standard",
-        VbaModuleKind::Class => "class",
-        VbaModuleKind::Form => "form",
-        VbaModuleKind::Report => "report",
+        VbaModuleKind::Standard => t("standard"),
+        VbaModuleKind::Class => t("class"),
+        VbaModuleKind::Form => t("form"),
+        VbaModuleKind::Report => t("report"),
     }
 }

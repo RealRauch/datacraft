@@ -18,6 +18,7 @@ mod flows;
 mod form_design;
 mod form_runtime;
 mod i18n;
+mod labels;
 mod macro_viewer;
 mod nav_pane;
 mod password_prompt;
@@ -370,7 +371,7 @@ mod tests {
         app.submit_password();
         assert!(
             app.password_prompt()
-                .and_then(|prompt| prompt.error.as_deref())
+                .and_then(|prompt| prompt.error)
                 .is_some(),
             "the wrong password keeps the prompt open"
         );

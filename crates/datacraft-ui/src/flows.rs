@@ -9,6 +9,7 @@ use datacraft_core::form::ControlDef;
 use datacraft_core::ids::TabId;
 
 use crate::app::App;
+use crate::i18n::tr;
 
 impl App {
     /// Creates a new table with the Access default shape (step 11.3) and
@@ -168,7 +169,10 @@ impl App {
             )
         });
         let Some((canonical, parsed)) = parsed else {
-            self.last_error = Some(format!("table {table:?} not found"));
+            self.last_error = Some(tr(
+                "table {table} not found",
+                &[("table", &format!("{table:?}"))],
+            ));
             return false;
         };
         let values = match parsed {

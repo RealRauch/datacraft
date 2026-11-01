@@ -13,6 +13,7 @@ use datacraft_core::form::FormDef;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
+use crate::i18n::{plural, t, tr};
 
 /// Form canvas width in points.
 const FORM_WIDTH: f32 = 640.0;
@@ -28,7 +29,7 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .and_then(|db| db.forms.iter().find(|f| f.name == tab.object_name))
         .cloned()
     else {
-        ui.label("Form no longer exists");
+        ui.label(t("Form no longer exists"));
         return;
     };
 
@@ -43,8 +44,17 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
 
 /// The design canvas itself (frame, grid, controls, footer).
 fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui) {
-    ui.heading(egui::RichText::new(format!("Form: {}", form.name)));
-    ui.label(egui::RichText::new(format!("Snap grid: {} px", form.grid)).small());
+    ui.heading(egui::RichText::new(tr(
+        "Form: {name}",
+        &[("name", &form.name)],
+    )));
+    ui.label(
+        egui::RichText::new(tr(
+            "Snap grid: {grid} px",
+            &[("grid", &form.grid.to_string())],
+        ))
+        .small(),
+    );
     ui.separator();
 
     let (canvas_rect, _) =
@@ -131,9 +141,18 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui
     }
 
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(format!("{} controls", form.controls.len())).small());
+        ui.label(
+            egui::RichText::new(plural(
+                form.controls.len(),
+                "{count} control",
+                "{count} controls",
+            ))
+            .small(),
+        );
         if let Some(name) = app.form_selection(tab.id)
-            && ui.small_button(format!("Delete {name}")).clicked()
+            && ui
+                .small_button(tr("Delete {name}", &[("name", &name)]))
+                .clicked()
         {
             app.dispatch(Command::DeleteFormControl {
                 form: form.name.clone(),
@@ -230,7 +249,7 @@ pub(crate) fn paint_control(
             painter.text(
                 rect.left_top() + egui::vec2(4.0, 2.0),
                 egui::Align2::LEFT_TOP,
-                format!("subform: {form}"),
+                tr("subform: {form}", &[("form", form)]),
                 (*font).clone(),
                 ui.visuals().weak_text_color(),
             );

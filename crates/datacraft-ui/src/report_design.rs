@@ -14,6 +14,7 @@ use datacraft_core::report::ReportDef;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
+use crate::i18n::{t, tr};
 
 /// Renders the design view of one report tab: canvas plus palette.
 pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
@@ -24,7 +25,7 @@ pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .and_then(|db| db.reports.iter().find(|r| r.name == tab.object_name))
         .cloned()
     else {
-        ui.label("Report no longer exists");
+        ui.label(t("Report no longer exists"));
         return;
     };
 
@@ -39,22 +40,23 @@ pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
 
 /// The report's design canvas itself (paper, grid, controls, footer).
 fn canvas_ui(app: &mut App, tab: &TabSnapshot, report: &ReportDef, ui: &mut egui::Ui) {
-    ui.heading(egui::RichText::new(format!("Report: {}", report.name)));
-    ui.label(
-        egui::RichText::new(format!(
-            "Page {} x {} pt — margins {} pt — snap grid {} px{}",
-            report.page.width,
-            report.page.height,
-            report.page.margin_left,
-            report.grid,
-            if report.source.is_empty() {
-                String::new()
-            } else {
-                format!(" — source: {}", report.source)
-            }
-        ))
-        .small(),
+    ui.heading(egui::RichText::new(tr(
+        "Report: {name}",
+        &[("name", &report.name)],
+    )));
+    let mut geometry = tr(
+        "Page {width} x {height} pt — margins {margin} pt — snap grid {grid} px",
+        &[
+            ("width", &report.page.width.to_string()),
+            ("height", &report.page.height.to_string()),
+            ("margin", &report.page.margin_left.to_string()),
+            ("grid", &report.grid.to_string()),
+        ],
     );
+    if !report.source.is_empty() {
+        geometry.push_str(&tr(" — source: {source}", &[("source", &report.source)]));
+    }
+    ui.label(egui::RichText::new(geometry).small());
     ui.separator();
 
     let page = egui::vec2(report.page.width, report.page.height);
@@ -152,16 +154,20 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, report: &ReportDef, ui: &mut egui
 
     ui.horizontal(|ui| {
         ui.label(
-            egui::RichText::new(format!(
-                "{} controls — printable {} x {} pt",
-                report.controls.len(),
-                report.page.printable_width(),
-                report.page.printable_height()
+            egui::RichText::new(tr(
+                "{count} controls — printable {width} x {height} pt",
+                &[
+                    ("count", &report.controls.len().to_string()),
+                    ("width", &report.page.printable_width().to_string()),
+                    ("height", &report.page.printable_height().to_string()),
+                ],
             ))
             .small(),
         );
         if let Some(name) = app.report_selection(tab.id)
-            && ui.small_button(format!("Delete {name}")).clicked()
+            && ui
+                .small_button(tr("Delete {name}", &[("name", &name)]))
+                .clicked()
         {
             app.dispatch(Command::DeleteReportControl {
                 report: report.name.clone(),
@@ -176,31 +182,34 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, report: &ReportDef, ui: &mut egui
 pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let pages = app.preview_pages(tab.id);
     if pages.is_empty() {
-        ui.label("Preview unavailable");
+        ui.label(t("Preview unavailable"));
         return;
     }
     let page_count = pages.len();
     let current = app.preview_page(tab.id).min(page_count - 1);
     let items = pages[current].items.clone();
     let band = match pages[current].band {
-        datacraft_core::report_preview::Band::Detail => "detail",
-        datacraft_core::report_preview::Band::GroupHeader => "group header",
-        datacraft_core::report_preview::Band::GroupFooter => "group footer",
+        datacraft_core::report_preview::Band::Detail => t("detail"),
+        datacraft_core::report_preview::Band::GroupHeader => t("group header"),
+        datacraft_core::report_preview::Band::GroupFooter => t("group footer"),
     };
 
     ui.horizontal(|ui| {
         if ui.small_button("\u{25c0}").clicked() && current > 0 {
             app.set_preview_page(tab.id, current - 1);
         }
-        ui.label(egui::RichText::new(format!(
-            "Page {} of {page_count}",
-            current + 1
+        ui.label(egui::RichText::new(tr(
+            "Page {current} of {total}",
+            &[
+                ("current", &(current + 1).to_string()),
+                ("total", &page_count.to_string()),
+            ],
         )));
-        ui.weak(format!("({band} band)"));
+        ui.weak(tr("({band} band)", &[("band", band)]));
         if ui.small_button("\u{25b6}").clicked() && current + 1 < page_count {
             app.set_preview_page(tab.id, current + 1);
         }
-        ui.weak("(print preview)");
+        ui.weak(t("(print preview)"));
     });
     ui.separator();
 

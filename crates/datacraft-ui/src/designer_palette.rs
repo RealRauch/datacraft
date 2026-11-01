@@ -6,9 +6,19 @@
 use eframe::egui;
 
 use datacraft_core::ObjectKind;
-use datacraft_core::palette::{TOOLBOX, field_palette_entry};
+use datacraft_core::palette::TOOLBOX;
 
 use crate::app::App;
+use crate::i18n::t;
+use crate::labels::field_kind_label;
+
+/// One field-list row: the snapshot keeps the kind locale-neutral and the
+/// UI derives the display label (step 18.2, ADR-4).
+struct PaletteField {
+    name: String,
+    kind: datacraft_core::schema::FieldKind,
+    bindable: bool,
+}
 
 /// Renders the palette of one design tab.
 pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &mut egui::Ui) {
@@ -17,7 +27,7 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
 
     let (source, tables, fields) = palette_data(app, kind, object);
 
-    ui.label(egui::RichText::new("Record Source").strong());
+    ui.label(egui::RichText::new(t("Record Source")).strong());
     let mut chosen: Option<String> = None;
     egui::ComboBox::from_id_salt(format!(
         "designer.{}.{}.source",
@@ -25,7 +35,7 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
         object.to_lowercase()
     ))
     .selected_text(if source.is_empty() {
-        "<none>".to_owned()
+        t("<none>").to_owned()
     } else {
         source.clone()
     })
@@ -45,9 +55,9 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
     }
 
     ui.add_space(4.0);
-    ui.label(egui::RichText::new("Add Existing Fields").strong());
+    ui.label(egui::RichText::new(t("Add Existing Fields")).strong());
     if source.is_empty() {
-        ui.weak("Choose a record source first.");
+        ui.weak(t("Choose a record source first."));
     } else {
         let mut added: Option<String> = None;
         egui::ScrollArea::vertical()
@@ -59,7 +69,7 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
             .max_height(220.0)
             .show(ui, |ui| {
                 for entry in &fields {
-                    let label = format!("{}  ({})", entry.name, entry.kind_display);
+                    let label = format!("{}  ({})", entry.name, field_kind_label(&entry.kind));
                     let clicked = ui
                         .push_id(
                             format!("designer.field.{}", entry.name.to_lowercase()),
@@ -81,12 +91,12 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
     }
 
     ui.separator();
-    ui.label(egui::RichText::new("Toolbox").strong());
+    ui.label(egui::RichText::new(t("Toolbox")).strong());
     let mut toolbox: Option<&'static str> = None;
     for entry in TOOLBOX {
         let clicked = ui
             .push_id(format!("designer.toolbox.{}", entry.id), |ui| {
-                ui.small_button(entry.label).clicked()
+                ui.small_button(t(entry.label)).clicked()
             })
             .inner;
         if clicked {
@@ -104,11 +114,7 @@ fn palette_data(
     app: &App,
     kind: ObjectKind,
     object: &str,
-) -> (
-    String,
-    Vec<String>,
-    Vec<datacraft_core::palette::FieldPaletteEntry>,
-) {
+) -> (String, Vec<String>, Vec<PaletteField>) {
     let Some(db) = app.snapshot().database.as_ref() else {
         return (String::new(), Vec::new(), Vec::new());
     };
@@ -135,7 +141,11 @@ fn palette_data(
             table
                 .fields
                 .iter()
-                .map(|field| field_palette_entry(&field.name, &field.kind))
+                .map(|field| PaletteField {
+                    name: field.name.clone(),
+                    kind: field.kind,
+                    bindable: datacraft_core::palette::field_control_size(&field.kind).is_some(),
+                })
                 .collect()
         })
         .unwrap_or_default();

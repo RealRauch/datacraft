@@ -6,9 +6,16 @@
 
 use eframe::egui;
 
-use datacraft_core::present::status_line;
+use datacraft_core::snapshot::UiStateSnapshot;
 
 use crate::app::App;
+use crate::i18n::{t, tr};
+
+/// Status-line keys with a table count (the catalog parity test consumes
+/// the list).
+const STATUS_TABLE: &str = "{database} ({format}) — {count} table";
+const STATUS_TABLES: &str = "{database} ({format}) — {count} tables";
+pub(crate) const STATUS_KEYS: [&str; 2] = [STATUS_TABLE, STATUS_TABLES];
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -38,7 +45,7 @@ impl eframe::App for App {
                         .find(|t| t.id == id)
                         .map(|t| (t.object_kind.clone(), t.object_name.clone()))
                 });
-                ui.label(status_line(
+                ui.label(status_label(
                     self.snapshot(),
                     active.as_ref().map(|(k, n)| (k.as_str(), n.as_str())),
                 ));
@@ -98,7 +105,16 @@ impl App {
         if ui.small_button("\u{25c0}").clicked() && current > 0 {
             self.step_record(&active, current - 1, len);
         }
-        ui.label(egui::RichText::new(format!("{} of {len}", current + 1)).small());
+        ui.label(
+            egui::RichText::new(tr(
+                "{current} of {total}",
+                &[
+                    ("current", &(current + 1).to_string()),
+                    ("total", &len.to_string()),
+                ],
+            ))
+            .small(),
+        );
         if ui.small_button("\u{25b6}").clicked() && current + 1 < len {
             self.step_record(&active, current + 1, len);
         }
@@ -111,6 +127,34 @@ impl App {
             "form" => self.set_form_record(tab.id, to),
             "report" => self.set_preview_page(tab.id, to),
             _ => {}
+        }
+    }
+}
+
+/// Localized status-bar line (Access convention): built UI-side from the
+/// locale-neutral snapshot — core's `status_line` stays English for
+/// headless clients (ADR-4).
+fn status_label(snapshot: &UiStateSnapshot, active: Option<(&str, &str)>) -> String {
+    let Some(db) = &snapshot.database else {
+        return t("No database open").to_owned();
+    };
+    let format = db.format.to_string();
+    match active {
+        Some((_, name)) => tr(
+            "{database} ({format}) — {name}",
+            &[("database", &db.name), ("format", &format), ("name", name)],
+        ),
+        None => {
+            let count = db.tables.len();
+            let key = if count == 1 { STATUS_TABLE } else { STATUS_TABLES };
+            tr(
+                key,
+                &[
+                    ("database", &db.name),
+                    ("format", &format),
+                    ("count", &count.to_string()),
+                ],
+            )
         }
     }
 }

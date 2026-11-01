@@ -12,6 +12,7 @@ use datacraft_core::qbe::{QbeRow, QbeValue, SortOrder};
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
+use crate::i18n::{plural, t, tr};
 
 /// Renders the QBE grid of one query tab (native saved queries render
 /// read-only — step 15.3, M3).
@@ -27,19 +28,23 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .and_then(|db| db.queries.iter().find(|q| q.name == tab.object_name))
         .cloned()
     else {
-        ui.label("Query no longer exists");
+        ui.label(t("Query no longer exists"));
         return;
     };
 
-    ui.heading(egui::RichText::new(format!("Query: {}", query.name)));
+    ui.heading(egui::RichText::new(tr(
+        "Query: {name}",
+        &[("name", &query.name)],
+    )));
+    let source = if query.table.is_empty() {
+        t("<none>")
+    } else {
+        query.table.as_str()
+    };
     ui.label(
-        egui::RichText::new(format!(
-            "Source table: {} — set a table, then field columns.",
-            if query.table.is_empty() {
-                "<none>"
-            } else {
-                &query.table
-            }
+        egui::RichText::new(tr(
+            "Source table: {table} — set a table, then field columns.",
+            &[("table", source)],
         ))
         .small(),
     );
@@ -47,10 +52,10 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut run = false;
     let mut clear = false;
     ui.horizontal(|ui| {
-        if ui.button("Run").clicked() {
+        if ui.button(t("Run")).clicked() {
             run = true;
         }
-        if ui.button("Clear criteria").clicked() {
+        if ui.button(t("Clear criteria")).clicked() {
             clear = true;
         }
     });
@@ -61,11 +66,11 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .spacing([10.0, 6.0])
         .show(ui, |ui| {
             // Table row.
-            ui.weak("Table:");
+            ui.weak(t("Table:"));
             let mut buf = query.table.clone();
             let response = ui.add_sized(
                 [220.0, 22.0],
-                egui::TextEdit::singleline(&mut buf).hint_text("source table"),
+                egui::TextEdit::singleline(&mut buf).hint_text(t("source table")),
             );
             if committed(&response) && buf != query.table {
                 intent = Some((QbeRow::Table, 0, QbeValue::Text(buf)));
@@ -73,7 +78,7 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             ui.end_row();
 
             // Field row.
-            ui.weak("Field:");
+            ui.weak(t("Field:"));
             for col in 0..=query.fields.len() {
                 let current = query
                     .fields
@@ -89,7 +94,7 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             ui.end_row();
 
             // Sort row.
-            ui.weak("Sort:");
+            ui.weak(t("Sort:"));
             for col in 0..query.fields.len() {
                 let current = query.fields[col].sort;
                 egui::ComboBox::from_id_salt(format!("qbe.sort.{col}"))
@@ -110,7 +115,7 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             ui.end_row();
 
             // Show row.
-            ui.weak("Show:");
+            ui.weak(t("Show:"));
             for col in 0..query.fields.len() {
                 let mut shown = query.fields[col].shown;
                 if ui.checkbox(&mut shown, "").changed() {
@@ -128,7 +133,11 @@ pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 .unwrap_or(0)
                 + 1;
             for or_row in 0..or_rows {
-                ui.weak(if or_row == 0 { "Criteria:" } else { "or:" });
+                ui.weak(if or_row == 0 {
+                    t("Criteria:")
+                } else {
+                    t("or:")
+                });
                 for col in 0..query.fields.len() {
                     let current = query
                         .fields
@@ -175,9 +184,9 @@ fn committed(response: &egui::Response) -> bool {
 
 fn sort_label(order: SortOrder) -> &'static str {
     match order {
-        SortOrder::None => "(not sorted)",
-        SortOrder::Ascending => "ascending",
-        SortOrder::Descending => "descending",
+        SortOrder::None => t("(not sorted)"),
+        SortOrder::Ascending => t("ascending"),
+        SortOrder::Descending => t("descending"),
     }
 }
 
@@ -185,7 +194,7 @@ fn sort_label(order: SortOrder) -> &'static str {
 /// and the decoded expressions; `Run` executes the mappable subset.
 fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let Some(native) = app.native_query(&tab.object_name) else {
-        ui.label("Query no longer exists");
+        ui.label(t("Query no longer exists"));
         return;
     };
     let name = native.name.clone();
@@ -199,7 +208,7 @@ fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 (_, _, Some(expression)) => expression.clone(),
                 (Some(table), Some(field), None) => format!("{table}.{field}"),
                 (None, Some(field), None) => field.clone(),
-                _ => "<column>".to_owned(),
+                _ => t("<column>").to_owned(),
             },
         )
         .collect();
@@ -207,31 +216,36 @@ fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let joins = native.joins.join("; ");
     let order_by = native.order_by.join(", ");
 
-    ui.heading(egui::RichText::new(format!("Native query: {name}")));
+    ui.heading(egui::RichText::new(tr(
+        "Native query: {name}",
+        &[("name", &name)],
+    )));
     ui.label(
-        egui::RichText::new(format!("{kind} — read-only (MSysQueries)"))
+        egui::RichText::new(tr("{kind} — read-only (MSysQueries)", &[("kind", &kind)]))
             .small()
             .weak(),
     );
     ui.separator();
-    ui.weak(format!(
-        "Tables: {}",
-        if tables.is_empty() { "<none>" } else { &tables }
-    ));
+    let tables_text = if tables.is_empty() {
+        t("<none>").to_owned()
+    } else {
+        tables.clone()
+    };
+    ui.weak(tr("Tables: {tables}", &[("tables", &tables_text)]));
     for column in &columns {
         ui.label(column.clone());
     }
     if !criteria.is_empty() {
-        ui.weak(format!("Criteria: {criteria}"));
+        ui.weak(tr("Criteria: {criteria}", &[("criteria", &criteria)]));
     }
     if !joins.is_empty() {
-        ui.weak(format!("Joins: {joins}"));
+        ui.weak(tr("Joins: {joins}", &[("joins", &joins)]));
     }
     if !order_by.is_empty() {
-        ui.weak(format!("Order by: {order_by}"));
+        ui.weak(tr("Order by: {order_by}", &[("order_by", &order_by)]));
     }
     ui.separator();
-    if ui.button("Run").clicked() {
+    if ui.button(t("Run")).clicked() {
         let events = app.dispatch(Command::RunQuery {
             query: name.clone(),
         });
@@ -240,8 +254,11 @@ fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             _ => None,
         });
         ui.weak(match ran {
-            Some(rows) => format!("Ran — {rows} rows"),
-            None => "Run failed — see the status line".to_owned(),
+            Some(rows) => tr(
+                "Ran — {rows}",
+                &[("rows", &plural(rows, "{count} row", "{count} rows"))],
+            ),
+            None => t("Run failed — see the status line").to_owned(),
         });
     }
 }

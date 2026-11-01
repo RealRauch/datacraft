@@ -8,6 +8,11 @@ use datacraft_core::event::Event;
 use eframe::egui;
 
 use crate::app::App;
+use crate::i18n::{t, tr};
+
+/// Rejection-message key, kept as a key so a language switch re-renders
+/// the open prompt live (the parity test consumes the constant).
+pub(crate) const WRONG_PASSWORD: &str = "Wrong password — try again";
 
 /// State of the database-password prompt.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,8 +21,9 @@ pub struct PasswordPrompt {
     pub path: std::path::PathBuf,
     /// Current password input.
     pub input: String,
-    /// Rejection message after a wrong attempt.
-    pub error: Option<String>,
+    /// Translation key of the rejection message after a wrong attempt
+    /// (kept as a key so a language switch re-renders it live).
+    pub error: Option<&'static str>,
 }
 
 impl App {
@@ -76,7 +82,7 @@ impl App {
             self.password_prompt = Some(PasswordPrompt {
                 path,
                 input,
-                error: Some("Wrong password — try again".to_owned()),
+                error: Some(WRONG_PASSWORD),
             });
         }
         if events
@@ -96,31 +102,34 @@ pub fn password_prompt(app: &mut App, ui: &mut egui::Ui) {
     let mut input = prompt.input.clone();
     let mut submit = false;
     let mut cancel = false;
-    egui::Window::new("Database password")
+    egui::Window::new(t("Database password"))
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ui.ctx(), |ui| {
-            ui.label(format!("{} is password-protected.", prompt.path.display()));
+            ui.label(tr(
+                "{path} is password-protected.",
+                &[("path", &prompt.path.display().to_string())],
+            ));
             ui.add_space(4.0);
             let response = ui.add(
                 egui::TextEdit::singleline(&mut input)
                     .password(true)
                     .desired_width(240.0)
-                    .hint_text("password"),
+                    .hint_text(t("password")),
             );
             if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 submit = true;
             }
-            if let Some(error) = &prompt.error {
-                ui.colored_label(egui::Color32::from_rgb(0xB0, 0x2A, 0x2A), error);
+            if let Some(error) = prompt.error {
+                ui.colored_label(egui::Color32::from_rgb(0xB0, 0x2A, 0x2A), t(error));
             }
             ui.add_space(4.0);
             ui.horizontal(|ui| {
-                if ui.button("Open").clicked() {
+                if ui.button(t("Open")).clicked() {
                     submit = true;
                 }
-                if ui.button("Cancel").clicked() {
+                if ui.button(t("Cancel")).clicked() {
                     cancel = true;
                 }
             });

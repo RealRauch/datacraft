@@ -12,15 +12,36 @@ use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
 
 use crate::app::App;
+use crate::i18n::{t, tr};
+
+/// Section headers (English keys; also the id-salt prefix, so automation
+/// ids stay language-neutral).
+pub(crate) const SECTION_TABLES: &str = "Tables";
+pub(crate) const SECTION_QUERIES: &str = "Queries";
+pub(crate) const SECTION_FORMS: &str = "Forms";
+pub(crate) const SECTION_REPORTS: &str = "Reports";
+pub(crate) const SECTION_MACROS: &str = "Macros";
+pub(crate) const SECTION_MODULES: &str = "Modules";
+
+/// All section headers in render order (the catalog parity test consumes
+/// this list).
+pub(crate) const SECTIONS: [&str; 6] = [
+    SECTION_TABLES,
+    SECTION_QUERIES,
+    SECTION_FORMS,
+    SECTION_REPORTS,
+    SECTION_MACROS,
+    SECTION_MODULES,
+];
 
 /// Renders the navigation pane contents (the panel itself is shown by the
 /// shell only while `nav_pane_visible`).
 pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
-    ui.label(egui::RichText::new("All Access Objects").strong());
+    ui.label(egui::RichText::new(t("All Access Objects")).strong());
 
     let snapshot = app.snapshot();
     let Some(db) = &snapshot.database else {
-        ui.label("No database open");
+        ui.label(t("No database open"));
         return;
     };
     if db.tables.is_empty()
@@ -33,7 +54,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             .as_ref()
             .is_none_or(|project| project.modules.is_empty())
     {
-        ui.label("No objects");
+        ui.label(t("No objects"));
         return;
     }
     let active_object = snapshot
@@ -45,73 +66,76 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     egui::ScrollArea::vertical().show(ui, |ui| {
         // Section: a collapsible group whose entries open on click. The
         // header carries the Access object-group names.
-        let mut section = |header: &str, entries: Vec<(String, datacraft_core::ObjectKind)>| {
-            if entries.is_empty() {
-                return;
-            }
-            egui::CollapsingHeader::new(egui::RichText::new(header).strong())
-                .default_open(true)
-                .show(ui, |ui| {
-                    for (name, kind) in entries {
-                        ui.push_id(format!("nav.{header}.{name}"), |ui| {
-                            let is_active = active_object
-                                .as_deref()
-                                .is_some_and(|active| active.eq_ignore_ascii_case(&name));
-                            ui.horizontal(|ui| {
-                                if ui.selectable_label(is_active, &name).clicked() {
-                                    intent = Some((kind, name.clone()));
-                                }
-                                if deletable(kind)
-                                    && ui
-                                        .small_button("✕")
-                                        .on_hover_text(format!("Delete {name}"))
-                                        .clicked()
-                                {
-                                    delete_intent = Some((kind, name));
-                                }
+        let mut section =
+            |header: &'static str, entries: Vec<(String, datacraft_core::ObjectKind)>| {
+                if entries.is_empty() {
+                    return;
+                }
+                egui::CollapsingHeader::new(egui::RichText::new(t(header)).strong())
+                    .default_open(true)
+                    .show(ui, |ui| {
+                        for (name, kind) in entries {
+                            // The id salt keeps the English header so automation
+                            // ids stay language-neutral.
+                            ui.push_id(format!("nav.{header}.{name}"), |ui| {
+                                let is_active = active_object
+                                    .as_deref()
+                                    .is_some_and(|active| active.eq_ignore_ascii_case(&name));
+                                ui.horizontal(|ui| {
+                                    if ui.selectable_label(is_active, &name).clicked() {
+                                        intent = Some((kind, name.clone()));
+                                    }
+                                    if deletable(kind)
+                                        && ui
+                                            .small_button("✕")
+                                            .on_hover_text(tr("Delete {name}", &[("name", &name)]))
+                                            .clicked()
+                                    {
+                                        delete_intent = Some((kind, name));
+                                    }
+                                });
                             });
-                        });
-                    }
-                });
-        };
+                        }
+                    });
+            };
 
         section(
-            "Tables",
+            SECTION_TABLES,
             db.tables
                 .iter()
                 .map(|t| (t.name.clone(), datacraft_core::ObjectKind::Table))
                 .collect(),
         );
         section(
-            "Queries",
+            SECTION_QUERIES,
             db.queries
                 .iter()
                 .map(|q| (q.name.clone(), datacraft_core::ObjectKind::Query))
                 .collect(),
         );
         section(
-            "Forms",
+            SECTION_FORMS,
             db.forms
                 .iter()
                 .map(|f| (f.name.clone(), datacraft_core::ObjectKind::Form))
                 .collect(),
         );
         section(
-            "Reports",
+            SECTION_REPORTS,
             db.reports
                 .iter()
                 .map(|r| (r.name.clone(), datacraft_core::ObjectKind::Report))
                 .collect(),
         );
         section(
-            "Macros",
+            SECTION_MACROS,
             db.macros
                 .iter()
                 .map(|m| (m.name.clone(), datacraft_core::ObjectKind::Macro))
                 .collect(),
         );
         section(
-            "Modules",
+            SECTION_MODULES,
             db.vba
                 .as_ref()
                 .map(|project| {
