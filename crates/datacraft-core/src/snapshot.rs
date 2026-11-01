@@ -41,6 +41,21 @@ pub struct DatabaseSnapshot {
     pub tables: Vec<TableEntrySnapshot>,
     /// Referential relationships (mapper pane and agents).
     pub relationships: Vec<crate::port::Relationship>,
+    /// Query definitions in creation order.
+    pub queries: Vec<QueryEntrySnapshot>,
+}
+
+/// One query in the snapshot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QueryEntrySnapshot {
+    /// Query name.
+    pub name: String,
+    /// Source table name.
+    pub table: String,
+    /// `navpane.<expanded|collapsed>.node.query.<name>`.
+    pub ui_test_id: String,
+    /// QBE columns.
+    pub fields: Vec<crate::qbe::QbeField>,
 }
 
 /// One field of a table in the snapshot.
@@ -87,6 +102,19 @@ impl UiStateSnapshot {
                 path: db.path.clone(),
                 format: db.format,
                 relationships: db.relationships.clone(),
+                queries: db
+                    .queries
+                    .iter()
+                    .map(|q| QueryEntrySnapshot {
+                        name: q.name.clone(),
+                        table: q.table.clone(),
+                        ui_test_id: state.nav_pane_test_id(&crate::ObjectId::new(
+                            crate::ObjectKind::Query,
+                            &q.name,
+                        )),
+                        fields: q.fields.clone(),
+                    })
+                    .collect(),
                 tables: db
                     .tables
                     .iter()

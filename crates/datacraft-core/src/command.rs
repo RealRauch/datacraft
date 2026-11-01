@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ObjectId;
 use crate::ids::TabId;
+use crate::qbe::{QbeRow, QbeValue};
 use crate::schema::TableDef;
 
 /// One user-visible action.
@@ -54,4 +55,26 @@ pub enum Command {
     /// Shows or hides the relationship mapper (Access opens it as a
     /// document; the headless core models it as a pane flag).
     ToggleRelationshipMapper,
+    /// Creates an empty query (name unique, case-insensitive).
+    CreateQuery {
+        /// Query name; rejected on duplicates.
+        name: String,
+    },
+    /// Edits one QBE grid cell; identifiers are whitelisted against the
+    /// schema (LESSONS #5).
+    SetQbeCell {
+        /// Target query name (case-insensitive).
+        query: String,
+        /// Grid row.
+        row: QbeRow,
+        /// Grid column index.
+        col: usize,
+        /// New cell value.
+        value: QbeValue,
+    },
+    /// Deletes a query (dependent tabs close first).
+    DeleteQuery {
+        /// Query name (case-insensitive).
+        name: String,
+    },
 }

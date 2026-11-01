@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::ObjectId;
 use crate::ids::TabId;
 use crate::port::{DatabaseFormat, Relationship};
+use crate::qbe::QueryDef;
 use crate::schema::TableDef;
 
 /// Full application state of the headless core.
@@ -64,6 +65,8 @@ pub struct DatabaseState {
     pub tables: Vec<TableDef>,
     /// Referential relationships, as reported by the backend.
     pub relationships: Vec<Relationship>,
+    /// Query definitions in creation order.
+    pub queries: Vec<QueryDef>,
 }
 
 /// State of one open document tab.

@@ -53,6 +53,21 @@ pub enum Event {
         /// Visibility after the toggle.
         visible: bool,
     },
+    /// A query was created.
+    QueryCreated {
+        /// Canonical query name.
+        name: String,
+    },
+    /// A QBE cell was set.
+    QbeCellSet {
+        /// Canonical query name.
+        query: String,
+    },
+    /// A query was deleted (dependent tabs closed first).
+    QueryDropped {
+        /// Canonical query name.
+        name: String,
+    },
     /// The relationship mapper visibility changed.
     RelationshipMapperToggled {
         /// Openness after the toggle.

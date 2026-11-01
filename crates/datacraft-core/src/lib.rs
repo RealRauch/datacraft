@@ -12,6 +12,7 @@ pub mod grid;
 pub mod ids;
 pub mod port;
 pub mod present;
+pub mod qbe;
 pub mod ribbon;
 pub mod schema;
 pub mod snapshot;

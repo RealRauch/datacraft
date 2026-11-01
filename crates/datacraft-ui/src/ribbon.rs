@@ -12,6 +12,20 @@ use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
 use crate::app::App;
 
+/// First free "QueryN" name (case-insensitive against the snapshot).
+fn next_query_name(app: &App) -> String {
+    let used: Vec<String> = app
+        .snapshot()
+        .database
+        .as_ref()
+        .map(|db| db.queries.iter().map(|q| q.name.to_lowercase()).collect())
+        .unwrap_or_default();
+    (1..)
+        .map(|n| format!("Query{n}"))
+        .find(|name| !used.contains(&name.to_lowercase()))
+        .unwrap_or_else(|| "Query".to_owned())
+}
+
 /// Renders the ribbon (tab strip + active tab's groups).
 pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     let spec = ribbon_spec();
@@ -61,6 +75,9 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                     "close_database" => Command::CloseDatabase,
                                     "toggle_nav_pane" => Command::ToggleNavPane,
                                     "relationships" => Command::ToggleRelationshipMapper,
+                                    "query_design" => Command::CreateQuery {
+                                        name: next_query_name(app),
+                                    },
                                     other => unreachable!(
                                         "spec and mapping disagree on {other:?} (contract-tested)"
                                     ),

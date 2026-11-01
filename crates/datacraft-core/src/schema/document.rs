@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use super::def::TableDef;
 use super::def::validate_object_name;
 use super::error::SchemaError;
+use crate::qbe::QueryDef;
 
 /// Version this DataCraft writes. Bump when the document format changes and
 /// append a migration step to [`MIGRATIONS`].
@@ -36,6 +37,10 @@ pub struct SchemaDocument {
     pub database_name: String,
     /// Table definitions in navigation order.
     pub tables: Vec<TableDef>,
+    /// Query definitions (additive v1 field; older documents load with
+    /// an empty list via the serde default).
+    #[serde(default)]
+    pub queries: Vec<QueryDef>,
 }
 
 impl SchemaDocument {
@@ -45,6 +50,7 @@ impl SchemaDocument {
             schema_version: SCHEMA_VERSION,
             database_name: database_name.into(),
             tables: Vec::new(),
+            queries: Vec::new(),
         }
     }
 

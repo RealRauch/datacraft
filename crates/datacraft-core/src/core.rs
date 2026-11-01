@@ -65,6 +65,14 @@ impl Core {
                     open: self.state.relationship_mapper_open,
                 }]
             }
+            Command::CreateQuery { name } => self.create_query(&name),
+            Command::SetQbeCell {
+                query,
+                row,
+                col,
+                value,
+            } => self.set_qbe_cell(&query, row, col, value),
+            Command::DeleteQuery { name } => self.delete_query(&name),
             Command::OpenDatabase { path } => self.open_database(path),
             Command::CloseDatabase => self.close_database(),
             Command::CreateTable { definition } => self.create_table(definition),
@@ -91,6 +99,7 @@ impl Core {
                     format,
                     tables: self.port.tables(),
                     relationships,
+                    queries: Vec::new(),
                 });
                 vec![Event::DatabaseOpened { name, format }]
             }
@@ -175,19 +184,19 @@ impl Core {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
-        if object.kind == ObjectKind::Table {
-            let exists = db
+        let exists = match object.kind {
+            ObjectKind::Table => db
                 .tables
                 .iter()
-                .any(|t| t.name.to_lowercase() == object.name.to_lowercase());
-            if !exists {
-                return failed(PortError::TableNotFound(object.name).to_string());
-            }
-        } else {
-            return failed(format!(
-                "object kind {:?} cannot be opened yet (tables only in this phase)",
-                object.kind
-            ));
+                .any(|t| t.name.to_lowercase() == object.name.to_lowercase()),
+            ObjectKind::Query => db
+                .queries
+                .iter()
+                .any(|q| q.name.to_lowercase() == object.name.to_lowercase()),
+            _ => false,
+        };
+        if !exists {
+            return failed(PortError::TableNotFound(object.name).to_string());
         }
         if let Some(existing) = self
             .state
@@ -214,6 +223,151 @@ impl Core {
                 tab_id: Some(tab_id),
             },
         ]
+    }
+
+    fn create_query(&mut self, name: &str) -> Vec<Event> {
+        if self.state.database.is_none() {
+            return failed("no database is open — open a database first");
+        }
+        if name.trim().is_empty() {
+            return failed(
+                crate::schema::SchemaError::InvalidName {
+                    detail: "names must not be empty or whitespace-only".to_owned(),
+                }
+                .to_string(),
+            );
+        }
+        let db = self.state.database.as_ref().expect("checked above");
+        if db
+            .queries
+            .iter()
+            .any(|q| q.name.to_lowercase() == name.to_lowercase())
+        {
+            return failed(format!("duplicate query name {name:?}"));
+        }
+        let canonical = db
+            .tables
+            .iter()
+            .find(|t| t.name.to_lowercase() == name.to_lowercase())
+            .map(|t| t.name.clone())
+            .unwrap_or_else(|| name.to_owned());
+        self.state
+            .database
+            .as_mut()
+            .expect("checked above")
+            .queries
+            .push(crate::qbe::QueryDef::new(&canonical, ""));
+        vec![Event::QueryCreated { name: canonical }]
+    }
+
+    fn set_qbe_cell(
+        &mut self,
+        query: &str,
+        row: crate::qbe::QbeRow,
+        col: usize,
+        value: crate::qbe::QbeValue,
+    ) -> Vec<Event> {
+        let Some(db) = self.state.database.as_mut() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .queries
+            .iter_mut()
+            .find(|q| q.name.to_lowercase() == query.to_lowercase())
+        else {
+            return failed(format!("query {query:?} not found"));
+        };
+        // Whitelists (LESSONS #5): the table against the database, fields
+        // against their source table.
+        let mut value = value;
+        match row {
+            crate::qbe::QbeRow::Table => {
+                let crate::qbe::QbeValue::Text(table) = &value else {
+                    return failed("the Table row takes a name");
+                };
+                if !db
+                    .tables
+                    .iter()
+                    .any(|t| t.name.to_lowercase() == table.to_lowercase())
+                {
+                    return failed(PortError::TableNotFound(table.clone()).to_string());
+                }
+                if let crate::qbe::QbeValue::Text(chosen) = &mut value
+                    && let Some(matched) = db
+                        .tables
+                        .iter()
+                        .find(|tbl| tbl.name.to_lowercase() == chosen.to_lowercase())
+                {
+                    *chosen = matched.name.clone();
+                }
+            }
+            crate::qbe::QbeRow::Field => {
+                let crate::qbe::QbeValue::Text(field) = &value else {
+                    return failed("the Field row takes a name");
+                };
+                let Some(source) = db
+                    .tables
+                    .iter()
+                    .find(|t| t.name.to_lowercase() == def.table.to_lowercase())
+                else {
+                    return failed("set the source table first");
+                };
+                if !source
+                    .fields
+                    .iter()
+                    .any(|f| f.name.to_lowercase() == field.to_lowercase())
+                {
+                    return failed(format!("field {field:?} not found in {:?}", source.name));
+                }
+                value = crate::qbe::QbeValue::Text(
+                    source
+                        .fields
+                        .iter()
+                        .find(|f| f.name.to_lowercase() == field.to_lowercase())
+                        .expect("checked above")
+                        .name
+                        .clone(),
+                );
+            }
+            _ => {}
+        }
+        match def.set_cell(row, col, value) {
+            Err(e) => failed(e.to_string()),
+            Ok(()) => vec![Event::QbeCellSet {
+                query: def.name.clone(),
+            }],
+        }
+    }
+
+    fn delete_query(&mut self, name: &str) -> Vec<Event> {
+        let Some(db) = self.state.database.as_mut() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(pos) = db
+            .queries
+            .iter()
+            .position(|q| q.name.to_lowercase() == name.to_lowercase())
+        else {
+            return failed(format!("query {name:?} not found"));
+        };
+        let canonical = db.queries.remove(pos).name;
+        let dependent: Vec<TabId> = self
+            .state
+            .tabs
+            .iter()
+            .filter(|tab| {
+                tab.object.kind == ObjectKind::Query
+                    && tab.object.name.to_lowercase() == canonical.to_lowercase()
+            })
+            .map(|tab| tab.id)
+            .collect();
+        let mut events: Vec<Event> = Vec::with_capacity(dependent.len() + 1);
+        for tab_id in dependent {
+            self.remove_tab(tab_id);
+            events.push(Event::TabClosed { tab_id });
+        }
+        events.push(Event::QueryDropped { name: canonical });
+        events
     }
 
     fn close_tab(&mut self, tab_id: TabId) -> Vec<Event> {

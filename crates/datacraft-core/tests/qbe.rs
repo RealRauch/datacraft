@@ -13,7 +13,7 @@ use datacraft_core::event::Event;
 use datacraft_core::port::MockPort;
 use datacraft_core::qbe::{QbeRow, QbeValue, QueryDef, SortOrder};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, SchemaDocument, TableDef};
-use datacraft_core::{ObjectKind, ObjectId};
+use datacraft_core::{ObjectId, ObjectKind};
 
 fn customers_def() -> TableDef {
     TableDef::new(
@@ -27,8 +27,12 @@ fn customers_def() -> TableDef {
 
 fn opened_core() -> Core {
     let mut core = Core::new(Box::new(MockPort::new()));
-    core.dispatch(Command::OpenDatabase { path: PathBuf::from("shop.mdb") });
-    core.dispatch(Command::CreateTable { definition: customers_def() });
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+    });
+    core.dispatch(Command::CreateTable {
+        definition: customers_def(),
+    });
     core
 }
 
@@ -47,8 +51,12 @@ fn failed_reason(events: &[Event]) -> String {
 fn create_query_emits_and_lands_in_the_snapshot() {
     let mut core = opened_core();
     assert_eq!(
-        core.dispatch(Command::CreateQuery { name: "Active".into() }),
-        vec![Event::QueryCreated { name: "Active".into() }]
+        core.dispatch(Command::CreateQuery {
+            name: "Active".into()
+        }),
+        vec![Event::QueryCreated {
+            name: "Active".into()
+        }]
     );
     let db = core.inspect().database.expect("open");
     assert_eq!(db.queries.len(), 1);
@@ -59,16 +67,22 @@ fn create_query_emits_and_lands_in_the_snapshot() {
 #[test]
 fn duplicate_query_names_are_rejected() {
     let mut core = opened_core();
-    core.dispatch(Command::CreateQuery { name: "Active".into() });
-    let reason = failed_reason(&core.dispatch(Command::CreateQuery { name: "active".into() }));
+    core.dispatch(Command::CreateQuery {
+        name: "Active".into(),
+    });
+    let reason = failed_reason(&core.dispatch(Command::CreateQuery {
+        name: "active".into(),
+    }));
     assert!(reason.contains("duplicate"), "{reason}");
 }
 
 #[test]
 fn create_requires_an_open_database() {
-    let reason = failed_reason(&Core::new(Box::new(MockPort::new())).dispatch(Command::CreateQuery {
-        name: "Active".into(),
-    }));
+    let reason = failed_reason(&Core::new(Box::new(MockPort::new())).dispatch(
+        Command::CreateQuery {
+            name: "Active".into(),
+        },
+    ));
     assert!(reason.contains("no database"), "{reason}");
 }
 
@@ -77,7 +91,9 @@ fn create_requires_an_open_database() {
 // ---------------------------------------------------------------------------
 
 fn active_query(core: &mut Core) {
-    core.dispatch(Command::CreateQuery { name: "Active".into() });
+    core.dispatch(Command::CreateQuery {
+        name: "Active".into(),
+    });
 }
 
 #[test]
@@ -91,9 +107,14 @@ fn the_table_cell_is_whitelisted_against_tables() {
             col: 0,
             value: QbeValue::Text("Customers".into()),
         }),
-        vec![Event::QbeCellSet { query: "Active".into() }]
+        vec![Event::QbeCellSet {
+            query: "Active".into()
+        }]
     );
-    assert_eq!(core.inspect().database.unwrap().queries[0].table, "Customers");
+    assert_eq!(
+        core.inspect().database.unwrap().queries[0].table,
+        "Customers"
+    );
 
     let reason = failed_reason(&core.dispatch(Command::SetQbeCell {
         query: "Active".into(),
@@ -260,7 +281,9 @@ fn criteria_cells_append_and_edit() {
         col: 0,
         value: QbeValue::Text("< 2".into()),
     });
-    let criteria = core.inspect().database.unwrap().queries[0].fields[0].criteria.clone();
+    let criteria = core.inspect().database.unwrap().queries[0].fields[0]
+        .criteria
+        .clone();
     assert_eq!(criteria, ["> 5", "< 2"]);
     // Re-editing an existing row overwrites it.
     core.dispatch(Command::SetQbeCell {
@@ -269,7 +292,9 @@ fn criteria_cells_append_and_edit() {
         col: 0,
         value: QbeValue::Text("= 7".into()),
     });
-    let criteria = core.inspect().database.unwrap().queries[0].fields[0].criteria.clone();
+    let criteria = core.inspect().database.unwrap().queries[0].fields[0]
+        .criteria
+        .clone();
     assert_eq!(criteria, ["= 7", "< 2"]);
     // Empty criteria are rejected (use a narrower grid instead).
     let reason = failed_reason(&core.dispatch(Command::SetQbeCell {
@@ -288,10 +313,18 @@ fn criteria_cells_append_and_edit() {
 #[test]
 fn query_objects_open_as_tabs() {
     let mut core = opened_core();
-    core.dispatch(Command::CreateQuery { name: "Active".into() });
-    let events = core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Query, "Active")));
+    core.dispatch(Command::CreateQuery {
+        name: "Active".into(),
+    });
+    let events = core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Query,
+        "Active",
+    )));
     assert!(
-        matches!(events.as_slice(), [Event::TabOpened { .. }, Event::ActiveTabChanged { .. }]),
+        matches!(
+            events.as_slice(),
+            [Event::TabOpened { .. }, Event::ActiveTabChanged { .. }]
+        ),
         "{events:?}"
     );
 }
@@ -299,13 +332,24 @@ fn query_objects_open_as_tabs() {
 #[test]
 fn deleting_a_query_closes_its_tabs() {
     let mut core = opened_core();
-    core.dispatch(Command::CreateQuery { name: "Active".into() });
-    core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Query, "Active")));
+    core.dispatch(Command::CreateQuery {
+        name: "Active".into(),
+    });
+    core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Query,
+        "Active",
+    )));
     assert_eq!(
-        core.dispatch(Command::DeleteQuery { name: "Active".into() }),
+        core.dispatch(Command::DeleteQuery {
+            name: "Active".into()
+        }),
         vec![
-            Event::TabClosed { tab_id: datacraft_core::TabId::new(1) },
-            Event::QueryDropped { name: "Active".into() },
+            Event::TabClosed {
+                tab_id: datacraft_core::TabId::new(1)
+            },
+            Event::QueryDropped {
+                name: "Active".into()
+            },
         ]
     );
 }
