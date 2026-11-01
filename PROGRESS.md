@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 23 — Hardening & Test Gaps *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **23.1 CLI binary E2E over a real subprocess (T4)**
-- **23.2 egui headless UI tests with egui_kittest (T5)**
-- **23.3 Native-query decode errors surface at open (M10)**
-- **23.4 Phase 23 Quality Gate Review**
 ### Phase 24 — Jet Writer Remainder *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -169,7 +161,7 @@
 | 23.1 | CLI binary E2E over a real subprocess (T4) | ✅ |
 | 23.2 | egui headless UI tests with egui_kittest (T5) | ✅ |
 | 23.3 | Native-query decode errors surface at open (M10) | ✅ |
-| 23.4 | Phase 23 Quality Gate Review | ⬜ |
+| 23.4 | Phase 23 Quality Gate Review | ✅ |
 | 24.1 | Jet AutoNumber counter maintenance on insert (M8) | ⬜ |
 | 24.2 | Jet table drops through the writer (M7) | ⬜ |
 | 24.3 | Design-time schema editing, ALTER TABLE (M9) | ⬜ |

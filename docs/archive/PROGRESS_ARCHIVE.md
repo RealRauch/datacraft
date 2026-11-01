@@ -301,3 +301,15 @@
 - **21.8 Keyboard: shortcuts & ribbon key tips (U12)**
 - **21.9 Phase 21 Quality Gate Review**
 **Verification:** Phase 21 gate: fmt --check, clippy -D warnings, workspace tests and the file-size gate are green; no banned markers; local Windows llvm-cov reports 93.50% (documented platform note — CI ubuntu is the binding gate); README phase table and intro updated; all U5–U12 items archived, follow-ups U14/U15 recorded. (checkpoint: dd8fe9e)
+
+---
+
+### Phase 23 — Hardening & Test Gaps *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **23.1 CLI binary E2E over a real subprocess (T4)**
+- **23.2 egui headless UI tests with egui_kittest (T5)**
+- **23.3 Native-query decode errors surface at open (M10)**
+- **23.4 Phase 23 Quality Gate Review**
+**Verification:** Phase 23 gate: fmt --check, clippy -D warnings, workspace tests (incl. CLI process E2E and kittest) and the file-size gate are green; no banned markers; local Windows llvm-cov 93.67% under the documented platform note (CI ubuntu is binding); README phase table extended; T4/T5/M10 archived, F4 recorded and archived. (checkpoint: c1b28b2)

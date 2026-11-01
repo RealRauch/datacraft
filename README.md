@@ -33,7 +33,7 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–22 are complete: the
+> **DataCraft is in early development.** Phases 1–23 are complete: the
 > UI shell wears the rebased look (neutral tokens, teal accent,
 > Inter/JetBrains Mono typography, original vector iconography and
 > Light/Dark/System appearance), the UI-owned `ui.json` saves atomically
@@ -217,6 +217,7 @@ Seventeen delivered phases and the planned UI work:
 | 20 — Look & Typography | neutral tokens, Inter/JetBrains Mono typography, original vector iconography, Light/Dark/System appearance | ✅ |
 | 21 — Access UI Alignment | contextual ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX, keyboard | ✅ |
 | 22 — Settings Hardening | atomic `ui.json` save, window position/maximized state, off-screen rescue | ✅ |
+| 23 — Hardening & Test Gaps | CLI process E2E (exit codes, stderr), headless kittest UI suite with AccessKit snapshots, native-query decode errors surfaced at open | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
