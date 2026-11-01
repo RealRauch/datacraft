@@ -24,7 +24,30 @@ pub fn decode_row(
     file: &[u8],
     page_size: usize,
 ) -> Result<Vec<StorageValue>, StorageError> {
-    let layout = RowLayout::parse(row)?;
+    decode_row_with(row, def, file, page_size, false)
+}
+
+/// Decodes one Jet3 row: 1-byte counters and offsets, codepage (CP1252)
+/// text, no compression. Rows whose data exceeds the 255-byte offset range
+/// need the jump-table mechanism and answer a precise `Unsupported`
+/// (docs/FORMAT-JET.md "Jet 3 (Access 97)").
+pub fn decode_row_jet3(
+    row: &[u8],
+    def: &JetTableDef,
+    file: &[u8],
+    page_size: usize,
+) -> Result<Vec<StorageValue>, StorageError> {
+    decode_row_with(row, def, file, page_size, true)
+}
+
+fn decode_row_with(
+    row: &[u8],
+    def: &JetTableDef,
+    file: &[u8],
+    page_size: usize,
+    jet3: bool,
+) -> Result<Vec<StorageValue>, StorageError> {
+    let layout = RowLayout::parse(row, jet3)?;
     let mut values = Vec::with_capacity(def.columns.len());
     for col in &def.columns {
         if col.column_id as usize >= layout.num_cols {
@@ -44,9 +67,9 @@ pub fn decode_row(
             continue;
         }
         if col.is_fixed() {
-            values.push(decode_fixed(row, col)?);
+            values.push(decode_fixed(row, col, jet3)?);
         } else {
-            values.push(decode_variable(row, &layout, col, file, page_size)?);
+            values.push(decode_variable(row, &layout, col, file, page_size, jet3)?);
         }
     }
     Ok(values)
@@ -62,10 +85,14 @@ struct RowLayout {
     var_len: usize,
     table_at: usize,
     eod: usize,
+    jet3: bool,
 }
 
 impl RowLayout {
-    fn parse(row: &[u8]) -> Result<Self, StorageError> {
+    fn parse(row: &[u8], jet3: bool) -> Result<Self, StorageError> {
+        if jet3 {
+            return Self::parse_jet3(row);
+        }
         if row.len() < 2 {
             return Err(StorageError::Corrupt {
                 context: "row".into(),
@@ -105,6 +132,57 @@ impl RowLayout {
             var_len,
             table_at,
             eod,
+            jet3,
+        })
+    }
+
+    /// Jet3 tail: `[eod u8][var_table u8 × n][var_len u8][mask]`. The eod
+    /// must close the row exactly — a mismatch means the data crossed the
+    /// 255-byte offset range and the jump table applies (unsupported).
+    fn parse_jet3(row: &[u8]) -> Result<Self, StorageError> {
+        if row.is_empty() {
+            return Err(StorageError::Corrupt {
+                context: "row".into(),
+                detail: "row shorter than num_cols field (0 bytes)".into(),
+            });
+        }
+        let num_cols = row[0] as usize;
+        let mask_len = num_cols.div_ceil(8);
+        if row.len() < 1 + mask_len + 2 {
+            return Err(StorageError::Corrupt {
+                context: "row".into(),
+                detail: "row too short for null mask".into(),
+            });
+        }
+        let mask_at = row.len() - mask_len;
+        let var_len = row[mask_at - 1] as usize;
+        let table_at = mask_at - 1 - var_len;
+        if table_at < 2 {
+            return Err(StorageError::Corrupt {
+                context: "row".into(),
+                detail: "row too short for variable column table".into(),
+            });
+        }
+        let eod = row[table_at - 1] as usize;
+        if eod + 1 + var_len + 1 + mask_len != row.len() {
+            return Err(StorageError::Unsupported {
+                reason: format!(
+                    "Jet3 row needs the >{}-byte jump-table mechanism (unsupported; \
+                     eod {} + tail {} != row length {})",
+                    crate::jet::jet3::JET3_ROW_LIMIT,
+                    eod,
+                    1 + var_len + 1 + mask_len,
+                    row.len()
+                ),
+            });
+        }
+        Ok(Self {
+            num_cols,
+            mask_at,
+            var_len,
+            table_at,
+            eod,
+            jet3: true,
         })
     }
 
@@ -115,10 +193,14 @@ impl RowLayout {
     }
 
     /// Start offset of the row's variable column `j` (var_table is stored in
-    /// reverse order: entry 0 belongs to the last variable column). Always in
-    /// bounds: the largest entry address is `mask_at - 4` by the parse
-    /// invariants, so no bounds check is needed here.
+    /// reverse order: entry 0 belongs to the last variable column). Entries
+    /// are 2-byte on Jet4 and 1-byte on Jet3. Always in bounds: the largest
+    /// entry address is `mask_at - 4` (Jet4) / `mask_at - 2` (Jet3) by the
+    /// parse invariants, so no bounds check is needed here.
     fn var_start(&self, row: &[u8], j: usize) -> usize {
+        if self.jet3 {
+            return row[self.table_at + (self.var_len - 1 - j)] as usize;
+        }
         let at = self.table_at + (self.var_len - 1 - j) * 2;
         u16::from_le_bytes([row[at], row[at + 1]]) as usize
     }
@@ -133,8 +215,10 @@ impl RowLayout {
     }
 }
 
-fn decode_fixed(row: &[u8], col: &JetColumn) -> Result<StorageValue, StorageError> {
-    let start = 2 + col.fixed_offset as usize;
+fn decode_fixed(row: &[u8], col: &JetColumn, jet3: bool) -> Result<StorageValue, StorageError> {
+    // Jet4 rows carry a 2-byte num_cols field, Jet3 rows a 1-byte one —
+    // the fixed area starts right behind it.
+    let start = if jet3 { 1 } else { 2 } + col.fixed_offset as usize;
     let len = fixed_len(col);
     let bytes = row
         .get(start..start + len)
@@ -148,7 +232,7 @@ fn decode_fixed(row: &[u8], col: &JetColumn) -> Result<StorageValue, StorageErro
                 row.len()
             ),
         })?;
-    decode_bytes(bytes, col)
+    decode_bytes(bytes, col, jet3)
 }
 
 /// Storage length of a fixed column; numerics always occupy 17 bytes
@@ -167,6 +251,7 @@ fn decode_variable(
     col: &JetColumn,
     file: &[u8],
     page_size: usize,
+    jet3: bool,
 ) -> Result<StorageValue, StorageError> {
     let j = usize::from(col.var_index.unwrap_or(0));
     if j >= layout.var_len {
@@ -194,8 +279,8 @@ fn decode_variable(
     }
     let bytes = &row[start..end];
     match col.data_type {
-        JetType::Memo | JetType::Ole => decode_long_value(bytes, col, file, page_size),
-        _ => decode_bytes(bytes, col),
+        JetType::Memo | JetType::Ole => decode_long_value(bytes, col, file, page_size, jet3),
+        _ => decode_bytes(bytes, col, jet3),
     }
 }
 
@@ -206,6 +291,7 @@ fn decode_long_value(
     col: &JetColumn,
     file: &[u8],
     page_size: usize,
+    jet3: bool,
 ) -> Result<StorageValue, StorageError> {
     if bytes.len() < 4 {
         return Err(StorageError::Corrupt {
@@ -239,12 +325,12 @@ fn decode_long_value(
         lval::resolve(file, page_size, length_and_flags, pointer)?
     };
     Ok(match col.data_type {
-        JetType::Memo => StorageValue::Text(decode_text_bytes(&data, col)),
+        JetType::Memo => StorageValue::Text(decode_text_bytes(&data, col, jet3)),
         _ => StorageValue::Binary(data),
     })
 }
 
-fn decode_bytes(bytes: &[u8], col: &JetColumn) -> Result<StorageValue, StorageError> {
+fn decode_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> Result<StorageValue, StorageError> {
     Ok(match col.data_type {
         JetType::Bool => unreachable!("booleans are resolved from the null mask"),
         JetType::Byte => StorageValue::Int(i16::from(bytes[0]) as i64),
@@ -267,7 +353,7 @@ fn decode_bytes(bytes: &[u8], col: &JetColumn) -> Result<StorageValue, StorageEr
         JetType::Binary | JetType::Ole | JetType::Complex | JetType::Memo => {
             StorageValue::Binary(bytes.to_vec())
         }
-        JetType::Text => StorageValue::Text(decode_text_bytes(bytes, col)),
+        JetType::Text => StorageValue::Text(decode_text_bytes(bytes, col, jet3)),
         JetType::Guid => {
             let mut guid = [0u8; 16];
             guid.copy_from_slice(bytes);
@@ -293,8 +379,12 @@ fn decode_numeric(bytes: &[u8]) -> StorageValue {
     })
 }
 
-/// UCS-2LE or compressed-unicode text (see `docs/FORMAT-JET.md`).
-fn decode_text_bytes(bytes: &[u8], col: &JetColumn) -> String {
+/// Text decoding: UCS-2LE or compressed unicode on Jet4, CP1252 on Jet3
+/// (see `docs/FORMAT-JET.md`).
+fn decode_text_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> String {
+    if jet3 {
+        return crate::jet::jet3::cp1252(bytes);
+    }
     if col.compressed_text {
         decode_compressed_text(bytes)
     } else {

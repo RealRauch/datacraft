@@ -291,3 +291,36 @@ Verified by `decode(encode(decode(x))) == decode(x)` over **155 rows across
   without repair prompts" requires a real Access check on the golden files
   — executable proxies in CI: our decoder + `mdb-export` both read the
   written files (the oracle test runs on ubuntu/macOS CI).
+
+## Jet 3 (Access 97) read path (2026-11-01 — step 10.6, BACKLOG L1)
+
+Source: MDB Tools HACKING (public documentation), black-box verified by the
+synthetic-fixture contract suite (`tests/jet3.rs`) — no real A97 fixture is
+pinned yet; the oracle comparison applies when one is sourced (see
+`docs/FIXTURE-SOURCES.md`).
+
+- **2048-byte pages**; the header version dword is `0x00000000`.
+- **Data pages**: 10-byte header — `[0x01][0x01][free u16][tdef u32]
+  [count u16 @8]`, offset table from byte 10. Jet4's extra unknown dword
+  is absent; owner and the back-to-front layout (incl. the `0x8000`/
+  `0x4000` offset flags) are shared with Jet4.
+- **TDEF**: page header carries the word `'VC'` where Jet4 stores free
+  space. The block is a **35-byte header** (`tdef_len, num_rows,
+  autonumber, table_type @12, max_cols @13, num_var @15, num_cols @17,
+  num_idx @19, num_real_idx @23, used_pages @27, free_pages @31`), then
+  8 bytes per real index, then **18-byte column descriptors** (`type,
+  col_num u16, offset_V u16, col_num u16, sort_order u16, misc u16,
+  unknown u16, flags u8, offset_F u16, col_len u16`), then **1-byte-length
+  codepage names**. `misc` holds the code page for text columns
+  (`0x4E4` = CP1252) and precision/scale otherwise.
+- **Rows**: `[num_cols u8][fixed][var][eod u8][var_table u8 × n,
+  reversed][var_len u8][null mask]` — all counters/offsets are one byte.
+  The null mask is identical to Jet4 (bit k = column id k). The fixed
+  area starts at offset **1** (not 2).
+- **Jump table (unsupported)**: rows with more than 255 data bytes wrap
+  the eod and interleave a jump table of 256-boundary crossings. DataCraft
+  detects the wrapped signature (eod + tail ≠ row length) and answers a
+  precise `Unsupported` — the documented L1 remainder.
+- **Text**: no unicode; CP1252 (writer-machine dependent) is decoded for
+  names and cell text. No compressed form exists.
+- **Writer**: unchanged — the writer milestone targets Jet4/ACE only.

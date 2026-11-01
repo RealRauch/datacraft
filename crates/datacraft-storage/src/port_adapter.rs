@@ -50,14 +50,9 @@ impl StoragePort for Jet4Port {
         })?;
         let reader = Jet4TableReader::new(bytes).map_err(map_open)?;
         let format = match reader.header().format {
+            FormatVersion::Jet3 => DatabaseFormat::Jet3,
             FormatVersion::Jet4 => DatabaseFormat::Jet4,
             FormatVersion::Ace => DatabaseFormat::Ace,
-            // The reader rejects Jet3 itself (BACKLOG L1).
-            FormatVersion::Jet3 => {
-                return Err(PortError::Unsupported {
-                    reason: "Jet3 (Access 97) databases are not supported yet".to_owned(),
-                });
-            }
         };
         let tables = self.collect_tables(&reader)?;
         let name = path.file_stem().map_or_else(

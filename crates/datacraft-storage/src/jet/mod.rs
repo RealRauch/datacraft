@@ -7,6 +7,7 @@ pub mod catalog;
 pub mod data_page;
 pub mod encode;
 pub mod header;
+pub mod jet3;
 pub mod lval;
 pub mod page;
 pub mod reader;
@@ -24,6 +25,6 @@ pub use header::{
 };
 pub use page::{JET3_PAGE_SIZE, PAGE_TYPE_DATA, PAGE_TYPE_TDEF, page_type};
 pub use reader::{Jet4TableReader, JetTableData};
-pub use row::decode_row;
+pub use row::{decode_row, decode_row_jet3};
 pub use tdef::{JetColumn, JetTableDef, JetType};
 pub use writer::Jet4Writer;

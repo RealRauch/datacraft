@@ -222,12 +222,16 @@ impl JetTableDef {
     /// Decodes the TDEF of `tdef_page` from the raw file bytes.
     ///
     /// Index definitions are parsed past (their semantics are not needed for
-    /// reads and land with the oracle step).
+    /// reads and land with the oracle step). Jet3 files dispatch to
+    /// [`JetTableDef::decode_jet3`].
     pub fn decode(file: &[u8], tdef_page: u32) -> Result<Self, StorageError> {
         let header = crate::jet::header::FileHeader::decode(
             file.get(..0x18).unwrap_or(file),
             file.len() as u64,
         )?;
+        if header.format == crate::types::FormatVersion::Jet3 {
+            return Self::decode_tdef(file, tdef_page);
+        }
         // Multi-page TDEFs concatenate their post-header payloads via the
         // next-TDEF-page pointer at offset 4 (docs/FORMAT-JET.md). The
         // logical block is the concatenation; `tdef_len` (first field,

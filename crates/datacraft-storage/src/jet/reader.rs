@@ -9,7 +9,7 @@ use crate::error::StorageError;
 use crate::jet::data_page::DataPage;
 use crate::jet::header::FileHeader;
 use crate::jet::page::{PAGE_TYPE_DATA, page_type};
-use crate::jet::row::decode_row;
+use crate::jet::row::{decode_row, decode_row_jet3};
 use crate::jet::tdef::JetTableDef;
 use crate::types::{Row, TableSchema};
 
@@ -34,11 +34,6 @@ impl Jet4TableReader {
     /// Takes ownership of the raw file bytes and validates the header.
     pub fn new(file: Vec<u8>) -> Result<Self, StorageError> {
         let header = FileHeader::decode(&file, file.len() as u64)?;
-        if header.format == crate::types::FormatVersion::Jet3 {
-            return Err(StorageError::Unsupported {
-                reason: "Jet3 (Access 97) databases are not supported yet (BACKLOG L1)".into(),
-            });
-        }
         Ok(Self { header, file })
     }
 
@@ -101,15 +96,21 @@ impl Jet4TableReader {
     }
 
     /// Reads the table rooted at `tdef_page`: schema plus all rows.
+    /// Jet3 files dispatch to the 1-byte layout paths (step 10.6, L1).
     pub fn read_table(&self, tdef_page: u32) -> Result<JetTableData, StorageError> {
         let def = JetTableDef::decode(&self.file, tdef_page)?;
+        let jet3 = self.header.format == crate::types::FormatVersion::Jet3;
         let mut rows = Vec::new();
         for page_idx in 1..self.header.page_count {
             let page = self.header.page_slice(&self.file, page_idx as u32)?;
             if page_type(page) != PAGE_TYPE_DATA {
                 continue;
             }
-            let decoded = DataPage::decode(page)?;
+            let decoded = if jet3 {
+                DataPage::decode_jet3(page)?
+            } else {
+                DataPage::decode(page)?
+            };
             if decoded.owner != tdef_page {
                 continue;
             }
@@ -120,7 +121,11 @@ impl Jet4TableReader {
                     continue;
                 }
                 let record = self.resolve_record(page, &decoded, i, 0)?;
-                rows.push(decode_row(record, &def, &self.file, self.header.page_size)?);
+                rows.push(if jet3 {
+                    decode_row_jet3(record, &def, &self.file, self.header.page_size)?
+                } else {
+                    decode_row(record, &def, &self.file, self.header.page_size)?
+                });
             }
         }
         Ok(JetTableData {

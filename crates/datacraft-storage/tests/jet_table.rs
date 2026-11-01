@@ -202,14 +202,12 @@ fn overflow_rows_resolve_through_the_row_pointer() {
 }
 
 #[test]
-fn reader_rejects_jet3_with_precise_reason() {
+fn reader_accepts_jet3_files_since_l1() {
     let mut file = file_shell(1);
     file[0x14..0x18].copy_from_slice(&0x0000_0000u32.to_le_bytes()); // Jet3
-    let err = Jet4TableReader::new(file).expect_err("jet3 must be rejected");
-    assert!(
-        matches!(err, StorageError::Unsupported { ref reason } if reason.contains("Jet3")),
-        "unexpected error: {err:?}"
-    );
+    let reader = Jet4TableReader::new(file).expect("Jet3 opens since step 10.6 (L1)");
+    assert_eq!(reader.header().format, FormatVersion::Jet3);
+    assert_eq!(reader.header().page_size, 2048);
 }
 
 #[test]
