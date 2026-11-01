@@ -59,6 +59,12 @@ impl Core {
                     visible: self.state.nav_pane_visible,
                 }]
             }
+            Command::ToggleRelationshipMapper => {
+                self.state.relationship_mapper_open = !self.state.relationship_mapper_open;
+                vec![Event::RelationshipMapperToggled {
+                    open: self.state.relationship_mapper_open,
+                }]
+            }
             Command::OpenDatabase { path } => self.open_database(path),
             Command::CloseDatabase => self.close_database(),
             Command::CreateTable { definition } => self.create_table(definition),
@@ -78,11 +84,13 @@ impl Core {
             Ok(opened) => {
                 let name = opened.name.clone();
                 let format = opened.format;
+                let relationships = self.port.relationships().unwrap_or_default();
                 self.state.database = Some(DatabaseState {
                     path,
                     name: name.clone(),
                     format,
                     tables: self.port.tables(),
+                    relationships,
                 });
                 vec![Event::DatabaseOpened { name, format }]
             }
@@ -101,6 +109,7 @@ impl Core {
             .collect();
         self.state.active_tab = None;
         self.state.database = None;
+        self.state.relationship_mapper_open = false;
         self.port.close();
         events.push(Event::DatabaseClosed);
         events
@@ -155,6 +164,8 @@ impl Core {
         }
         if let Some(db) = self.state.database.as_mut() {
             db.tables.retain(|t| t.name != canonical);
+            db.relationships
+                .retain(|rel| !rel.table.eq_ignore_ascii_case(&canonical));
         }
         events.push(Event::TableDropped { table: canonical });
         events

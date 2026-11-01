@@ -11,7 +11,12 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::port::{MockPort, Relationship, StoragePort as _};
 
-fn relationship(table: &str, column: &str, related_table: &str, related_column: &str) -> Relationship {
+fn relationship(
+    table: &str,
+    column: &str,
+    related_table: &str,
+    related_column: &str,
+) -> Relationship {
     Relationship {
         table: table.to_owned(),
         column: column.to_owned(),
@@ -23,7 +28,12 @@ fn relationship(table: &str, column: &str, related_table: &str, related_column: 
 #[test]
 fn mock_relationships_seed_and_read() {
     let mut port = MockPort::new();
-    port.with_relationships(vec![relationship("Orders", "customer_id", "Customers", "id")]);
+    port.with_relationships(vec![relationship(
+        "Orders",
+        "customer_id",
+        "Customers",
+        "id",
+    )]);
     let rels = port.relationships().expect("read");
     assert_eq!(rels.len(), 1);
     assert_eq!(rels[0].table, "Orders");
@@ -44,7 +54,9 @@ fn the_snapshot_carries_relationships() {
         relationship("Orders", "product_id", "Products", "id"),
     ]);
     let mut core = Core::new(Box::new(port));
-    core.dispatch(Command::OpenDatabase { path: PathBuf::from("shop.mdb") });
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+    });
     let snap = core.inspect();
     let db = snap.database.expect("open");
     assert_eq!(db.relationships.len(), 2);
@@ -60,15 +72,28 @@ fn dropping_a_table_drops_its_relationships() {
         relationship("Orders", "product_id", "Products", "id"),
     ]);
     let mut core = Core::new(Box::new(port));
-    core.dispatch(Command::OpenDatabase { path: PathBuf::from("shop.mdb") });
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+    });
     for name in ["Orders", "Customers", "Products"] {
         core.dispatch(Command::CreateTable {
-            definition: TableDef::new(name, vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))]),
+            definition: TableDef::new(
+                name,
+                vec![FieldDef::new(
+                    "id",
+                    FieldKind::Number(NumericKind::LongInteger),
+                )],
+            ),
         });
     }
-    core.dispatch(Command::DropTable { table: "Orders".into() });
+    core.dispatch(Command::DropTable {
+        table: "Orders".into(),
+    });
     let db = core.inspect().database.expect("open");
-    assert!(db.relationships.is_empty(), "Orders relationships die with the table");
+    assert!(
+        db.relationships.is_empty(),
+        "Orders relationships die with the table"
+    );
 }
 
 #[test]

@@ -228,9 +228,9 @@ fn relationships_read_from_msysrelationships() {
         assert!(!rel.table.is_empty() && !rel.column.is_empty());
         assert!(!rel.related_table.is_empty() && !rel.related_column.is_empty());
     }
-    let nav_pane_pair = rels.iter().find(|r| {
-        r.table == "MSysNavPaneGroups" && r.column == "GroupCategoryID"
-    });
+    let nav_pane_pair = rels
+        .iter()
+        .find(|r| r.table == "MSysNavPaneGroups" && r.column == "GroupCategoryID");
     assert!(
         nav_pane_pair.is_some(),
         "the documented fixture relationship must map: {rels:?}"

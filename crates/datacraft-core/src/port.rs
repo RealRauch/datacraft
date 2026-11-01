@@ -79,6 +79,19 @@ impl std::fmt::Display for PortError {
 
 impl std::error::Error for PortError {}
 
+/// One referential-integrity relationship between two tables.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Relationship {
+    /// Table holding the referencing column.
+    pub table: String,
+    /// Referencing column.
+    pub column: String,
+    /// Referenced (one-side) table.
+    pub related_table: String,
+    /// Referenced column.
+    pub related_column: String,
+}
+
 /// Window selector for row reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RowRange {
@@ -114,6 +127,8 @@ pub trait StoragePort {
     /// `row_count` is empty; anything beyond fails with
     /// [`PortError::OutOfRange`].
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError>;
+    /// Referential relationships of the open database.
+    fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
 }
 
 /// Window slice shared by implementations: start beyond the count is an
@@ -141,6 +156,7 @@ pub fn window_slice(
 pub struct MockPort {
     tables: Vec<TableDef>,
     rows: HashMap<String, Vec<Vec<FieldValue>>>,
+    relationships: Vec<Relationship>,
     opened: Option<OpenedDatabase>,
     open_fail: Option<String>,
     write_fail: Option<String>,
@@ -171,6 +187,12 @@ impl MockPort {
         rows: Vec<Vec<FieldValue>>,
     ) -> &mut Self {
         self.rows.insert(table.into(), rows);
+        self
+    }
+
+    /// Builder: attaches referential relationships.
+    pub fn with_relationships(&mut self, relationships: Vec<Relationship>) -> &mut Self {
+        self.relationships = relationships;
         self
     }
 
@@ -261,5 +283,9 @@ impl StoragePort for MockPort {
         };
         let (start, end) = window_slice(table, range, rows.len())?;
         Ok(rows[start..end].to_vec())
+    }
+
+    fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
+        Ok(self.relationships.clone())
     }
 }

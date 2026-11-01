@@ -24,6 +24,8 @@ pub struct UiStateSnapshot {
     pub tabs: Vec<TabSnapshot>,
     /// The active tab, if any.
     pub active_tab: Option<TabId>,
+    /// Whether the relationship mapper is open.
+    pub relationship_mapper_open: bool,
 }
 
 /// Snapshot of the open database.
@@ -37,6 +39,8 @@ pub struct DatabaseSnapshot {
     pub format: DatabaseFormat,
     /// Tables in catalog order, with their navigation-pane test IDs.
     pub tables: Vec<TableEntrySnapshot>,
+    /// Referential relationships (mapper pane and agents).
+    pub relationships: Vec<crate::port::Relationship>,
 }
 
 /// One field of a table in the snapshot.
@@ -82,6 +86,7 @@ impl UiStateSnapshot {
                 name: db.name.clone(),
                 path: db.path.clone(),
                 format: db.format,
+                relationships: db.relationships.clone(),
                 tables: db
                     .tables
                     .iter()
@@ -115,6 +120,7 @@ impl UiStateSnapshot {
                 })
                 .collect(),
             active_tab: state.active_tab,
+            relationship_mapper_open: state.relationship_mapper_open,
         }
     }
 

@@ -51,4 +51,7 @@ pub enum Command {
     },
     /// Shows or hides the navigation pane.
     ToggleNavPane,
+    /// Shows or hides the relationship mapper (Access opens it as a
+    /// document; the headless core models it as a pane flag).
+    ToggleRelationshipMapper,
 }

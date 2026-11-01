@@ -60,6 +60,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                 intent = Some(match action.id {
                                     "close_database" => Command::CloseDatabase,
                                     "toggle_nav_pane" => Command::ToggleNavPane,
+                                    "relationships" => Command::ToggleRelationshipMapper,
                                     other => unreachable!(
                                         "spec and mapping disagree on {other:?} (contract-tested)"
                                     ),

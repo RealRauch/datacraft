@@ -88,6 +88,49 @@ impl StoragePort for Jet4Port {
         Err(read_only())
     }
 
+    fn relationships(&self) -> Result<Vec<datacraft_core::port::Relationship>, PortError> {
+        let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
+            reason: "no database is open".to_owned(),
+        })?;
+        let data = match reader.open_table("MSysRelationships") {
+            Ok(data) => data,
+            // No relationships table: the database has none.
+            Err(crate::error::StorageError::TableNotFound(_)) => return Ok(Vec::new()),
+            Err(e) => return Err(map_open(e)),
+        };
+        let index_of = |name: &str| {
+            data.schema
+                .columns
+                .iter()
+                .position(|c| c.name == name)
+                .ok_or_else(|| PortError::Unsupported {
+                    reason: format!("MSysRelationships lacks the {name} column"),
+                })
+        };
+        let (i_obj, i_col, i_ref_obj, i_ref_col) = (
+            index_of("szObject")?,
+            index_of("szColumn")?,
+            index_of("szReferencedObject")?,
+            index_of("szReferencedColumn")?,
+        );
+        let text = |v: &crate::types::StorageValue| match v {
+            crate::types::StorageValue::Text(s) => Some(s.clone()),
+            _ => None,
+        };
+        Ok(data
+            .rows
+            .iter()
+            .filter_map(|row| {
+                Some(datacraft_core::port::Relationship {
+                    table: text(&row[i_obj])?,
+                    column: text(&row[i_col])?,
+                    related_table: text(&row[i_ref_obj])?,
+                    related_column: text(&row[i_ref_col])?,
+                })
+            })
+            .collect())
+    }
+
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
         let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
             reason: "no database is open".to_owned(),

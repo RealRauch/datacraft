@@ -53,6 +53,11 @@ pub enum Event {
         /// Visibility after the toggle.
         visible: bool,
     },
+    /// The relationship mapper visibility changed.
+    RelationshipMapperToggled {
+        /// Openness after the toggle.
+        open: bool,
+    },
     /// A command could not be executed; the reason is precise and
     /// user-renderable (LESSONS #4 — no silent swallowing).
     Failed {

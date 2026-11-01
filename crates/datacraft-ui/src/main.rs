@@ -13,6 +13,7 @@ mod app;
 mod datasheet;
 mod design;
 mod nav_pane;
+mod relationships;
 mod ribbon;
 mod workspace;
 

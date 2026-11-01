@@ -161,5 +161,7 @@ impl eframe::App for App {
         });
 
         crate::workspace::workspace_ui(self, ui);
+
+        crate::relationships::mapper_window(self, ui);
     }
 }

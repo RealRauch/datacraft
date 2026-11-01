@@ -61,9 +61,7 @@ pub fn field_kind_display(kind: &FieldKind) -> String {
         },
         FieldKind::DateTime => "Date/Time".to_owned(),
         FieldKind::Currency => "Currency".to_owned(),
-        FieldKind::AutoNumber(crate::schema::AutoKind::LongInteger) => {
-            "AutoNumber".to_owned()
-        }
+        FieldKind::AutoNumber(crate::schema::AutoKind::LongInteger) => "AutoNumber".to_owned(),
         FieldKind::AutoNumber(crate::schema::AutoKind::ReplicationId) => {
             "AutoNumber (Replication ID)".to_owned()
         }

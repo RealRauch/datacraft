@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ObjectId;
 use crate::ids::TabId;
-use crate::port::DatabaseFormat;
+use crate::port::{DatabaseFormat, Relationship};
 use crate::schema::TableDef;
 
 /// Full application state of the headless core.
@@ -25,6 +25,8 @@ pub struct AppState {
     pub active_tab: Option<TabId>,
     /// Next tab id the reducer assigns (monotonic, never reused).
     pub next_tab_id: u64,
+    /// Whether the relationship mapper is open.
+    pub relationship_mapper_open: bool,
 }
 
 impl AppState {
@@ -60,6 +62,8 @@ pub struct DatabaseState {
     pub format: DatabaseFormat,
     /// Table definitions in catalog order.
     pub tables: Vec<TableDef>,
+    /// Referential relationships, as reported by the backend.
+    pub relationships: Vec<Relationship>,
 }
 
 /// State of one open document tab.
