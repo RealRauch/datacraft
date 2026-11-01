@@ -10,6 +10,7 @@
 //! (exception registry in `docs/TESTING.md`).
 
 mod app;
+mod ribbon;
 
 use eframe::egui;
 

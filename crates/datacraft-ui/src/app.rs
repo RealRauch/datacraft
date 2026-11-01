@@ -18,6 +18,10 @@ use datacraft_core::snapshot::UiStateSnapshot;
 pub struct App {
     core: Core,
     snapshot: UiStateSnapshot,
+    /// Path input buffer of the File > Open Database ribbon action.
+    pub open_path: String,
+    /// Selected ribbon tab id (presentation state, `&'static` from the spec).
+    pub active_ribbon_tab: &'static str,
 }
 
 impl App {
@@ -26,7 +30,12 @@ impl App {
     pub fn new() -> Self {
         let core = Core::new(Box::new(MockPort::new()));
         let snapshot = core.inspect();
-        Self { core, snapshot }
+        Self {
+            core,
+            snapshot,
+            open_path: String::new(),
+            active_ribbon_tab: "home",
+        }
     }
 
     /// Applies one command and refreshes the rendered snapshot.
@@ -44,14 +53,7 @@ impl App {
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         egui::Panel::top("datacraft.ribbon").show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.strong("DataCraft");
-                ui.separator();
-                if ui.button("Toggle Navigation").clicked() {
-                    self.dispatch(Command::ToggleNavPane);
-                }
-                ui.label("Ribbon — step 5.2");
-            });
+            crate::ribbon::ribbon_ui(self, ui);
         });
 
         if self.snapshot().nav_pane_visible {

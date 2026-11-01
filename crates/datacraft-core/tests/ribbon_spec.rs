@@ -8,16 +8,19 @@
 use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
 const DISPATCHABLE_ACTIONS: [&str; 3] = [
-    "file.open.open_database",
-    "file.database.close_database",
-    "home.view.toggle_nav_pane",
+    "ribbon.file.open.open_database",
+    "ribbon.file.database.close_database",
+    "ribbon.home.view.toggle_nav_pane",
 ];
 
 #[test]
 fn the_spec_carries_the_five_access_tabs_in_order() {
     let spec = ribbon_spec();
     let ids: Vec<&str> = spec.tabs.iter().map(|t| t.id).collect();
-    assert_eq!(ids, ["file", "home", "create", "external_data", "database_tools"]);
+    assert_eq!(
+        ids,
+        ["file", "home", "create", "external_data", "database_tools"]
+    );
     let labels: Vec<&str> = spec.tabs.iter().map(|t| t.label).collect();
     assert_eq!(
         labels,
@@ -33,10 +36,7 @@ fn every_action_has_a_unique_convention_test_id() {
         for group in &tab.groups {
             for action in &group.actions {
                 let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
-                assert!(
-                    !ids.contains(&id),
-                    "duplicate ribbon action id {id}"
-                );
+                assert!(!ids.contains(&id), "duplicate ribbon action id {id}");
                 ids.push(id);
             }
             assert!(!group.label.is_empty());
@@ -47,7 +47,10 @@ fn every_action_has_a_unique_convention_test_id() {
         let parts: Vec<&str> = id.split('.').collect();
         assert_eq!(parts.len(), 4, "convention shape violated: {id}");
         assert!(
-            parts.iter().skip(1).all(|p| p.chars().all(|c| c.is_ascii_lowercase() || c == '_')),
+            parts
+                .iter()
+                .skip(1)
+                .all(|p| p.chars().all(|c| c.is_ascii_lowercase() || c == '_')),
             "segments must be snake_case: {id}"
         );
     }
