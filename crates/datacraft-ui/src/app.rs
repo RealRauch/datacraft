@@ -98,6 +98,24 @@ impl App {
         &self.snapshot
     }
 
+    /// Form design documents (ribbon auto-naming and the mapper).
+    pub fn forms(&self) -> &[datacraft_core::form::FormDef] {
+        self.snapshot
+            .database
+            .as_ref()
+            .map(|db| &db.forms[..])
+            .unwrap_or(&[])
+    }
+
+    /// Query definitions (ribbon auto-naming and the nav pane).
+    pub fn queries(&self) -> &[datacraft_core::snapshot::QueryEntrySnapshot] {
+        self.snapshot
+            .database
+            .as_ref()
+            .map(|db| &db.queries[..])
+            .unwrap_or(&[])
+    }
+
     /// View mode of a tab (defaults to the datasheet).
     pub fn tab_mode(&self, tab_id: TabId) -> TabMode {
         self.tab_mode.get(&tab_id).copied().unwrap_or_default()

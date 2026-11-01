@@ -310,3 +310,12 @@
 - **Scope:** Fourth client of the command bus (besides GUI, MCP/JSON-RPC server, test harness): args → `Command` variants → `dispatch()` → human-readable or `--json` output of events and `inspect()` snapshots. No logic — transport only; shares the transport layer with the Phase 9.1 MCP server. Exit codes meaningful and deterministic output for headless tests.
 - **Acceptance:** Every command-bus operation reachable from the shell; round-trip tests assert JSON snapshots; crate rules respected (ui/cli never touch storage directly).
 - **Done:** step 9.4 (test 917174f, feat d31c759)
+
+---
+
+### [x] F1 — Ribbon spec/mapping seam was unguarded — Create tab panic — 🟡
+- **Location:** `datacraft-ui/src/ribbon.rs` (mapping), found 2026-11-01 in the running app
+- **Problem:** Clicking the Create tab panicked: `form_design` is enabled in the core ribbon spec but the UI mapping lacked it — the 8.1 patch script died at an earlier assert and never applied the mapping; the core contract test pins the spec's enabled set but nothing pinned the UI mapping, so the seam (LESSONS #2) was unguarded and `unreachable!` fired at runtime.
+- **Fix:** the mapping became a total, tested function (`command_for`) — the seam contract test in the ui crate asserts every enabled spec action (minus the input-bound `open_database`) maps to a command; no `unreachable!` remains in paint code.
+- **Acceptance:** seam test green; app runs the Create tab without panic.
+- **Done:** fixed immediately: total command_for mapping + seam test in ui crate (next commit); no unreachable! left in paint code

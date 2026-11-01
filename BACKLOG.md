@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T04:34
+# BACKLOG.md — Open items (As of: 2026-11-01T10:03
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -108,3 +108,4 @@
 - H32 — MCP stdio endpoint — serve loop and datacraft-mcp binary — done (step 9.1 (feat 617e259))
 - H33 — Headless E2E harness — full stack over the wire — done (step 9.2 (test 245b49a))
 - H8 — CLI client as fourth headless command-bus client — done (step 9.4 (test 917174f, feat d31c759))
+- F1 — Ribbon spec/mapping seam was unguarded — Create tab panic — done (fixed immediately: total command_for mapping + seam test in ui crate (next commit); no unreachable! left in paint code)
