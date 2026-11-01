@@ -160,3 +160,79 @@ fn set_tab_mode_round_trips_over_the_json_rpc_wire() {
     );
     assert_eq!(response["result"]["snapshot"]["tabs"][0]["mode"], "Design");
 }
+
+#[test]
+fn open_object_in_mode_opens_the_tab_directly_in_that_view() {
+    let mut core = opened_core();
+    let events = core.dispatch(Command::OpenObjectInMode {
+        object: ObjectId::new(ObjectKind::Table, "Customers"),
+        mode: TabMode::Design,
+    });
+    match events.as_slice() {
+        [Event::TabOpened { tab_id, .. }, Event::ActiveTabChanged { tab_id: active }] => {
+            assert_eq!(active, &Some(*tab_id));
+            assert_eq!(mode_of(&core, *tab_id), TabMode::Design);
+        }
+        other => panic!("expected tab open pair, got {other:?}"),
+    }
+}
+
+#[test]
+fn open_object_in_mode_switches_an_existing_tab_in_one_command() {
+    let mut core = opened_core();
+    let tab_id = open(&mut core, ObjectKind::Table, "Customers");
+    let events = core.dispatch(Command::OpenObjectInMode {
+        object: ObjectId::new(ObjectKind::Table, "Customers"),
+        mode: TabMode::Design,
+    });
+    assert_eq!(
+        events,
+        vec![
+            Event::ActiveTabChanged {
+                tab_id: Some(tab_id)
+            },
+            Event::TabModeSet {
+                tab_id,
+                mode: TabMode::Design
+            }
+        ]
+    );
+    assert_eq!(mode_of(&core, tab_id), TabMode::Design);
+}
+
+#[test]
+fn open_object_in_mode_rejects_kinds_without_a_design_view() {
+    let mut core = opened_core();
+    let reason = failed_reason(&core.dispatch(Command::OpenObjectInMode {
+        object: ObjectId::new(ObjectKind::Macro, "AutoExec"),
+        mode: TabMode::Design,
+    }));
+    assert!(reason.contains("design view"), "{reason}");
+    assert!(
+        core.inspect().tabs.is_empty(),
+        "a rejected open must not create a tab"
+    );
+}
+
+#[test]
+fn open_object_in_mode_round_trips_over_the_json_rpc_wire() {
+    let mut core = opened_core();
+    let raw = handle_json(
+        &mut core,
+        &json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "dispatch",
+            "params": {"OpenObjectInMode": {
+                "object": {"kind": "table", "name": "Customers"},
+                "mode": "Design"
+            }},
+        })
+        .to_string(),
+    );
+    let response: Value = serde_json::from_str(&raw).expect("response parses");
+    assert_eq!(
+        response["result"]["snapshot"]["tabs"][0]["mode"],
+        "Design"
+    );
+}
