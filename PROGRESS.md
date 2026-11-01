@@ -167,7 +167,7 @@
 | 22.2 | Window position, maximized state and off-screen rescue | ✅ |
 | 22.3 | Phase 22 Quality Gate Review | ✅ |
 | 23.1 | CLI binary E2E over a real subprocess (T4) | ✅ |
-| 23.2 | egui headless UI tests with egui_kittest (T5) | ⬜ |
+| 23.2 | egui headless UI tests with egui_kittest (T5) | ✅ |
 | 23.3 | Native-query decode errors surface at open (M10) | ⬜ |
 | 23.4 | Phase 23 Quality Gate Review | ⬜ |
 | 24.1 | Jet AutoNumber counter maintenance on insert (M8) | ⬜ |
