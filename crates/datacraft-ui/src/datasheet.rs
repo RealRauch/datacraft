@@ -84,3 +84,55 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         rows.len()
     )).small());
 }
+
+/// Renders the result grid of one query tab (Datasheet mode).
+pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
+    let metrics = GridMetrics::default();
+    let Some(result) = app.results_for(tab.id) else {
+        ui.centered_and_justified(|ui| ui.weak("The query produced no runnable result yet."));
+        return;
+    };
+    // Header row.
+    ui.horizontal(|ui| {
+        ui.add_sized([48.0, metrics.header_height], egui::Label::new(""));
+        for column in &result.columns {
+            ui.add_sized(
+                [DEFAULT_COLUMN_WIDTH, metrics.header_height],
+                egui::Label::new(egui::RichText::new(column).strong()),
+            );
+        }
+    });
+    ui.separator();
+    egui::ScrollArea::vertical()
+        .auto_shrink([false, false])
+        .show_rows(ui, metrics.row_height, result.rows.len(), |ui, range| {
+            for row_idx in range {
+                let row = &result.rows[row_idx];
+                ui.push_id(format!("{}.row{row_idx}", tab.ui_test_id), |ui| {
+                    ui.horizontal(|ui| {
+                        ui.add_sized(
+                            [48.0, metrics.row_height],
+                            egui::Label::new(egui::RichText::new(format!("{row_idx:>6}")).weak()),
+                        );
+                        for (col, value) in row.iter().enumerate() {
+                            ui.push_id(
+                                format!(
+                                    "result.{}.cell.{row_idx}.{col}",
+                                    tab.object_name.to_lowercase()
+                                ),
+                                |ui| {
+                                    ui.add_sized(
+                                        [DEFAULT_COLUMN_WIDTH, metrics.row_height],
+                                        egui::Label::new(display_value(value))
+                                            .wrap_mode(egui::TextWrapMode::Truncate),
+                                    );
+                                },
+                            );
+                        }
+                    });
+                });
+            }
+        });
+    ui.separator();
+    ui.label(egui::RichText::new(format!("{} result rows", result.rows.len())).small());
+}

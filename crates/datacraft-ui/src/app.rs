@@ -17,6 +17,7 @@ use datacraft_core::event::Event;
 use datacraft_core::ids::TabId;
 use datacraft_core::port::{RowRange, StoragePort};
 use datacraft_core::present::status_line;
+use datacraft_core::query_engine::QueryResult;
 use datacraft_core::schema::FieldValue;
 use datacraft_core::snapshot::UiStateSnapshot;
 
@@ -30,6 +31,8 @@ pub struct App {
     pub active_ribbon_tab: &'static str,
     /// Row data per table tab, loaded once on tab appearance.
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
+    /// Query results per query tab, refreshed when the QBE model changes.
+    results: HashMap<TabId, QueryResult>,
     /// View mode per tab (Datasheet default; Design is read-only in Phase 6).
     pub tab_mode: HashMap<TabId, TabMode>,
     /// Selected design-grid field index per tab.
@@ -58,6 +61,7 @@ impl App {
             open_path: String::new(),
             active_ribbon_tab: "home",
             rows: HashMap::new(),
+            results: HashMap::new(),
             tab_mode: HashMap::new(),
             design_selection: HashMap::new(),
         }
@@ -73,6 +77,11 @@ impl App {
     /// Row data of one table tab (cached; `None` until loaded).
     pub fn rows_for(&self, tab_id: TabId) -> Option<&Vec<Vec<FieldValue>>> {
         self.rows.get(&tab_id)
+    }
+
+    /// Query result of one query tab (cached; `None` until run).
+    pub fn results_for(&self, tab_id: TabId) -> Option<&QueryResult> {
+        self.results.get(&tab_id)
     }
 
     /// Rendered snapshot (read-only; the panels never mutate it).
@@ -113,6 +122,17 @@ impl App {
         {
             self.rows.clear();
         }
+        if events.iter().any(|e| {
+            matches!(
+                e,
+                Event::DatabaseClosed
+                    | Event::QbeCellSet { .. }
+                    | Event::QueryCreated { .. }
+                    | Event::QueryDropped { .. }
+            )
+        }) {
+            self.results.clear();
+        }
         let Some(db) = &self.snapshot.database else {
             self.rows.clear();
             return;
@@ -136,6 +156,22 @@ impl App {
                 },
             ) {
                 self.rows.insert(tab.id, rows);
+            }
+        }
+        // Query results refresh whenever the QBE model changed.
+        let query_tabs: Vec<(TabId, String)> = self
+            .snapshot
+            .tabs
+            .iter()
+            .filter(|tab| tab.object_kind == "query")
+            .map(|tab| (tab.id, tab.object_name.clone()))
+            .collect();
+        for (tab_id, name) in query_tabs {
+            if self.results.contains_key(&tab_id) {
+                continue;
+            }
+            if let Ok(result) = self.core.run_query(&name) {
+                self.results.insert(tab_id, result);
             }
         }
     }

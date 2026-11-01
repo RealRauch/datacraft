@@ -40,6 +40,39 @@ impl Core {
         UiStateSnapshot::of(&self.state)
     }
 
+    /// Executes a query (in-memory predicates over port rows, decision
+    /// default 7); errors are precise strings for headless rendering.
+    pub fn run_query(&self, name: &str) -> Result<crate::query_engine::QueryResult, String> {
+        let Some(db) = &self.state.database else {
+            return Err("no database is open".to_owned());
+        };
+        let Some(def) = db
+            .queries
+            .iter()
+            .find(|q| q.name.eq_ignore_ascii_case(name))
+        else {
+            return Err(format!("query {name:?} not found"));
+        };
+        let Some(source) = db
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(&def.table))
+        else {
+            return Err(format!("source table {:?} not found", def.table));
+        };
+        let rows = self
+            .port
+            .read_rows(
+                &source.name,
+                crate::port::RowRange {
+                    start: 0,
+                    len: usize::MAX,
+                },
+            )
+            .map_err(|e| e.to_string())?;
+        crate::query_engine::run_query(def, source, &rows).map_err(|e| e.to_string())
+    }
+
     /// Reads a window of rows through the port (the datasheet's data
     /// source; the port owns the backend mapping).
     pub fn read_rows(
@@ -73,6 +106,7 @@ impl Core {
                 value,
             } => self.set_qbe_cell(&query, row, col, value),
             Command::DeleteQuery { name } => self.delete_query(&name),
+            Command::RunQuery { query } => self.run_query_command(&query),
             Command::OpenDatabase { path } => self.open_database(path),
             Command::CloseDatabase => self.close_database(),
             Command::CreateTable { definition } => self.create_table(definition),
@@ -368,6 +402,26 @@ impl Core {
         }
         events.push(Event::QueryDropped { name: canonical });
         events
+    }
+
+    fn run_query_command(&mut self, query: &str) -> Vec<Event> {
+        let canonical = self
+            .state
+            .database
+            .as_ref()
+            .and_then(|db| {
+                db.queries
+                    .iter()
+                    .find(|q| q.name.eq_ignore_ascii_case(query))
+            })
+            .map(|q| q.name.clone());
+        match self.run_query(query) {
+            Ok(result) => vec![Event::QueryRan {
+                query: canonical.unwrap_or_else(|| query.to_owned()),
+                rows: result.rows.len(),
+            }],
+            Err(reason) => failed(reason),
+        }
     }
 
     fn close_tab(&mut self, tab_id: TabId) -> Vec<Event> {

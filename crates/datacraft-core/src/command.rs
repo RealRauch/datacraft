@@ -77,4 +77,10 @@ pub enum Command {
         /// Query name (case-insensitive).
         name: String,
     },
+    /// Executes a query; the row count is observable, the data itself is
+    /// fetched via `Core::run_query`.
+    RunQuery {
+        /// Query name (case-insensitive).
+        query: String,
+    },
 }

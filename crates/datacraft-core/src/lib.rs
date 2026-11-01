@@ -13,6 +13,8 @@ pub mod ids;
 pub mod port;
 pub mod present;
 pub mod qbe;
+pub mod query_criteria;
+pub mod query_engine;
 pub mod ribbon;
 pub mod schema;
 pub mod snapshot;

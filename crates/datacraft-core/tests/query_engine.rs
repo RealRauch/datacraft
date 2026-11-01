@@ -14,8 +14,8 @@ use datacraft_core::event::Event;
 use datacraft_core::port::MockPort;
 use datacraft_core::qbe::{QbeField, QbeRow, QbeValue, QueryDef, SortOrder};
 use datacraft_core::query_engine::{EngineError, QueryResult, run_query};
+use datacraft_core::schema::FieldValue;
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
-use datacraft_core::FieldValue;
 
 fn customers_def() -> TableDef {
     TableDef::new(
@@ -118,10 +118,7 @@ fn text_comparisons_are_lexicographic() {
 
 #[test]
 fn date_criteria_parse_iso_dates() {
-    let d = TableDef::new(
-        "Events",
-        vec![FieldDef::new("when", FieldKind::DateTime)],
-    );
+    let d = TableDef::new("Events", vec![FieldDef::new("when", FieldKind::DateTime)]);
     let data = vec![
         vec![FieldValue::DateTime(45_656.0)],
         vec![FieldValue::DateTime(45_658.0)],
@@ -133,7 +130,10 @@ fn date_criteria_parse_iso_dates() {
 
 #[test]
 fn boolean_criteria_accept_access_wording() {
-    let d = TableDef::new("T", vec![FieldDef::new("ok", FieldKind::Boolean { tri_state: false })]);
+    let d = TableDef::new(
+        "T",
+        vec![FieldDef::new("ok", FieldKind::Boolean { tri_state: false })],
+    );
     let data = vec![
         vec![FieldValue::Boolean(true)],
         vec![FieldValue::Boolean(false)],
@@ -156,7 +156,11 @@ fn columns_and_across_or_within() {
         field("name", &["<> Brahe"]),
     ]);
     let result = run_query(&q, &d, &rows()).expect("runs");
-    assert_eq!(result.rows.len(), 1, "Ada (id 1) and Curie (id 3); Curie passes both");
+    assert_eq!(
+        result.rows.len(),
+        2,
+        "Ada (id<2) and Curie (id>2), both named not-Brahe"
+    );
 }
 
 #[test]
@@ -164,7 +168,11 @@ fn nulls_never_satisfy_predicates() {
     let d = customers_def();
     let q = def(vec![field("balance", &["> -999999"])]);
     let result = run_query(&q, &d, &rows()).expect("runs");
-    assert_eq!(result.rows.len(), 1, "Curie's NULL balance drops out");
+    assert_eq!(
+        result.rows.len(),
+        2,
+        "Ada and Brahe pass; Curie's NULL drops out"
+    );
 }
 
 #[test]
@@ -219,9 +227,15 @@ fn seeded_core() -> Core {
     let mut port = MockPort::new();
     port.with_row_data("Customers", rows());
     let mut core = Core::new(Box::new(port));
-    core.dispatch(Command::OpenDatabase { path: PathBuf::from("shop.mdb") });
-    core.dispatch(Command::CreateTable { definition: customers_def() });
-    core.dispatch(Command::CreateQuery { name: "Rich".into() });
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+    });
+    core.dispatch(Command::CreateTable {
+        definition: customers_def(),
+    });
+    core.dispatch(Command::CreateQuery {
+        name: "Rich".into(),
+    });
     core.dispatch(Command::SetQbeCell {
         query: "Rich".into(),
         row: QbeRow::Table,
@@ -239,7 +253,7 @@ fn seeded_core() -> Core {
 
 #[test]
 fn core_run_query_returns_the_result() {
-    let core = seeded_core();
+    let mut core = seeded_core();
     core.dispatch(Command::SetQbeCell {
         query: "Rich".into(),
         row: QbeRow::Criteria(0),
@@ -263,7 +277,9 @@ fn run_query_errors_are_precise() {
 #[test]
 fn the_run_query_command_is_observable() {
     let mut core = seeded_core();
-    let events = core.dispatch(Command::RunQuery { query: "Rich".into() });
+    let events = core.dispatch(Command::RunQuery {
+        query: "Rich".into(),
+    });
     assert_eq!(
         events,
         vec![Event::QueryRan {

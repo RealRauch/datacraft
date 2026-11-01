@@ -63,6 +63,13 @@ pub enum Event {
         /// Canonical query name.
         query: String,
     },
+    /// A query executed successfully.
+    QueryRan {
+        /// Canonical query name.
+        query: String,
+        /// Number of result rows.
+        rows: usize,
+    },
     /// A query was deleted (dependent tabs closed first).
     QueryDropped {
         /// Canonical query name.
