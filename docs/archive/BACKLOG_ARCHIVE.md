@@ -702,3 +702,12 @@
 - **Approach:** Persist the AutoNumber seed/increment in the table's counter metadata, assign the next value on insert (Null = engine-assigned) and keep the assignment deterministic per input state (LESSONS #6); GUID AutoNumbers stay `Unsupported` until qualified.
 - **Acceptance:** Inserts assign 1, 2, 3…; reopen keeps the counter; `mdb-export` and Access show the assigned values; user-supplied AutoNumber values stay rejected; GUID flavor answers a precise `Unsupported`.
 - **Done:** done in `af07979` (RED `39e95ad`) — Jet4 writer assigns LongInteger AutoNumbers (Null = engine-assigned), persists the TDEF `+12` counter across reopen and rejects user values; GUID flavor stays Unsupported; mdb-export oracle test added
+
+---
+
+### [x] M7 — Jet table drops through the writer (DropTable on .mdb/.accdb) — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/writer_tables.rs`, `writer.rs`, `catalog.rs`; `src/port_adapter.rs`; `crates/datacraft-storage/tests/`
+- **Problem:** `Jet4Port::drop_table` answers a precise `Unsupported` ("BACKLOG M7"), so the navigation-pane delete flow (step 11.4) works for SQLite but not for Jet/ACE files.
+- **Approach:** Remove the table's TDEF/TDAT pages and its catalog row, return every freed page to the global free map and keep the per-table usage maps consistent; deterministic page selection (LESSONS #6). Verify with `mdb-export` and a reopen; the SQLite drop path stays unchanged.
+- **Acceptance:** Drop on a private fixture copy; reopen and the catalog no longer lists the table; free-map and usage-map consistency checked; the oracle reads the file without errors; failure leaves the file untouched.
+- **Done:** done in `24f5033` (RED `e3c4601`) — writer/drop path deletes the catalog row, frees used-map + TDEF-chain + unreferenced usage pages into the global free map and 0xFF-fills freed pages; port tests cover reopen visibility, neighbour survival and failure atomicity
