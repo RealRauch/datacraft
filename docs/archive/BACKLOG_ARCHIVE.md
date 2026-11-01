@@ -369,3 +369,12 @@
 - **Scope:** restore pristine `testV2000.mdb` from the verified pin source (sha256 `126bad49…`); keep the Access-rewritten file as `fixtures/testV2000-access-touched.mdb` (second writer variant — T2 material, do not discard); replace `jackcess-pin.txt` with a per-file manifest (`repo@commit` + sha256, sources and recommended Phase-2 pin set per `docs/FIXTURE-SOURCES.md` §5); add a CI job that verifies committed fixture hashes; document the rule: fixtures are never opened in writer-capable applications (Access) — byte experiments run on copies only.
 - **Acceptance:** committed `fixtures/manifest` hashes match the committed files and CI fails on drift; pristine + Access-touched variants exist as separate fixtures; pin set per docs/FIXTURE-SOURCES.md §5 pinned; rule documented in docs/TESTING.md.
 - **Done:** Phase 10, step 10.8 (checkpoint aafb794): pristine restored (126bad49…), touched variant kept, manifest + CI hash gate, immutability rule in TESTING.md
+
+---
+
+### [x] H35 — SQL-Integration: SQLite-Datenquelle (Backend, Detection, Format) — 🟠
+- **Location:** `crates/datacraft-storage/src/sqlite.rs` (neu), `crates/datacraft-storage/src/detecting.rs` (neu), `crates/datacraft-core/src/port.rs`, Kompositionsstellen
+- **Ansatz:** rusqlite mit `bundled`-Feature (statisch kompiliert, MIT/Apache; SQLite selbst ist Public Domain — kein Clean-Room-Konflikt, die Policy zielt auf Microsoft-IP)
+- **Scope:** `SqlitePort` hinter `StoragePort`: open (Magic `SQLite format 3\0`), tables (`sqlite_master`, ohne `sqlite_%`), Schema via `PRAGMA table_info` → `FieldKind` (Affinity-Tabelle dokumentiert: TEXT→Text, INTEGER→LongInteger, INTEGER PK AUTOINCREMENT→AutoNumber, REAL→Double, BLOB→Binary(OleObject), NUMERIC→Decimal), `read_rows` (rowid-Ordnung; NULL- und Bool-Feinheit dokumentiert — SQLite kennt kein BOOL), `relationships` via `PRAGMA foreign_key_list`. `DatabaseFormat::Sqlite` + Display „SQLite" + serde `"sqlite"`. Detection: neuer `DetectingPort` mit Magic-Sniff (Jet/ACE-Magic vs. SQLite vs. präziser `OpenFailed`); Kompositionsstellen umstellen: datacraft-ui main.rs, datacraft-mcp, datacraft-cli main.rs, server_e2e.
+- **Acceptance:** Tests: Schema/Zeilen/FKs einer testgenerischen .sqlite; Detection erkennt Jet-Fixture (Jet4), .sqlite (Sqlite), Mülldatei (präziser Fehler); UI/Status zeigt „(SQLite)"; MCP/CLI öffnen .sqlite über dieselbe Bus-Vokabel.
+- **Done:** Phase 13.1 — SqlitePort (catalog, affinity schema, rows, FKs), DetectingPort magic sniff, DatabaseFormat::Sqlite; tests ca61638, feat 5a04e94
