@@ -11,6 +11,7 @@
 
 mod app;
 mod datasheet;
+mod design;
 mod nav_pane;
 mod ribbon;
 mod workspace;

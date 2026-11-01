@@ -30,6 +30,20 @@ pub struct App {
     pub active_ribbon_tab: &'static str,
     /// Row data per table tab, loaded once on tab appearance.
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
+    /// View mode per tab (Datasheet default; Design is read-only in Phase 6).
+    pub tab_mode: HashMap<TabId, TabMode>,
+    /// Selected design-grid field index per tab.
+    design_selection: HashMap<TabId, usize>,
+}
+
+/// View mode of a document tab (presentation state).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TabMode {
+    /// The datasheet (default).
+    #[default]
+    Datasheet,
+    /// The read-only design grid.
+    Design,
 }
 
 impl App {
@@ -44,6 +58,8 @@ impl App {
             open_path: String::new(),
             active_ribbon_tab: "home",
             rows: HashMap::new(),
+            tab_mode: HashMap::new(),
+            design_selection: HashMap::new(),
         }
     }
 
@@ -62,6 +78,30 @@ impl App {
     /// Rendered snapshot (read-only; the panels never mutate it).
     pub fn snapshot(&self) -> &UiStateSnapshot {
         &self.snapshot
+    }
+
+    /// View mode of a tab (defaults to the datasheet).
+    pub fn tab_mode(&self, tab_id: TabId) -> TabMode {
+        self.tab_mode.get(&tab_id).copied().unwrap_or_default()
+    }
+
+    /// Toggles a tab between datasheet and design view.
+    pub fn toggle_tab_mode(&mut self, tab_id: TabId) {
+        let next = match self.tab_mode(tab_id) {
+            TabMode::Datasheet => TabMode::Design,
+            TabMode::Design => TabMode::Datasheet,
+        };
+        self.tab_mode.insert(tab_id, next);
+    }
+
+    /// Selected design-grid field index of a tab (defaults to the first).
+    pub fn design_selection(&self, tab_id: TabId) -> usize {
+        self.design_selection.get(&tab_id).copied().unwrap_or(0)
+    }
+
+    /// Selects a design-grid field.
+    pub fn set_design_selection(&mut self, tab_id: TabId, field_index: usize) {
+        self.design_selection.insert(tab_id, field_index);
     }
 
     /// Loads rows for every open table tab and drops caches after

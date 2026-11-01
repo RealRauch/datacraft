@@ -9,6 +9,7 @@
 
 use eframe::egui;
 
+use crate::app::TabMode;
 use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
 
@@ -36,17 +37,30 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 let snapshot = app.snapshot();
+                let mut toggled: Option<TabId> = None;
                 for tab in &snapshot.tabs {
                     ui.push_id(&tab.ui_test_id, |ui| {
                         let is_active = Some(tab.id) == snapshot.active_tab;
                         if ui.selectable_label(is_active, &tab.object_name).clicked() {
                             intent = Some(WorkspaceIntent::Activate(tab.id));
                         }
+                        if ui
+                            .small_button(match app.tab_mode(tab.id) {
+                                TabMode::Datasheet => "Design",
+                                TabMode::Design => "Data",
+                            })
+                            .clicked()
+                        {
+                            toggled = Some(tab.id);
+                        }
                         if ui.small_button("✕").clicked() {
                             intent = Some(WorkspaceIntent::Close(tab.id));
                         }
                     });
                     ui.separator();
+                }
+                if let Some(tab_id) = toggled {
+                    app.toggle_tab_mode(tab_id);
                 }
             });
         });
@@ -61,7 +75,10 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
             .active_tab
             .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id).cloned());
         match active {
-            Some(tab) => crate::datasheet::datasheet_ui(app, &tab, ui),
+            Some(tab) => match app.tab_mode(tab.id) {
+                TabMode::Datasheet => crate::datasheet::datasheet_ui(app, &tab, ui),
+                TabMode::Design => crate::design::design_ui(app, &tab, ui),
+            },
             None => {
                 ui.centered_and_justified(|ui| ui.weak("Select a tab"));
             }
