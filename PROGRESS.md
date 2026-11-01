@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 4 — Headless Core & Command API
-
-**Scope (Steps):**
-
-- **4.1 Command Dispatch Core**
-- **4.2 State Query API & Test IDs**
-- **4.3 JSON-RPC Transport Stub**
-- **4.4 Phase 4 Quality Gate Review**
 ### Phase 5 — UI Skeleton (egui)
 
 **Scope (Steps):**
@@ -88,10 +80,10 @@
 | 3.1 | Access Data Types & Field Properties | ✅ |
 | 3.2 | Schema Persistence with Serde | ✅ |
 | 3.3 | Phase 3 Quality Gate Review | ✅ |
-| 4.1 | Command Dispatch Core | ⬜ |
-| 4.2 | State Query API & Test IDs | ⬜ |
-| 4.3 | JSON-RPC Transport Stub | ⬜ |
-| 4.4 | Phase 4 Quality Gate Review | ⬜ |
+| 4.1 | Command Dispatch Core | ✅ |
+| 4.2 | State Query API & Test IDs | ✅ |
+| 4.3 | JSON-RPC Transport Stub | ✅ |
+| 4.4 | Phase 4 Quality Gate Review | ✅ |
 | 5.1 | App Shell & Layout | ⬜ |
 | 5.2 | Ribbon Bar | ⬜ |
 | 5.3 | Navigation Pane | ⬜ |

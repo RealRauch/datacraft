@@ -31,12 +31,13 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–3 are complete: the
+> **DataCraft is in early development.** Phases 1–4 are complete: the
 > pure-Rust storage engine core reads Jet4 `.mdb` files (cross-checked
-> against the libmdb oracle in CI), and the core crate now carries the
-> Access domain schema model with versioned sidecar persistence. Expect
-> breaking changes. The honest, step-by-step picture lives in
-> [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md).
+> against the libmdb oracle in CI), the core crate carries the Access
+> domain schema model with versioned sidecar persistence, and the
+> headless command bus (dispatch → events → inspectable snapshot, JSON-RPC
+> codec) is in place. Expect breaking changes. The honest, step-by-step
+> picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md).
 
 ## Why DataCraft
 
@@ -64,6 +65,7 @@ _By the ArtCraft team._
 | --- | --- |
 | **Storage — Jet4 read** | `StorageEngine` trait boundary; Jet page layer and file-header decoder; table definition (TDEF) and data (TDAT) decoders; golden-file tests against committed fixtures; every parse cross-checked against the libmdb oracle in CI |
 | **Domain model & schema** | Access field kinds (Short Text … OLE/Attachment) with typed properties and validation semantics; versioned `.datacraft` schema document (serde, migration ladder) per ADR-1 |
+| **Headless command bus** | Total reducer (`dispatch` → deterministic events, failures as `Failed` events), serializable `inspect()` snapshots, deterministic test IDs, JSON-RPC 2.0 codec with full error semantics — GUI and agents speak the same language |
 | **Desktop shell** | Minimal eframe/egui application window — the Phase 1 skeleton that the ribbon and workspace grow into |
 | **CI quality gates** | Coverage ≥ 95 % lines, every `.rs` file < 500 lines, zero `TODO`/`FIXME`/`HACK`/`XXX`, `rustfmt --check`, `clippy -D warnings`, test matrix on ubuntu-latest, windows-latest, macos-latest |
 | **Docs & process** | Architecture blueprint, Jet/ACE binary-format knowledge base, testing policy and the clean-room playbook |
@@ -121,7 +123,7 @@ Nine phases take DataCraft from skeleton to release:
 | 1 — Blueprint & Skeleton | architecture blueprint, workspace, CI gates, testing policy | ✅ |
 | 2 — Storage Engine Core | `StorageEngine` trait, Jet page layer, TDEF/TDAT decoder, libmdb oracle | ✅ |
 | 3 — Data Model & Schema | Access data types, field properties, serde persistence | ✅ |
-| 4 — Headless Core & Command API | command bus, state query, test IDs, JSON-RPC stub | ⬜ |
+| 4 — Headless Core & Command API | command bus, state query, test IDs, JSON-RPC stub | ✅ |
 | 5 — UI Skeleton (egui) | app shell, ribbon, navigation pane, tabbed workspace | ⬜ |
 | 6 — Datasheet & Design View | shared grid core, datasheet, table design view | ⬜ |
 | 7 — QBE Query Builder | relationship mapper, QBE grid, query engine | ⬜ |

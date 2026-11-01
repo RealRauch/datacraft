@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T02:08
+# BACKLOG.md — Open items (As of: 2026-11-01T02:28
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -26,21 +26,16 @@
 - **Scope:** Jet4 write milestone from ARCHITECTURE §6 (create tables, insert/update rows, usage-map allocation, index maintenance deferred). UI write commands route to `InMemoryEngine` until this lands; then the `Jet4Backend` gains write capability. Bit-for-bit goal: writes must open without repair prompts in MS Access — proven by golden round-trips + oracle.
 - **Acceptance:** Access opens written files without repair; decode(encode(decode(x))) == decode(x) over fixtures; write-path coverage >= gate.
 
-### [ ] H10 — Access data types and field properties — core domain model — 🟠
-- **Location:** `datacraft-core/src/schema/` (new module)
-- **Scope:** Logical Access domain model in core (ARCHITECTURE §7): `FieldKind` (Text{max_len}, Memo, Number(NumericKind), DateTime, Currency, AutoNumber(AutoKind), Boolean{tri_state}, Binary(BinaryKind)), numeric/auto/binary sub-kinds, `IndexMode`, typed `FieldProperties` (caption, input mask, format, default value, validation rule/text, required, allow zero length, indexed) with per-kind validation semantics, and a domain `FieldValue` the later command bus validates against. Storage keeps its physical types and maps them onto this model in Phase 4 (storage -> core is the allowed dependency direction).
-- **Acceptance:** Unit + proptest coverage per kind (boundaries, property validity rules, JSON round-trips); no core dependency on storage; canonical verification set green.
-
-### [ ] H11 — Versioned schema sidecar document (serde persistence) — 🟠
-- **Location:** `datacraft-core/src/schema/document.rs` (versioned serde document), ADR-1 in docs/ARCHITECTURE.md §7
-- **Scope:** Versioned schema document (the `.datacraft` sidecar format foundation, ADR-1): serde JSON with a `schema_version` field, save/load + strict round-trip, version gate (own version parses, higher version -> precise `Unsupported` error, lower versions migrate forward — identity migration for v1), deterministic serialization for byte-stable files. The document carries tables + field defs incl. properties; forms/reports design layers join it in Phases 5-8.
-- **Acceptance:** Round-trip proptests over generated schemas; version-gate unit tests (v_next rejected with message, v_current ok, v_prev migrates); deterministic bytes (two serializations of equal documents are identical); canonical verification set green.
-
 ### [ ] H12 — GUID field kind — plain Replication ID columns unmodelable — 🟠
 - **Location:** `datacraft-core/src/schema/field.rs` (FieldKind), `datacraft-storage` (Phase 4 JetType mapping)
 - **Problem:** No `FieldKind` variant accepts `FieldValue::Guid` — Jet/ACE GUID columns that are NOT AutoNumbers (Access UI: Number with FieldSize "Replication ID") cannot be modeled. Found while closing step 3.1/3.2 coverage: every kind rejects Guid values, so the Phase 4 storage->core mapping has no target for plain Guid columns.
 - **Scope:** Decide the modeling (Number(NumericKind::ReplicationId) — Access-faithful — vs a dedicated FieldKind::Guid), implement validate_value to accept FieldValue::Guid, extend the family/mismatch tables, document the decision in docs/FORMAT-JET.md or ARCHITECTURE §7. Do it before the Phase 4 storage mapping step.
 - **Acceptance:** A Guid column of a real fixture maps to a FieldKind that accepts FieldValue::Guid; family/mismatch coverage stays >= gate.
+
+### [ ] H16 — StoragePort adapter — Jet4 backend implements the core port — 🟠
+- **Location:** `datacraft-storage/src/port_adapter.rs` (new), required before Phase 5 opens real files
+- **Scope:** Implement core's `StoragePort` for the Jet4 reader backend: open (format detection via existing header decoder), close, tables (catalog -> `TableDef` mapping incl. the H12 decision for Guid columns), create_table/drop_table -> precise `PortError::Unsupported` until the writer workstream (H9) lands. Seam tests on BOTH sides per LESSONS #2: storage-side contract tests against the committed fixtures, core-side tests already exist against the mock.
+- **Acceptance:** A real fixture opens through `Core` with the Jet4 adapter; schema fields map to the core domain model; every port method tested on the storage side; canonical verification set green.
 
 ---
 
@@ -95,3 +90,8 @@
 - H5 — Pure-Rust Jet page layer and file header decoder — done (steps 2.2 (test 442f1c9, feat 984006f))
 - H6 — Pure-Rust table definition and data decoder — done (steps 2.3 (test b2c8f63, feat 367a07b))
 - H7 — libmdb test oracle integration and golden-file suite — done (steps 2.4 + T2 fixes (a200dee, 92bce57, 683a88f); CI oracle job added; T3 keeps fixture-pin follow-up open)
+- H11 — Versioned schema sidecar document (serde persistence) — done (steps 3.2 (test 5432ef9, feat a72c5e6))
+- H10 — Access data types and field properties — core domain model — done (step 3.1 (test 7cf9a31, feat 1271f33))
+- H13 — Command dispatch core — commands, events, state, storage port — done (step 4.1 (test baa4f16, feat f796480))
+- H14 — State query API and deterministic test IDs — done (step 4.2 (test da774ad, feat 1b4a9be))
+- H15 — JSON-RPC transport codec stub (headless seam) — done (step 4.3 (test ceecb24, feat a0c5137))
