@@ -195,8 +195,10 @@ fn create_table_and_rows_read_back_on_the_fixture() {
 /// old rows, and the usage maps stay consistent with the page scan.
 #[test]
 fn insert_into_existing_table_stays_map_consistent() {
-    let Some(path) = support::oracle_fixture() else {
-        eprintln!("skipped: DATACRAFT_ORACLE_MDB not set");
+    // Table4 comes from the Access-touched lifecycle (T3) — the second
+    // writer variant carries it.
+    let Some(path) = support::touched_fixture() else {
+        eprintln!("skipped: touched fixture not found");
         return;
     };
     let file = std::fs::read(path).expect("fixture readable");

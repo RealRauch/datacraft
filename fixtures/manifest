@@ -1,0 +1,12 @@
+# fixtures/manifest — pinned fixture hashes (docs/FIXTURE-SOURCES.md §6).
+# Format: sha256sum-compatible `<hash>  <file>` (verify: `sha256sum -c manifest`)
+# plus `# source:` provenance lines per file. Fixtures are immutable evidence:
+# never open them in a writer-capable application (docs/TESTING.md §4).
+
+# source: jahlborn/jackcess@be0a2139 src/test/data/V2000/testV2000.mdb (pristine)
+126bad4984098f1f0bac4b34753ba0c119286e1431d78c9efa54a2d5b00112a5  testV2000.mdb
+
+# source: descendant of the pristine file above — rewritten by real Microsoft
+# Access on open (2026-01-xx), see docs/FIXTURE-SOURCES.md §4; kept as the
+# second writer variant (T2 material, do not discard).
+5caab9ba8378316a406f3e191d864a252f5fb1aa95b905721fcc08106567509c  testV2000-access-touched.mdb

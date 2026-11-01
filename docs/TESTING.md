@@ -52,6 +52,15 @@ shrink, never hide, logic that wrongly migrated into the shell crate.
 | Integration | `crates/*/tests/*.rs` | cross-module/cross-crate contracts |
 | Property | `proptest` in unit/integration modules | parser/round-trip invariants (decode∘encode∘decode, serde round-trips) |
 | Golden file | `fixtures/*.mdb`/`*.accdb` (Phase 2) | byte-level compatibility against reference databases created with MDB Tools tooling only |
+| Fixture pin integrity | `fixtures/manifest` + CI `fixtures` job | committed sha256 per fixture (`repo@commit` provenance, docs/FIXTURE-SOURCES.md); a drifted or hand-edited fixture fails the build |
+
+**Fixture immutability rule (T3, 2026-11-01):** fixtures are immutable
+evidence — never open them in Microsoft Access or any other writer-capable
+Jet/ACE application (opening alone rewrites system pages and appends
+pages). Manual byte experiments run on a copy; the provenance case study is
+docs/FIXTURE-SOURCES.md §4. The two committed `testV2000` variants carry
+this history: `testV2000.mdb` is the pristine jackcess pin (`repo@commit`),
+`testV2000-access-touched.mdb` documents what real Access does on open.
 | Oracle | `cfg(test)` libmdb backend (Phase 2) | strict schema/row cross-check of our decoder against libmdb |
 | Headless E2E | `datacraft-core` command bus (Phase 9) | assert `UiStateSnapshot` JSON — never pixels |
 

@@ -218,8 +218,15 @@ fn read_rows_maps_storage_values_to_domain_values() {
 fn relationships_read_from_msysrelationships() {
     use datacraft_core::port::StoragePort as _;
 
+    // The NavPane relationships come from the Access-touched lifecycle
+    // (T3 second-writer variant); the pristine jackcess file has none.
+    let touched = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("testV2000-access-touched.mdb");
     let mut port = Jet4Port::new();
-    port.open(&fixture()).expect("fixture must open");
+    port.open(&touched).expect("fixture must open");
     let rels = port.relationships().expect("relationships read");
     // The fixture carries the two NavPane system relationships; every
     // mapping names all four ends.

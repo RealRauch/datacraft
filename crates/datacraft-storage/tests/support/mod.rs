@@ -336,3 +336,20 @@ fn write_data_like(file: &mut [u8], page: usize, owner: u32, rows: &[Vec<u8>]) {
     let free = end - (14 + 2 * rows.len());
     file[base + 2..base + 4].copy_from_slice(&(free as u16).to_le_bytes());
 }
+
+/// The committed Access-touched fixture variant (second writer, T3):
+/// `DATACRAFT_TOUCHED_MDB` as given, else the workspace path.
+pub fn touched_fixture() -> Option<std::path::PathBuf> {
+    if let Ok(raw) = std::env::var("DATACRAFT_TOUCHED_MDB") {
+        let direct = std::path::Path::new(&raw);
+        if direct.exists() {
+            return Some(direct.to_path_buf());
+        }
+    }
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("testV2000-access-touched.mdb");
+    workspace.exists().then_some(workspace)
+}
