@@ -9,15 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 5 — UI Skeleton (egui)
-
-**Scope (Steps):**
-
-- **5.1 App Shell & Layout**
-- **5.2 Ribbon Bar**
-- **5.3 Navigation Pane**
-- **5.4 Tabbed Document Workspace**
-- **5.5 Phase 5 Quality Gate Review**
 ### Phase 6 — Datasheet & Design View
 
 **Scope (Steps):**
@@ -84,11 +75,11 @@
 | 4.2 | State Query API & Test IDs | ✅ |
 | 4.3 | JSON-RPC Transport Stub | ✅ |
 | 4.4 | Phase 4 Quality Gate Review | ✅ |
-| 5.1 | App Shell & Layout | ⬜ |
-| 5.2 | Ribbon Bar | ⬜ |
-| 5.3 | Navigation Pane | ⬜ |
-| 5.4 | Tabbed Document Workspace | ⬜ |
-| 5.5 | Phase 5 Quality Gate Review | ⬜ |
+| 5.1 | App Shell & Layout | ✅ |
+| 5.2 | Ribbon Bar | ✅ |
+| 5.3 | Navigation Pane | ✅ |
+| 5.4 | Tabbed Document Workspace | ✅ |
+| 5.5 | Phase 5 Quality Gate Review | ✅ |
 | 6.1 | Shared Grid Core | ⬜ |
 | 6.2 | Datasheet View & Record Navigation | ⬜ |
 | 6.3 | Table Design View | ⬜ |
