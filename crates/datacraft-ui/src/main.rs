@@ -17,6 +17,7 @@ mod designer_palette;
 mod flows;
 mod form_design;
 mod form_runtime;
+mod i18n;
 mod macro_viewer;
 mod nav_pane;
 mod password_prompt;
