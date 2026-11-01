@@ -223,3 +223,19 @@ pub fn write_tdef_with_indexes(
     file[base + 8..base + 12].copy_from_slice(&len.to_le_bytes());
     file[base + 8..base + 8 + block.len()].copy_from_slice(&block);
 }
+
+/// Resolves `DATACRAFT_ORACLE_MDB` like the oracle suite: as given, or
+/// relative to the workspace root two levels up. `None` skips the gated
+/// real-fixture tests.
+pub fn oracle_fixture() -> Option<std::path::PathBuf> {
+    let raw = std::env::var("DATACRAFT_ORACLE_MDB").ok()?;
+    let direct = std::path::Path::new(&raw);
+    if direct.exists() {
+        return Some(direct.to_path_buf());
+    }
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join(&raw);
+    workspace.exists().then_some(workspace)
+}
