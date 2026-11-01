@@ -44,6 +44,10 @@ pub struct DatabaseSnapshot {
 pub struct FieldSnapshot {
     /// Field name.
     pub name: String,
+    /// Access UI type name (design grid Data Type column).
+    pub kind_display: String,
+    /// Full field properties (design grid property sheet).
+    pub properties: crate::schema::FieldProperties,
 }
 
 /// One table in the snapshot (navigation pane entry).
@@ -92,6 +96,8 @@ impl UiStateSnapshot {
                             .iter()
                             .map(|f| FieldSnapshot {
                                 name: f.name.clone(),
+                                kind_display: crate::present::field_kind_display(&f.kind),
+                                properties: f.properties.clone(),
                             })
                             .collect(),
                     })

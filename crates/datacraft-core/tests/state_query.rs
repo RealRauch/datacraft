@@ -196,3 +196,34 @@ fn table_entries_carry_their_field_names() {
     assert_eq!(db.tables[0].fields[0].kind_display, "Long Integer");
     assert_eq!(db.tables[0].fields[1].kind_display, "Short Text");
 }
+
+#[test]
+fn snapshot_carries_field_properties() {
+    let mut core = opened_with_customers();
+    // name field gains a caption and an index for the design view.
+    core.dispatch(Command::DropTable { table: "Customers".into() });
+    let mut name = datacraft_core::schema::FieldDef::new(
+        "name",
+        datacraft_core::schema::FieldKind::Text { max_len: 50 },
+    );
+    name.properties.caption = Some("Customer name".into());
+    name.properties.indexed = datacraft_core::schema::IndexMode::NoDuplicates;
+    core.dispatch(Command::CreateTable {
+        definition: datacraft_core::schema::TableDef::new(
+            "Customers",
+            vec![
+                datacraft_core::schema::FieldDef::new(
+                    "id",
+                    datacraft_core::schema::FieldKind::Number(
+                        datacraft_core::schema::NumericKind::LongInteger,
+                    ),
+                ),
+                name,
+            ],
+        ),
+    });
+    let field = &core.inspect().database.unwrap().tables[0].fields[1];
+    assert_eq!(field.properties.caption.as_deref(), Some("Customer name"));
+    assert_eq!(field.properties.indexed, datacraft_core::schema::IndexMode::NoDuplicates);
+    assert!(!field.properties.required);
+}

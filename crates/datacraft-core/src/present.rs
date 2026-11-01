@@ -6,6 +6,7 @@
 
 use crate::ObjectKind;
 use crate::port::DatabaseFormat;
+use crate::schema::FieldKind;
 use crate::schema::FieldValue;
 use crate::snapshot::UiStateSnapshot;
 
@@ -39,6 +40,37 @@ pub fn tab_placeholder(kind: ObjectKind, name: &str) -> String {
         ObjectKind::Query => format!("Query results for {name:?} arrive in Phase 7."),
         ObjectKind::Form => format!("Form view for {name:?} arrives in Phase 8."),
         ObjectKind::Report => format!("Report preview for {name:?} arrives in Phase 8."),
+    }
+}
+
+/// Access UI type name of a field kind (the design grid's Data Type
+/// column).
+pub fn field_kind_display(kind: &FieldKind) -> String {
+    match kind {
+        FieldKind::Text { .. } => "Short Text".to_owned(),
+        FieldKind::Memo => "Long Text".to_owned(),
+        FieldKind::Number(numeric) => match numeric {
+            crate::schema::NumericKind::Byte => "Byte".to_owned(),
+            crate::schema::NumericKind::Integer => "Integer".to_owned(),
+            crate::schema::NumericKind::LongInteger => "Long Integer".to_owned(),
+            crate::schema::NumericKind::Single => "Single".to_owned(),
+            crate::schema::NumericKind::Double => "Double".to_owned(),
+            crate::schema::NumericKind::Decimal { precision, scale } => {
+                format!("Decimal ({precision}, {scale})")
+            }
+        },
+        FieldKind::DateTime => "Date/Time".to_owned(),
+        FieldKind::Currency => "Currency".to_owned(),
+        FieldKind::AutoNumber(crate::schema::AutoKind::LongInteger) => {
+            "AutoNumber".to_owned()
+        }
+        FieldKind::AutoNumber(crate::schema::AutoKind::ReplicationId) => {
+            "AutoNumber (Replication ID)".to_owned()
+        }
+        FieldKind::Boolean { .. } => "Yes/No".to_owned(),
+        FieldKind::Binary(crate::schema::BinaryKind::OleObject) => "OLE Object".to_owned(),
+        FieldKind::Binary(crate::schema::BinaryKind::Attachment) => "Attachment".to_owned(),
+        FieldKind::Guid => "GUID".to_owned(),
     }
 }
 
