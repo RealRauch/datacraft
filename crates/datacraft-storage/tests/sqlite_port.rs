@@ -356,3 +356,42 @@ fn a_corrupt_sqlite_file_reports_a_located_read_error() {
         other => panic!("expected OpenFailed, got {other:?}"),
     }
 }
+
+#[test]
+// The restore must clear the Windows read-only attribute; on Unix the file
+// was created writable, so the flag was never set there.
+#[allow(clippy::permissions_set_readonly_false)]
+fn a_read_only_file_still_reads_and_rejects_writes_precisely() {
+    let scratch = shop_database();
+    let mut permissions = std::fs::metadata(&scratch.0)
+        .expect("fixture metadata")
+        .permissions();
+    permissions.set_readonly(true);
+    std::fs::set_permissions(&scratch.0, permissions).expect("make the file read-only");
+
+    let mut port = SqlitePort::new();
+    port.open(&scratch.0).expect("read-only files still open");
+    let rows = port
+        .read_rows("customers", RowRange { start: 0, len: 10 })
+        .expect("reads work");
+    assert_eq!(rows.len(), 2);
+    let def = TableDef::new("t", vec![FieldDef::new("x", FieldKind::Memo)]);
+    match port.create_table(&def) {
+        Err(PortError::Unsupported { reason }) => {
+            assert!(reason.contains("read-only"), "{reason}");
+        }
+        other => panic!("expected Unsupported, got {other:?}"),
+    }
+    let nulls = vec![FieldValue::Null; 7];
+    assert!(matches!(
+        port.insert_row("customers", &nulls),
+        Err(PortError::Unsupported { .. })
+    ));
+
+    // Restore so the Scratch drop can delete the file on Windows.
+    let mut permissions = std::fs::metadata(&scratch.0)
+        .expect("fixture metadata")
+        .permissions();
+    permissions.set_readonly(false);
+    std::fs::set_permissions(&scratch.0, permissions).expect("restore writability");
+}

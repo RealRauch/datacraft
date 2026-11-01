@@ -168,6 +168,13 @@ No Jet/ACE-specific types leak across this boundary — the core works against
 `TableSchema`/`RowBatch` domain types. Backend selection is feature-gated:
 `jet-rs` (default, product) and `libmdb-oracle` (test).
 
+Since Phase 13 the same port also fronts a **SQLite** backend: `DetectingPort`
+sniffs the file magic at `open` and delegates to the Jet/ACE or the SQLite
+implementation, so all clients keep one command vocabulary for both source
+families. `InsertRow`/`SqlRan` are port-level writes and the shadow-SQL
+engine reads every source through the port (see `docs/FORMAT-JET.md`
+§"SQLite backend").
+
 **Format milestones:** JET4 (`.mdb`) read → ACE (`.accdb`) read → JET4 write →
 ACE write. Each milestone: spec → decoder/encoder → proptest round-trip →
 golden files → oracle comparison. Landed so far: Jet4 read, Jet3 (Access 97)

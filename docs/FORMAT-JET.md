@@ -380,7 +380,11 @@ precise `Unsupported`). Required fields become `NOT NULL`. `insert_row`
 builds a parameterized `INSERT`; `NULL` on an AutoNumber column omits the
 column so SQLite assigns the value, any other value is rejected. Stored
 values keep their domain family on read-back; the documented lossiness is
-SQLite's own (no width/scale enforcement for `INTEGER`/`NUMERIC`).
+SQLite's own (no width/scale enforcement for `INTEGER`/`NUMERIC`). A file
+whose permissions mark it read-only still opens for reading (both platforms:
+the metadata check runs before the connection is opened, because Windows
+defers the failure to the first write) and answers a precise `Unsupported`
+on every write.
 
 ## Column type 0x11 — decision record (2026-11-01, step 10.7, BACKLOG L2)
 

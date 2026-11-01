@@ -283,3 +283,42 @@ fn jet3_data_pages_reject_descending_order_violations_and_overflow_slots() {
     let err = datacraft_storage::jet::DataPage::decode_jet3(&page).unwrap_err();
     assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
 }
+
+#[test]
+fn jet3_tdef_len_out_of_bounds_is_corrupt() {
+    let mut file = shell(1);
+    write_tdef(&mut file, 1, &catalog_columns());
+    let base = PAGE;
+    file[base + 8..base + 12].copy_from_slice(&0u32.to_le_bytes());
+    let err = JetTableDef::decode(&file, 1).expect_err("tdef_len 0 is corrupt");
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err:?}");
+}
+
+#[test]
+fn jet3_oversized_column_count_ends_in_a_located_corrupt_error() {
+    let mut file = shell(1);
+    write_tdef(&mut file, 1, &catalog_columns());
+    let block = PAGE + 8;
+    file[block + 17..block + 19].copy_from_slice(&2000u16.to_le_bytes());
+    // Valid descriptor type bytes until the page ends, so the decoder runs
+    // into the truncation branch instead of an unknown type byte.
+    for byte in &mut file[block + 35..2 * PAGE] {
+        *byte = 0x04;
+    }
+    let err = JetTableDef::decode(&file, 1).expect_err("truncated descriptors");
+    match err {
+        StorageError::Corrupt { detail, .. } => {
+            assert!(detail.contains("truncated"), "{detail}");
+        }
+        other => panic!("expected Corrupt, got {other:?}"),
+    }
+}
+
+#[test]
+fn jet3_cp1252_bytes_below_a0_decode() {
+    let mut file = shell(1);
+    let column = JetColumn::new("X", JetType::Text, 0x02, 0, 4, 4);
+    write_tdef(&mut file, 1, &[(column, vec![0x80])]);
+    let def = JetTableDef::decode(&file, 1).expect("decodes");
+    assert!(!def.columns[0].name.is_empty());
+}

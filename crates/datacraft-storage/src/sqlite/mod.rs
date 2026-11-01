@@ -19,6 +19,8 @@ pub struct SqlitePort {
     conn: Option<Connection>,
     tables: Vec<TableDef>,
     path: Option<PathBuf>,
+    /// Whether the file opened read-write (read-only files still read).
+    writable: bool,
 }
 
 impl SqlitePort {
@@ -36,7 +38,7 @@ impl SqlitePort {
 impl StoragePort for SqlitePort {
     fn open(&mut self, path: &Path) -> Result<OpenedDatabase, PortError> {
         read_magic(path)?;
-        let conn = open_writable(path)?;
+        let (conn, writable) = open_database(path)?;
         let tables = collect_tables(&conn)?;
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
@@ -45,6 +47,7 @@ impl StoragePort for SqlitePort {
         self.conn = Some(conn);
         self.tables = tables;
         self.path = Some(path.to_path_buf());
+        self.writable = writable;
         Ok(OpenedDatabase {
             name,
             format: DatabaseFormat::Sqlite,
@@ -55,6 +58,7 @@ impl StoragePort for SqlitePort {
         self.conn = None;
         self.tables.clear();
         self.path = None;
+        self.writable = false;
     }
 
     fn tables(&self) -> Vec<TableDef> {
@@ -63,6 +67,9 @@ impl StoragePort for SqlitePort {
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
         let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
         definition.validate().map_err(|e| PortError::WriteFailed {
             detail: e.to_string(),
         })?;
@@ -85,6 +92,9 @@ impl StoragePort for SqlitePort {
         };
         let canonical = self.tables[pos].name.clone();
         let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
         conn.execute(&format!("DROP TABLE {}", quote_ident(&canonical)), [])
             .map_err(|e| PortError::WriteFailed {
                 detail: format!("dropping table {canonical:?} failed: {e}"),
@@ -95,6 +105,9 @@ impl StoragePort for SqlitePort {
 
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
         let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
         let def = self
             .tables
             .iter()
@@ -190,6 +203,6 @@ impl StoragePort for SqlitePort {
 mod mapping;
 
 use mapping::{
-    collect_tables, count_rows, create_sql, foreign_keys, no_database, open_writable, quote_ident,
-    read_failed, read_magic, sql_value, to_field_value,
+    collect_tables, count_rows, create_sql, foreign_keys, no_database, open_database, quote_ident,
+    read_failed, read_magic, read_only, sql_value, to_field_value,
 };

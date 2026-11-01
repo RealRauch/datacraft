@@ -156,7 +156,7 @@
 | 11.11 | Journaled Write-Profile (M2) | ⬜ |
 | 13.1 | SQLite-Datenquelle & Detection (H35) | ✅ |
 | 13.2 | SQLite-Writes & InsertRow-Command (H36) | ✅ |
-| 13.3 | SQL-Engine & UI-Fenster (H37) | ⬜ |
+| 13.3 | SQL-Engine & UI-Fenster (H37) | ✅ |
 | 13.4 | Phase 13 Quality Gate Review | ⬜ |
 | 14.1 | ACCDB-Fixtures pinnen (H38) | ⬜ |
 | 14.2 | ACCDB-Read-Pfad (H39) | ⬜ |
