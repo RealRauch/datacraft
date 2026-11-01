@@ -101,6 +101,7 @@ MIT-licensed JS reader; test databases include material nobody else ships:
 | mdb-reader `office-agile-4.2.accdb` @ 3dc637a (Office Agile AES) | 315 392 | `bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2` |
 | jackcess `V1997/testV1997.mdb` @ be0a2139 (pristine, Jet3) | 118 784 | `27788b47e17412427830e80c2cb69366885aa11b12c61422de73029194bef135` |
 | jackcess `V1997/test2V1997.mdb` @ be0a2139 (pristine, Jet3 jump-table row) | 137 216 | `ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668` |
+| `ssmith1975/samples-vb-net` @ master `Northwind 2007.accdb` (real Access; macros + VBA) | 3 661 824 | `3105c66a6fab059d7da9d00b4e91438dd084bb3da55655183c7d2c21929f9e1f` |
 
 The query fixture is pinned as `fixtures/queryTestV2000.mdb` (jackcess V2000,
 provenance in `fixtures/manifest`; native saved queries for the MSysQueries
@@ -117,6 +118,17 @@ remainders use `fixtures/testV1997.mdb` (chained TDEF page 34 → 44, catalog
 overflow rows) and `fixtures/test2V1997.mdb` (chained TDEF page 29 → 56 plus
 the 290-byte jump-table row on page 50) — jackcess V1997, provenance in
 `fixtures/manifest` (step 16.3 / L3).
+
+The programmability fixture is pinned as `fixtures/northwind2007.accdb`
+(step 17.1/17.2): a real-Access ACE database from the GitHub sample project
+`ssmith1975/samples-vb-net` (`wrox/Chpt 15.1 - Accessing Databases/.../
+Northwind 2007.accdb`, commit `master`, downloaded 2026-11-01). It carries
+2 named macros (`AutoExec`, `Delete All Data`), 18 VBA modules with source
+(`MSysAccessStorage` → `VBA/VBAProject/VBA`), 34 forms, 15 reports and 40
+queries — the only pinned fixture with a non-empty VBA project. Its hashes and
+provenance are in `fixtures/manifest`; the CI fixtures job verifies them
+offline. The repository has no license file; treat the file as reference test
+data, reference the repo, and do not relicense it.
 
 The three ACE fixtures are pinned as `fixtures/testV2007.accdb`,
 `fixtures/testV2010.accdb` and `fixtures/attachmentsV2016.accdb` (hashes and
