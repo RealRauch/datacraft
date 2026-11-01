@@ -4,6 +4,7 @@
 //! durable fact record with sources lives in `docs/FORMAT-JET.md`.
 
 pub mod catalog;
+pub mod complex;
 pub mod data_page;
 pub mod encode;
 pub mod header;

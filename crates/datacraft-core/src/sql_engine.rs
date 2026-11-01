@@ -144,6 +144,9 @@ fn affinity(kind: &FieldKind) -> &'static str {
         FieldKind::Number(NumericKind::Single | NumericKind::Double)
         | FieldKind::DateTime
         | FieldKind::Number(NumericKind::Decimal { .. }) => "REAL",
+        // Complex cells are materialized as their joined display text
+        // (the shadow SQL engine has no complex type; documented lossiness).
+        FieldKind::MultiValue(_) | FieldKind::Complex => "TEXT",
         FieldKind::Binary(_) | FieldKind::Guid => "BLOB",
     }
 }
@@ -172,6 +175,7 @@ fn sql_value(kind: &FieldKind, value: &FieldValue) -> rusqlite::types::Value {
         FieldValue::Text(text) => Sql::Text(text.clone()),
         FieldValue::Binary(bytes) => Sql::Blob(bytes.clone()),
         FieldValue::Guid(bytes) => Sql::Blob(bytes.to_vec()),
+        FieldValue::Complex(_) => Sql::Text(crate::present::display_value(value)),
     }
 }
 
@@ -233,6 +237,29 @@ mod tests {
             "REAL"
         );
         assert_eq!(affinity(&FieldKind::Guid), "BLOB");
+        assert_eq!(
+            affinity(&FieldKind::MultiValue(
+                crate::schema::MultiValueKind::Text { max_len: 5 }
+            )),
+            "TEXT"
+        );
+        assert_eq!(affinity(&FieldKind::Complex), "TEXT");
+    }
+
+    /// Complex cells materialize as their joined display text (the shadow
+    /// engine has no complex type).
+    #[test]
+    fn complex_values_materialize_as_display_text() {
+        let value = FieldValue::Complex(vec![crate::schema::ComplexRecord {
+            fields: vec![crate::schema::ComplexField {
+                name: "Value".to_owned(),
+                value: FieldValue::Text("a".to_owned()),
+            }],
+        }]);
+        assert_eq!(
+            sql_value(&FieldKind::Complex, &value),
+            rusqlite::types::Value::Text("a".to_owned())
+        );
     }
 
     #[test]

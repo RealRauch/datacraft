@@ -152,6 +152,33 @@ pub enum BinaryKind {
     Attachment,
 }
 
+/// Scalar family of an ACE multi-value column (step 16.1, M4).
+///
+/// Multi-value columns store an ordered list of scalars in a flat backing
+/// table; this is the element kind the values validate against.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MultiValueKind {
+    /// Text elements with an Access character budget.
+    Text {
+        /// Maximum number of characters (Access "Field Size").
+        max_len: u16,
+    },
+    /// Numeric elements of the given precision family.
+    Number(NumericKind),
+    /// Date/time elements in OLE Automation form.
+    DateTime,
+    /// Currency elements as scaled integers (factor 10⁻⁴).
+    Currency,
+    /// Yes/No elements.
+    Boolean {
+        /// Whether the UI offers a third (Null) display state.
+        tri_state: bool,
+    },
+    /// 16-byte replication identifiers.
+    Guid,
+}
+
 /// Logical Access type of a field (ARCHITECTURE §7 mapping table).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
@@ -179,6 +206,11 @@ pub enum FieldKind {
     },
     /// Binary data (OLE object or attachment).
     Binary(BinaryKind),
+    /// ACE multi-value column over a scalar element kind (step 16.1, M4).
+    MultiValue(MultiValueKind),
+    /// ACE complex column whose backing records have no multi-value or
+    /// attachment shape (e.g. version history).
+    Complex,
     /// 16-byte replication identifier (plain GUID field; AutoNumbers with
     /// GUIDs are `AutoNumber(ReplicationId)` instead).
     Guid,
@@ -201,6 +233,8 @@ impl FieldKind {
             Self::AutoNumber(_) => "autonumber",
             Self::Boolean { .. } => "boolean",
             Self::Binary(_) => "binary",
+            Self::MultiValue(_) => "multi-value",
+            Self::Complex => "complex",
             Self::Guid => "guid",
         }
     }
@@ -218,6 +252,17 @@ impl FieldKind {
                 Ok(())
             }
             Self::Number(kind) => kind.validate(),
+            Self::MultiValue(MultiValueKind::Text { max_len }) => {
+                if !(1..=255).contains(max_len) {
+                    return Err(SchemaError::InvalidKind {
+                        detail: format!(
+                            "multi-value text max_len must be 1..=255, found {max_len}"
+                        ),
+                    });
+                }
+                Ok(())
+            }
+            Self::MultiValue(MultiValueKind::Number(kind)) => kind.validate(),
             _ => Ok(()),
         }
     }
@@ -281,8 +326,31 @@ impl FieldKind {
                 FieldValue::Boolean(_) => Ok(()),
                 _ => Err(mismatch()),
             },
-            Self::Binary(_) => match value {
+            Self::Binary(BinaryKind::OleObject) => match value {
                 FieldValue::Binary(_) => Ok(()),
+                _ => Err(mismatch()),
+            },
+            Self::Binary(BinaryKind::Attachment) => match value {
+                FieldValue::Complex(_) => Ok(()),
+                _ => Err(mismatch()),
+            },
+            Self::MultiValue(kind) => match value {
+                FieldValue::Complex(records) => {
+                    let element = kind.element_kind();
+                    for record in records {
+                        let Some(scalar) = record.scalar() else {
+                            return Err(SchemaError::ValueOutOfRange {
+                                detail: "multi-value record carries no scalar element".to_owned(),
+                            });
+                        };
+                        element.validate_value(scalar)?;
+                    }
+                    Ok(())
+                }
+                _ => Err(mismatch()),
+            },
+            Self::Complex => match value {
+                FieldValue::Complex(_) => Ok(()),
                 _ => Err(mismatch()),
             },
             Self::Guid => match value {
@@ -293,9 +361,25 @@ impl FieldKind {
     }
 }
 
+impl MultiValueKind {
+    /// The scalar field kind of one element (validation and criteria
+    /// coercion share it).
+    pub fn element_kind(self) -> FieldKind {
+        match self {
+            Self::Text { max_len } => FieldKind::Text { max_len },
+            Self::Number(numeric) => FieldKind::Number(numeric),
+            Self::DateTime => FieldKind::DateTime,
+            Self::Currency => FieldKind::Currency,
+            Self::Boolean { tri_state } => FieldKind::Boolean { tri_state },
+            Self::Guid => FieldKind::Guid,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schema::{ComplexField, ComplexRecord};
 
     /// Table-driven: every kind rejects a value of the wrong family with a
     /// mismatch naming both sides (covers all mismatch arms and family
@@ -358,11 +442,68 @@ mod tests {
         }
     }
 
-    /// Attachment fields accept binary values and report their family.
+    /// Multi-value kinds validate every element against their scalar family
+    /// and cover the element-kind mapping (step 16.1, M4).
     #[test]
-    fn attachment_kind_accepts_binary_values() {
+    fn multi_value_kinds_validate_their_element_families() {
+        let text = FieldKind::MultiValue(MultiValueKind::Text { max_len: 5 });
+        assert!(text.validate().is_ok());
+        assert!(
+            FieldKind::MultiValue(MultiValueKind::Text { max_len: 0 })
+                .validate()
+                .is_err()
+        );
+        assert!(
+            FieldKind::MultiValue(MultiValueKind::Number(NumericKind::Decimal {
+                precision: 0,
+                scale: 0
+            }))
+            .validate()
+            .is_err()
+        );
+        assert!(
+            text.validate_value(&FieldValue::Complex(vec![ComplexRecord { fields: vec![] }]))
+                .is_err(),
+            "a record without a scalar is not a multi-value element"
+        );
+        assert!(
+            text.validate_value(&FieldValue::Complex(vec![ComplexRecord {
+                fields: vec![ComplexField {
+                    name: "Value".to_owned(),
+                    value: FieldValue::Text("toolong".to_owned()),
+                }],
+            }]))
+            .is_err()
+        );
+        assert!(text.validate_value(&FieldValue::Integer(1)).is_err());
+        let cases = [
+            (MultiValueKind::Text { max_len: 1 }, "short text"),
+            (MultiValueKind::Number(NumericKind::Byte), "integer"),
+            (MultiValueKind::DateTime, "date/time"),
+            (MultiValueKind::Currency, "currency"),
+            (MultiValueKind::Boolean { tri_state: true }, "boolean"),
+            (MultiValueKind::Guid, "guid"),
+        ];
+        for (kind, family) in cases {
+            assert_eq!(kind.element_kind().family(), family);
+        }
+    }
+
+    /// Attachment fields accept complex values (step 16.1, M4) and report
+    /// their binary family; plain binary values stay OLE-object-only.
+    #[test]
+    fn attachment_kind_accepts_complex_values() {
         let kind = FieldKind::Binary(BinaryKind::Attachment);
-        assert!(kind.validate_value(&FieldValue::Binary(vec![9])).is_ok());
+        assert!(
+            kind.validate_value(&FieldValue::Complex(vec![ComplexRecord {
+                fields: vec![ComplexField {
+                    name: "FileName".to_owned(),
+                    value: FieldValue::Text("a.txt".to_owned()),
+                }],
+            }]))
+            .is_ok()
+        );
+        assert!(kind.validate_value(&FieldValue::Binary(vec![9])).is_err());
         assert_eq!(kind.family(), "binary");
     }
 }

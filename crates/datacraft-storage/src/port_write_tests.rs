@@ -5,7 +5,9 @@
 
 use super::*;
 use crate::jet::tdef::flags;
-use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
+use datacraft_core::schema::{
+    ComplexField, ComplexRecord, FieldDef, FieldKind, MultiValueKind, TableDef,
+};
 
 fn column(field: &FieldDef) -> JetColumn {
     table_to_columns(&TableDef::new("T", vec![field.clone()]))
@@ -113,6 +115,8 @@ fn unsupported_kinds_are_precise() {
         FieldKind::AutoNumber(AutoKind::LongInteger),
         FieldKind::AutoNumber(AutoKind::ReplicationId),
         FieldKind::Binary(BinaryKind::Attachment),
+        FieldKind::MultiValue(MultiValueKind::Text { max_len: 10 }),
+        FieldKind::Complex,
     ] {
         let err = table_to_columns(&TableDef::new("T", vec![FieldDef::new("f", kind)]))
             .expect_err("kind is unsupported for the writer");
@@ -166,6 +170,22 @@ fn values_map_one_to_one_and_arity_is_checked() {
     ];
     let err = to_storage_values(&fields, &wrong_family).expect_err("family mismatch");
     assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
+}
+
+#[test]
+fn complex_values_are_rejected_before_storage() {
+    let fields = vec![FieldDef::new(
+        "attachments",
+        FieldKind::Binary(BinaryKind::Attachment),
+    )];
+    let value = FieldValue::Complex(vec![ComplexRecord {
+        fields: vec![ComplexField {
+            name: "FileName".to_owned(),
+            value: FieldValue::Text("a.txt".to_owned()),
+        }],
+    }]);
+    let err = to_storage_values(&fields, &[value]).expect_err("complex writes are read-only");
+    assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
 }
 
 #[test]

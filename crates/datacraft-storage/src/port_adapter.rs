@@ -18,6 +18,7 @@
 //!   attachments, table drops) answer a precise `Unsupported`
 //!   (BACKLOG M4/M7/M8).
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{DatabaseFormat, OpenedDatabase, PortError, RowRange, StoragePort};
@@ -26,10 +27,12 @@ use datacraft_core::schema::{
 };
 
 use crate::error::StorageError;
+use crate::jet::complex::{self, ComplexCatalog, ComplexColumn, FlatRows};
 use crate::jet::reader::Jet4TableReader;
 use crate::jet::tdef::{JetColumn, JetTableDef, flags};
 use crate::jet::writer::Jet4Writer;
 use crate::jet::{JetType, OBJECT_TYPE_TABLE};
+use crate::mapping::to_field_value;
 use crate::port_write;
 use crate::types::FormatVersion;
 
@@ -40,6 +43,8 @@ pub struct Jet4Port {
     tables: Vec<TableDef>,
     /// TDEF page of every catalogued table (the writer's identity).
     pages: Vec<(String, u32)>,
+    /// Complex-column mapping (`MSysComplexColumns`); empty for Jet4.
+    complex: ComplexCatalog,
     path: Option<PathBuf>,
 }
 
@@ -61,7 +66,8 @@ impl StoragePort for Jet4Port {
             FormatVersion::Jet4 => DatabaseFormat::Jet4,
             FormatVersion::Ace => DatabaseFormat::Ace,
         };
-        let entries = collect_tables(&reader)?;
+        let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
+        let entries = collect_tables(&reader, &complex)?;
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
@@ -71,6 +77,7 @@ impl StoragePort for Jet4Port {
             .into_iter()
             .map(|(def, page)| (def.name, page))
             .collect();
+        self.complex = complex;
         self.reader = Some(reader);
         self.path = Some(path.to_path_buf());
         Ok(OpenedDatabase { name, format })
@@ -80,6 +87,7 @@ impl StoragePort for Jet4Port {
         self.reader = None;
         self.tables.clear();
         self.pages.clear();
+        self.complex = ComplexCatalog::default();
         self.path = None;
     }
 
@@ -183,15 +191,37 @@ impl StoragePort for Jet4Port {
         let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
             reason: "no database is open".to_owned(),
         })?;
+        let page = self.page_of(table)?;
+        if self.complex.is_flat_page(page) {
+            // Backing tables are an implementation detail, not user tables.
+            return Err(PortError::TableNotFound(table.to_owned()));
+        }
         let data = reader.open_table(table).map_err(|e| match e {
             crate::error::StorageError::TableNotFound(name) => PortError::TableNotFound(name),
             other => map_open(other),
         })?;
+        let def = JetTableDef::decode(&reader.file, page).map_err(map_open)?;
         let (start, end) = datacraft_core::port::window_slice(table, range, data.rows.len())?;
-        Ok(data.rows[start..end]
-            .iter()
-            .map(|row| row.iter().map(to_field_value).collect())
-            .collect())
+        let mut flats: HashMap<u32, FlatRows> = HashMap::new();
+        let mut rows = Vec::with_capacity(end - start);
+        for row in &data.rows[start..end] {
+            let mut values = Vec::with_capacity(row.len());
+            for (column, value) in def.columns.iter().zip(row) {
+                let Some(mapping) = self.complex.column(page, &column.name) else {
+                    values.push(to_field_value(value));
+                    continue;
+                };
+                if let std::collections::hash_map::Entry::Vacant(entry) =
+                    flats.entry(mapping.flat_tdef)
+                {
+                    entry.insert(FlatRows::read(reader, mapping).map_err(map_open)?);
+                }
+                let flat = flats.get(&mapping.flat_tdef).expect("inserted above");
+                values.push(complex::resolve_cell(value, flat).map_err(map_open)?);
+            }
+            rows.push(values);
+        }
+        Ok(rows)
     }
 
     fn update_row(
@@ -276,23 +306,6 @@ enum PreparedOp {
     },
 }
 
-/// Maps one stored value onto the domain vocabulary (1:1 — the variants
-/// correspond, see docs/FORMAT-JET.md "Domain mapping").
-fn to_field_value(value: &crate::types::StorageValue) -> FieldValue {
-    match value {
-        crate::types::StorageValue::Null => FieldValue::Null,
-        crate::types::StorageValue::Bit(b) => FieldValue::Boolean(*b),
-        crate::types::StorageValue::Int(i) => FieldValue::Integer(*i),
-        crate::types::StorageValue::Float(f) => FieldValue::Float(*f),
-        crate::types::StorageValue::Currency(c) => FieldValue::Currency(*c),
-        crate::types::StorageValue::DateTime(d) => FieldValue::DateTime(*d),
-        crate::types::StorageValue::Text(s) => FieldValue::Text(s.clone()),
-        crate::types::StorageValue::Binary(b) => FieldValue::Binary(b.clone()),
-        crate::types::StorageValue::Guid(g) => FieldValue::Guid(*g),
-        crate::types::StorageValue::Decimal(d) => FieldValue::Decimal(*d),
-    }
-}
-
 impl Jet4Port {
     /// TDEF page of a catalogued table (the writer's identity).
     fn page_of(&self, table: &str) -> Result<u32, PortError> {
@@ -327,19 +340,26 @@ impl Jet4Port {
             detail: format!("{}: {e}", path.display()),
         })?;
         let reader = Jet4TableReader::new(bytes).map_err(map_open)?;
-        let entries = collect_tables(&reader)?;
+        let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
+        let entries = collect_tables(&reader, &complex)?;
         self.tables = entries.iter().map(|(def, _)| def.clone()).collect();
         self.pages = entries
             .into_iter()
             .map(|(def, page)| (def.name, page))
             .collect();
+        self.complex = complex;
         self.reader = Some(reader);
         Ok(out)
     }
 }
 
 /// Enumerates user tables through the catalog with their TDEF pages.
-fn collect_tables(reader: &Jet4TableReader) -> Result<Vec<(TableDef, u32)>, PortError> {
+/// Complex backing tables (`f_<guid>_*`) are hidden — they belong to their
+/// owning column, not to the navigation pane.
+fn collect_tables(
+    reader: &Jet4TableReader,
+    complex: &ComplexCatalog,
+) -> Result<Vec<(TableDef, u32)>, PortError> {
     let mut tables = Vec::new();
     for entry in reader.catalog().map_err(map_open)? {
         if entry.object_type != OBJECT_TYPE_TABLE {
@@ -348,22 +368,41 @@ fn collect_tables(reader: &Jet4TableReader) -> Result<Vec<(TableDef, u32)>, Port
         let Some(tdef_page) = entry.tdef_page else {
             continue;
         };
-        if entry.name.starts_with("MSys") {
+        if entry.name.starts_with("MSys") || complex.is_flat_page(tdef_page) {
             continue;
         }
         let def = JetTableDef::decode(&reader.file, tdef_page).map_err(map_open)?;
-        tables.push((table_def(&entry.name, &def), tdef_page));
+        tables.push((
+            table_def(&entry.name, tdef_page, &def, reader, complex)?,
+            tdef_page,
+        ));
     }
     Ok(tables)
 }
 
 /// Maps one table's descriptors onto a validated domain definition.
-fn table_def(name: &str, def: &JetTableDef) -> TableDef {
-    TableDef::new(name, def.columns.iter().map(field_def).collect())
+fn table_def(
+    name: &str,
+    tdef_page: u32,
+    def: &JetTableDef,
+    reader: &Jet4TableReader,
+    complex: &ComplexCatalog,
+) -> Result<TableDef, PortError> {
+    let mut fields = Vec::with_capacity(def.columns.len());
+    for column in &def.columns {
+        let mapping = complex.column(tdef_page, &column.name);
+        fields.push(field_def(column, mapping, complex, reader)?);
+    }
+    Ok(TableDef::new(name, fields))
 }
 
 /// Maps one column descriptor onto a field definition.
-fn field_def(column: &JetColumn) -> FieldDef {
+fn field_def(
+    column: &JetColumn,
+    mapping: Option<&ComplexColumn>,
+    complex: &ComplexCatalog,
+    reader: &Jet4TableReader,
+) -> Result<FieldDef, PortError> {
     let nullable = column.flags & flags::NULLABLE != 0;
     let autonumber = column.flags & flags::AUTONUMBER != 0;
     let kind = match column.data_type {
@@ -386,25 +425,21 @@ fn field_def(column: &JetColumn) -> FieldDef {
             FieldKind::Binary(BinaryKind::OleObject)
         }
         JetType::Text => FieldKind::Text {
-            max_len: text_max_len(column),
+            max_len: column.text_max_len(),
         },
         JetType::Memo => FieldKind::Memo,
         JetType::Guid if autonumber => FieldKind::AutoNumber(AutoKind::ReplicationId),
         JetType::Guid => FieldKind::Guid,
-        JetType::Complex => FieldKind::Binary(BinaryKind::Attachment),
+        // Without a mapping the column stays the documented binary fallback
+        // (a file whose MSysComplexColumns is absent still reads).
+        JetType::Complex => match mapping {
+            Some(mapping) => complex.field_kind(reader, mapping).map_err(map_open)?,
+            None => FieldKind::Binary(BinaryKind::Attachment),
+        },
     };
     let mut field = FieldDef::new(&column.name, kind);
     field.properties.required = !nullable;
-    field
-}
-
-/// Descriptor length -> Access character budget (see module docs).
-fn text_max_len(column: &JetColumn) -> u16 {
-    if column.compressed_text {
-        column.len.max(1)
-    } else {
-        (column.len / 2).max(1)
-    }
+    Ok(field)
 }
 
 fn no_database() -> PortError {
@@ -443,34 +478,5 @@ fn map_open(error: StorageError) -> PortError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::types::StorageValue;
-
-    /// The physical -> domain mapping is 1:1 and total over the value
-    /// vocabulary (fixture rows do not exercise every family).
-    #[test]
-    fn every_storage_value_maps_to_its_domain_family() {
-        let cases: Vec<(StorageValue, FieldValue)> = vec![
-            (StorageValue::Null, FieldValue::Null),
-            (StorageValue::Bit(true), FieldValue::Boolean(true)),
-            (StorageValue::Int(7), FieldValue::Integer(7)),
-            (StorageValue::Float(1.5), FieldValue::Float(1.5)),
-            (StorageValue::Currency(2500), FieldValue::Currency(2500)),
-            (
-                StorageValue::DateTime(45_000.5),
-                FieldValue::DateTime(45_000.5),
-            ),
-            (StorageValue::Text("x".into()), FieldValue::Text("x".into())),
-            (
-                StorageValue::Binary(vec![1, 2]),
-                FieldValue::Binary(vec![1, 2]),
-            ),
-            (StorageValue::Guid([9; 16]), FieldValue::Guid([9; 16])),
-            (StorageValue::Decimal(1234), FieldValue::Decimal(1234)),
-        ];
-        for (stored, expected) in cases {
-            assert_eq!(to_field_value(&stored), expected);
-        }
-    }
-}
+#[path = "port_adapter_tests.rs"]
+mod tests;

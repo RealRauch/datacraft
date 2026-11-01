@@ -20,7 +20,9 @@ pub(crate) enum Predicate {
 }
 
 impl Predicate {
-    /// Evaluates against a row value (NULL never satisfies).
+    /// Evaluates against a row value (NULL never satisfies). Complex values
+    /// use EXISTS semantics: the predicate holds when at least one
+    /// sub-record's scalar satisfies it (step 16.1, M4).
     pub(crate) fn matches(&self, value: &FieldValue) -> bool {
         let literal = match self {
             Predicate::Equal(v)
@@ -30,6 +32,17 @@ impl Predicate {
             | Predicate::Greater(v)
             | Predicate::GreaterEqual(v) => v,
         };
+        if let FieldValue::Complex(records) = value {
+            return records
+                .iter()
+                .filter_map(|record| record.scalar())
+                .any(|scalar| self.matches_scalar(scalar, literal));
+        }
+        self.matches_scalar(value, literal)
+    }
+
+    /// Scalar comparison shared by plain and complex cells.
+    fn matches_scalar(&self, value: &FieldValue, literal: &FieldValue) -> bool {
         if matches!(value, FieldValue::Null | FieldValue::Guid(_)) {
             return false;
         }
@@ -142,9 +155,13 @@ fn coerce(literal: &str, kind: &FieldKind) -> Result<FieldValue, String> {
             other => Err(format!("{other:?} is not a yes/no value")),
         },
         FieldKind::Text { .. } | FieldKind::Memo => Ok(FieldValue::Text(unquoted.to_owned())),
+        // Multi-value criteria coerce to the element family; the predicate
+        // then applies with EXISTS semantics over the sub-records.
+        FieldKind::MultiValue(multi) => coerce(literal, &multi.element_kind()),
         FieldKind::AutoNumber(crate::schema::AutoKind::ReplicationId)
         | FieldKind::Guid
-        | FieldKind::Binary(_) => Err(format!(
+        | FieldKind::Binary(_)
+        | FieldKind::Complex => Err(format!(
             "criteria are not supported on {:?} columns",
             crate::present::field_kind_display(kind)
         )),

@@ -63,6 +63,8 @@ pub fn field_kind_display(kind: &FieldKind) -> String {
         FieldKind::Boolean { .. } => "Yes/No".to_owned(),
         FieldKind::Binary(crate::schema::BinaryKind::OleObject) => "OLE Object".to_owned(),
         FieldKind::Binary(crate::schema::BinaryKind::Attachment) => "Attachment".to_owned(),
+        FieldKind::MultiValue(_) => "Multi-Value".to_owned(),
+        FieldKind::Complex => "Complex".to_owned(),
         FieldKind::Guid => "GUID".to_owned(),
     }
 }
@@ -83,6 +85,14 @@ pub fn display_value(value: &FieldValue) -> String {
         FieldValue::Text(s) => s.clone(),
         FieldValue::Binary(bytes) => format!("<binary: {} bytes>", bytes.len()),
         FieldValue::Guid(bytes) => display_guid(bytes),
+        // Complex cells render as the joined scalar of their sub-records:
+        // attachment file names, multi-value elements, version-history text.
+        FieldValue::Complex(records) => records
+            .iter()
+            .filter_map(|record| record.scalar())
+            .map(display_value)
+            .collect::<Vec<_>>()
+            .join(", "),
     }
 }
 

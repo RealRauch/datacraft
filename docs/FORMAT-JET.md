@@ -306,8 +306,8 @@ column mapping (with its lossiness) is documented in `src/port_write.rs`:
   slot); memo/OLE use the inline long-value form; numeric widths, decimal
   scale (17-byte `Numeric`), date, currency, GUID and boolean map 1:1.
 - **`Unsupported` today:** inserting into `AutoNumber` columns (the writer
-  does not maintain the counter yet, M8), attachment/complex columns (M4)
-  and `drop_table` (M7).
+  does not maintain the counter yet, M8), complex-value columns (attachments,
+  multi-value, version history — read-only since M4) and `drop_table` (M7).
 - `update_row`/`delete_row` address rows by their zero-based live-row
   index — the same order `read_rows` returns (next section).
 
@@ -382,7 +382,7 @@ Verified against the three pinned pristine fixtures (`fixtures/testV2007.accdb`,
 `testV2010.accdb`, `attachmentsV2016.accdb`; hashes and provenance in
 `fixtures/manifest` / `docs/FIXTURE-SOURCES.md`).
 
-- **Header:** product string `Standard ACE DB ` at 0x04; version dword at
+- **Header:** product string `Standard ACE DB\x00` at 0x04; version dword at
   0x14 is `0x00000002` (ACE 2007/2016 writer format) or `0x00000103` (ACE
   2010). Pages are 4096 bytes; the file size is an exact multiple. The
   product string and version must agree — a `Standard ACE DB` file with a Jet
@@ -393,9 +393,9 @@ Verified against the three pinned pristine fixtures (`fixtures/testV2007.accdb`,
   three fixtures (user tables `Table1`–`Table4`, plus complex subtables).
 - **Complex-value subtables:** ACE stores them as tables named
   `f_<32 hex>_Data` / `f_<32 hex>_Field1` (attachment/multivalue backing
-  tables). They are visible in the catalog and decode as ordinary tables;
-  mdb-tools hides them as system tables, so the oracle skips them with this
-  reason until M4 (Phase 16) groups them into their owning column.
+  tables). Since step 16.1 (M4) they are grouped into their owning column and
+  hidden from the user catalog; mdb-tools hides them as system tables, so the
+  oracle skips them (see "Complex values" below).
 - **Oracle cross-check:** `mdb-export` (mdbtools 1.0.1) reads all three
   fixtures. Column names/order and row counts match our decoder on every
   non-`f_` table, and `Table1`'s values match exactly (text, byte/integer/
@@ -403,6 +403,48 @@ Verified against the three pinned pristine fixtures (`fixtures/testV2007.accdb`,
   runs `tests/oracle.rs` over `testV2000.mdb` plus all three `.accdb` files.
 - **Client surface:** `DatabaseFormat::Ace` reaches UI/CLI/MCP through the
   snapshot; the status line renders `(ACE)`.
+
+## Complex values — attachments, multi-value, version history (2026-11-01, step 16.1, item M4)
+
+Verified against `fixtures/complexDataV2007.accdb` (jackcess V2007) and
+`fixtures/attachmentsV2016.accdb` (mdb-reader V2016).
+
+- **Mapping:** `MSysComplexColumns` carries one row per complex column:
+  `ColumnName`, `ConceptualTableID` (owning table's TDEF page), `FlatTableID`
+  (backing table's TDEF page), `ComplexTypeObjectID` (object id of the complex
+  type, e.g. `MSysComplexType_Attachment`), `ComplexID`. The complex column's
+  TDEF descriptor `misc` field carries the same `ComplexID` (observed:
+  `Table1.Attachments` misc=2 ↔ `ComplexID` 2).
+- **Cell value:** the complex column is a fixed 4-byte column (flags `0x07`);
+  its value is a **row-scoped complex id** shared by all complex columns of
+  that row. The backing table's link column is named `_<name>` (e.g. `_Data`,
+  `_Field1`, `_multi-value-data`) and carries the same id per sub-record.
+  Grouping the flat rows by that id yields the ordered sub-records.
+- **Sub-record shape:** the flat table's user columns in flat-table order,
+  excluding the `_<name>` link column and the flat table's own AutoNumber
+  identity column (e.g. `Table1_Field1`, `Table1_multi-value-data`).
+- **Field-kind mapping:** `MSysComplexType_Attachment` →
+  `Binary(Attachment)`; a flat table with exactly one user value column →
+  `MultiValue(element kind)` (Text/Number/DateTime/Currency/Boolean/Guid,
+  derived from the value column); everything else (e.g.
+  `MSysComplexTypeVH_*` version history) → `Complex`. A complex column without
+  a `MSysComplexColumns` mapping keeps the binary attachment fallback.
+- **Catalog:** backing tables are hidden from `tables()` and answer
+  `TableNotFound` when addressed directly; the navigation pane lists only the
+  owning table. `MSys*` system tables stay excluded as before.
+- **Datasheet:** complex cells render as the joined scalar of their
+  sub-records (`FileName` for attachments, `Value` for multi-value, the first
+  non-binary field otherwise), separated by `", "`.
+- **QBE:** criteria on a `MultiValue` column coerce to the element family and
+  use **EXISTS semantics** — a row matches when at least one element
+  satisfies the predicate (for `<>`: at least one element differs). Criteria
+  on attachment/version-history columns stay a precise `Unsupported`.
+- **SQL shadow engine:** complex cells materialize as their display text
+  (documented lossiness; the in-memory SQLite database has no complex type).
+- **Writes:** complex columns are read-only (a precise `Unsupported` on
+  insert/update/create); the writer does not build flat tables yet.
+- **Oracle:** mdb-tools hides the `f_` tables; `tests/oracle.rs` skips them and
+  the complex columns, while the parent table's scalar columns still compare.
 
 ## SQLite backend (2026-11-01, step 13.1, BACKLOG H35)
 

@@ -30,6 +30,12 @@ pub fn parse_value(kind: &FieldKind, text: &str) -> Result<FieldValue, String> {
         FieldKind::Binary(_) => {
             Err("binary values cannot be typed into a datasheet cell".to_owned())
         }
+        FieldKind::MultiValue(_) => {
+            Err("multi-value values cannot be typed into a datasheet cell".to_owned())
+        }
+        FieldKind::Complex => {
+            Err("complex values cannot be typed into a datasheet cell".to_owned())
+        }
         FieldKind::Guid => parse_guid(text).map(FieldValue::Guid),
     }
 }
@@ -282,5 +288,17 @@ mod tests {
     fn zero_decimal_values_are_one_digit() {
         assert!(check_precision(0, 1).is_ok());
         assert!(check_precision(0, 0).is_err());
+    }
+
+    #[test]
+    fn complex_kinds_are_not_typeable_cells() {
+        assert!(
+            parse_value(
+                &FieldKind::MultiValue(crate::schema::MultiValueKind::Text { max_len: 5 }),
+                "a"
+            )
+            .is_err()
+        );
+        assert!(parse_value(&FieldKind::Complex, "a").is_err());
     }
 }

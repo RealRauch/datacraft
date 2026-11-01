@@ -16,7 +16,7 @@
 //! | `Binary(OleObject)` | variable `Ole` | none (inline long-value form) |
 //! | `Guid` | fixed `Guid` (16 bytes) | none |
 //! | `AutoNumber(_)` | — | **`Unsupported`**: the writer does not maintain the AutoNumber counter yet |
-//! | `Binary(Attachment)` | — | **`Unsupported`**: complex-value column (M4) |
+//! | `Binary(Attachment)` / `MultiValue(_)` / `Complex` | — | **`Unsupported`**: complex-value columns are read-only (M4) |
 
 use datacraft_core::port::PortError;
 use datacraft_core::schema::{
@@ -75,9 +75,13 @@ fn column_shape(kind: &FieldKind) -> Result<(JetType, u16, bool, u8), PortError>
         FieldKind::Currency => (JetType::Currency, 8, true, 0),
         FieldKind::Boolean { .. } => (JetType::Bool, 0, true, 0),
         FieldKind::Binary(BinaryKind::OleObject) => (JetType::Ole, 0, false, 0),
-        FieldKind::Binary(BinaryKind::Attachment) => {
+        FieldKind::Binary(BinaryKind::Attachment)
+        | FieldKind::MultiValue(_)
+        | FieldKind::Complex => {
             return Err(PortError::Unsupported {
-                reason: "attachment columns are complex values and land with M4".to_owned(),
+                reason: "complex-value columns (attachments, multi-value, version history) \
+                         are read-only"
+                    .to_owned(),
             });
         }
         FieldKind::Guid => (JetType::Guid, 16, true, 0),
@@ -121,7 +125,7 @@ pub(crate) fn to_storage_values(
             .map_err(|e| PortError::WriteFailed {
                 detail: format!("field {:?}: {e}", field.name),
             })?;
-        out.push(to_storage_value(value));
+        out.push(to_storage_value(value)?);
     }
     Ok(out)
 }
@@ -154,7 +158,7 @@ pub(crate) fn to_storage_values_for_update(
                     ),
                 });
             }
-            out.push(to_storage_value(value));
+            out.push(to_storage_value(value)?);
             continue;
         }
         field
@@ -162,13 +166,13 @@ pub(crate) fn to_storage_values_for_update(
             .map_err(|e| PortError::WriteFailed {
                 detail: format!("field {:?}: {e}", field.name),
             })?;
-        out.push(to_storage_value(value));
+        out.push(to_storage_value(value)?);
     }
     Ok(out)
 }
 
-fn to_storage_value(value: &FieldValue) -> StorageValue {
-    match value {
+fn to_storage_value(value: &FieldValue) -> Result<StorageValue, PortError> {
+    Ok(match value {
         FieldValue::Null => StorageValue::Null,
         FieldValue::Boolean(b) => StorageValue::Bit(*b),
         FieldValue::Integer(i) => StorageValue::Int(*i),
@@ -179,7 +183,14 @@ fn to_storage_value(value: &FieldValue) -> StorageValue {
         FieldValue::Text(s) => StorageValue::Text(s.clone()),
         FieldValue::Binary(b) => StorageValue::Binary(b.clone()),
         FieldValue::Guid(g) => StorageValue::Guid(*g),
-    }
+        FieldValue::Complex(_) => {
+            return Err(PortError::Unsupported {
+                reason: "complex values cannot be written yet — the complex-value path is \
+                         read-only"
+                    .to_owned(),
+            });
+        }
+    })
 }
 
 #[cfg(test)]

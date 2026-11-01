@@ -168,7 +168,7 @@
 | 15.2 | Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41) | ✅ |
 | 15.3 | Native Saved Queries: MSysQueries (M3) | ✅ |
 | 15.4 | Phase 15 Quality Gate Review | ✅ |
-| 16.1 | Complex Values/Multivalue (M4) | 🔄 |
+| 16.1 | Complex Values/Multivalue (M4) | ✅ |
 | 16.2 | Verschlüsselung/Passwort (M5) | ⬜ |
 | 16.3 | Jet3-Reste: Jump-Table & TDEF-Ketten (L3) | ⬜ |
 | 16.4 | Phase 16 Quality Gate Review | ⬜ |

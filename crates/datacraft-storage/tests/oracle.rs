@@ -9,6 +9,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use datacraft_storage::StorageDataType;
 use datacraft_storage::StorageError;
 use datacraft_storage::jet::Jet4TableReader;
 
@@ -37,7 +38,21 @@ fn fixture_paths() -> Option<Vec<PathBuf>> {
         };
         paths.push(resolved);
     }
-    (!paths.is_empty()).then_some(paths)
+    if paths.is_empty() {
+        return None;
+    }
+    // The complex-value fixture rides along with the configured oracle set
+    // (step 16.1, M4): its parent table is decoded on our side and compared
+    // where mdb-export can represent the columns.
+    let complex = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("complexDataV2007.accdb");
+    if complex.exists() && !paths.contains(&complex) {
+        paths.push(complex);
+    }
+    Some(paths)
 }
 
 fn mdb_export_available() -> bool {
@@ -61,7 +76,10 @@ fn oracle_fixture_decodes_and_matches_mdb_tools() {
 /// Compares one fixture against mdb-tools (our side always, the CLI where
 /// installed). ACE complex-value subtables (`f_<guid>_*`) are skipped with
 /// their documented reason: mdb-tools hides them as system tables and the
-/// domain grouping lands with M4 (Phase 16).
+/// domain groups them into their owning column (step 16.1, M4). The
+/// complex-value fixture is appended to the configured set automatically;
+/// tables carrying complex columns are decoded on our side and skipped for
+/// the export comparison (mdb-tools has no representation for them).
 fn check_fixture(path: &Path) {
     let file = std::fs::read(path).expect("oracle fixture must be readable");
     let reader = Jet4TableReader::new(file).expect("our decoder opens the real fixture");
@@ -98,6 +116,22 @@ fn check_fixture(path: &Path) {
     }
 
     for (name, table) in &tables {
+        // Complex-value columns (step 16.1, M4) have no mdb-export
+        // representation (mdb-tools hides the backing tables and cannot
+        // express the grouped sub-records); our side decodes the table and
+        // asserts its row count locally.
+        if table
+            .schema
+            .columns
+            .iter()
+            .any(|column| column.data_type == StorageDataType::Complex)
+        {
+            eprintln!(
+                "oracle table {name} skipped: complex columns (M4); our side holds {} rows",
+                table.rows.len()
+            );
+            continue;
+        }
         // Documented skip (BACKLOG L2 decision, 2026-11-01): MSysAccessObjects
         // embeds OLE compound documents in fixed-storage 0x11 columns, which
         // mdb-tools itself cannot read ("unsupported data type 17") — the

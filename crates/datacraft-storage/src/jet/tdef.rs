@@ -164,6 +164,17 @@ impl JetColumn {
     pub fn is_nullable(&self) -> bool {
         self.flags & flags::NULLABLE != 0
     }
+
+    /// Descriptor length -> Access character budget (docs/FORMAT-JET.md
+    /// "Domain mapping"): compressed text is byte-per-character, uncompressed
+    /// UTF-16 text counts bytes.
+    pub fn text_max_len(&self) -> u16 {
+        if self.compressed_text {
+            self.len.max(1)
+        } else {
+            (self.len / 2).max(1)
+        }
+    }
 }
 
 /// A decoded table definition.

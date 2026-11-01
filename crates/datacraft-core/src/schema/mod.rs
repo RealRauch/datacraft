@@ -15,6 +15,6 @@ mod value;
 pub use def::{FieldDef, TableDef};
 pub use document::{SCHEMA_VERSION, SchemaDocument};
 pub use error::SchemaError;
-pub use field::{AutoKind, BinaryKind, FieldKind, NumericKind};
+pub use field::{AutoKind, BinaryKind, FieldKind, MultiValueKind, NumericKind};
 pub use properties::{FieldProperties, IndexMode};
-pub use value::FieldValue;
+pub use value::{ComplexField, ComplexRecord, FieldValue};
