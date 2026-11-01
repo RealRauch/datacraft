@@ -339,4 +339,13 @@ mod tests {
         };
         assert!(invalid.to_string().contains("no column"));
     }
+
+    /// A header click cycles None -> ascending -> descending -> ascending
+    /// (step 21.4, U8): the first click sorts, later clicks toggle.
+    #[test]
+    fn sort_toggle_cycles_ascending_and_descending() {
+        assert_eq!(SortOrder::None.toggled(), SortOrder::Ascending);
+        assert_eq!(SortOrder::Ascending.toggled(), SortOrder::Descending);
+        assert_eq!(SortOrder::Descending.toggled(), SortOrder::Ascending);
+    }
 }

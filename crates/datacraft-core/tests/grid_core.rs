@@ -5,7 +5,8 @@
 //! identically in both views. No window needed to test any of this.
 
 use datacraft_core::grid::{
-    GridMetrics, clamp_scroll, column_at_x, column_span_x, visible_row_range,
+    DEFAULT_COLUMN_WIDTH, GridMetrics, MIN_COLUMN_WIDTH, clamp_scroll, column_at_x, column_span_x,
+    effective_widths, resize_column, resize_handle_at, visible_row_range,
 };
 use proptest::prelude::*;
 
@@ -68,6 +69,47 @@ fn column_hit_testing_matches_span_geometry() {
     }
     assert_eq!(column_span_x(0, &widths), (0.0, 80.0));
     assert_eq!(column_span_x(2, &widths), (200.0, 40.0));
+}
+
+#[test]
+fn resize_handles_sit_on_column_right_edges() {
+    let widths = [80.0, 120.0, 40.0];
+    assert_eq!(resize_handle_at(80.0, &widths, 3.0), Some(0));
+    assert_eq!(resize_handle_at(82.9, &widths, 3.0), Some(0));
+    assert_eq!(resize_handle_at(77.2, &widths, 3.0), Some(0));
+    assert_eq!(resize_handle_at(199.0, &widths, 3.0), Some(1));
+    assert_eq!(
+        resize_handle_at(240.0, &widths, 3.0),
+        Some(2),
+        "the last right edge resizes the last column"
+    );
+    assert_eq!(resize_handle_at(84.0, &widths, 3.0), None);
+    assert_eq!(resize_handle_at(0.0, &widths, 3.0), None);
+    assert_eq!(resize_handle_at(80.0, &[], 3.0), None);
+}
+
+#[test]
+fn resized_columns_stop_at_the_minimum() {
+    assert_eq!(resize_column(140.0, -30.0), 110.0);
+    assert_eq!(resize_column(30.0, -100.0), MIN_COLUMN_WIDTH);
+    assert_eq!(resize_column(MIN_COLUMN_WIDTH, -1.0), MIN_COLUMN_WIDTH);
+}
+
+#[test]
+fn effective_widths_pad_new_columns_and_drop_stale_ones() {
+    assert_eq!(
+        effective_widths(&[], 2, DEFAULT_COLUMN_WIDTH),
+        [DEFAULT_COLUMN_WIDTH; 2]
+    );
+    assert_eq!(
+        effective_widths(&[90.0], 3, DEFAULT_COLUMN_WIDTH),
+        [90.0, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH]
+    );
+    assert_eq!(
+        effective_widths(&[90.0, 100.0], 1, DEFAULT_COLUMN_WIDTH),
+        [90.0],
+        "widths of removed columns do not linger"
+    );
 }
 
 proptest! {
