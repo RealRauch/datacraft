@@ -17,7 +17,7 @@ use crate::state::{AppState, DatabaseState, TabState};
 /// The headless application core: reducer + state + storage port.
 pub struct Core {
     pub(crate) state: AppState,
-    port: Box<dyn StoragePort>,
+    pub(crate) port: Box<dyn StoragePort>,
 }
 
 impl Core {

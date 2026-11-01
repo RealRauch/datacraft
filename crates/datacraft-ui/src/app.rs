@@ -43,6 +43,10 @@ pub struct App {
     form_record: HashMap<TabId, usize>,
     /// Selected design-grid field index per tab.
     design_selection: HashMap<TabId, usize>,
+    /// Current preview page of a report tab (defaults to the first).
+    preview_page: HashMap<TabId, usize>,
+    /// Cached preview pages per report tab (refreshed on dispatch).
+    previews: HashMap<TabId, Vec<datacraft_core::report_preview::PreviewPage>>,
 }
 
 /// View mode of a document tab (presentation state).
@@ -70,6 +74,8 @@ impl App {
             results: HashMap::new(),
             tab_mode: HashMap::new(),
             form_selection: HashMap::new(),
+            preview_page: HashMap::new(),
+            previews: HashMap::new(),
             drags: HashMap::new(),
             form_record: HashMap::new(),
             design_selection: HashMap::new(),
@@ -161,6 +167,21 @@ impl App {
         self.form_selection.insert(tab_id, control);
     }
 
+    /// Current preview page of a report tab (defaults to the first).
+    pub fn preview_page(&self, tab_id: TabId) -> usize {
+        self.preview_page.get(&tab_id).copied().unwrap_or(0)
+    }
+
+    /// Sets the current preview page of a report tab.
+    pub fn set_preview_page(&mut self, tab_id: TabId, page: usize) {
+        self.preview_page.insert(tab_id, page);
+    }
+
+    /// Cached print-preview pages of a report tab (empty until refreshed).
+    pub fn preview_pages(&self, tab_id: TabId) -> &[datacraft_core::report_preview::PreviewPage] {
+        self.previews.get(&tab_id).map(Vec::as_slice).unwrap_or(&[])
+    }
+
     /// Report design documents (ribbon naming, report views).
     pub fn reports(&self) -> &[datacraft_core::report::ReportDef] {
         self.snapshot()
@@ -203,6 +224,7 @@ impl App {
             .any(|e| matches!(e, Event::DatabaseClosed | Event::TableDropped { .. }))
         {
             self.rows.clear();
+            self.previews.clear();
         }
         if events.iter().any(|e| {
             matches!(
@@ -250,6 +272,15 @@ impl App {
                 },
             ) {
                 self.rows.insert(tab.id, rows);
+            }
+        }
+        // Report previews refresh with every mutation pass — design edits
+        // and row changes both flow through dispatch.
+        for tab in &self.snapshot.tabs {
+            if tab.object_kind == "report"
+                && let Ok(pages) = self.core.report_preview(&tab.object_name)
+            {
+                self.previews.insert(tab.id, pages);
             }
         }
         // Query results refresh whenever the QBE model changed.

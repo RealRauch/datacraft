@@ -156,3 +156,60 @@ pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         }
     });
 }
+
+/// Renders the print preview of one report tab (step 10.5): the paginated
+/// pages from `Core::report_preview` with prev/next navigation. Pure paint.
+pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
+    let pages = app.preview_pages(tab.id);
+    if pages.is_empty() {
+        ui.label("Preview unavailable");
+        return;
+    }
+    let page_count = pages.len();
+    let current = app.preview_page(tab.id).min(page_count - 1);
+    let items = pages[current].items.clone();
+
+    ui.horizontal(|ui| {
+        if ui.small_button("\u{25c0}").clicked() && current > 0 {
+            app.set_preview_page(tab.id, current - 1);
+        }
+        ui.label(egui::RichText::new(format!(
+            "Page {} of {page_count}",
+            current + 1
+        )));
+        if ui.small_button("\u{25b6}").clicked() && current + 1 < page_count {
+            app.set_preview_page(tab.id, current + 1);
+        }
+        ui.weak("(print preview \u{2014} one page per record)");
+    });
+    ui.separator();
+
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        // Preview scale: 0.9 keeps an A4 page inside typical window heights.
+        let scale = 0.9;
+        let size = egui::vec2(595.0 * scale, 842.0 * scale);
+        let (canvas_rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+        let painter = ui.painter_at(canvas_rect);
+        painter.rect_filled(canvas_rect, 0.0, ui.visuals().extreme_bg_color);
+        painter.rect_stroke(
+            canvas_rect,
+            0.0,
+            ui.visuals().widgets.noninteractive.fg_stroke,
+            egui::StrokeKind::Inside,
+        );
+        let font = egui::TextStyle::Body.resolve(ui.style());
+        for item in &items {
+            let rect = egui::Rect::from_min_size(
+                canvas_rect.min + egui::vec2(item.rect.x * scale, item.rect.y * scale),
+                egui::vec2(item.rect.width * scale, item.rect.height * scale),
+            );
+            painter.text(
+                rect.left_top() + egui::vec2(2.0, 2.0),
+                egui::Align2::LEFT_TOP,
+                &item.text,
+                font.clone(),
+                ui.visuals().text_color(),
+            );
+        }
+    });
+}

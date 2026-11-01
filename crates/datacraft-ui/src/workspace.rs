@@ -80,11 +80,8 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                 TabMode::Design => crate::form_design::form_design_ui(app, &tab, ui),
             },
             Some(tab) if tab.object_kind == "report" => match app.tab_mode(tab.id) {
-                // The print preview runtime lands with step 10.5; both
-                // modes render the design canvas until then.
-                TabMode::Datasheet | TabMode::Design => {
-                    crate::report_design::report_design_ui(app, &tab, ui)
-                }
+                TabMode::Datasheet => crate::report_design::report_preview_ui(app, &tab, ui),
+                TabMode::Design => crate::report_design::report_design_ui(app, &tab, ui),
             },
             Some(tab) if tab.object_kind == "query" => match app.tab_mode(tab.id) {
                 TabMode::Datasheet => crate::datasheet::query_results_ui(app, &tab, ui),

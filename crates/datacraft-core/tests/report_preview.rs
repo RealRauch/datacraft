@@ -91,9 +91,15 @@ fn bound_controls_render_the_record_values() {
     report.controls.push(bound("activeBox", "Active"));
     let pages = paginate(&report, Some(&customers()), &rows());
     let texts: Vec<String> = pages[0].items.iter().map(|i| i.text.clone()).collect();
-    assert_eq!(texts, vec!["Customer:".to_owned(), "Alice".to_owned(), "Yes".to_owned()]);
+    assert_eq!(
+        texts,
+        vec!["Customer:".to_owned(), "Alice".to_owned(), "Yes".to_owned()]
+    );
     let texts: Vec<String> = pages[1].items.iter().map(|i| i.text.clone()).collect();
-    assert_eq!(texts, vec!["Customer:".to_owned(), "Bob".to_owned(), "No".to_owned()]);
+    assert_eq!(
+        texts,
+        vec!["Customer:".to_owned(), "Bob".to_owned(), "No".to_owned()]
+    );
 }
 
 #[test]
@@ -130,7 +136,9 @@ fn core_report_preview_reads_rows_through_the_port() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
     });
-    core.dispatch(Command::CreateReport { name: "Weekly".into() });
+    core.dispatch(Command::CreateReport {
+        name: "Weekly".into(),
+    });
     core.dispatch(Command::SetReportSource {
         report: "Weekly".into(),
         table: "Customers".into(),
