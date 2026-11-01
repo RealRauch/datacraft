@@ -27,9 +27,9 @@ inner rings are still open.
 | Ring | Capability | Depends on | Cost / boundedness | Phase mapping |
 |------|------------|-----------|--------------------|---------------|
 | 0 | Storage: Jet4 read → ACE read → Jet4 write → ACE write | — | high; spec + oracle driven | Phase 2, H9 (write), L1 (Jet3) |
-| 1 | **Expression service** — `=Now()`, `IIf()`, `[Field] & " x"`, `Format()`, default values, validation rules, calculated fields | — | small, well-bounded language | new — to be phased (natural fit alongside Phases 3/6) |
+| 1 | **Expression service** — `=Now()`, `IIf()`, `[Field] & " x"`, `Format()`, default values, validation rules, calculated fields | — | small, well-bounded language | Phase 15 (planned) |
 | 2 | Query engine — Jet SQL + the algebra stored in `MSysQueries` (QBE compiles to it) | R1 | hard but bounded | Phase 7 |
-| 3 | Macros — DoCmd action set (~60 documented actions, declarative) | R1 | bounded, low cost per action | new — post-Phase-8 candidate |
+| 3 | Macros — DoCmd action set (~60 documented actions, declarative) | R1 | bounded, low cost per action | Phase 17 (planned; read-only inventory first) |
 | 4 | Forms/Reports runtime — bound forms, events, record navigation, requery | R1, R3 | largest single item | Phase 8 (canvas/design first), runtime extends 8.3 |
 | 5 | VBA | R4 **and** runtime semantics | out of scope as interpreter — see §3 | extraction/analysis only |
 
@@ -129,18 +129,24 @@ any code embedded in database files without explicit user consent/permissions.
 
 | # | Milestone | Unlocks | Status |
 |---|-----------|---------|--------|
-| M0 | Storage read milestones (Jet4 → ACE) | everything | 🔄 Phase 2 (Jet3 read landed in Phase 10) |
-| M1 | Expression service (Ring 1) | queries, macros, forms, validation | ⬜ to be phased |
+| M0 | Storage read milestones (Jet4 → ACE) | everything | 🔄 Phase 2 (Jet4; Jet3 read in Phase 10) · ACCDB/ACE read → Phase 14 (planned) |
+| M1 | Expression service (Ring 1) | queries, macros, forms, validation | ⬜ Phase 15 (planned, H41) |
 | M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 |
-| M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | 🔄 Jet4 writer landed in Phase 10 (create tables + insert rows; update/delete, LVAL chains and the Access-repair gate follow) |
-| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview; grouped/aggregate bands await M1) |
-| M5 | Macros (Ring 3) | unattended app logic | ⬜ to be phased |
-| M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ⬜ incremental with storage milestones |
+| M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | 🔄 Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles → Phase 11 (steps 11.10–11.11) |
+| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview; grouped/aggregate bands await M1 → Phase 15) |
+| M5 | Macros (Ring 3) | unattended app logic | ⬜ Phase 17 (planned; read-only inventory first, L4) |
+| M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ⬜ Phase 17 (planned, L5) |
 | M7 | `ScriptEngine` trait hook in core (unimplemented) + engine decision | stage-2 scripting when the §4 gate opens | ⬜ gated (Ring 4 + demand) |
 | — | VBA execution | — | ⛔ out of scope (see §3 gate) |
 
 Ordering notes:
 
+- Planned sequence (2026-11-01): Phase 13 (SQL/SQLite) → Phase 14 (ACCDB read)
+  → Phase 11 extension (update/delete + journal profiles) → Phase 15
+  (expressions + saved queries) → Phase 16 (complex values, encryption, Jet3
+  remainders) → Phase 17 (macros, VBA extraction, docs accuracy). Phase numbers
+  stay fixed; execution follows this sequence (precedent: Phase 12 ran before
+  Phase 11).
 - M1 is the keystone and deliberately front-loaded — every later ring consumes
   it. It has no natural owner in the Phase 2–10 plan yet; give it a phase when
   Phase 3 planning starts.

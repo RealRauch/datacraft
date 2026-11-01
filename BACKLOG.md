@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T13:35
+# BACKLOG.md — Open items (As of: 2026-11-01T13:54
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -34,17 +34,77 @@
 - **Scope:** `Command::RunSql { sql }` + `Core::run_sql` → `SqlResult { columns, rows }` + `Event::SqlRan { rows }` / `Failed` (MCP/CLI erben automatisch über den Transport). UI: SQL-Fenster (ToggleCommand wie der Relationship-Mapper, Ribbon-Aktion, monospaced Editor + Run, Ergebnis-Grid im Access-Look — `grid_ui` aus datasheet.rs geteilt).
 - **Acceptance:** Engine-Suite (SELECT/WHERE/ORDER/Aggregat/JOIN über MockPort-Quellen; Gate lehnt INSERT/DELETE/Multi-Statement präzise ab); UI-Flow manuell verifiziert; E2E: RunSql über JSON-RPC.
 
+### [ ] H38 — ACCDB-Fixtures pinnen (ACE 2007/2010/2016, manifest + Hash-Gate) — 🟠
+- **Location:** `fixtures/` (neue .accdb-Dateien), `fixtures/manifest`, `.github/workflows/ci.yml` (Hash-Gate), `docs/FIXTURE-SOURCES.md`
+- **Ansatz:** Echte ACE-Dateien (2007/2010/2016+) aus den dokumentierten Quellen beschaffen; Pinning analog testV2000 (pristine + optionale „access-touched"-Variante); Manifest-Einträge mit sha256; CI-Hash-Gate erweitert. Header-Erkennung („Standard ACE DB", FormatVersion::Ace) bleibt Vorschaulese-Referenz.
+- **Acceptance:** Mindestens eine .accdb je ACE-Generation (2007/2010/2016) gepinnt; Manifest + Hash-Gate grün; Herkunft/Erzeugung in `docs/FIXTURE-SOURCES.md` dokumentiert.
+
+### [ ] H39 — ACCDB-Read-Pfad (Catalog/TDEF/TDAT über den Jet4-4096-Pfad) — 🟠
+- **Location:** `crates/datacraft-storage/src/jet/header.rs`, `reader.rs`, `catalog.rs`, `tdef.rs`, `row.rs`; `src/port_adapter.rs`; `crates/datacraft-core/src/types.rs` (`DatabaseFormat`)
+- **Ansatz:** `FormatVersion::Ace`-Dateien über den bewährten Jet4-Lesepfad bedienen (4096-Byte-Pages sind bereits der Jet4-Pfad); ACE-spezifische Header-/Catalog-Feinheiten gegen die neuen Fixtures (H38) verifizieren; `DatabaseFormat::Ace` bis UI/CLI/MCP durchreichen (Format-Anzeige „(ACE)"). Oracle-Gegenprobe (mdb-tools) je Tabelle/Zeile; nicht unterstützte ACE-Varianten → präziser `Unsupported`.
+- **Acceptance:** Tabellen/Zeilen/Beziehungen der ACCDB-Fixtures dekodieren vollständig; Oracle-Abgleich grün; Status-/Titelanzeige zeigt ACE-Format; präzise Fehlerfälle getestet.
+
+### [ ] H40 — Jet4 Update/Delete-Writes (RowOp am echten Dateipfad) — 🟠
+- **Location:** `crates/datacraft-storage/src/jet/writer.rs`, `writer_tables.rs` (ggf. neu: `writer_rows.rs`), `encode.rs`; `src/port_adapter.rs`; `crates/datacraft-storage/tests/`
+- **Ansatz:** `RowOp::Update/Delete` am echten Dateipfad bedienen: In-Place-Update für Fixed-Width-Zeilen, Löschen über Zeilen-Flag + konsequente Free-Space-/Usage-Map-Pflege; LVAL-Ketten (Memo/OLE) beim Update sauber ersetzen/freigeben; Round-Trip decode∘encode∘decode plus mdb-export-Oracle wie im bestehenden Writer-Muster.
+- **Acceptance:** Update/Delete-Tests auf Fixtures inkl. Memo/OLE-Feldern; Free-Map-Konsistenz nach Deletes; Oracle liest unsere Dateien fehlerfrei; Reopen verifiziert Persistenz der Änderungen; `Unsupported` für noch nicht qualifizierte Zeilenformen.
+
+### [ ] H41 — Expression-Service (Ring 1 / Roadmap M1) — 🟠
+- **Location:** `crates/datacraft-core/src/expr/` (neu: lexer/parser/eval), `schema/field.rs` (Default/Validation), `report.rs`/`reports.rs` (Bänder), `command.rs`
+- **Ansatz:** Kleiner, totaler Ausdrucks-Evaluator: Feldreferenzen, Literale, Arithmetik/Konkatenation, Vergleichslogik, NULL-Semantik nach Access-Muster; Funktionsfamilien IIf/NZ/Format, Datums-/String-Funktionen, LIKE mit Access-Wildcards; typisiert über `FieldKind`. Anschlüsse: Default Values, Validation Rules, Calculated Fields sowie gruppierte/aggregate Report-Bänder (löst die M4-Report-Reste aus Phase 10 ein).
+- **Acceptance:** Evaluator-Suite inkl. NULL-/Coercion-Fällen; Validation-/Default-/Calculated-Tests; Report-Preview mit Gruppen-/Aggregatbändern; Ausdrücke über Bus/MCP/CLI ausführbar; Expressions-Suite ist die Referenz für Ring 2/3.
+
 ---
 
 ## 🟡 MEDIUM
 
 > No open items.
 
+### [ ] M2 — Journaled/restringierte Write-Profile (Preview, Bestätigung, Feldfamilien) — 🟡
+- **Location:** `crates/datacraft-core/src/command.rs`, `database.rs`, `event.rs`; `crates/datacraft-storage/src/port_adapter.rs`
+- **Ansatz:** Schreiboperationen optional als Journal führen: Preview (Diff) → Bestätigung → Ausführung → Rollback-Info; Restriktion auf qualifizierte Feldfamilien (typsicher, Fixed-Width zuerst); Operationen außerhalb des Profils → präzise `Unsupported` statt stiller Annahmen. Baut auf H40 auf und ist die Voraussetzung für gefahrloses UI-Editing (Phase 11).
+- **Acceptance:** Preview→Confirm→Apply-Tests; Rollback-/Journal-Tests; Restriktionsfehler präzise; E2E über JSON-RPC.
+
+### [ ] M3 — Native Saved Queries (MSysQueries → QueryDef) — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/` (MSysQueries-Decoder), `src/port_adapter.rs`; `crates/datacraft-core/src/qbe.rs`, `state.rs`
+- **Ansatz:** `MSysQueries`-Zeilen lesen und auf `QueryDef` abbilden (Attribut-Codes in `docs/FORMAT-JET.md` dokumentieren); nicht abbildbare Konstrukte als dokumentierte Reste. Native Queries erscheinen in der Nav-Pane-Gruppe „Queries" und öffnen read-only im QBE; eigene Queries im Sidecar bleiben unberührt (kein Rückschreiben vor ACE-Writer-Entscheidung).
+- **Acceptance:** Fixture mit nativen Queries; Listing + QueryDef-Öffnung über Bus/MCP; nicht unterstützte Attributtypen → präziser `Unsupported`; Nav-Pane zeigt native Queries neben Sidecar-Queries.
+
+### [ ] M4 — Complex Values/Multivalue (Attachment-Subtabellen real decodieren) — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/` (Complex-Decoder: benannte Unit-Tabellen f_*), `row.rs`, `tdef.rs`; `crates/datacraft-core/src/schema/field.rs`, `port.rs`
+- **Ansatz:** Complex-Type-Spalten (0x12) real auflösen: zugehörige Value-/Attachment-/Named-Subtabellen erkennen, Werte pro Zeile gruppieren; Domain-Modell erweitern (Multivalue-/Attachment-Werte statt Binary-Platzhalter). Datasheet zeigt zusammengeführte Werte; QBE-Prädikate können auf Multivalue-Feldern arbeiten (EXISTS-Semantik dokumentiert).
+- **Acceptance:** Fixture mit Multivalue-/Attachment-Feldern; Werte vollständig dekodiert; Datasheet-/QBE-Support getestet; Oracle-Gegenprobe; `FieldKind`-Mapping dokumentiert.
+
+### [ ] M5 — Verschlüsselung/Passwort (RC4-Decode, Passwortpfad UI/CLI/MCP) — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/header.rs`, `reader.rs` (Decode-Pfad), `row.rs`; `src/port_adapter.rs`; `crates/datacraft-core/src/port.rs` (Passwort-Parameter); UI-Prompt, CLI-Flag, MCP-Parameter
+- **Ansatz:** RC4-Decoder für die verschlüsselte Header-/Datenregion (Schlüsselpfade je Formatgeneration in `docs/FORMAT-JET.md` dokumentieren); Passwort am `StoragePort::open`; alle Clients können Passwort übergeben (UI-Prompt, CLI `-p`, MCP-Parameter); verschlüsselte Test-Fixtures selbst erzeugt/pinnt (keine Fremd-Dateien mit echten Inhalten).
+- **Acceptance:** Verschlüsselte Fixtures öffnen mit korrektem Passwort über alle vier Clients; falsches/fehlendes Passwort → präziser Fehler; Unverschlüsselte Files unchanged; Doku in FORMAT-JET.md.
+
+### [ ] M6 — Doku-Genauigkeit (Kompatibilitätsaussagen ↔ verifizierter Stand) — 🟡
+- **Location:** `README.md`, `docs/ARCHITECTURE.md` (§1 Mission, ADR-1), `docs/ROADMAP.md`, `docs/FORMAT-JET.md`
+- **Ansatz:** Kompatibilitätsaussagen an den verifizierten Stand angleichen: ehrliche Read/Write-Matrix je Format (Jet3/Jet4/ACCDB/SQLite) mit Verweis auf die jeweiligen Tests/Gates; „bit-for-bit"-Claim auf die tatsächlich geprüften Pfade eingrenzen; Sidecar-vs-native-Absicherung (ADR-1) prominent halten. Reihenfolge: nach Abschluss von Phase 14 (ACCDB-Read), final mit Phase 17.
+- **Acceptance:** Jede Kompatibilitätsaussage in README/ARCHITECTURE ist durch einen benannten Test/Gate gedeckt; Review-Absatz je Format; keine Übertreibung gegenüber der Fixture-Abdeckung.
+
 ---
 
 ## 🟢 LOW
 
 > No open items.
+
+### [ ] L3 — Jet3-Reste (Jump-Table-Zeilen >255 Bytes, verkettete TDEFs) — 🟢
+- **Location:** `crates/datacraft-storage/src/jet/jet3.rs`, `tdef.rs`, `reader.rs`; `docs/FORMAT-JET.md` (Reste-Matrix)
+- **Ansatz:** Jump-Table-Mechanismus für Zeilen >255 Bytes dekodieren; verkettete TDEF-Mehrfachseiten lesen; Reste-Matrix in FORMAT-JET.md entsprechend schrumpfen; präzise `Unsupported` nur für wirklich Exotisches.
+- **Acceptance:** Jet3-Fixture mit großen Zeilen (Jump-Table) und verketteter TDEF; oracle-geprüft (mdb-tools); Reste-Matrix aktualisiert; bestehende Jet3-Tests bleiben grün.
+
+### [ ] L4 — Makro-Inventur (Ring 3 / Roadmap M5) — 🟢
+- **Location:** `crates/datacraft-storage/src/jet/` (Makro-Objekte lesen), `src/port_adapter.rs`; `crates/datacraft-core/src/state.rs`, `command.rs`, `ids.rs`; UI Nav-Pane
+- **Ansatz:** Makro-Objekte als neue `ObjectKind`-Variante lesen (Inventur: Name, grob strukturierte Aktionsliste); Nav-Pane-Gruppe „Makros"; read-only Präsentation über Bus/MCP. DoCmd-Ausführung bleibt bewusst Ring-3-Umfang (Roadmap M5) und ist hier **nicht** Teil des Steps.
+- **Acceptance:** Fixture mit Makros; Inventur über Bus/MCP abfragbar; Nav-Pane zeigt Makro-Gruppe; keine Ausführungssemantik im Scope.
+
+### [ ] L5 — VBA-Extraction + Viewer + statische Analyse (Roadmap M6) — 🟢
+- **Location:** `crates/datacraft-storage/src/` (`MSysAccessStorage` → CFBF-Reassembly), `crates/datacraft-core/src/vba/` (neu: dir-/Modul-Stream-Decoder), UI-Viewer-Modul; `command.rs`
+- **Ansatz:** Embedded Compound File reassemblieren, `dir`-/Modul-Streams je `[MS-OVBA]` decodieren, Quelltext pro Modul ins Domain-Modell; Viewer (Modulbaum + Quelle + Volltextsuche) wie jedes andere DB-Objekt; headless statische Analyse (Call-Graph, eingebettete SQL-Literale, Tabellen-/Query-Referenzen, ungenutzte Module) — MCP-freundlich. Oracle: Referenz-*Outputs* als Golden-Daten, nie Code (Clean-Room-Muster wie H7). **Keine Ausführung** (ADR-2-Grenze).
+- **Acceptance:** Fixture mit VBA-Projekt; Extraction deterministisch/stabil; Viewer + Analyse über Bus/MCP; ADR-2-Grenze (kein Interpreter) in Tests verankert.
 
 ---
 

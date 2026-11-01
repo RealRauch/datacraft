@@ -22,6 +22,53 @@
 - **11.7 Datasheet: Neue-Zeile**
 - **11.8 Sidecar-UI + Aufräumen + access_gate-Beispiel**
 - **11.9 Phase 11 Quality Gate Review**
+- **11.10 Jet4 Update/Delete-Writes (H40)**
+- **11.11 Journaled Write-Profile (M2)**
+### Phase 13 — SQL- & SQLite-Integration
+
+**Scope (Steps):**
+
+- **13.1 SQLite-Datenquelle & Detection (H35)**
+- **13.2 SQLite-Writes & InsertRow-Command (H36)**
+- **13.3 SQL-Engine & UI-Fenster (H37)**
+- **13.4 Phase 13 Quality Gate Review**
+### Phase 14 — ACCDB/ACE-Read
+
+**Scope (Steps):**
+
+- **14.1 ACCDB-Fixtures pinnen (H38)**
+- **14.2 ACCDB-Read-Pfad (H39)**
+- **14.3 Phase 14 Quality Gate Review**
+### Phase 15 — Expression-Service & Saved Queries
+
+**Scope (Steps):**
+
+- **15.1 Expression-Kern: Evaluator & Funktionen (H41)**
+- **15.2 Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41)**
+- **15.3 Native Saved Queries: MSysQueries (M3)**
+- **15.4 Phase 15 Quality Gate Review**
+### Phase 16 — Complex Values, Verschlüsselung & Jet3-Reste
+
+**Scope (Steps):**
+
+- **16.1 Complex Values/Multivalue (M4)**
+- **16.2 Verschlüsselung/Passwort (M5)**
+- **16.3 Jet3-Reste: Jump-Table & TDEF-Ketten (L3)**
+- **16.4 Phase 16 Quality Gate Review**
+### Phase 17 — Makros, VBA & Doku-Genauigkeit
+
+**Scope (Steps):**
+
+- **17.1 Makro-Inventur (L4)**
+- **17.2 VBA-Extraction & Viewer (L5)**
+- **17.3 Statische Analyse headless (L5)**
+- **17.4 Doku-Genauigkeit: Kompatibilitätsmatrix (M6)**
+- **17.5 Phase 17 Quality Gate Review**
+
+
+
+
+
 
 
 
@@ -105,3 +152,25 @@
 | 12.4 | Status-Leiste: Kontext + Record-Navigation (core-seitig) | ✅ |
 | 12.5 | Datasheet im Icon-Look (Teal-Header, Zeilenselektor) | ✅ |
 | 12.6 | Phase 12 Quality Gate Review | ✅ |
+| 11.10 | Jet4 Update/Delete-Writes (H40) | ⬜ |
+| 11.11 | Journaled Write-Profile (M2) | ⬜ |
+| 13.1 | SQLite-Datenquelle & Detection (H35) | ⬜ |
+| 13.2 | SQLite-Writes & InsertRow-Command (H36) | ⬜ |
+| 13.3 | SQL-Engine & UI-Fenster (H37) | ⬜ |
+| 13.4 | Phase 13 Quality Gate Review | ⬜ |
+| 14.1 | ACCDB-Fixtures pinnen (H38) | ⬜ |
+| 14.2 | ACCDB-Read-Pfad (H39) | ⬜ |
+| 14.3 | Phase 14 Quality Gate Review | ⬜ |
+| 15.1 | Expression-Kern: Evaluator & Funktionen (H41) | ⬜ |
+| 15.2 | Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41) | ⬜ |
+| 15.3 | Native Saved Queries: MSysQueries (M3) | ⬜ |
+| 15.4 | Phase 15 Quality Gate Review | ⬜ |
+| 16.1 | Complex Values/Multivalue (M4) | ⬜ |
+| 16.2 | Verschlüsselung/Passwort (M5) | ⬜ |
+| 16.3 | Jet3-Reste: Jump-Table & TDEF-Ketten (L3) | ⬜ |
+| 16.4 | Phase 16 Quality Gate Review | ⬜ |
+| 17.1 | Makro-Inventur (L4) | ⬜ |
+| 17.2 | VBA-Extraction & Viewer (L5) | ⬜ |
+| 17.3 | Statische Analyse headless (L5) | ⬜ |
+| 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | ⬜ |
+| 17.5 | Phase 17 Quality Gate Review | ⬜ |
