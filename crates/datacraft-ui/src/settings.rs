@@ -61,6 +61,16 @@ impl LanguageSetting {
             Self::English => Some(Lang::English),
         }
     }
+
+    /// Menu label: the endonyms stay fixed so every user can find their
+    /// language; only `Auto` is translated.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Auto => crate::i18n::t("Auto"),
+            Self::German => "Deutsch",
+            Self::English => "English",
+        }
+    }
 }
 
 /// Window size in points.
@@ -321,9 +331,9 @@ mod tests {
 
     #[test]
     fn language_labels_switch_with_the_current_language() {
-        use crate::i18n::{LANG_LOCK, Lang, set_lang};
+        use crate::i18n::{Lang, lang_lock, set_lang};
 
-        let _guard = LANG_LOCK.lock().expect("language lock");
+        let _guard = lang_lock();
         set_lang(Lang::German);
         assert_eq!(LanguageSetting::Auto.label(), "Automatisch");
         assert_eq!(LanguageSetting::German.label(), "Deutsch");

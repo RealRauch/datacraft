@@ -194,6 +194,10 @@ mod tests {
     fn opening_a_database_prefills_the_sidecar_path_and_saving_reports_a_notice() {
         use datacraft_core::command::Command;
 
+        // The status notices are UI text: pin the language while asserting.
+        let _guard = crate::i18n::lang_lock();
+        crate::i18n::set_lang(crate::i18n::Lang::English);
+
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(Command::OpenDatabase {
             path: "shop.mdb".into(),
@@ -395,7 +399,7 @@ mod tests {
     fn startup_settings_apply_the_language_and_survive_a_restart() {
         use crate::settings::{LanguageSetting, Settings};
 
-        let _guard = crate::i18n::LANG_LOCK.lock().expect("language lock");
+        let _guard = crate::i18n::lang_lock();
         let dir =
             std::env::temp_dir().join(format!("datacraft-startup-settings-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -423,11 +427,9 @@ mod tests {
     fn switching_the_language_applies_live_and_persists_the_choice() {
         use crate::settings::LanguageSetting;
 
-        let _guard = crate::i18n::LANG_LOCK.lock().expect("language lock");
-        let dir = std::env::temp_dir().join(format!(
-            "datacraft-language-switch-{}",
-            std::process::id()
-        ));
+        let _guard = crate::i18n::lang_lock();
+        let dir =
+            std::env::temp_dir().join(format!("datacraft-language-switch-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp dir");
         let path = dir.join("ui.json");
@@ -456,19 +458,18 @@ mod tests {
     fn a_failed_settings_write_surfaces_a_precise_reason() {
         use crate::settings::LanguageSetting;
 
-        let _guard = crate::i18n::LANG_LOCK.lock().expect("language lock");
+        let _guard = crate::i18n::lang_lock();
         crate::i18n::set_lang(crate::i18n::Lang::English);
-        let dir = std::env::temp_dir().join(format!(
-            "datacraft-settings-fail-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("datacraft-settings-fail-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp dir");
 
         let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
-        // A directory path cannot be written as a file.
+        // A directory path cannot be written as a file. Keep the language
+        // English so the surfaced message itself is deterministic.
         app.set_settings_path(Some(dir.clone()));
-        app.set_language_setting(LanguageSetting::German);
+        app.set_language_setting(LanguageSetting::English);
         assert!(
             app.last_error()
                 .unwrap_or_default()

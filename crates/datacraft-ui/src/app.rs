@@ -134,6 +134,18 @@ impl App {
         self.settings.language
     }
 
+    /// Switches the UI language live and persists the choice (ADR-5).
+    pub fn set_language_setting(&mut self, setting: crate::settings::LanguageSetting) {
+        self.settings.language = setting;
+        crate::i18n::init_language(setting.lang());
+        if let Err(reason) = self.persist_settings() {
+            self.last_error = Some(crate::i18n::tr(
+                "Settings could not be saved: {reason}",
+                &[("reason", &reason.to_string())],
+            ));
+        }
+    }
+
     /// Writes the settings file; `Ok(())` when none is attached.
     pub fn persist_settings(&self) -> std::io::Result<()> {
         match &self.settings_path {

@@ -16,7 +16,16 @@ mod parity;
 
 /// Serializes the tests that touch the process-wide current language.
 #[cfg(test)]
-pub(crate) static LANG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static LANG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Test guard for the process-wide language; a panic in one test must not
+/// cascade into the others (poison recovery).
+#[cfg(test)]
+pub(crate) fn lang_lock() -> std::sync::MutexGuard<'static, ()> {
+    LANG_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 /// UI display language (never leaves this crate).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -235,7 +244,7 @@ mod tests {
 
     #[test]
     fn set_language_switches_the_current_language() {
-        let _guard = LANG_LOCK.lock().expect("language lock");
+        let _guard = lang_lock();
         set_lang(Lang::German);
         assert_eq!(t("File"), "Datei");
         set_lang(Lang::English);
@@ -251,7 +260,7 @@ mod tests {
         use datacraft_core::command::Command;
         use datacraft_core::port::MockPort;
 
-        let _guard = LANG_LOCK.lock().expect("language lock");
+        let _guard = lang_lock();
         let run = || {
             let mut app = crate::app::App::new(Box::new(MockPort::new()));
             app.dispatch(Command::OpenDatabase {

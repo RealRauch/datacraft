@@ -13,6 +13,7 @@ use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
 use crate::app::App;
 use crate::i18n::{t, tr};
+use crate::settings::LanguageSetting;
 use crate::theme::INK_SOFT;
 
 /// Renders the ribbon in Access structure (step 12.2): a tab strip row on
@@ -108,10 +109,47 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
             });
             ui.separator();
         }
+        if tab.id == "file" {
+            language_group(ui, app);
+        }
     });
     if let Some(command) = intent {
         app.dispatch(command);
     }
+}
+
+/// Language switcher (step 19.2, item I5): the File tab owns the UI-only
+/// language choice; selecting applies live and persists to `ui.json`.
+fn language_group(ui: &mut egui::Ui, app: &mut App) {
+    ui.vertical(|ui| {
+        ui.set_min_width(120.0);
+        ui.add_space(2.0);
+        let current = app.language_setting();
+        egui::ComboBox::from_id_salt("ribbon.file.language")
+            .selected_text(current.label())
+            .show_ui(ui, |ui| {
+                for choice in [
+                    LanguageSetting::Auto,
+                    LanguageSetting::German,
+                    LanguageSetting::English,
+                ] {
+                    if ui
+                        .selectable_label(current == choice, choice.label())
+                        .clicked()
+                    {
+                        app.set_language_setting(choice);
+                    }
+                }
+            });
+        ui.add_space(1.0);
+        ui.with_layout(
+            egui::Layout::top_down_justified(egui::Align::Center),
+            |ui| {
+                ui.label(egui::RichText::new(t("Language")).small().color(INK_SOFT));
+            },
+        );
+    });
+    ui.separator();
 }
 
 /// An Access-sized command button (comfortable hit target).
