@@ -5,6 +5,8 @@
 //! maps to one command, every observable outcome is queryable as serializable
 //! state. See `docs/ARCHITECTURE.md` §5.
 
+pub mod schema;
+
 use serde::{Deserialize, Serialize};
 
 /// Kind of a database object, following the Access object paradigm.

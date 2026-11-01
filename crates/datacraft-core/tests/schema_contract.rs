@@ -8,7 +8,7 @@
 
 use datacraft_core::schema::{
     AutoKind, BinaryKind, FieldDef, FieldKind, FieldProperties, FieldValue, IndexMode, NumericKind,
-    SchemaError,
+    SchemaError, TableDef,
 };
 use proptest::prelude::*;
 
@@ -117,11 +117,16 @@ fn default_properties_validate_for_every_kind() {
 
 #[test]
 fn allow_zero_length_is_text_only() {
-    let mut props = FieldProperties::default();
-    props.allow_zero_length = true;
+    let props = FieldProperties {
+        allow_zero_length: true,
+        ..Default::default()
+    };
     ok(props.validate_for(&text_kind(10)));
     ok(props.validate_for(&FieldKind::Memo));
-    err_contains(props.validate_for(&FieldKind::DateTime), "allow_zero_length");
+    err_contains(
+        props.validate_for(&FieldKind::DateTime),
+        "allow_zero_length",
+    );
     err_contains(
         props.validate_for(&FieldKind::Number(NumericKind::LongInteger)),
         "allow_zero_length",
@@ -139,14 +144,13 @@ fn expression_properties_must_not_be_empty_strings() {
     ] {
         let mut props = FieldProperties::default();
         setter(&mut props);
-        err_contains(
-            props.validate_for(&text_kind(10)),
-            "empty",
-        );
+        err_contains(props.validate_for(&text_kind(10)), "empty");
     }
     // The caption is display text, not an expression — empty is allowed.
-    let mut props = FieldProperties::default();
-    props.caption = Some(String::new());
+    let props = FieldProperties {
+        caption: Some(String::new()),
+        ..Default::default()
+    };
     ok(props.validate_for(&text_kind(10)));
 }
 
@@ -159,16 +163,17 @@ fn null_passes_kind_validation_regardless_of_required() {
     // `required` is a property concern checked on FieldDef; the kind itself
     // accepts Null and leaves the decision to the field definition.
     ok(text_kind(10).validate_value(&FieldValue::Null));
-    ok(
-        FieldKind::Boolean { tri_state: false }.validate_value(&FieldValue::Null),
-    );
+    ok(FieldKind::Boolean { tri_state: false }.validate_value(&FieldValue::Null));
 }
 
 #[test]
 fn text_counts_characters_not_bytes() {
     let kind = text_kind(3);
     ok(kind.validate_value(&FieldValue::Text("äöü".into())));
-    err_contains(kind.validate_value(&FieldValue::Text("äöüs".into())), "length");
+    err_contains(
+        kind.validate_value(&FieldValue::Text("äöüs".into())),
+        "length",
+    );
 }
 
 #[test]
@@ -196,10 +201,17 @@ fn integer_kinds_enforce_their_access_ranges() {
 fn float_kinds_reject_non_finite_values() {
     let single = FieldKind::Number(NumericKind::Single);
     ok(single.validate_value(&FieldValue::Float(1.5)));
-    err_contains(single.validate_value(&FieldValue::Float(f64::NAN)), "finite");
-    err_contains(single.validate_value(&FieldValue::Float(f64::INFINITY)), "finite");
     err_contains(
-        FieldKind::Number(NumericKind::Double).validate_value(&FieldValue::Float(f64::NEG_INFINITY)),
+        single.validate_value(&FieldValue::Float(f64::NAN)),
+        "finite",
+    );
+    err_contains(
+        single.validate_value(&FieldValue::Float(f64::INFINITY)),
+        "finite",
+    );
+    err_contains(
+        FieldKind::Number(NumericKind::Double)
+            .validate_value(&FieldValue::Float(f64::NEG_INFINITY)),
         "finite",
     );
 }
@@ -210,12 +222,18 @@ fn datetime_rejects_non_finite_and_out_of_ole_range() {
     ok(kind.validate_value(&FieldValue::DateTime(0.0)));
     ok(kind.validate_value(&FieldValue::DateTime(-657434.0))); // 100-01-01
     ok(kind.validate_value(&FieldValue::DateTime(2958465.0))); // 9999-12-31
-    err_contains(kind.validate_value(&FieldValue::DateTime(f64::NAN)), "finite");
+    err_contains(
+        kind.validate_value(&FieldValue::DateTime(f64::NAN)),
+        "finite",
+    );
     err_contains(
         kind.validate_value(&FieldValue::DateTime(2958466.0)),
         "range",
     );
-    err_contains(kind.validate_value(&FieldValue::DateTime(-657435.0)), "range");
+    err_contains(
+        kind.validate_value(&FieldValue::DateTime(-657435.0)),
+        "range",
+    );
 }
 
 #[test]
@@ -224,8 +242,7 @@ fn autonumber_values_are_engine_assigned() {
     ok(kind.validate_value(&FieldValue::Null));
     err_contains(kind.validate_value(&FieldValue::Integer(1)), "engine");
     err_contains(
-        FieldKind::AutoNumber(AutoKind::ReplicationId)
-            .validate_value(&FieldValue::Guid([0u8; 16])),
+        FieldKind::AutoNumber(AutoKind::ReplicationId).validate_value(&FieldValue::Guid([0u8; 16])),
         "engine",
     );
 }
@@ -235,7 +252,10 @@ fn kind_mismatch_names_expected_and_found() {
     let result = FieldKind::Currency.validate_value(&FieldValue::Text("9.99".into()));
     let msg = result.expect_err("expected mismatch").to_string();
     assert!(msg.contains("currency"), "expected kind family: {msg}");
-    assert!(msg.to_lowercase().contains("text"), "found value family: {msg}");
+    assert!(
+        msg.to_lowercase().contains("text"),
+        "found value family: {msg}"
+    );
 }
 
 #[test]
@@ -245,10 +265,7 @@ fn boolean_binary_guid_currency_accept_only_their_family() {
         FieldKind::Boolean { tri_state: false }.validate_value(&FieldValue::Integer(1)),
         "boolean",
     );
-    ok(
-        FieldKind::Binary(BinaryKind::OleObject)
-            .validate_value(&FieldValue::Binary(vec![1, 2, 3])),
-    );
+    ok(FieldKind::Binary(BinaryKind::OleObject).validate_value(&FieldValue::Binary(vec![1, 2, 3])));
     err_contains(
         FieldKind::Binary(BinaryKind::OleObject).validate_value(&FieldValue::Text("x".into())),
         "binary",
@@ -258,13 +275,11 @@ fn boolean_binary_guid_currency_accept_only_their_family() {
         FieldKind::Currency.validate_value(&FieldValue::Float(1.0)),
         "currency",
     );
-    ok(
-        FieldKind::Number(NumericKind::Decimal {
-            precision: 5,
-            scale: 2,
-        })
-        .validate_value(&FieldValue::Decimal(-12345)),
-    );
+    ok(FieldKind::Number(NumericKind::Decimal {
+        precision: 5,
+        scale: 2,
+    })
+    .validate_value(&FieldValue::Decimal(-12345)));
 }
 
 // ---------------------------------------------------------------------------
@@ -282,14 +297,18 @@ fn field_def_rejects_required_null_and_disallowed_empty_string() {
 
     let mut strict = FieldDef::new("note", FieldKind::Memo);
     strict.properties.required = true;
-    strict.properties.allow_zero_length = true;
+    // Access semantics: an empty string is rejected only when
+    // allow_zero_length is false (required governs Null, not "").
     err_contains(strict.validate_value(&FieldValue::Text("".into())), "empty");
     ok(strict.validate_value(&FieldValue::Text("note".into())));
+
+    strict.properties.allow_zero_length = true;
+    ok(strict.validate_value(&FieldValue::Text("".into())));
 }
 
 #[test]
 fn field_def_validates_name_and_kind_and_properties() {
-    let mut field = FieldDef::new("", text_kind(5));
+    let field = FieldDef::new("", text_kind(5));
     err_contains(field.validate(), "name");
 
     let mut field = FieldDef::new("amount", FieldKind::Number(NumericKind::Byte));
@@ -318,7 +337,13 @@ fn table_def_rejects_duplicate_field_names_case_insensitively() {
 
 #[test]
 fn table_def_rejects_empty_table_name() {
-    let table = TableDef::new("", vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))]);
+    let table = TableDef::new(
+        "",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
     err_contains(table.validate(), "name");
 }
 
@@ -400,8 +425,10 @@ proptest! {
 
 #[test]
 fn index_mode_is_part_of_the_property_model() {
-    let mut props = FieldProperties::default();
-    props.indexed = IndexMode::NoDuplicates;
+    let props = FieldProperties {
+        indexed: IndexMode::NoDuplicates,
+        ..Default::default()
+    };
     ok(props.validate_for(&text_kind(10)));
     assert_eq!(props.indexed, IndexMode::NoDuplicates);
     assert_ne!(props.indexed, IndexMode::DuplicatesOk);
