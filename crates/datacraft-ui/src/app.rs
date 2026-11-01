@@ -57,18 +57,12 @@ impl eframe::App for App {
         });
 
         if self.snapshot().nav_pane_visible {
-            egui::Panel::left("datacraft.navpane").show(ui, |ui| {
-                ui.heading("Navigation");
-                if let Some(db) = &self.snapshot().database {
-                    for table in &db.tables {
-                        ui.push_id(&table.ui_test_id, |ui| {
-                            ui.label(&table.name);
-                        });
-                    }
-                } else {
-                    ui.label("No database open");
-                }
-            });
+            egui::Panel::left("datacraft.navpane")
+                .resizable(true)
+                .default_size(220.0)
+                .show(ui, |ui| {
+                    crate::nav_pane::nav_pane_ui(self, ui);
+                });
         }
 
         egui::Panel::bottom("datacraft.status").show(ui, |ui| {
