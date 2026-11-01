@@ -15,24 +15,13 @@ use crate::app::App;
 use crate::i18n::{t, tr};
 
 /// Section headers (English keys; also the id-salt prefix, so automation
-/// ids stay language-neutral).
+/// ids stay language-neutral). The catalog parity test enumerates them.
 pub(crate) const SECTION_TABLES: &str = "Tables";
 pub(crate) const SECTION_QUERIES: &str = "Queries";
 pub(crate) const SECTION_FORMS: &str = "Forms";
 pub(crate) const SECTION_REPORTS: &str = "Reports";
 pub(crate) const SECTION_MACROS: &str = "Macros";
 pub(crate) const SECTION_MODULES: &str = "Modules";
-
-/// All section headers in render order (the catalog parity test consumes
-/// this list).
-pub(crate) const SECTIONS: [&str; 6] = [
-    SECTION_TABLES,
-    SECTION_QUERIES,
-    SECTION_FORMS,
-    SECTION_REPORTS,
-    SECTION_MACROS,
-    SECTION_MODULES,
-];
 
 /// Renders the navigation pane contents (the panel itself is shown by the
 /// shell only while `nav_pane_visible`).

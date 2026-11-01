@@ -11,11 +11,10 @@ use datacraft_core::snapshot::UiStateSnapshot;
 use crate::app::App;
 use crate::i18n::{t, tr};
 
-/// Status-line keys with a table count (the catalog parity test consumes
-/// the list).
-const STATUS_TABLE: &str = "{database} ({format}) — {count} table";
-const STATUS_TABLES: &str = "{database} ({format}) — {count} tables";
-pub(crate) const STATUS_KEYS: [&str; 2] = [STATUS_TABLE, STATUS_TABLES];
+/// Status-line keys with a table count (the catalog parity test enumerates
+/// them).
+pub(crate) const STATUS_TABLE: &str = "{database} ({format}) — {count} table";
+pub(crate) const STATUS_TABLES: &str = "{database} ({format}) — {count} tables";
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -146,7 +145,11 @@ fn status_label(snapshot: &UiStateSnapshot, active: Option<(&str, &str)>) -> Str
         ),
         None => {
             let count = db.tables.len();
-            let key = if count == 1 { STATUS_TABLE } else { STATUS_TABLES };
+            let key = if count == 1 {
+                STATUS_TABLE
+            } else {
+                STATUS_TABLES
+            };
             tr(
                 key,
                 &[

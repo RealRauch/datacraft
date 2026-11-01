@@ -10,14 +10,17 @@ use std::collections::BTreeSet;
 use datacraft_core::palette::TOOLBOX;
 use datacraft_core::ribbon::ribbon_spec;
 
-use super::de::TABLE;
+use super::de::entries;
 
 /// Every catalog key is unique, non-empty and actually translated.
 #[test]
 fn catalog_keys_are_unique_and_translations_non_empty() {
     let mut seen = BTreeSet::new();
-    for &(english, german) in TABLE {
-        assert!(!german.trim().is_empty(), "empty translation for {english:?}");
+    for &(english, german) in entries() {
+        assert!(
+            !german.trim().is_empty(),
+            "empty translation for {english:?}"
+        );
         assert!(seen.insert(english), "duplicate entry for {english:?}");
     }
 }
@@ -26,7 +29,7 @@ fn catalog_keys_are_unique_and_translations_non_empty() {
 /// would render a literal brace or drop a value silently.
 #[test]
 fn translations_keep_the_english_placeholder_set() {
-    for &(english, german) in TABLE {
+    for &(english, german) in entries() {
         assert_eq!(
             placeholders(english),
             placeholders(german),
@@ -41,8 +44,7 @@ fn translations_keep_the_english_placeholder_set() {
 fn every_ui_key_is_translated_and_no_entry_is_orphaned() {
     let mut used = scanned_keys();
     used.extend(dynamic_keys());
-    let catalog: BTreeSet<String> = TABLE
-        .iter()
+    let catalog: BTreeSet<String> = entries()
         .map(|(english, _)| (*english).to_owned())
         .collect();
 
@@ -71,10 +73,16 @@ fn dynamic_keys() -> BTreeSet<String> {
     for entry in TOOLBOX {
         keys.insert(entry.label.to_owned());
     }
-    for key in crate::nav_pane::SECTIONS {
-        keys.insert(key.to_owned());
-    }
-    for key in crate::shell::STATUS_KEYS {
+    for key in [
+        crate::nav_pane::SECTION_TABLES,
+        crate::nav_pane::SECTION_QUERIES,
+        crate::nav_pane::SECTION_FORMS,
+        crate::nav_pane::SECTION_REPORTS,
+        crate::nav_pane::SECTION_MACROS,
+        crate::nav_pane::SECTION_MODULES,
+        crate::shell::STATUS_TABLE,
+        crate::shell::STATUS_TABLES,
+    ] {
         keys.insert(key.to_owned());
     }
     keys.insert(crate::password_prompt::WRONG_PASSWORD.to_owned());
