@@ -80,3 +80,28 @@ fn tab_placeholders_name_the_object_and_the_arriving_phase() {
         "Report preview for \"Invoices\" arrives in Phase 8."
     );
 }
+
+#[test]
+fn display_values_are_user_renderable() {
+    use datacraft_core::present::display_value;
+    use datacraft_core::schema::FieldValue;
+
+    assert_eq!(display_value(&FieldValue::Null), "");
+    assert_eq!(display_value(&FieldValue::Boolean(true)), "Yes");
+    assert_eq!(display_value(&FieldValue::Boolean(false)), "No");
+    assert_eq!(display_value(&FieldValue::Integer(-42)), "-42");
+    assert_eq!(display_value(&FieldValue::Float(1.5)), "1.5");
+    assert_eq!(display_value(&FieldValue::Currency(123_456)), "12.3456");
+    assert_eq!(display_value(&FieldValue::Currency(-10_000)), "-1");
+    assert_eq!(
+        display_value(&FieldValue::DateTime(45_657.5)),
+        "2024-12-31 12:00"
+    );
+    assert_eq!(display_value(&FieldValue::Decimal(-9)), "-9");
+    assert_eq!(display_value(&FieldValue::Text("hi ✓".into())), "hi ✓");
+    assert_eq!(display_value(&FieldValue::Binary(vec![1, 2, 3])), "<binary: 3 bytes>");
+    assert_eq!(
+        display_value(&FieldValue::Guid([0u8; 16])),
+        "00000000-0000-0000-0000-000000000000"
+    );
+}
