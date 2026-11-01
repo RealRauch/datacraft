@@ -114,3 +114,113 @@ fn an_unknown_ace_version_is_a_precise_unsupported() {
         other => panic!("expected Unsupported, got {other:?}"),
     }
 }
+
+#[test]
+fn every_pinned_ace_table_decodes_rows() {
+    let expected = [
+        ("testV2007.accdb", "Table1", 2usize),
+        ("testV2010.accdb", "Table1", 2usize),
+        ("attachmentsV2016.accdb", "Table1", 3usize),
+    ];
+    for (name, _, generation) in pinned() {
+        let mut port = DetectingPort::new();
+        port.open(&fixture(name))
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        for table in port.tables() {
+            port.read_rows(
+                &table.name,
+                datacraft_core::port::RowRange {
+                    start: 0,
+                    len: usize::MAX,
+                },
+            )
+            .unwrap_or_else(|e| panic!("{generation} table {}: {e}", table.name));
+        }
+        let want = expected
+            .iter()
+            .find(|(file, _, _)| *file == name)
+            .map(|(_, table, rows)| (*table, *rows))
+            .expect("expected row count is listed");
+        let rows = port
+            .read_rows(
+                want.0,
+                datacraft_core::port::RowRange {
+                    start: 0,
+                    len: usize::MAX,
+                },
+            )
+            .expect("the base table reads");
+        assert_eq!(rows.len(), want.1, "{generation} {}", want.0);
+    }
+}
+
+#[test]
+fn ace_values_match_the_mdb_tools_export() {
+    use datacraft_core::schema::FieldValue;
+    let mut port = DetectingPort::new();
+    port.open(&fixture("testV2007.accdb"))
+        .expect("open ACE 2007");
+    let rows = port
+        .read_rows(
+            "Table1",
+            datacraft_core::port::RowRange { start: 0, len: 10 },
+        )
+        .expect("read Table1");
+    let mut values: Vec<Vec<FieldValue>> = rows;
+    values.sort_by_key(|row| format!("{row:?}"));
+
+    let small = vec![
+        FieldValue::Text("a".into()),
+        FieldValue::Text("b".into()),
+        FieldValue::Integer(0),
+        FieldValue::Integer(0),
+        FieldValue::Integer(0),
+        FieldValue::Float(0.0),
+        FieldValue::DateTime(29_932.0),
+        FieldValue::Currency(0),
+        FieldValue::Boolean(false),
+    ];
+    let large = vec![
+        FieldValue::Text("abcdefg".into()),
+        FieldValue::Text("hijklmnop".into()),
+        FieldValue::Integer(2),
+        FieldValue::Integer(222),
+        FieldValue::Integer(333_333_333),
+        FieldValue::Float(444.555),
+        FieldValue::DateTime(27_293.0),
+        FieldValue::Currency(35_000),
+        FieldValue::Boolean(true),
+    ];
+    let mut expected = vec![small, large];
+    expected.sort_by_key(|row| format!("{row:?}"));
+    assert_eq!(values, expected);
+}
+
+#[test]
+fn ace_relationships_are_reported() {
+    let mut port = DetectingPort::new();
+    port.open(&fixture("attachmentsV2016.accdb"))
+        .expect("open ACE 2016");
+    let relationships = port.relationships().expect("read relationships");
+    assert!(!relationships.is_empty(), "the fixture carries catalog FKs");
+}
+
+#[test]
+fn a_truncated_ace_file_is_rejected_precisely() {
+    let mut file = bytes("testV2007.accdb");
+    file.truncate(file.len() - 512);
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-ace-truncated-{}.accdb",
+        std::process::id()
+    ));
+    std::fs::write(&path, &file).expect("write truncated fixture");
+    let mut port = DetectingPort::new();
+    let err = port.open(&path).expect_err("truncated files are corrupt");
+    let _ = std::fs::remove_file(&path);
+    match err {
+        datacraft_core::port::PortError::OpenFailed { detail } => {
+            assert!(detail.contains("not a multiple"), "{detail}");
+        }
+        other => panic!("expected OpenFailed, got {other:?}"),
+    }
+}

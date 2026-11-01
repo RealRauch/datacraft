@@ -91,6 +91,22 @@ impl FileHeader {
             first_page[0x16],
             first_page[0x17],
         ]);
+        // Product string and format version must agree: a mixed pair is not
+        // a file any real writer produces (precise Unsupported, not a guess).
+        if is_ace && matches!(version, JET3_VERSION | JET4_VERSION) {
+            return Err(StorageError::Unsupported {
+                reason: format!(
+                    "ACE product string with Jet format version 0x{version:08x} is not a                      supported combination"
+                ),
+            });
+        }
+        if is_jet && matches!(version, ACE_2007_VERSION | ACE_2010_VERSION) {
+            return Err(StorageError::Unsupported {
+                reason: format!(
+                    "Jet product string with ACE format version 0x{version:08x} is not a                      supported combination"
+                ),
+            });
+        }
         let (format, page_size) = match version {
             JET3_VERSION => (FormatVersion::Jet3, crate::jet::page::JET3_PAGE_SIZE),
             JET4_VERSION => (FormatVersion::Jet4, 4096),

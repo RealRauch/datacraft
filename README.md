@@ -68,6 +68,7 @@ _By the ArtCraft team._
 
 | Area | Highlights |
 | --- | --- |
+| **Storage — ACE read** | `.accdb` (ACE 2007/2010/2016) decodes through the same Jet4 4096-byte path — header/product consistency check, catalog, TDEF/TDAT, rows, relationships; three pristine fixtures are pinned and the mdb-tools oracle cross-checks columns, row counts and values in CI; unverified header combinations answer a precise `Unsupported` |
 | **Storage — SQLite sources** | `SqlitePort` behind the same `StoragePort`: magic detection, `sqlite_master` catalog, `PRAGMA table_info` schema mapped onto Access field kinds (documented affinity table), foreign keys as relationships, row windows over rowid order, and writes (table create/drop, parameterized row inserts) — GUI, MCP and CLI open and fill `.sqlite` files through the same command vocabulary |
 | **Storage — Jet3/Jet4 read** | `StorageEngine` trait boundary; Jet page layer and file-header decoder; TDEF/TDAT decoders for Jet4 (unicode/compression) and Jet3 (CP1252); embedded OLE columns (fixed 0x11 long binary) decode; golden-file tests against sha256-pinned fixtures; every parse cross-checked against the libmdb oracle in CI |
 | **Storage — Jet4 write** | clean-room writer core: usage-map-consistent page allocation (global free map + per-table used/free maps, black-box verified against real Access files), table creation with catalog rows, row insertion with free-map page reuse; decode∘encode∘decode round-trips and an `mdb-export`-reads-our-files oracle test |

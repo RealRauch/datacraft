@@ -327,6 +327,34 @@ pinned yet; the oracle comparison applies when one is sourced (see
   names and cell text. No compressed form exists.
 - **Writer**: unchanged — the writer milestone targets Jet4/ACE only.
 
+## ACE / ACCDB read path (2026-11-01, step 14.2, BACKLOG H39)
+
+Verified against the three pinned pristine fixtures (`fixtures/testV2007.accdb`,
+`testV2010.accdb`, `attachmentsV2016.accdb`; hashes and provenance in
+`fixtures/manifest` / `docs/FIXTURE-SOURCES.md`).
+
+- **Header:** product string `Standard ACE DB ` at 0x04; version dword at
+  0x14 is `0x00000002` (ACE 2007/2016 writer format) or `0x00000103` (ACE
+  2010). Pages are 4096 bytes; the file size is an exact multiple. The
+  product string and version must agree — a `Standard ACE DB` file with a Jet
+  version dword (or the reverse) is a precise `Unsupported`, not a guess.
+- **Catalog/TDEF/TDAT:** the ACE files decode through the **unchanged Jet4
+  4096-byte path**: MSysObjects catalog at TDEF page 2, TDEF blocks, row
+  layout, unicode compression, null-mask bit = `col_num`. Observed on all
+  three fixtures (user tables `Table1`–`Table4`, plus complex subtables).
+- **Complex-value subtables:** ACE stores them as tables named
+  `f_<32 hex>_Data` / `f_<32 hex>_Field1` (attachment/multivalue backing
+  tables). They are visible in the catalog and decode as ordinary tables;
+  mdb-tools hides them as system tables, so the oracle skips them with this
+  reason until M4 (Phase 16) groups them into their owning column.
+- **Oracle cross-check:** `mdb-export` (mdbtools 1.0.1) reads all three
+  fixtures. Column names/order and row counts match our decoder on every
+  non-`f_` table, and `Table1`'s values match exactly (text, byte/integer/
+  long, double, OLE date, currency scaled 10⁻⁴, boolean). The CI oracle job
+  runs `tests/oracle.rs` over `testV2000.mdb` plus all three `.accdb` files.
+- **Client surface:** `DatabaseFormat::Ace` reaches UI/CLI/MCP through the
+  snapshot; the status line renders `(ACE)`.
+
 ## SQLite backend (2026-11-01, step 13.1, BACKLOG H35)
 
 SQLite is the second source family behind the same `StoragePort`; it is not

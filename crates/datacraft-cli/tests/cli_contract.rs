@@ -218,3 +218,27 @@ fn a_failing_pre_open_reports_the_failure_with_exit_code_two() {
         "the command never ran: {text}"
     );
 }
+
+#[test]
+fn ace_databases_open_through_the_cli_vocabulary() {
+    let ace = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("testV2010.accdb");
+    let mut core = Core::new(Box::new(datacraft_storage::detecting::DetectingPort::new()));
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "open".to_owned(),
+            ace.to_string_lossy().to_string(),
+            "--json".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.contains("\"format\":\"ace\""), "{text}");
+    assert!(text.contains("\"name\":\"testV2010\""), "{text}");
+}

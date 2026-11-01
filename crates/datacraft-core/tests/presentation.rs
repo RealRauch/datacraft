@@ -78,7 +78,7 @@ fn format_names_are_human_readable() {
         datacraft_core::port::DatabaseFormat::Jet4.to_string(),
         "Jet4"
     );
-    assert_eq!(datacraft_core::port::DatabaseFormat::Ace.to_string(), "Ace");
+    assert_eq!(datacraft_core::port::DatabaseFormat::Ace.to_string(), "ACE");
     assert_eq!(
         datacraft_core::port::DatabaseFormat::Sqlite.to_string(),
         "SQLite"
@@ -203,4 +203,22 @@ fn field_kinds_display_access_ui_names() {
         "Attachment"
     );
     assert_eq!(field_kind_display(&FieldKind::Guid), "GUID");
+}
+
+#[test]
+fn the_status_line_names_the_ace_format() {
+    use datacraft_core::present::status_line;
+    let mut state = datacraft_core::state::AppState::new();
+    state.database = Some(datacraft_core::state::DatabaseState {
+        path: "shop.accdb".into(),
+        name: "shop".into(),
+        format: datacraft_core::port::DatabaseFormat::Ace,
+        tables: Vec::new(),
+        relationships: Vec::new(),
+        queries: Vec::new(),
+        forms: Vec::new(),
+        reports: Vec::new(),
+    });
+    let snapshot = datacraft_core::snapshot::UiStateSnapshot::of(&state);
+    assert_eq!(status_line(&snapshot, None), "shop (ACE) — 0 tables");
 }

@@ -70,7 +70,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      DATACRAFT_ORACLE_MDB: fixtures/testV2000.mdb
+      DATACRAFT_ORACLE_MDB: fixtures/testV2000.mdb,fixtures/testV2007.accdb,fixtures/testV2010.accdb,fixtures/attachmentsV2016.accdb
     steps:
       - uses: actions/checkout@v4
       # ubuntu: distro package; macOS: homebrew (windows has no mdbtools

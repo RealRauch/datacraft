@@ -14,17 +14,30 @@ use datacraft_storage::jet::Jet4TableReader;
 
 /// Resolves `DATACRAFT_ORACLE_MDB`: as given, or — cargo runs tests with the
 /// package root as CWD — relative to the workspace root two levels up.
-fn fixture_path() -> Option<PathBuf> {
+fn fixture_paths() -> Option<Vec<PathBuf>> {
     let raw = std::env::var("DATACRAFT_ORACLE_MDB").ok()?;
-    let direct = Path::new(&raw);
-    if direct.exists() {
-        return Some(direct.to_path_buf());
+    let mut paths = Vec::new();
+    for entry in raw.split(',') {
+        let entry = entry.trim();
+        if entry.is_empty() {
+            continue;
+        }
+        let direct = Path::new(entry);
+        let resolved = if direct.exists() {
+            direct.to_path_buf()
+        } else {
+            let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+                .join(entry);
+            if !workspace.exists() {
+                continue;
+            }
+            workspace
+        };
+        paths.push(resolved);
     }
-    let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join(&raw);
-    workspace.exists().then_some(workspace)
+    (!paths.is_empty()).then_some(paths)
 }
 
 fn mdb_export_available() -> bool {
@@ -36,11 +49,21 @@ fn mdb_export_available() -> bool {
 
 #[test]
 fn oracle_fixture_decodes_and_matches_mdb_tools() {
-    let Some(path) = fixture_path() else {
+    let Some(paths) = fixture_paths() else {
         eprintln!("oracle skipped: DATACRAFT_ORACLE_MDB not set");
         return;
     };
-    let file = std::fs::read(&path).expect("oracle fixture must be readable");
+    for path in &paths {
+        check_fixture(path);
+    }
+}
+
+/// Compares one fixture against mdb-tools (our side always, the CLI where
+/// installed). ACE complex-value subtables (`f_<guid>_*`) are skipped with
+/// their documented reason: mdb-tools hides them as system tables and the
+/// domain grouping lands with M4 (Phase 16).
+fn check_fixture(path: &Path) {
+    let file = std::fs::read(path).expect("oracle fixture must be readable");
     let reader = Jet4TableReader::new(file).expect("our decoder opens the real fixture");
     let names = reader.table_names().expect("catalog enumeration");
     eprintln!("oracle tables: {names:?}");
@@ -53,6 +76,10 @@ fn oracle_fixture_decodes_and_matches_mdb_tools() {
     // other error is a failure.
     let mut tables = Vec::new();
     for name in &names {
+        if name.starts_with("f_") {
+            eprintln!("oracle table {name} skipped: complex-value subtable (M4)");
+            continue;
+        }
         match reader.open_table(name) {
             Ok(table) => tables.push((name, table)),
             Err(StorageError::Unsupported { reason }) => {

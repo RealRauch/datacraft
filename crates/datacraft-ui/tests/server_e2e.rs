@@ -298,3 +298,29 @@ fn run_sql_over_the_wire() {
         "{failed}"
     );
 }
+
+#[test]
+fn opens_an_ace_fixture_over_the_wire() {
+    let ace = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("testV2007.accdb");
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": ace.to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"inspect"}),
+        ],
+    );
+    let events = &result_of(&responses[0])["events"];
+    assert_eq!(events[0]["DatabaseOpened"]["format"], "ace", "{events}");
+    let snapshot = &result_of(&responses[1]);
+    assert_eq!(snapshot["database"]["format"], "ace", "{snapshot}");
+    assert_eq!(
+        snapshot["database"]["tables"][0]["name"], "Table1",
+        "{snapshot}"
+    );
+}
