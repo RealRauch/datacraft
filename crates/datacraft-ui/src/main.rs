@@ -33,6 +33,7 @@ mod shell;
 mod sql_window;
 mod theme;
 mod vba_viewer;
+mod window;
 mod workspace;
 use eframe::egui;
 
