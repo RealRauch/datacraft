@@ -345,8 +345,8 @@ stay English until core carries stable failure codes (BACKLOG I6).
 `ui.json`, strictly separate from the sidecar.** The `.datacraft` sidecar is
 per-database design data (ADR-1) and must not absorb app preferences. The
 settings file sits at `<platform config dir>/datacraft/ui.json` (serde JSON,
-config dir resolved without a new dependency), stores language and window
-geometry now and appearance later, and treats unknown values as defaults
+config dir resolved without a new dependency), stores language, appearance and
+window geometry, and treats unknown values as defaults
 instead of failing. Precedence: explicit setting > `DATACRAFT_LANGUAGE` >
 system detection > auto. Writes are atomic by decision — a sibling temporary
 file renamed over the target, so an interrupted save can never truncate the
@@ -375,8 +375,8 @@ rule rejects. Its token set is larger (`tab_strip`, `status_bar`,
 tokens named above and adds a slot only when a region needs it. Typography:
 the model registers Inter Regular/Medium/SemiBold, JetBrains Mono for
 monospace and Source Sans 3 as a fallback behind Inter; DataCraft keeps
-Inter + JetBrains Mono and lets egui's faces be the fallback. `Appearance` is
-installed with `set_visuals_of(Theme::Light/Dark)` and the tokens are picked
+Inter + JetBrains Mono and lets egui's faces be the fallback. Both palettes
+are installed into the light and dark styles, and the tokens are picked
 per frame from `visuals.dark_mode`; on Linux, where `system_theme` is `None`,
 the model polls the XDG desktop portal every 4 s.
 
@@ -415,3 +415,25 @@ off-screen windows) — both under BACKLOG U13. The switcher sits in the File
 ribbon group because no Options dialog exists yet; it moves into the
 backstage with U7, while the model keeps it under
 File ▸ Options ▸ Interface language.
+
+**Implemented scope (Phase 20, 2026-11-01):** the look rebase is implemented
+per ADR-6. `crates/datacraft-ui/src/theme.rs` holds `Tokens` with
+`light()`/`dark()` and the `Geometry` rungs; `apply` installs both palettes
+into the light and dark styles, and `tokens(visuals)` selects the set per
+frame. All paint sites — ribbon, navigation pane, tab strip, status bar,
+workspace canvas and windows — read tokens; `accent_fill` is the
+contrast-checked variant for text-bearing accent surfaces (datasheet header).
+WCAG contrast tests cover both palettes. `theme/fonts.rs` embeds Inter
+Regular/Medium/SemiBold and JetBrains Mono (SIL OFL 1.1, unmodified,
+attributed under `assets/fonts/`), registers the named families
+`medium`/`semibold` and installs the type scale; the German layout budgets
+are measured against the shipped fonts. `icons/` is one name-keyed painter
+dispatcher (section painters `file`, `data`, `objects`) covering every ribbon
+action id and `ObjectKind` slug; ribbon buttons, navigation rows and document
+tabs paint them, and the AccessKit labels stay intact. `appearance.rs` owns
+`Appearance { Light, Dark, System }`, persists it in `ui.json` and applies it
+as the egui theme preference; on Linux a `gdbus` portal poll (4 s, tested
+parser) makes System follow the OS live. Phase-gate screenshots
+(before/after light, after dark) live in `docs/phase-20/`. One defect found
+by the gate was fixed inline: the empty workspace now paints the canvas token
+instead of showing the window clear colour (BACKLOG F3).
