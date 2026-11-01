@@ -144,3 +144,17 @@
 - **10.9 Final Documentation & Release Prep (h34)**
 - **10.10 Phase 10 Quality Gate Review**
 **Verification:** Final gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 41 sections ok, llvm-cov --fail-under-lines 95 exit 0 (95.11% lines), file-size gate 0 violations, zero debt markers (CI word-boundary pattern), fixture manifest verified. Phase 1-10 plan is complete; the manual Access-repair check on written files remains a documented follow-up. (checkpoint: 7f9f9fc)
+
+---
+
+### Phase 12 — Access-Fidelity: Struktur & Icon-Thema
+
+**Scope (Steps):**
+
+- **12.1 Theme-Modul: ArtCraft-Palette + egui Visuals**
+- **12.2 Ribbon: Access-Struktur (Tab-Zeile, Gruppen-Captions, Trenner)**
+- **12.3 Nav-Pane: Collapsing-Gruppen im Access-Stil**
+- **12.4 Status-Leiste: Kontext + Record-Navigation (core-seitig)**
+- **12.5 Datasheet im Icon-Look (Teal-Header, Zeilenselektor)**
+- **12.6 Phase 12 Quality Gate Review**
+**Verification:** Final gate review passed (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 41 sections ok, llvm-cov >=95 lines exit 0, file-size clean, fixture manifest verified. App wears the icon palette (teal tile field as theme colour, paper chrome, ink text); ribbon/nav/status/datasheet follow Access structure. Visual acceptance (optically appealing) is the user's look at the running app. (checkpoint: 2400d58)
