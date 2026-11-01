@@ -170,3 +170,14 @@
 - **13.3 SQL-Engine & UI-Fenster (H37)**
 - **13.4 Phase 13 Quality Gate Review**
 **Verification:** Quality gate review passed: fmt, clippy -D warnings, cargo test --workspace, coverage 95.05% (ui excluded), file-size gate (<500 lines), docs_validate clean, no TODO/FIXME/HACK/XXX. Review findings fixed in c9cdf67 (read-only SQLite files read and reject writes precisely; mapping tests split). Phase commits: ca61638/5a04e94 (13.1), 99ddb0b/390c79c (13.2), 1a58292/0400f63 (13.3), c9cdf67 (gate).
+
+---
+
+### Phase 14 — ACCDB/ACE-Read
+
+**Scope (Steps):**
+
+- **14.1 ACCDB-Fixtures pinnen (H38)**
+- **14.2 ACCDB-Read-Pfad (H39)**
+- **14.3 Phase 14 Quality Gate Review**
+**Verification:** Quality gate passed: fmt, clippy -D warnings, 49 suites green, coverage 95.13%, file-size gate, fixture manifest 5/5 OK, docs_validate clean. Phase commits: aef9b8f (14.1), d6a3a66 (14.2), 976c062 (gate); ROADMAP M0 updated; complex f_ subtable interim documented on M4.
