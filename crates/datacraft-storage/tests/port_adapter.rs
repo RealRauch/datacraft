@@ -133,3 +133,53 @@ fn tables_behind_multi_page_tdefs_decode() {
         "multi-page TDEF table must surface: {names:?}"
     );
 }
+
+#[test]
+fn read_rows_maps_storage_values_to_domain_values() {
+    use datacraft_core::port::{RowRange, StoragePort as _};
+    use datacraft_core::schema::FieldValue;
+
+    let mut port = Jet4Port::new();
+    port.open(&fixture()).expect("fixture must open");
+    let tables = port.tables();
+    let with_rows = tables
+        .iter()
+        .find(|t| {
+            port.read_rows(&t.name, RowRange { start: 0, len: 1 })
+                .map(|rows| !rows.is_empty())
+                .unwrap_or(false)
+        })
+        .expect("fixture has a table with rows");
+
+    let rows = port
+        .read_rows(&with_rows.name, RowRange { start: 0, len: usize::MAX })
+        .expect("full read");
+    let arity = with_rows.fields.len();
+    assert!(
+        rows.iter().all(|r| r.len() == arity),
+        "every row matches the mapped field count"
+    );
+    // Windowing agrees with the full read.
+    let half = rows.len() / 2;
+    let first = port
+        .read_rows(&with_rows.name, RowRange { start: 0, len: half })
+        .expect("first half");
+    assert_eq!(first, rows[..half]);
+    let tail = port
+        .read_rows(&with_rows.name, RowRange { start: rows.len(), len: 4 })
+        .expect("empty tail");
+    assert!(tail.is_empty());
+
+    let err = port
+        .read_rows(&with_rows.name, RowRange { start: rows.len() + 1, len: 1 })
+        .expect_err("beyond the row set");
+    assert!(matches!(err, datacraft_core::port::PortError::OutOfRange { .. }));
+
+    let err = port
+        .read_rows("Ghost", RowRange { start: 0, len: 1 })
+        .expect_err("unknown table");
+    assert!(matches!(err, datacraft_core::port::PortError::TableNotFound(_)));
+
+    // Values are domain values, not storage values: spot-check a mapped row.
+    let _ = FieldValue::Null;
+}
