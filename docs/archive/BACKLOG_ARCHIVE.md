@@ -542,3 +542,11 @@
 - **Approach:** a language menu (Auto/Deutsch/English) in the File ribbon tab; selection persists to `ui.json`; precedence Setting > Env > Detection > Auto. Switching applies immediately — `t()` reads the current language each frame (WordCraft per-frame refresh pattern), no restart required.
 - **Acceptance:** switch applies live; persistence across restarts; `Auto` resolves per detection; headless test for the full precedence chain; canonical verification set green.
 - **Done:** 745f84f
+
+---
+
+### [x] U1 — Theme rebase: WordCraft-style neutral tokens, Teal accent — 🟠
+- **Location:** `crates/datacraft-ui/src/theme.rs` (token system), paint sites referencing theme constants; ADR-6 in `docs/ARCHITECTURE.md` §15; model: WordCraft `crates/ui-egui/src/theme.rs` @ `fd7f662`
+- **Approach:** token-based theme adopting the model's **neutral** system: chrome/title bar `#F0F0F0`, ribbon `#F9F9F9`, canvas `#E6E6E6`, panel `#FAFAFA`, text `#242424`/`#616161`/`#A8A8A8`, borders `#E1E1E1`/`#C8C8C8`, hover `#E6E6E6`, pressed `#D6D6D6`. **The accent family stays DataCraft teal and is derived from it — no accent colour is copied from the model (its blue `#3B5BDB` is explicitly rejected):** accent `#0F8B7E`, accent_text `#0B6B60`, checked/selection `#DCE9E4` (existing TEAL_WASH), on_accent `#F8F4EA` (ON_TEAL). Geometry from the model: item_spacing (6,4), button_padding (8,3), corner radii windows 8 / menus 6 / widgets 4, 1 px strokes. The derivation rule ("accent tokens are teal derivatives, never the model's blue") is pinned by a unit test. Verified at `fd7f662`: every colour and geometry value above matches the model exactly, and the model keeps them in a `Tokens` struct with `light()`/`dark()`. Its token set is larger (`tab_strip`, `status_bar`, `input_border`, `nav`) — the list above is the required minimum; add a slot only when a region needs it.
+- **Acceptance:** all four regions render from tokens; accent-token test green (teal derivatives only); the brand icon's teal still matches the UI accent; before/after screenshots reviewed in the phase gate; canonical verification set green.
+- **Done:** done in `c9ea70e` (RED `849c428`) — neutral `Tokens`/`GEOMETRY`, teal accent derivation pinned by tests, all paint sites rebased; before/after screenshots stay with the Phase 20 gate (20.5)

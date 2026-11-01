@@ -152,7 +152,7 @@
 | 19.1 | App settings store ui.json (I4) | ✅ |
 | 19.2 | Language switcher in the UI (I5) | ✅ |
 | 19.3 | Phase 19 Quality Gate Review | ✅ |
-| 20.1 | Theme rebase: neutral tokens, Teal accent (U1) | ⬜ |
+| 20.1 | Theme rebase: neutral tokens, Teal accent (U1) | ✅ |
 | 20.2 | Typography: Inter + type rungs (U2) | ⬜ |
 | 20.3 | Original vector iconography (U3) | ⬜ |
 | 20.4 | Dark mode: Appearance Light/Dark/System (U4) | ⬜ |

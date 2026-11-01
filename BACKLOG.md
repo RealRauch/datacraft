@@ -18,11 +18,6 @@
 
 > No open items.
 
-### [ ] U1 — Theme rebase: WordCraft-style neutral tokens, Teal accent — 🟠
-- **Location:** `crates/datacraft-ui/src/theme.rs` (token system), paint sites referencing theme constants; ADR-6 in `docs/ARCHITECTURE.md` §15; model: WordCraft `crates/ui-egui/src/theme.rs` @ `fd7f662`
-- **Approach:** token-based theme adopting the model's **neutral** system: chrome/title bar `#F0F0F0`, ribbon `#F9F9F9`, canvas `#E6E6E6`, panel `#FAFAFA`, text `#242424`/`#616161`/`#A8A8A8`, borders `#E1E1E1`/`#C8C8C8`, hover `#E6E6E6`, pressed `#D6D6D6`. **The accent family stays DataCraft teal and is derived from it — no accent colour is copied from the model (its blue `#3B5BDB` is explicitly rejected):** accent `#0F8B7E`, accent_text `#0B6B60`, checked/selection `#DCE9E4` (existing TEAL_WASH), on_accent `#F8F4EA` (ON_TEAL). Geometry from the model: item_spacing (6,4), button_padding (8,3), corner radii windows 8 / menus 6 / widgets 4, 1 px strokes. The derivation rule ("accent tokens are teal derivatives, never the model's blue") is pinned by a unit test. Verified at `fd7f662`: every colour and geometry value above matches the model exactly, and the model keeps them in a `Tokens` struct with `light()`/`dark()`. Its token set is larger (`tab_strip`, `status_bar`, `input_border`, `nav`) — the list above is the required minimum; add a slot only when a region needs it.
-- **Acceptance:** all four regions render from tokens; accent-token test green (teal derivatives only); the brand icon's teal still matches the UI accent; before/after screenshots reviewed in the phase gate; canonical verification set green.
-
 ### [ ] U2 — Typography: Inter + type rungs — 🟠
 - **Location:** `assets/fonts/` (neu: Inter-Regular/-Medium/-SemiBold TTF, JetBrainsMono-Regular for Mono — OFL, attribution file), `crates/datacraft-ui/src/theme.rs` (font definitions); model: WordCraft `theme.rs` font setup @ `fd7f662`
 - **Approach:** embed the fonts via `include_bytes!` and register families like the model: proportional Inter first (egui defaults stay as fallback), named families `"medium"`/`"semibold"` (InterMedium/InterSemiBold → Inter → egui defaults), mono for the SQL editor. Type rungs: Chrome 12.5 px (tracking −0.012 em), Control 11.5 px, Caption 11.0 px (+0.018 em); egui styles Body/Button 12.5, Small 10.5, Heading 17 semibold. **New font assets = Medium content gate** (license/attribution required before landing). Verified at `fd7f662`: the model registers exactly these three Inter files plus `SourceSans3-Regular.ttf` (appended behind Inter in every family) and `JetBrainsMono-Regular.ttf` (Monospace); DataCraft deliberately skips Source Sans 3 — egui's default faces are the fallback instead.
@@ -214,3 +209,4 @@
 - I3 — German catalog complete — done (6486786)
 - I4 — App settings store (ui.json) — done (d898120)
 - I5 — Language switcher in the UI — done (745f84f)
+- U1 — Theme rebase: WordCraft-style neutral tokens, Teal accent — done (done in `c9ea70e` (RED `849c428`) — neutral `Tokens`/`GEOMETRY`, teal accent derivation pinned by tests, all paint sites rebased; before/after screenshots stay with the Phase 20 gate (20.5))
