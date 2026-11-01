@@ -18,11 +18,6 @@
 
 > No open items.
 
-### [ ] U2 — Typography: Inter + type rungs — 🟠
-- **Location:** `assets/fonts/` (neu: Inter-Regular/-Medium/-SemiBold TTF, JetBrainsMono-Regular for Mono — OFL, attribution file), `crates/datacraft-ui/src/theme.rs` (font definitions); model: WordCraft `theme.rs` font setup @ `fd7f662`
-- **Approach:** embed the fonts via `include_bytes!` and register families like the model: proportional Inter first (egui defaults stay as fallback), named families `"medium"`/`"semibold"` (InterMedium/InterSemiBold → Inter → egui defaults), mono for the SQL editor. Type rungs: Chrome 12.5 px (tracking −0.012 em), Control 11.5 px, Caption 11.0 px (+0.018 em); egui styles Body/Button 12.5, Small 10.5, Heading 17 semibold. **New font assets = Medium content gate** (license/attribution required before landing). Verified at `fd7f662`: the model registers exactly these three Inter files plus `SourceSans3-Regular.ttf` (appended behind Inter in every family) and `JetBrainsMono-Regular.ttf` (Monospace); DataCraft deliberately skips Source Sans 3 — egui's default faces are the fallback instead.
-- **Acceptance:** all four regions use the rung scale; German strings lay out without truncation (gate check against I3's catalog); licences recorded in an attribution file; canonical verification set green.
-
 ---
 
 ## 🟡 MEDIUM
@@ -211,3 +206,4 @@
 - I4 — App settings store (ui.json) — done (d898120)
 - I5 — Language switcher in the UI — done (745f84f)
 - U1 — Theme rebase: WordCraft-style neutral tokens, Teal accent — done (done in `c9ea70e` (RED `849c428`) — neutral `Tokens`/`GEOMETRY`, teal accent derivation pinned by tests, all paint sites rebased; before/after screenshots stay with the Phase 20 gate (20.5))
+- U2 — Typography: Inter + type rungs — done (done in `aef71e9` (RED `e8a6c6c`) — Inter 4.1 and JetBrains Mono 2.304 embedded unmodified with SIL OFL licenses and attribution; rung scale installed in both themes; German layout budgets now measured on the shipped fonts)
