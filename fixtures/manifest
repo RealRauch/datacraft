@@ -22,3 +22,6 @@ c2c3352c71aa3985bd620a322521eb9f67391cbb19ba9fefc376a24575896df7  testV2007.accd
 
 # source: jahlborn/jackcess@be0a2139 src/test/data/V2000/queryTestV2000.mdb (pristine)
 03b303034e1d64779d9dff1e19d9e21d59d8fa440dc5da9dbcfd85ad051eb5ea  queryTestV2000.mdb
+
+# source: jahlborn/jackcess@be0a2139 src/test/data/V2007/complexDataTestV2007.accdb (pristine)
+66c655ad9f9f290c51ed808d704c2a09a7b0d6047583c6a4c67405f708cac0c3  complexDataV2007.accdb

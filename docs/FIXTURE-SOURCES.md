@@ -94,10 +94,14 @@ MIT-licensed JS reader; test databases include material nobody else ships:
 | jackcess `V2010/testV2010.accdb` @ be0a2139 (pristine, ACE 2010) | 446 464 | `3cf2ff01454374abce0ee2203b89d166fe0120fb4f235894c0bbacce2abe8e18` |
 | mdb-reader `V2016/attachments.accdb` @ 3dc637a (pristine, ACE 2016) | 524 288 | `1362f6bf865db294a382bbb05ef6af14c4f776768f436d458d3e028a1cdf45bc` |
 | jackcess `V2000/queryTestV2000.mdb` @ be0a2139 (pristine, native queries) | 176 128 | `03b303034e1d64779d9dff1e19d9e21d59d8fa440dc5da9dbcfd85ad051eb5ea` |
+| jackcess `V2007/complexDataTestV2007.accdb` @ be0a2139 (pristine, ACE complex values) | 524 288 | `66c655ad9f9f290c51ed808d704c2a09a7b0d6047583c6a4c67405f708cac0c3` |
 
 The query fixture is pinned as `fixtures/queryTestV2000.mdb` (jackcess V2000,
 provenance in `fixtures/manifest`; native saved queries for the MSysQueries
-decoder, step 15.3 / M3).
+decoder, step 15.3 / M3). The complex-value fixture is pinned as
+`fixtures/complexDataV2007.accdb` (jackcess V2007, provenance in
+`fixtures/manifest`; attachment, multi-value and version-history columns plus
+their `f_<guid>_*` backing tables for step 16.1 / M4).
 
 The three ACE fixtures are pinned as `fixtures/testV2007.accdb`,
 `fixtures/testV2010.accdb` and `fixtures/attachmentsV2016.accdb` (hashes and
