@@ -1,1 +1,180 @@
-//! placeholder — implemented in the green commit
+//! DataCraft CLI (step 9.4, item H8) — the fourth command-bus client.
+//!
+//! Transport only: args map onto commands, output is deterministic
+//! (human or `--json`), exit codes are meaningful, and `exec` reaches the
+//! full command language as JSON. The `repl` shares the JSON-RPC
+//! transport with the MCP endpoint.
+
+use std::io::Write;
+
+use datacraft_core::command::Command;
+use datacraft_core::core::Core;
+use datacraft_core::transport;
+
+/// Process exit code semantics of a CLI run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Outcome {
+    /// The command ran (failures inside the bus still print their reason).
+    Ok,
+    /// A command dispatched but the bus rejected it (`Event::Failed`).
+    CommandFailed,
+    /// The invocation itself was malformed.
+    UsageError,
+}
+
+impl Outcome {
+    /// The process exit code.
+    pub fn code(self) -> i32 {
+        match self {
+            Self::Ok => 0,
+            Self::CommandFailed => 2,
+            Self::UsageError => 1,
+        }
+    }
+}
+
+/// Runs one CLI invocation against the core, writing output to `out`
+/// (the binary passes the real stdout; `repl` reads real stdin).
+pub fn run(core: &mut Core, args: &[String], out: &mut dyn Write) -> Outcome {
+    run_with_streams(core, args, out, &mut std::io::stdin().lock())
+}
+
+/// Stream-injected variant so every arm is testable in-process.
+pub fn run_with_streams(
+    core: &mut Core,
+    args: &[String],
+    out: &mut dyn Write,
+    reader: &mut dyn std::io::BufRead,
+) -> Outcome {
+    let Some(command) = args.first() else {
+        return usage(
+            out,
+            "usage: datacraft-cli (open <path> | exec <json> | repl) [--json] [--db <path>]",
+        );
+    };
+    let json_output = args.iter().any(|a| a == "--json");
+    let db_path = args
+        .iter()
+        .position(|a| a == "--db")
+        .and_then(|i| args.get(i + 1))
+        .cloned();
+
+    match command.as_str() {
+        "open" => {
+            let Some(path) = args.get(1).filter(|p| !p.as_str().starts_with("--")) else {
+                return usage(out, "usage: datacraft-cli open <path>");
+            };
+            match open_command(path) {
+                Ok(command) => run_command(core, command, json_output, out),
+                Err(e) => usage(out, &e),
+            }
+        }
+        "exec" => {
+            let Some(json) = args.get(1) else {
+                return usage(out, "usage: datacraft-cli exec '<json command>'");
+            };
+            let Ok(command) = serde_json::from_str::<Command>(json) else {
+                return usage(out, "invalid command JSON");
+            };
+            let mut events = Vec::new();
+            if let Some(path) = db_path {
+                events.extend(core.dispatch(open_command(&path).expect("valid db path")));
+                if events
+                    .iter()
+                    .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }))
+                {
+                    print_events(core, &events, json_output, out);
+                    return Outcome::CommandFailed;
+                }
+            }
+            events.extend(core.dispatch(command));
+            print_events(core, &events, json_output, out);
+            if events
+                .iter()
+                .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }))
+            {
+                Outcome::CommandFailed
+            } else {
+                Outcome::Ok
+            }
+        }
+        "repl" => {
+            if let Some(path) = db_path {
+                core.dispatch(open_command(&path).expect("valid db path"));
+            }
+            repl(core, reader, out);
+            Outcome::Ok
+        }
+        other => usage(out, &format!("unknown command {other:?}")),
+    }
+}
+
+fn run_command(
+    core: &mut Core,
+    command: Command,
+    json_output: bool,
+    out: &mut dyn Write,
+) -> Outcome {
+    let events = core.dispatch(command);
+    print_events(core, &events, json_output, out);
+    if events
+        .iter()
+        .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }))
+    {
+        Outcome::CommandFailed
+    } else {
+        Outcome::Ok
+    }
+}
+
+fn print_events(
+    core: &Core,
+    events: &[datacraft_core::event::Event],
+    json_output: bool,
+    out: &mut dyn Write,
+) {
+    let failed = events
+        .iter()
+        .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }));
+    if json_output {
+        let payload = serde_json::json!({
+            "events": events,
+            "snapshot": core.inspect(),
+        });
+        let _ = writeln!(out, "{payload}");
+    } else {
+        for event in events {
+            let _ = writeln!(out, "{event:?}");
+        }
+        let status = if failed { "failed" } else { "ok" };
+        let _ = writeln!(out, "{status}");
+    }
+}
+
+fn usage(out: &mut dyn Write, message: &str) -> Outcome {
+    let _ = writeln!(out, "{message}");
+    Outcome::UsageError
+}
+
+/// Line-based JSON-RPC session over arbitrary streams (shared with the
+/// MCP endpoint's transport).
+pub fn repl(core: &mut Core, reader: &mut dyn std::io::BufRead, writer: &mut dyn Write) {
+    transport::serve(reader, writer, core);
+}
+
+fn open_command(path: &str) -> Result<Command, String> {
+    serde_json::from_value(serde_json::json!({"OpenDatabase": {"path": path}}))
+        .map_err(|e| format!("invalid path: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Open-command JSON stays in the command vocabulary (transport only).
+    #[test]
+    fn open_deserializes_into_the_command_language() {
+        let command = open_command("shop.mdb").unwrap();
+        assert!(matches!(command, Command::OpenDatabase { .. }));
+    }
+}

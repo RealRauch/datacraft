@@ -31,7 +31,11 @@ fn open_prints_a_json_snapshot_and_succeeds() {
     let mut out: Vec<u8> = Vec::new();
     let outcome = run(
         &mut core,
-        &["open".to_owned(), fixture().to_string_lossy().to_string()],
+        &[
+            "open".to_owned(),
+            fixture().to_string_lossy().to_string(),
+            "--json".to_owned(),
+        ],
         &mut out,
     );
     assert_eq!(outcome, Outcome::Ok);
@@ -54,16 +58,17 @@ fn exec_reaches_every_command_and_reports_failures() {
         &mut out,
     );
     assert_eq!(outcome, Outcome::Ok);
-    assert!(String::from_utf8(out.clone()).unwrap().contains("NavPaneToggled"));
+    assert!(
+        String::from_utf8(out.clone())
+            .unwrap()
+            .contains("NavPaneToggled")
+    );
 
     // A failing command keeps exit code 2 with the reason printed.
     let mut out: Vec<u8> = Vec::new();
     let outcome = run(
         &mut core,
-        &[
-            "exec".to_owned(),
-            "{\"CloseDatabase\":null}".to_owned(),
-        ],
+        &["exec".to_owned(), "{\"CloseDatabase\":null}".to_owned()],
         &mut out,
     );
     assert_eq!(outcome, Outcome::CommandFailed);
@@ -99,7 +104,10 @@ fn usage_errors_exit_with_code_one() {
     let mut out: Vec<u8> = Vec::new();
     assert_eq!(run(&mut core, &[], &mut out), Outcome::UsageError);
     let mut out: Vec<u8> = Vec::new();
-    assert_eq!(run(&mut core, &["frobnicate".to_owned()], &mut out), Outcome::UsageError);
+    assert_eq!(
+        run(&mut core, &["frobnicate".to_owned()], &mut out),
+        Outcome::UsageError
+    );
     let mut out: Vec<u8> = Vec::new();
     assert_eq!(
         run(
@@ -133,11 +141,7 @@ fn repl_shares_the_transport_over_in_memory_streams() {
     let mut core = fresh_core();
     let input = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"inspect\"}\n";
     let mut output: Vec<u8> = Vec::new();
-    datacraft_cli::repl(
-        &mut core,
-        &mut Cursor::new(input.to_owned()),
-        &mut output,
-    );
+    datacraft_cli::repl(&mut core, &mut Cursor::new(input.to_owned()), &mut output);
     let text = String::from_utf8(output).unwrap();
     assert!(text.contains("nav_pane_visible"), "{text}");
 }

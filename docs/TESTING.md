@@ -39,6 +39,7 @@ pipe position (`$?` after a pipe reports the *last* command, LESSONS #10).
 | # | Scope | Mechanism | Justification | Rules | Revisit |
 |---|-------|-----------|---------------|-------|---------|
 | 1 | crate `datacraft-ui` | `--exclude datacraft-ui` on the llvm-cov invocation (CI + local) | The crate is eframe/egui rendering glue: the event-loop entry point (`main`) and `eframe::App` paint code are not exercisable headlessly. `#[coverage(off)]` is **unstable** on the pinned stable toolchain (rust 1.98, rust-lang/rust#84605), so the attribute cannot be used. | Rendering glue only — **all logic lives in `datacraft-core`** (covered). Logic found in `ui` (layout math, state, commands) is a review finding and moves to core. | When the coverage attribute stabilizes, or if eframe enables headless `App` execution. |
+| 2 | `datacraft-cli/src/main.rs` (the bin target only) | none — the 17-line composition root counts against the gate as uncovered | Same mechanism as #1: the bin owns the real stdio handles and constructs `Core` over the real port; there is nothing to assert without a subprocess. **All logic lives in the `datacraft_cli` library and is covered** (stream-injected `run_with_streams`). | The bin stays a 3-line delegation; logic found in it is a review finding and moves to the library. | When the coverage attribute stabilizes. |
 
 The exclusion is deliberately **crate-scoped, not line-scoped**: it can only
 shrink, never hide, logic that wrongly migrated into the shell crate.
