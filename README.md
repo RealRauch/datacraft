@@ -181,7 +181,7 @@ three colours** — ink `#0B0B0C`, paper `#EFE9DC` and DataCraft teal `#0F8B7E`
 — with a flat paper-and-ink object rotated −6°. DataCraft's object is a
 database cylinder whose front is a datasheet. Construction, palette and
 acceptance checklist: [docs/brand/DATACRAFT-ICON.md](docs/brand/DATACRAFT-ICON.md);
-renders and the Windows `.ico` live in [`assets/app-icon/`](assets/app-icon/).
+renders and the Windows `.ico` live in [`assets/app-icon/`](assets/app-icon/). The app itself wears the same palette: the theme colour is the icon's teal tile field, chrome surfaces are paper, text and hairlines are ink — the datasheet renders in the icon's header-row grammar (teal header, paper text).
 
 ## License and credits
 
