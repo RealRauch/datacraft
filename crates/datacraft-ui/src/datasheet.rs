@@ -129,7 +129,8 @@ pub(crate) fn grid_ui(
     let font = egui::TextStyle::Body.resolve(ui.style());
     let tokens = tokens(ui.visuals());
 
-    // Header band: teal fill, paper text — the icon's header-row grammar.
+    // Header band: accent fill, on-accent text — the icon's header-row
+    // grammar, in the contrast-checked accent variant.
     let header_top = ui.cursor().top();
     let band_width = SELECTOR_WIDTH + DEFAULT_COLUMN_WIDTH * columns.len().max(1) as f32;
     ui.horizontal(|ui| {
@@ -139,7 +140,7 @@ pub(crate) fn grid_ui(
         egui::pos2(ui.cursor().left(), header_top),
         egui::vec2(band_width, metrics.header_height),
     );
-    ui.painter().rect_filled(band, 0.0, tokens.accent);
+    ui.painter().rect_filled(band, 0.0, tokens.accent_fill);
     for (col, name) in columns.iter().enumerate() {
         let cell = egui::Rect::from_min_size(
             band.left_top() + egui::vec2(SELECTOR_WIDTH + DEFAULT_COLUMN_WIDTH * col as f32, 0.0),

@@ -10,14 +10,16 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::appearance::Appearance;
 use crate::i18n::Lang;
 
-/// Persisted UI preferences: language and window geometry now, appearance
-/// with step U4.
+/// Persisted UI preferences: language, appearance and window geometry.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Settings {
     /// Language choice; `Auto` follows environment and system detection.
     pub language: LanguageSetting,
+    /// Light/Dark/System choice; `System` follows the OS.
+    pub appearance: Appearance,
     /// Last inner window size (sanitized; `None` uses the default).
     pub window: Option<WindowSize>,
 }
@@ -110,6 +112,7 @@ impl Settings {
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
         let file = SettingsFile {
             language: Some(self.language.as_value().to_owned()),
+            appearance: Some(self.appearance.as_value().to_owned()),
             window: self.window,
         };
         let json = serde_json::to_string_pretty(&file).map_err(std::io::Error::other)?;
@@ -127,6 +130,7 @@ impl Settings {
     fn from_file(file: SettingsFile) -> Self {
         Self {
             language: LanguageSetting::from_value(file.language.as_deref()),
+            appearance: Appearance::from_value(file.appearance.as_deref()),
             window: file.window.and_then(WindowSize::sane),
         }
     }
@@ -138,6 +142,7 @@ impl Settings {
 #[serde(default)]
 struct SettingsFile {
     language: Option<String>,
+    appearance: Option<String>,
     window: Option<WindowSize>,
 }
 
@@ -200,6 +205,23 @@ impl crate::app::App {
     /// Current language choice.
     pub fn language_setting(&self) -> LanguageSetting {
         self.settings.language
+    }
+
+    /// Current appearance choice.
+    pub fn appearance_setting(&self) -> Appearance {
+        self.settings.appearance
+    }
+
+    /// Switches the appearance and persists the choice (ADR-6). The next
+    /// frame applies it as egui's theme preference.
+    pub fn set_appearance_setting(&mut self, setting: Appearance) {
+        self.settings.appearance = setting;
+        if let Err(reason) = self.persist_settings() {
+            self.last_error = Some(crate::i18n::tr(
+                "Settings could not be saved: {reason}",
+                &[("reason", &reason.to_string())],
+            ));
+        }
     }
 
     /// Switches the UI language live and persists the choice (ADR-5).

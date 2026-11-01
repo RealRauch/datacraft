@@ -410,7 +410,7 @@ mod tests {
 
         Settings {
             language: LanguageSetting::German,
-            window: None,
+            ..Settings::default()
         }
         .save(&path)
         .expect("save");

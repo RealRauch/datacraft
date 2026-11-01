@@ -45,6 +45,8 @@ pub struct Tokens {
     pub pressed: Color32,
     /// Accent fill (datasheet header band, links).
     pub accent: Color32,
+    /// Accent surface carrying `on_accent` text (contrast-checked).
+    pub accent_fill: Color32,
     /// Accent ink on light accent washes.
     pub accent_text: Color32,
     /// Checked/selection wash.
@@ -73,6 +75,7 @@ impl Tokens {
             hover: Color32::from_rgb(0xE6, 0xE6, 0xE6),
             pressed: Color32::from_rgb(0xD6, 0xD6, 0xD6),
             accent: BRAND_TEAL,
+            accent_fill: Color32::from_rgb(0x0B, 0x6B, 0x60),
             accent_text: Color32::from_rgb(0x0B, 0x6B, 0x60),
             checked: Color32::from_rgb(0xDC, 0xE9, 0xE4),
             on_accent: Color32::from_rgb(0xF8, 0xF4, 0xEA),
@@ -80,16 +83,43 @@ impl Tokens {
             danger: Color32::from_rgb(0xB0, 0x2A, 0x2A),
         }
     }
+
+    /// The dark appearance: neutral greys, the teal pendant for accents.
+    pub const fn dark() -> Self {
+        Self {
+            chrome: Color32::from_rgb(0x20, 0x20, 0x20),
+            ribbon: Color32::from_rgb(0x2A, 0x2A, 0x2A),
+            canvas: Color32::from_rgb(0x1E, 0x1E, 0x1E),
+            panel: Color32::from_rgb(0x25, 0x25, 0x25),
+            text: Color32::from_rgb(0xE6, 0xE6, 0xE6),
+            text_muted: Color32::from_rgb(0xA8, 0xA8, 0xA8),
+            text_disabled: Color32::from_rgb(0x6E, 0x6E, 0x6E),
+            border: Color32::from_rgb(0x3A, 0x3A, 0x3A),
+            border_strong: Color32::from_rgb(0x4F, 0x4F, 0x4F),
+            hover: Color32::from_rgb(0x33, 0x33, 0x33),
+            pressed: Color32::from_rgb(0x3D, 0x3D, 0x3D),
+            accent: Color32::from_rgb(0x3F, 0xA7, 0x99),
+            accent_fill: Color32::from_rgb(0x3F, 0xA7, 0x99),
+            accent_text: Color32::from_rgb(0x9A, 0xD9, 0xCF),
+            checked: Color32::from_rgb(0x1F, 0x3A, 0x36),
+            on_accent: Color32::from_rgb(0x10, 0x16, 0x14),
+            accent_faint: Color32::from_rgba_unmultiplied_const(0x3F, 0xA7, 0x99, 0x24),
+            danger: Color32::from_rgb(0xE0, 0x71, 0x71),
+        }
+    }
 }
 
-/// The active token set. Dark mode (step 20.4, U4) selects its pendant here,
-/// from `visuals.dark_mode`.
-pub fn tokens(_visuals: &egui::Visuals) -> &'static Tokens {
-    &LIGHT
+/// The active token set, picked per frame from the style's dark-mode flag
+/// (step 20.4, U4).
+pub fn tokens(visuals: &egui::Visuals) -> &'static Tokens {
+    if visuals.dark_mode { &DARK } else { &LIGHT }
 }
 
 /// The light token set.
 pub const LIGHT: Tokens = Tokens::light();
+
+/// The dark token set.
+pub const DARK: Tokens = Tokens::dark();
 
 /// Geometry rungs from the model (step 20.1, U1): spacing, paddings, corner
 /// radii and the 1 px stroke.
@@ -119,56 +149,58 @@ pub const GEOMETRY: Geometry = Geometry {
     stroke_width: 1.0,
 };
 
-/// Applies the token set to the context (idempotent; mutates both egui
-/// themes so the look is theme-independent until dark mode lands in U4).
+/// Applies both token sets to their egui themes (idempotent; the active
+/// theme's set is then picked by `tokens`).
 pub fn apply(ctx: &egui::Context) {
-    let t = tokens(&ctx.global_style().visuals);
-    ctx.all_styles_mut(|style| {
-        let visuals = &mut style.visuals;
+    ctx.style_mut_of(egui::Theme::Light, |style| apply_style(style, &LIGHT));
+    ctx.style_mut_of(egui::Theme::Dark, |style| apply_style(style, &DARK));
+}
 
-        visuals.window_fill = t.panel;
-        visuals.panel_fill = t.panel;
-        visuals.extreme_bg_color = t.panel;
-        visuals.faint_bg_color = t.canvas;
-        visuals.selection.bg_fill = t.checked;
-        visuals.selection.stroke = egui::Stroke::new(GEOMETRY.stroke_width, t.accent_text);
-        visuals.hyperlink_color = t.accent;
-        visuals.override_text_color = Some(t.text);
-        visuals.window_corner_radius = GEOMETRY.window_corner_radius;
-        visuals.menu_corner_radius = GEOMETRY.menu_corner_radius;
+fn apply_style(style: &mut egui::Style, t: &Tokens) {
+    let visuals = &mut style.visuals;
 
-        let rung =
-            |widget: &mut egui::style::WidgetVisuals, bg: Color32, fg: Color32, stroke: Color32| {
-                widget.bg_fill = bg;
-                widget.weak_bg_fill = bg;
-                widget.fg_stroke = egui::Stroke::new(GEOMETRY.stroke_width, fg);
-                widget.bg_stroke = egui::Stroke::new(GEOMETRY.stroke_width, stroke);
-                widget.corner_radius = GEOMETRY.widget_corner_radius;
-            };
-        rung(
-            &mut visuals.widgets.noninteractive,
-            t.panel,
-            t.text,
-            t.border,
-        );
-        rung(&mut visuals.widgets.inactive, t.panel, t.text, t.border);
-        rung(
-            &mut visuals.widgets.hovered,
-            t.hover,
-            t.text,
-            t.border_strong,
-        );
-        rung(
-            &mut visuals.widgets.active,
-            t.pressed,
-            t.text,
-            t.border_strong,
-        );
-        rung(&mut visuals.widgets.open, t.panel, t.text, t.border_strong);
+    visuals.window_fill = t.panel;
+    visuals.panel_fill = t.panel;
+    visuals.extreme_bg_color = t.panel;
+    visuals.faint_bg_color = t.canvas;
+    visuals.selection.bg_fill = t.checked;
+    visuals.selection.stroke = egui::Stroke::new(GEOMETRY.stroke_width, t.accent_text);
+    visuals.hyperlink_color = t.accent;
+    visuals.override_text_color = Some(t.text);
+    visuals.window_corner_radius = GEOMETRY.window_corner_radius;
+    visuals.menu_corner_radius = GEOMETRY.menu_corner_radius;
 
-        style.spacing.item_spacing = GEOMETRY.item_spacing;
-        style.spacing.button_padding = GEOMETRY.button_padding;
-    });
+    let rung =
+        |widget: &mut egui::style::WidgetVisuals, bg: Color32, fg: Color32, stroke: Color32| {
+            widget.bg_fill = bg;
+            widget.weak_bg_fill = bg;
+            widget.fg_stroke = egui::Stroke::new(GEOMETRY.stroke_width, fg);
+            widget.bg_stroke = egui::Stroke::new(GEOMETRY.stroke_width, stroke);
+            widget.corner_radius = GEOMETRY.widget_corner_radius;
+        };
+    rung(
+        &mut visuals.widgets.noninteractive,
+        t.panel,
+        t.text,
+        t.border,
+    );
+    rung(&mut visuals.widgets.inactive, t.panel, t.text, t.border);
+    rung(
+        &mut visuals.widgets.hovered,
+        t.hover,
+        t.text,
+        t.border_strong,
+    );
+    rung(
+        &mut visuals.widgets.active,
+        t.pressed,
+        t.text,
+        t.border_strong,
+    );
+    rung(&mut visuals.widgets.open, t.panel, t.text, t.border_strong);
+
+    style.spacing.item_spacing = GEOMETRY.item_spacing;
+    style.spacing.button_padding = GEOMETRY.button_padding;
 }
 
 #[cfg(test)]
@@ -382,7 +414,12 @@ mod tests {
         for palette in [LIGHT, DARK] {
             for (name, foreground, background, minimum) in [
                 ("text on panel", palette.text, palette.panel, 4.5),
-                ("muted text on panel", palette.text_muted, palette.panel, 4.5),
+                (
+                    "muted text on panel",
+                    palette.text_muted,
+                    palette.panel,
+                    4.5,
+                ),
                 ("danger on panel", palette.danger, palette.panel, 4.5),
                 (
                     "on_accent on accent_fill",

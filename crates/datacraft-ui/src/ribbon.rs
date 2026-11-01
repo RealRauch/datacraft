@@ -12,6 +12,7 @@ use datacraft_core::command::Command;
 use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
 use crate::app::App;
+use crate::appearance::Appearance;
 use crate::i18n::{t, tr};
 use crate::icons;
 use crate::settings::LanguageSetting;
@@ -117,6 +118,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
         }
         if tab.id == "file" {
             language_group(ui, app);
+            appearance_group(ui, app);
         }
     });
     if let Some(command) = intent {
@@ -154,6 +156,43 @@ fn language_group(ui: &mut egui::Ui, app: &mut App) {
             |ui| {
                 ui.label(
                     egui::RichText::new(t("Language"))
+                        .size(fonts::CAPTION.size)
+                        .extra_letter_spacing(fonts::CAPTION.tracking_points())
+                        .color(tokens.text_muted),
+                );
+            },
+        );
+    });
+    ui.separator();
+}
+
+/// Appearance switcher (step 20.4, item U4): the File tab owns the
+/// Light/Dark/System choice; selecting applies live and persists to
+/// `ui.json`.
+fn appearance_group(ui: &mut egui::Ui, app: &mut App) {
+    let tokens = tokens(ui.visuals());
+    ui.vertical(|ui| {
+        ui.set_min_width(120.0);
+        ui.add_space(2.0);
+        let current = app.appearance_setting();
+        egui::ComboBox::from_id_salt("ribbon.file.appearance")
+            .selected_text(current.label())
+            .show_ui(ui, |ui| {
+                for choice in [Appearance::System, Appearance::Light, Appearance::Dark] {
+                    if ui
+                        .selectable_label(current == choice, choice.label())
+                        .clicked()
+                    {
+                        app.set_appearance_setting(choice);
+                    }
+                }
+            });
+        ui.add_space(1.0);
+        ui.with_layout(
+            egui::Layout::top_down_justified(egui::Align::Center),
+            |ui| {
+                ui.label(
+                    egui::RichText::new(t("Appearance"))
                         .size(fonts::CAPTION.size)
                         .extra_letter_spacing(fonts::CAPTION.tracking_points())
                         .color(tokens.text_muted),
