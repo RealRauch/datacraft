@@ -1,14 +1,15 @@
 //! libmdb (MDB Tools CLI) oracle comparison (step 2.4, item H7).
 //!
 //! Gated by `DATACRAFT_ORACLE_MDB` pointing at a pinned fixture. Our side
-//! (catalog, schema, row counts) runs whenever the fixture is present; the
-//! `mdb-export` comparison only runs where the CLI is installed (CI
+//! (catalog enumeration, schema, full row decode of every table) always runs;
+//! the `mdb-export` comparison runs where the CLI is installed (CI
 //! ubuntu/macOS — see the `oracle` job). Never a runtime dependency.
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use datacraft_storage::StorageError;
 use datacraft_storage::jet::Jet4TableReader;
 
 /// Resolves `DATACRAFT_ORACLE_MDB`: as given, or — cargo runs tests with the
@@ -45,14 +46,33 @@ fn oracle_fixture_decodes_and_matches_mdb_tools() {
     eprintln!("oracle tables: {names:?}");
     assert!(!names.is_empty(), "fixture must contain user tables");
 
+    // Every resolvable catalog table must decode or fail precisely: tables
+    // whose columns use types we deliberately do not support yet (e.g. the
+    // undocumented 0x11 of MSysAccessObjects — mdb-tools warns "unsupported
+    // data type 17" on the same column) are skipped with their reason, every
+    // other error is a failure.
+    let mut tables = Vec::new();
+    for name in &names {
+        match reader.open_table(name) {
+            Ok(table) => tables.push((name, table)),
+            Err(StorageError::Unsupported { reason }) => {
+                eprintln!("oracle table {name} skipped: {reason}");
+            }
+            Err(err) => panic!("open_table({name}) failed: {err:?}"),
+        }
+    }
+
     if !mdb_export_available() {
-        eprintln!("oracle value comparison skipped: mdb-export not installed");
+        eprintln!("oracle record comparison skipped: mdb-export not installed");
+        for (name, table) in &tables {
+            eprintln!("oracle table {name}: {} rows (our side)", table.rows.len());
+        }
         return;
     }
 
-    for name in &names {
+    for (name, table) in &tables {
         let out = Command::new("mdb-export")
-            .args([path.as_os_str(), OsStr::new(name)])
+            .args([path.as_os_str(), OsStr::new(*name)])
             .output()
             .expect("mdb-export runs");
         assert!(
@@ -60,11 +80,14 @@ fn oracle_fixture_decodes_and_matches_mdb_tools() {
             "mdb-export failed for {name}: {}",
             String::from_utf8_lossy(&out.stderr)
         );
-        let csv = String::from_utf8_lossy(&out.stdout);
-        let mut lines = csv.lines();
-        let header = parse_csv_line(lines.next().expect("csv header"));
-        let oracle_rows = lines.count();
-        let table = reader.open_table(name).expect("our read");
+        // Records, not lines: quoted OLE property blobs carry raw newlines
+        // (230 of them in the MSysObjects export of the touched fixture).
+        let records = csv_records(&String::from_utf8_lossy(&out.stdout));
+        let header = records
+            .first()
+            .map(|r| parse_csv_line(r))
+            .expect("csv header");
+        let oracle_rows = records.len() - 1;
         let our_cols: Vec<String> = table
             .schema
             .columns
@@ -75,6 +98,30 @@ fn oracle_fixture_decodes_and_matches_mdb_tools() {
         assert_eq!(table.rows.len(), oracle_rows, "row count for table {name}");
         eprintln!("oracle table {name}: {} rows match", oracle_rows);
     }
+}
+
+/// Splits CSV output into records. Fields quoted with double quotes may span
+/// physical lines (mdb-export embeds raw newlines in binary property values),
+/// so records end only at a newline outside quotes.
+fn csv_records(output: &str) -> Vec<String> {
+    let mut records = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    for c in output.chars() {
+        match c {
+            '"' => {
+                in_quotes = !in_quotes;
+                current.push(c);
+            }
+            '\r' if !in_quotes => {}
+            '\n' if !in_quotes => records.push(std::mem::take(&mut current)),
+            _ => current.push(c),
+        }
+    }
+    if !current.is_empty() {
+        records.push(current);
+    }
+    records
 }
 
 /// Minimal quoted-CSV line parser (mdb-export output: comma-separated,

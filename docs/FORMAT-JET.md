@@ -79,6 +79,10 @@ with `Unsupported`** for now (rare; item to be scheduled before large-DB work).
 (scaled i64, 10⁻⁴), `0x06` Float32, `0x07` Float64, `0x08` DateTime (OLE
 automation f64), `0x09` Binary, `0x0A` Text, `0x0B` OLE, `0x0C` Memo,
 `0x0F` GUID, `0x10` Numeric (96-bit scaled decimal in 17 bytes), `0x12` Complex.
+`0x11` is not covered by HACKING's (incomplete) type table; both fixture
+variants use it for `MSysAccessObjects.Data` (a long-value column). DataCraft
+answers a precise `Unsupported`; mdb-tools itself warns "unsupported data
+type 17" on the same column (BACKLOG L2).
 
 Column flags (bitmask byte): `0x01` fixed length, `0x02` nullable,
 `0x04` autonumber, `0x10` replication/hidden, `0x40` auto GUID, `0x80` hyperlink.

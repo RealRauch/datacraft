@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T00:57
+# BACKLOG.md — Open items (As of: 2026-11-01T01:30
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -62,6 +62,12 @@
 - **Location:** `datacraft-storage/src/jet/`
 - **Scope:** Jet 3 (Access 97) read support: 2048-byte pages, codepage-based text (no UTF-16), Jet3 TDEF layout. Deferred per default decision 2026-10-31 — Jet4 and ACE read paths come first; Jet3 files are detected via the version dword and rejected with a precise `Unsupported` error until this item lands.
 - **Acceptance:** A Jet3 fixture decodes to schema + rows through the same `StorageEngine` boundary.
+
+### [ ] L2 — Jet4 column type 0x11 (MSysAccessObjects.Data) — study and decide mapping — 🟢
+- **Location:** `crates/datacraft-storage/src/jet/tdef.rs` (JetType::from_byte), `tests/oracle.rs` (skip path)
+- **Problem:** Jet4 column type `0x11` is not in HACKING's (incomplete) type table and not in `docs/FORMAT-JET.md`; both fixtures use it in `MSysAccessObjects.Data` (long-value column). mdb-tools itself warns "unsupported data type 17" on the same column. Our reader answers with a precise `Unsupported`, and the oracle skips such tables.
+- **Scope:** Focused study on the fixture's MSysAccessObjects rows (likely long-binary/LVAL like OLE; jackcess reads the table fine). Then either map the type or keep the precise `Unsupported` with a documented reason.
+- **Acceptance:** Decision documented in `docs/FORMAT-JET.md`; oracle no longer needs the skip, or the skip carries the documented reason.
 
 ---
 
