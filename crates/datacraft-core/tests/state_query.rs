@@ -11,7 +11,7 @@ use datacraft_core::core::Core;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_core::snapshot::UiStateSnapshot;
-use datacraft_core::{ObjectKind, ObjectId};
+use datacraft_core::{ObjectId, ObjectKind};
 use proptest::prelude::*;
 
 fn core() -> Core {
@@ -27,7 +27,6 @@ fn customers_def() -> TableDef {
         ],
     )
 }
-
 
 fn opened_with_customers() -> Core {
     let mut core = core();
@@ -59,10 +58,7 @@ fn opened_database_is_fully_described() {
     let db = snap.database.as_ref().expect("database open");
     assert_eq!(db.name, "shop");
     assert_eq!(db.path, PathBuf::from("shop.mdb"));
-    assert_eq!(
-        db.format,
-        datacraft_core::port::DatabaseFormat::Jet4
-    );
+    assert_eq!(db.format, datacraft_core::port::DatabaseFormat::Jet4);
     assert_eq!(db.tables.len(), 1);
     assert_eq!(db.tables[0].name, "Customers");
 }
@@ -91,7 +87,10 @@ fn nav_pane_test_id_reflects_visibility() {
 #[test]
 fn tabs_carry_the_convention_test_id_and_kind() {
     let mut core = opened_with_customers();
-    core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Table, "Customers")));
+    core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Table,
+        "Customers",
+    )));
     let snap = core.inspect();
     assert_eq!(snap.tabs.len(), 1);
     assert_eq!(snap.tabs[0].object_name, "Customers");
@@ -106,8 +105,14 @@ fn active_tab_is_observable_through_the_snapshot() {
     core.dispatch(Command::CreateTable {
         definition: TableDef::new("Orders", vec![FieldDef::new("total", FieldKind::Currency)]),
     });
-    core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Table, "Customers")));
-    core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Table, "Orders")));
+    core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Table,
+        "Customers",
+    )));
+    core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Table,
+        "Orders",
+    )));
     let snap = core.inspect();
     assert_eq!(snap.tabs.len(), 2);
     let active = snap.active_tab.expect("active tab");
@@ -122,7 +127,10 @@ fn active_tab_is_observable_through_the_snapshot() {
 #[test]
 fn closed_database_clears_the_snapshot() {
     let mut core = opened_with_customers();
-    core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Table, "Customers")));
+    core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Table,
+        "Customers",
+    )));
     core.dispatch(Command::CloseDatabase);
     let snap = core.inspect();
     assert!(snap.database.is_none());
@@ -144,7 +152,10 @@ fn snapshot_json_is_deterministic_for_equal_states() {
 #[test]
 fn snapshot_json_round_trips() {
     let mut core = opened_with_customers();
-    core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Table, "Customers")));
+    core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Table,
+        "Customers",
+    )));
     let snap = core.inspect();
     let json = snap.to_json();
     let back: UiStateSnapshot = serde_json::from_str(&json).expect("valid JSON");

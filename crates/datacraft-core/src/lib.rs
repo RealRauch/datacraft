@@ -11,6 +11,7 @@ pub mod event;
 pub mod ids;
 pub mod port;
 pub mod schema;
+pub mod snapshot;
 pub mod state;
 
 pub use ids::TabId;

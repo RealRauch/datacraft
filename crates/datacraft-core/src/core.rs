@@ -11,6 +11,7 @@ use crate::event::Event;
 use crate::ids::TabId;
 use crate::port::{PortError, StoragePort};
 use crate::schema::TableDef;
+use crate::snapshot::UiStateSnapshot;
 use crate::state::{AppState, DatabaseState, TabState};
 
 /// The headless application core: reducer + state + storage port.
@@ -31,6 +32,12 @@ impl Core {
     /// Read access to the application state (the UI re-renders from it).
     pub fn state(&self) -> &AppState {
         &self.state
+    }
+
+    /// Serializable snapshot of everything the UI shows — the headless
+    /// test seam (ARCHITECTURE §5).
+    pub fn inspect(&self) -> UiStateSnapshot {
+        UiStateSnapshot::of(&self.state)
     }
 
     /// Applies one command; returns the observable outcomes in order.
