@@ -33,7 +33,7 @@ pub struct App {
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
     /// Query results per query tab, refreshed when the QBE model changes.
     results: HashMap<TabId, QueryResult>,
-    /// View mode per tab (Datasheet default; Design is read-only in Phase 6).
+    /// View mode per tab (Datasheet default; table Design is read-only).
     pub tab_mode: HashMap<TabId, TabMode>,
     /// Selected control per form-design tab.
     form_selection: HashMap<TabId, String>,
@@ -59,6 +59,9 @@ pub struct App {
     pub(crate) last_error: Option<String>,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
     pub sidecar_path: String,
+    /// Success notice of the last command (status bar), cleared by
+    /// failures (step 11.8).
+    pub(crate) last_notice: Option<String>,
     /// Buffered cells of the datasheet's new-record row per table tab.
     new_row: HashMap<TabId, Vec<String>>,
 }
@@ -97,6 +100,7 @@ impl App {
             sql_text: "SELECT 1 AS one;".to_owned(),
             sql_error: None,
             last_error: None,
+            last_notice: None,
             sidecar_path: String::new(),
             new_row: HashMap::new(),
         }
@@ -110,6 +114,27 @@ impl App {
             Event::Failed { reason } => Some(reason.clone()),
             _ => None,
         });
+        self.last_notice = if self.last_error.is_some() {
+            None
+        } else {
+            notice_for(&events)
+        };
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::DatabaseOpened { .. }))
+            && let Some(db) = self.snapshot.database.as_ref()
+        {
+            // ADR-1: the design layer lives next to the database file.
+            self.sidecar_path = datacraft_core::schema::SchemaDocument::sidecar_path(&db.path)
+                .to_string_lossy()
+                .into_owned();
+        }
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::DatabaseClosed))
+        {
+            self.sidecar_path.clear();
+        }
         self.maintain_caches(&events);
         events
     }
@@ -417,6 +442,23 @@ impl App {
     }
 }
 
+/// Status-bar notice for successful design-document operations.
+fn notice_for(events: &[Event]) -> Option<String> {
+    events.iter().find_map(|event| match event {
+        Event::DesignDocumentSaved { path } => Some(format!("Design saved to {}", path.display())),
+        Event::DesignDocumentLoaded {
+            path,
+            forms,
+            queries,
+            reports,
+        } => Some(format!(
+            "Design loaded from {} ({forms} forms, {queries} queries, {reports} reports)",
+            path.display()
+        )),
+        _ => None,
+    })
+}
+
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         crate::theme::apply(ui.ctx());
@@ -451,6 +493,8 @@ impl eframe::App for App {
                 ));
                 if let Some(reason) = self.last_error() {
                     ui.colored_label(egui::Color32::from_rgb(0xB0, 0x2A, 0x2A), reason);
+                } else if let Some(notice) = self.last_notice() {
+                    ui.colored_label(crate::theme::TEAL, notice);
                 }
                 // Right: the record-navigation box over the active view's
                 // record domain (rows / results / form record / pages).

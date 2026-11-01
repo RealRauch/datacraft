@@ -189,6 +189,11 @@ impl App {
     pub fn last_error(&self) -> Option<&str> {
         self.last_error.as_deref()
     }
+
+    /// Success notice of the last command (status bar), if any.
+    pub fn last_notice(&self) -> Option<&str> {
+        self.last_notice.as_deref()
+    }
 }
 
 /// First free `prefixN` name (case-insensitive).

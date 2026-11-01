@@ -18,8 +18,8 @@ pub enum ControlKind {
         /// The displayed text.
         text: String,
     },
-    /// Single-line edit bound to a source field (read-only until the
-    /// write path lands).
+    /// Single-line edit bound to a source field (read-only until bound
+    /// field edits land — step 11.10, BACKLOG H40).
     TextBox {
         /// Bound source field, if any.
         bound_field: Option<String>,

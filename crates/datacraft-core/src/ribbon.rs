@@ -59,7 +59,7 @@ pub struct RibbonSpec {
     pub tabs: Vec<RibbonTab>,
 }
 
-/// The ribbon of the Phase 5 skeleton.
+/// The ribbon specification of the current feature set.
 pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
     tabs: vec![
         RibbonTab {

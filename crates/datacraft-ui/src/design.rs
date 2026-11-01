@@ -2,8 +2,8 @@
 //!
 //! Renders the design grid (Field Name / Data Type / Caption) and the
 //! selected field's property sheet from the snapshot. Design-time schema
-//! editing needs the write path (BACKLOG H9) and is intentionally absent;
-//! the grid communicates that instead of pretending.
+//! editing is a separate workstream (BACKLOG M9); the view says so instead
+//! of pretending.
 
 use eframe::egui;
 
@@ -96,7 +96,7 @@ pub fn design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     ui.separator();
     ui.label(
         egui::RichText::new(
-            "Read-only view — design-time schema editing lands with the write path (BACKLOG H9).",
+            "Read-only view — design-time schema editing is not implemented yet (BACKLOG M9).",
         )
         .small(),
     );

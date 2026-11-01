@@ -13,7 +13,10 @@
 //!   columns are byte-per-char.
 //! - Jet `Numeric` descriptors carry only the scale; precision is modeled
 //!   as the 96-bit maximum (28).
-//! - Writes are `Unsupported` until the writer workstream (BACKLOG H9).
+//! - Writes run through the clean-room Jet4 writer behind the port (step
+//!   11.1); shapes the writer does not qualify yet (AutoNumber counters,
+//!   attachments, table drops) answer a precise `Unsupported`
+//!   (BACKLOG M4/M7/M8).
 
 use std::path::{Path, PathBuf};
 
@@ -30,7 +33,7 @@ use crate::jet::{JetType, OBJECT_TYPE_TABLE};
 use crate::port_write;
 use crate::types::FormatVersion;
 
-/// The Jet4 read backend as a [`StoragePort`] (read-only).
+/// The Jet4 backend as a [`StoragePort`] (read/write).
 #[derive(Debug, Default)]
 pub struct Jet4Port {
     reader: Option<Jet4TableReader>,
@@ -96,8 +99,7 @@ impl StoragePort for Jet4Port {
             return Err(no_database());
         }
         Err(PortError::Unsupported {
-            reason: "dropping Jet tables lands with the navigation-pane delete flow                      (step 11.4)"
-                .to_owned(),
+            reason: "dropping Jet tables is not implemented yet (BACKLOG M7)".to_owned(),
         })
     }
 

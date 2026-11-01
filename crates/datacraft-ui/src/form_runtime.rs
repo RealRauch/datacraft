@@ -2,8 +2,8 @@
 //!
 //! Renders bound control values for the current record; navigation is
 //! per-tab UI state, values come from the per-tab row cache (the source
-//! table's rows). Read-only — the write path lands with BACKLOG H9 and
-//! the view says so instead of pretending.
+//! table's rows). Read-only — bound-field edits land with the Jet update
+//! path (step 11.10, BACKLOG H40); the view says so instead of pretending.
 
 use eframe::egui;
 
@@ -86,8 +86,10 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         }
     });
     ui.label(
-        egui::RichText::new("Read-only view — edits land with the write path (BACKLOG H9).")
-            .small(),
+        egui::RichText::new(
+            "Read-only view — bound-field edits land with the Jet update path (step 11.10, BACKLOG H40).",
+        )
+        .small(),
     );
 }
 

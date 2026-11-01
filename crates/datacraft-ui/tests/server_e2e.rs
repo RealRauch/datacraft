@@ -159,7 +159,7 @@ fn jet_writes_persist_over_the_wire_and_drops_stay_precise() {
         failed[0]["Failed"]["reason"]
             .as_str()
             .unwrap_or_default()
-            .contains("11.4"),
+            .contains("M7"),
         "{failed}"
     );
 

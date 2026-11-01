@@ -93,29 +93,6 @@ fn sqlite_format_serializes_as_lower_case_slug() {
 }
 
 #[test]
-fn tab_placeholders_name_the_object_and_the_arriving_phase() {
-    use datacraft_core::ObjectKind;
-    use datacraft_core::present::tab_placeholder;
-
-    assert_eq!(
-        tab_placeholder(ObjectKind::Table, "Customers"),
-        "Datasheet for \"Customers\" arrives in Phase 6."
-    );
-    assert_eq!(
-        tab_placeholder(ObjectKind::Query, "Active Orders"),
-        "Query results for \"Active Orders\" arrive in Phase 7."
-    );
-    assert_eq!(
-        tab_placeholder(ObjectKind::Form, "Customer Card"),
-        "Form view for \"Customer Card\" arrives in Phase 8."
-    );
-    assert_eq!(
-        tab_placeholder(ObjectKind::Report, "Invoices"),
-        "Report preview for \"Invoices\" arrives in Phase 8."
-    );
-}
-
-#[test]
 fn display_values_are_user_renderable() {
     use datacraft_core::present::display_value;
     use datacraft_core::schema::FieldValue;

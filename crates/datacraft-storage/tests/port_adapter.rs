@@ -102,14 +102,14 @@ fn writes_require_an_open_database() {
 }
 
 #[test]
-fn drop_table_is_unsupported_until_the_delete_flow() {
+fn drop_table_is_unsupported_with_a_pointer() {
     let mut port = Jet4Port::new();
     port.open(&fixture()).expect("fixture must open");
     let err = port
         .drop_table("Table1")
         .expect_err("drop is not wired yet");
     assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
-    assert!(err.to_string().contains("11.4"), "{err}");
+    assert!(err.to_string().contains("M7"), "{err}");
 }
 
 #[test]

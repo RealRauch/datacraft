@@ -57,6 +57,24 @@
 - **Ansatz:** Kompatibilitätsaussagen an den verifizierten Stand angleichen: ehrliche Read/Write-Matrix je Format (Jet3/Jet4/ACCDB/SQLite) mit Verweis auf die jeweiligen Tests/Gates; „bit-for-bit"-Claim auf die tatsächlich geprüften Pfade eingrenzen; Sidecar-vs-native-Absicherung (ADR-1) prominent halten. Reihenfolge: nach Abschluss von Phase 14 (ACCDB-Read), final mit Phase 17.
 - **Acceptance:** Jede Kompatibilitätsaussage in README/ARCHITECTURE ist durch einen benannten Test/Gate gedeckt; Review-Absatz je Format; keine Übertreibung gegenüber der Fixture-Abdeckung.
 
+### [ ] M7 — Jet table drops through the writer (DropTable on .mdb/.accdb) — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/writer_tables.rs`, `writer.rs`, `catalog.rs`; `src/port_adapter.rs`; `crates/datacraft-storage/tests/`
+- **Problem:** `Jet4Port::drop_table` answers a precise `Unsupported` ("BACKLOG M7"), so the navigation-pane delete flow (step 11.4) works for SQLite but not for Jet/ACE files.
+- **Approach:** Remove the table's TDEF/TDAT pages and its catalog row, return every freed page to the global free map and keep the per-table usage maps consistent; deterministic page selection (LESSONS #6). Verify with `mdb-export` and a reopen; the SQLite drop path stays unchanged.
+- **Acceptance:** Drop on a private fixture copy; reopen and the catalog no longer lists the table; free-map and usage-map consistency checked; the oracle reads the file without errors; failure leaves the file untouched.
+
+### [ ] M8 — Jet AutoNumber counter maintenance on insert — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/writer_rows.rs` (new or `writer_tables.rs`), `port_write.rs`; `src/port_adapter.rs`; `crates/datacraft-storage/tests/`
+- **Problem:** `port_write` maps `FieldKind::AutoNumber` to a precise `Unsupported` because the writer does not maintain the table's counter; `InsertRow` on a Jet table with an AutoNumber column therefore fails.
+- **Approach:** Persist the AutoNumber seed/increment in the table's counter metadata, assign the next value on insert (Null = engine-assigned) and keep the assignment deterministic per input state (LESSONS #6); GUID AutoNumbers stay `Unsupported` until qualified.
+- **Acceptance:** Inserts assign 1, 2, 3…; reopen keeps the counter; `mdb-export` and Access show the assigned values; user-supplied AutoNumber values stay rejected; GUID flavor answers a precise `Unsupported`.
+
+### [ ] M9 — Design-time schema editing (ALTER TABLE) in the table design view — 🟡
+- **Location:** `crates/datacraft-core/src/command.rs`, `database.rs`; `crates/datacraft-storage/src/jet/writer_tables.rs`, `src/port_adapter.rs`; `crates/datacraft-ui/src/design.rs`
+- **Problem:** The table design grid is read-only; step 6.3 deferred editing to the writer workstream (H9), but no alter path exists yet.
+- **Approach:** `AddField`/`DropField`/`RenameField`/`SetFieldProperties` commands through the port, rewriting the TDEF while preserving row data; the design grid becomes editable with save/cancel and dispatches exactly one command per edit; shapes the writer cannot alter answer a precise `Unsupported`.
+- **Acceptance:** Design-view edits persist across a reopen with row data preserved; oracle check on the changed file; UI edits dispatch one command each; failures leave the file and state untouched.
+
 ---
 
 ## 🟢 LOW

@@ -1,9 +1,10 @@
 //! DataCraft desktop shell (eframe/egui).
 //!
-//! Phase 5 skeleton: the four-region shell (ribbon, navigation pane,
-//! tabbed workspace, status bar) driven by the headless core
-//! (`docs/ARCHITECTURE.md` §5). The ribbon grows in step 5.2, the
-//! navigation pane in 5.3 and the workspace in 5.4.
+//! The four-region shell (ribbon, navigation pane, tabbed workspace,
+//! status bar) driven by the headless core (`docs/ARCHITECTURE.md` §5):
+//! datasheet with the new-record row, read-only design grid, QBE grid,
+//! SQL window, form/report designers with palettes, relationship mapper
+//! and the sidecar actions.
 //!
 //! Coverage policy: this crate is rendering glue only — logic lives in
 //! `datacraft-core`; the crate is excluded from the coverage gate
@@ -190,7 +191,9 @@ mod tests {
         assert!(app.last_error().is_none(), "{:?}", app.last_error());
         assert!(path.exists(), "sidecar written");
         assert!(
-            app.last_notice().unwrap_or_default().contains("Design saved"),
+            app.last_notice()
+                .unwrap_or_default()
+                .contains("Design saved"),
             "{:?}",
             app.last_notice()
         );
@@ -198,9 +201,7 @@ mod tests {
         app.dispatch(Command::DeleteForm {
             name: "Card".into(),
         });
-        app.dispatch(Command::LoadDesignDocument {
-            path: path.clone(),
-        });
+        app.dispatch(Command::LoadDesignDocument { path: path.clone() });
         assert!(
             app.last_notice()
                 .unwrap_or_default()
