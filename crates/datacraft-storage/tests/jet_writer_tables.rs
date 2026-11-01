@@ -285,3 +285,71 @@ fn free_map_polarity_vocabulary() {
     assert!(map.owns_free(0));
     assert!(!map.owns_free(8));
 }
+
+// --- encoder error paths (precise rejections, no silent coercion) ---
+
+#[test]
+fn row_encoder_rejects_wrong_value_counts_and_types() {
+    let columns = vec![JetColumn::new("Id", JetType::LongInt, 0x03, 0, 0, 4)];
+    let def = encode::build_table_def(0x4E, 0, &columns, 0, 0);
+    let err = encode_row(&[], &def).unwrap_err();
+    assert!(
+        matches!(err, datacraft_storage::StorageError::Unsupported { .. }),
+        "{err}"
+    );
+    let err = encode_row(&[StorageValue::Text("nope".into())], &def).unwrap_err();
+    assert!(
+        matches!(err, datacraft_storage::StorageError::Unsupported { .. }),
+        "{err}"
+    );
+
+    // Numeric encodes both signs; a boolean cannot sit in a numeric column.
+    let columns = vec![
+        JetColumn::new("Amount", JetType::Numeric, 0x03, 0, 0, 17),
+        JetColumn::new("Flag", JetType::Bool, 0x03, 1, 0, 0),
+    ];
+    let def = encode::build_table_def(0x4E, 0, &columns, 0, 0);
+    let row = encode_row(
+        &[StorageValue::Decimal(-12345), StorageValue::Bit(true)],
+        &def,
+    )
+    .expect("encodes");
+    let decoded = datacraft_storage::jet::decode_row(&row, &def, &[], 4096).expect("decodes");
+    assert_eq!(decoded[0], StorageValue::Decimal(-12345));
+    assert_eq!(decoded[1], StorageValue::Bit(true));
+    let err = encode_row(&[StorageValue::Decimal(1), StorageValue::Int(2)], &def).unwrap_err();
+    assert!(
+        matches!(err, datacraft_storage::StorageError::Unsupported { .. }),
+        "{err}"
+    );
+}
+
+#[test]
+fn compressed_text_columns_round_trip_through_the_marker_form() {
+    let columns = vec![JetColumn::new("Name", JetType::Text, 0x02, 0, 0, 20)];
+    let mut def = encode::build_table_def(0x4E, 0, &columns, 0, 0);
+    def.columns[0].compressed_text = true;
+    let row = encode_row(&[StorageValue::Text("grün".into())], &def).expect("encodes");
+    let decoded = datacraft_storage::jet::decode_row(&row, &def, &[], 4096).expect("decodes");
+    assert_eq!(decoded[0], StorageValue::Text("grün".into()));
+}
+
+#[test]
+fn scalar_fixed_types_and_variable_long_binary_round_trip() {
+    let columns = vec![
+        JetColumn::new("F32", JetType::Float, 0x03, 0, 0, 4),
+        JetColumn::new("Guid", JetType::Guid, 0x03, 1, 4, 16),
+        JetColumn::new("Num", JetType::Numeric, 0x03, 2, 20, 17),
+        JetColumn::new("Blob", JetType::LongBinary, 0x02, 3, 0, 8),
+    ];
+    let def = encode::build_table_def(0x4E, 0, &columns, 0, 0);
+    let values = vec![
+        StorageValue::Float(1.5),
+        StorageValue::Guid([7u8; 16]),
+        StorageValue::Decimal(-42),
+        StorageValue::Binary(vec![1, 2, 3, 4, 5, 6, 7, 8]),
+    ];
+    let row = encode_row(&values, &def).expect("encodes");
+    let decoded = datacraft_storage::jet::decode_row(&row, &def, &[], 4096).expect("decodes");
+    assert_eq!(decoded, values);
+}

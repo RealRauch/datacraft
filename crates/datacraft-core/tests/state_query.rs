@@ -8,6 +8,7 @@ use std::path::PathBuf;
 
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
+use datacraft_core::event::Event;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_core::snapshot::UiStateSnapshot;
@@ -238,4 +239,70 @@ fn the_snapshot_carries_the_relationship_mapper_state() {
     let mut core = core();
     core.dispatch(Command::ToggleRelationshipMapper);
     assert!(core.inspect().relationship_mapper_open);
+}
+
+// --- reducer guard arms (dispatch answers precisely on every misuse) ---
+
+#[test]
+fn database_and_table_guards_answer_precisely() {
+    let mut core = Core::new(Box::new(MockPort::new()));
+    // Guards on an empty core:
+    match core.dispatch(Command::CloseDatabase {}).first() {
+        Some(Event::Failed { reason }) => assert!(reason.contains("no database"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+    match core
+        .dispatch(Command::CreateQuery { name: "q".into() })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("no database"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+
+    // A port that refuses writes surfaces the backend error verbatim.
+    let mut failing = Core::new(Box::new(datacraft_core::port::MockPort::failing_writes(
+        "disk on strike",
+    )));
+    failing.dispatch(Command::OpenDatabase {
+        path: std::path::PathBuf::from("db.mdb"),
+    });
+    let definition = datacraft_core::schema::TableDef::new("T", Vec::new());
+    match failing
+        .dispatch(Command::CreateTable { definition })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("disk on strike"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn query_and_tab_guards_name_the_missing_object() {
+    let mut core = Core::new(Box::new(MockPort::new()));
+    core.dispatch(Command::OpenDatabase {
+        path: std::path::PathBuf::from("db.mdb"),
+    });
+    match core
+        .dispatch(Command::RunQuery { query: "q".into() })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+    match core
+        .dispatch(Command::DeleteQuery { name: "q".into() })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+    match core
+        .dispatch(Command::CloseTab {
+            tab_id: datacraft_core::TabId::new(99),
+        })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(!reason.is_empty(), "{reason}"),
+        other => panic!("{other:?}"),
+    }
 }

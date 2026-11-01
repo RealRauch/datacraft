@@ -274,3 +274,155 @@ fn snapshot_lists_reports_and_derives_navigation_ids() {
         "node.report.weekly"
     );
 }
+
+// --- error paths (coverage gate: every reducer answers precisely) ---
+
+fn failed_of(events: Vec<Event>) -> String {
+    match events.first() {
+        Some(Event::Failed { reason }) => reason.clone(),
+        other => panic!("expected Failed, got {other:?}"),
+    }
+}
+
+#[test]
+fn report_reducers_reject_precisely_without_a_database() {
+    let mut core = Core::new(Box::new(MockPort::new()));
+    let reason = failed_of(core.dispatch(Command::CreateReport { name: "R".into() }));
+    assert!(reason.contains("no database"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::DeleteReport { name: "R".into() }));
+    assert!(reason.contains("no database"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::AddReportControl {
+        report: "R".into(),
+        control: label("a", "b", 0.0, 0.0),
+    }));
+    assert!(reason.contains("no database"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::SetReportSource {
+        report: "R".into(),
+        table: "T".into(),
+    }));
+    assert!(reason.contains("no database"), "{reason}");
+}
+
+#[test]
+fn create_report_rejects_empty_names() {
+    let mut core = opened_with_report();
+    let reason = failed_of(core.dispatch(Command::CreateReport { name: "   ".into() }));
+    assert!(reason.contains("empty"), "{reason}");
+}
+
+#[test]
+fn report_control_errors_name_the_missing_object() {
+    let mut core = opened_with_report();
+    let reason = failed_of(core.dispatch(Command::AddReportControl {
+        report: "Ghost".into(),
+        control: label("a", "b", 0.0, 0.0),
+    }));
+    assert!(reason.contains("not found"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::AddReportControl {
+        report: "Weekly".into(),
+        control: label("  ", "b", 0.0, 0.0),
+    }));
+    assert!(reason.contains("empty"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::SetReportControlRect {
+        report: "Weekly".into(),
+        control: "ghost".into(),
+        rect: Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 10.0,
+            height: 10.0,
+        },
+    }));
+    assert!(reason.contains("not found"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::DeleteReportControl {
+        report: "Weekly".into(),
+        control: "ghost".into(),
+    }));
+    assert!(reason.contains("not found"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::DeleteReport {
+        name: "Ghost".into(),
+    }));
+    assert!(reason.contains("not found"), "{reason}");
+    let reason = failed_of(core.dispatch(Command::SetReportSource {
+        report: "Ghost".into(),
+        table: "Customers".into(),
+    }));
+    assert!(reason.contains("not found"), "{reason}");
+}
+
+#[test]
+fn report_source_revalidates_existing_bindings() {
+    let empty = TableDef::new(
+        "Empty",
+        vec![FieldDef::new(
+            "Other",
+            FieldKind::Number(datacraft_core::schema::NumericKind::LongInteger),
+        )],
+    );
+    let mut core = Core::new(Box::new(MockPort::with_tables(vec![
+        customers_table(),
+        empty,
+    ])));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+    });
+    core.dispatch(Command::CreateReport {
+        name: "Weekly".into(),
+    });
+    core.dispatch(Command::SetReportSource {
+        report: "Weekly".into(),
+        table: "Customers".into(),
+    });
+    core.dispatch(Command::AddReportControl {
+        report: "Weekly".into(),
+        control: {
+            let mut c = label("nameBox", "", 0.0, 0.0);
+            c.kind = ControlKind::TextBox {
+                bound_field: Some("Name".into()),
+            };
+            c
+        },
+    });
+    // Re-pointing at a table without the bound field is refused.
+    let reason = failed_of(core.dispatch(Command::SetReportSource {
+        report: "Weekly".into(),
+        table: "Empty".into(),
+    }));
+    assert!(reason.contains("rebind"), "{reason}");
+}
+
+// --- remaining reducer error arms (precise, one behavior per test) ---
+
+#[test]
+fn duplicate_report_control_names_are_rejected_case_insensitively() {
+    let mut core = opened_with_report();
+    core.dispatch(Command::AddReportControl {
+        report: "Weekly".into(),
+        control: label("title", "one", 0.0, 0.0),
+    });
+    let reason = failed_of(core.dispatch(Command::AddReportControl {
+        report: "Weekly".into(),
+        control: label("TITLE", "two", 40.0, 0.0),
+    }));
+    assert!(reason.contains("duplicate"), "{reason}");
+}
+
+#[test]
+fn moving_a_report_control_past_the_page_edge_is_rejected() {
+    let mut core = opened_with_report();
+    core.dispatch(Command::AddReportControl {
+        report: "Weekly".into(),
+        control: label("title", "one", 0.0, 0.0),
+    });
+    let reason = failed_of(core.dispatch(Command::SetReportControlRect {
+        report: "Weekly".into(),
+        control: "title".into(),
+        rect: Rect {
+            x: 590.0,
+            y: 830.0,
+            width: 100.0,
+            height: 24.0,
+        },
+    }));
+    assert!(reason.contains("bounds"), "{reason}");
+}

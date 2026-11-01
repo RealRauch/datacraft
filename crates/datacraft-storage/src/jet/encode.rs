@@ -11,7 +11,7 @@
 
 use crate::error::StorageError;
 use crate::jet::row::fixed_len;
-use crate::jet::tdef::{JetColumn, JetTableDef, JetType, flags};
+use crate::jet::tdef::{JetColumn, JetTableDef, JetType};
 use crate::types::StorageValue;
 
 /// Days between 1899-12-30 (OLE automation epoch) and 1970-01-01.
@@ -305,14 +305,4 @@ pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
 /// Packs a map type byte and a row pointer into a TDEF map dword.
 pub fn pack_map_dword(kind: u8, page: u32, row: u8) -> u32 {
     (u32::from(kind) << 24) | crate::jet::usage_map::MapRef { page, row }.pack()
-}
-
-/// Convenience: nullable flags from the domain (kept symmetric with the
-/// reader's mapping; unused by the writer core itself).
-pub fn nullable_flag(nullable: bool) -> u8 {
-    if nullable {
-        flags::NULLABLE
-    } else {
-        flags::FIXED
-    }
 }

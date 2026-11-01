@@ -226,3 +226,67 @@ fn save_requires_an_open_database() {
     ));
     assert!(reason.contains("no database"), "{reason}");
 }
+
+// --- sidecar failure arms (precise I/O errors, no silent swallowing) ---
+
+#[test]
+fn sidecar_io_failures_surface_as_failed_events() {
+    let mut core = opened_db();
+    let dir = std::env::temp_dir();
+    match core
+        .dispatch(Command::SaveDesignDocument { path: dir.clone() })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("write failed"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+    match core
+        .dispatch(Command::LoadDesignDocument {
+            path: dir.join("datacraft-does-not-exist.datacraft"),
+        })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("read failed"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn form_guards_name_the_missing_object() {
+    let mut core = opened_db();
+    match core
+        .dispatch(Command::DeleteForm {
+            name: "Ghost".into(),
+        })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+    match core
+        .dispatch(Command::SetFormSource {
+            form: "Ghost".into(),
+            table: "T".into(),
+        })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+    match core
+        .dispatch(Command::SetFormControlRect {
+            form: "Ghost".into(),
+            control: "c".into(),
+            rect: datacraft_core::canvas::Rect {
+                x: 0.0,
+                y: 0.0,
+                width: 1.0,
+                height: 1.0,
+            },
+        })
+        .first()
+    {
+        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+}

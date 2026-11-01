@@ -431,3 +431,23 @@ fn remaining_boundary_arms_fail_precisely() {
         "unexpected error: {err:?}"
     );
 }
+
+#[test]
+fn hostile_lval_pointers_fail_precisely_at_every_level() {
+    use datacraft_storage::jet::Jet4TableReader;
+    // A memo column whose single-record pointer targets page 99 (beyond
+    // the file) resolves to a precise error, not a panic.
+    let mut file = support::file_shell(3);
+    let columns = vec![JetColumn::new("Memo", JetType::Memo, 0x02, 0, 0, 0)];
+    support::write_tdef(&mut file, 1, 0, 0x4E, &columns);
+    let header = [
+        (0x4000_0000u32 | 4).to_le_bytes(),
+        (99u32 << 8).to_le_bytes(),
+    ]
+    .concat();
+    let row = support::raw_var_row(1, &[], &header, &[true]);
+    support::write_data_page(&mut file, 2, 1, &[row]);
+    let reader = Jet4TableReader::new(file).expect("opens");
+    let err = reader.read_table(1).unwrap_err();
+    assert!(!err.to_string().is_empty(), "{err}");
+}

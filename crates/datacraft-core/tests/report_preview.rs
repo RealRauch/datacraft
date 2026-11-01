@@ -154,3 +154,64 @@ fn core_report_preview_reads_rows_through_the_port() {
     let err = core.report_preview("Nope").unwrap_err();
     assert!(err.contains("not found"), "{err}");
 }
+
+// --- error paths (precise failures, coverage of the guard arms) ---
+
+#[test]
+fn preview_requires_an_open_database_and_an_existing_report() {
+    let core = Core::new(Box::new(MockPort::new()));
+    let err = core.report_preview("Weekly").unwrap_err();
+    assert!(err.contains("no database"), "{err}");
+}
+
+#[test]
+fn pagination_clamps_degenerate_page_geometry() {
+    let mut report = ReportDef::new("Weekly");
+    // Margins wider than the page clamp to a zero printable area.
+    report.page.width = 50.0;
+    report.page.height = 50.0;
+    assert_eq!(report.page.printable_width(), 0.0);
+    assert_eq!(report.page.printable_height(), 0.0);
+}
+
+#[test]
+fn bound_controls_render_empty_when_rows_are_narrower_than_the_schema() {
+    let mut report = ReportDef::new("Weekly");
+    report.source = "Customers".into();
+    report.controls.push(bound("nameBox", "Name"));
+    // A row shorter than the schema (schema-change prefix rows).
+    let pages = paginate(&report, Some(&customers()), &[vec![FieldValue::Null]]);
+    assert_eq!(pages[0].items[0].text, "");
+}
+
+#[test]
+fn unbound_combo_and_check_controls_render_empty() {
+    let mut report = ReportDef::new("Weekly");
+    for (name, kind) in [
+        (
+            "combo",
+            datacraft_core::form::ControlKind::ComboBox { bound_field: None },
+        ),
+        (
+            "check",
+            datacraft_core::form::ControlKind::CheckBox { bound_field: None },
+        ),
+        (
+            "box",
+            datacraft_core::form::ControlKind::TextBox { bound_field: None },
+        ),
+    ] {
+        report.controls.push(datacraft_core::form::ControlDef {
+            name: name.into(),
+            kind,
+            rect: datacraft_core::canvas::Rect {
+                x: 0.0,
+                y: 0.0,
+                width: 40.0,
+                height: 12.0,
+            },
+        });
+    }
+    let pages = paginate(&report, None, &[]);
+    assert!(pages[0].items.iter().all(|i| i.text.is_empty()));
+}

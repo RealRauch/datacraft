@@ -211,3 +211,75 @@ fn jet3_rows_over_255_data_bytes_are_a_precise_unsupported() {
     let err = decode_row_jet3(&raw, &def, &file, PAGE).unwrap_err();
     assert!(matches!(err, StorageError::Unsupported { .. }), "{err}");
 }
+
+// --- hostile-input paths: every Jet3 decode failure is precise ---
+
+#[test]
+fn jet3_tdef_rejects_non_tdef_pages_and_chains() {
+    let mut file = shell(2);
+    let err = JetTableDef::decode(&file, 1).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+    write_tdef(&mut file, 1, &catalog_columns());
+    let base = PAGE; // TDEF page header: next-page dword at offset 4
+    file[base + 4..base + 8].copy_from_slice(&7u32.to_le_bytes());
+    let err = JetTableDef::decode(&file, 1).unwrap_err();
+    assert!(matches!(err, StorageError::Unsupported { .. }), "{err}");
+}
+
+#[test]
+fn jet3_tdef_rejects_implausible_block_lengths() {
+    let mut file = shell(1);
+    write_tdef(&mut file, 1, &catalog_columns());
+    file[8..12].copy_from_slice(&10u32.to_le_bytes()); // tdef_len < 35
+    let err = JetTableDef::decode(&file, 1).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+    file[8..12].copy_from_slice(&999_999u32.to_le_bytes()); // beyond the page
+    let err = JetTableDef::decode(&file, 1).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+}
+
+#[test]
+fn jet3_data_pages_reject_truncation_and_wrong_owners() {
+    let err = datacraft_storage::jet::DataPage::decode_jet3(&[0x01, 0x01, 0, 0]).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+    let err = datacraft_storage::jet::DataPage::decode_jet3(&[0x02; PAGE]).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+    let mut page = [0u8; PAGE];
+    page[0] = 0x01;
+    page[8..10].copy_from_slice(&9999u16.to_le_bytes()); // count beyond capacity
+    let err = datacraft_storage::jet::DataPage::decode_jet3(&page).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+}
+
+#[test]
+fn jet3_rows_reject_short_tails() {
+    let mut file = shell(2);
+    write_tdef(&mut file, 1, &catalog_columns());
+    let def = JetTableDef::decode(&file, 1).expect("tdef");
+    let err = decode_row_jet3(&[], &def, &file, PAGE).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+    // Truncated tail: num_cols claims a mask that does not fit.
+    let err = decode_row_jet3(&[3, 0, 0], &def, &file, PAGE).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+}
+
+#[test]
+fn jet3_data_pages_reject_descending_order_violations_and_overflow_slots() {
+    // Overflow slots are accepted and carry 4-byte pointers.
+    let mut page = [0u8; PAGE];
+    page[0] = 0x01;
+    page[8..10].copy_from_slice(&1u16.to_le_bytes());
+    page[10..12].copy_from_slice(&(0x4000u16 | 100).to_le_bytes());
+    let decoded = datacraft_storage::jet::DataPage::decode_jet3(&page).expect("overflow slot");
+    assert!(decoded.is_overflow(0));
+    assert_eq!(decoded.record(0).0, 100);
+
+    // A record at or above the previous record end is corrupt.
+    let mut page = [0u8; PAGE];
+    page[0] = 0x01;
+    page[8..10].copy_from_slice(&2u16.to_le_bytes());
+    page[10..12].copy_from_slice(&200u16.to_le_bytes());
+    page[12..14].copy_from_slice(&200u16.to_le_bytes());
+    let err = datacraft_storage::jet::DataPage::decode_jet3(&page).unwrap_err();
+    assert!(matches!(err, StorageError::Corrupt { .. }), "{err}");
+}

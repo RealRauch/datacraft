@@ -8,6 +8,7 @@
 pub mod canvas;
 pub mod command;
 pub mod core;
+pub mod database;
 pub mod event;
 pub mod form;
 pub mod forms;

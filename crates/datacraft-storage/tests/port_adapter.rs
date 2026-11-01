@@ -243,3 +243,100 @@ fn relationships_read_from_msysrelationships() {
         "the documented fixture relationship must map: {rels:?}"
     );
 }
+
+// --- port error paths (precise Unsupported, read-only seams) ---
+
+#[test]
+fn jet3_fixtures_open_through_the_port() {
+    use datacraft_core::port::StoragePort as _;
+
+    // A minimal Jet3 database: catalog TDEF at page 2 (format constant),
+    // an empty catalog data page at 3 — enough for the port to open and
+    // report the Jet3 format (step 10.6).
+    let path = std::env::temp_dir().join("datacraft-jet3-port.mdb");
+    std::fs::write(&path, jet3_catalog_shell()).unwrap();
+    let mut port = Jet4Port::new();
+    let opened = port.open(&path).expect("jet3 opens since step 10.6");
+    assert!(matches!(
+        opened.format,
+        datacraft_core::port::DatabaseFormat::Jet3
+    ));
+    assert!(port.tables().is_empty(), "the catalog is empty");
+    let _ = std::fs::remove_file(&path);
+}
+
+/// A minimal Jet3 shell with a plausible (empty) MSysObjects TDEF.
+fn jet3_catalog_shell() -> Vec<u8> {
+    use datacraft_storage::jet::{JetColumn, JetType};
+
+    const PAGE: usize = 2048;
+    let mut file = vec![0u8; PAGE * 4];
+    file[0..4].copy_from_slice(&[0x00, 0x01, 0x00, 0x00]);
+    file[4..20].copy_from_slice(b"Standard Jet DB ");
+    file[0x14..0x18].copy_from_slice(&0u32.to_le_bytes());
+    // Page 2: catalog TDEF ('VC' header, 35-byte block, three columns).
+    let base = 2 * PAGE;
+    file[base] = 0x02;
+    file[base + 1] = 0x01;
+    file[base + 2..base + 4].copy_from_slice(b"VC");
+    let columns = [
+        (JetType::LongInt, 0x01u8, 4u16),
+        (JetType::Text, 0x02, 100),
+        (JetType::LongInt, 0x01, 2),
+        (JetType::LongInt, 0x01, 4),
+    ];
+    let mut block: Vec<u8> = Vec::new();
+    block.extend_from_slice(&0u32.to_le_bytes()); // tdef_len, patched below
+    block.extend_from_slice(&0u32.to_le_bytes()); // num_rows
+    block.extend_from_slice(&0u32.to_le_bytes()); // autonumber
+    block.push(0x53); // system table
+    block.extend_from_slice(&(columns.len() as u16).to_le_bytes());
+    block.extend_from_slice(&1u16.to_le_bytes()); // num_var
+    block.extend_from_slice(&(columns.len() as u16).to_le_bytes());
+    block.extend_from_slice(&0u32.to_le_bytes()); // num_idx
+    block.extend_from_slice(&0u32.to_le_bytes()); // num_real_idx
+    block.extend_from_slice(&0u32.to_le_bytes()); // used_pages
+    block.extend_from_slice(&0u32.to_le_bytes()); // free_pages
+    for (i, (kind, flags, len)) in columns.iter().enumerate() {
+        block.push(*kind as u8);
+        block.extend_from_slice(&(i as u16).to_le_bytes());
+        block.extend_from_slice(&0u16.to_le_bytes()); // offset_V
+        block.extend_from_slice(&(i as u16).to_le_bytes());
+        block.extend_from_slice(&0x0409u16.to_le_bytes()); // sort order
+        block.extend_from_slice(&0u16.to_le_bytes()); // misc
+        block.extend_from_slice(&0u16.to_le_bytes()); // unknown
+        block.push(*flags);
+        block.extend_from_slice(&0u16.to_le_bytes()); // fixed_offset
+        block.extend_from_slice(&len.to_le_bytes());
+    }
+    for name in [
+        b"Id".as_slice(),
+        b"Name".as_slice(),
+        b"Type".as_slice(),
+        b"Flags".as_slice(),
+    ] {
+        block.push(name.len() as u8);
+        block.extend_from_slice(name);
+    }
+    block.extend_from_slice(&0xFFFFu16.to_le_bytes());
+    let len = block.len() as u32;
+    block[..4].copy_from_slice(&len.to_le_bytes());
+    file[base + 8..base + 8 + block.len()].copy_from_slice(&block);
+    // Page 3: empty catalog data page owned by the TDEF page.
+    let base = 3 * PAGE;
+    file[base] = 0x01;
+    file[base + 1] = 0x01;
+    file[base + 4..base + 8].copy_from_slice(&2u32.to_le_bytes());
+    file
+}
+
+#[test]
+fn port_queries_without_an_open_database_are_unsupported() {
+    use datacraft_core::port::StoragePort as _;
+
+    let mut port = Jet4Port::new();
+    assert!(port.relationships().is_err());
+    let window = datacraft_core::port::RowRange { start: 0, len: 1 };
+    assert!(port.read_rows("Any", window).is_err());
+    port.close();
+}

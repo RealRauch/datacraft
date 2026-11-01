@@ -7,7 +7,10 @@
 //! LSB first, bit set = page allocated to the table. The global free map on
 //! page 1 row 0 has the opposite polarity: bit set = page free/absent.
 
-use datacraft_storage::jet::usage_map::{MapRef, UsageMap};
+use datacraft_storage::jet::{
+    Jet4Writer,
+    usage_map::{MapRef, UsageMap},
+};
 use datacraft_storage::{StorageError, jet};
 
 mod support;
@@ -146,5 +149,64 @@ fn fixture_global_free_map_covers_exactly_the_file() {
     assert!(
         !marked.is_empty(),
         "headroom beyond EOF is pre-marked free (observed on the fixture)"
+    );
+}
+
+// --- writer error arms: map lookups fail precisely on broken wiring ---
+
+#[test]
+fn map_lookups_name_broken_references_precisely() {
+    let file = {
+        let mut file = support::file_shell(4);
+        support::write_tdef(&mut file, 2, 0, 0x4E, &[]);
+        // used_pages points at page 0 — the header page, not a data page.
+        let at = 8 + 47;
+        file[2 * support::PAGE + at..2 * support::PAGE + at + 4]
+            .copy_from_slice(&0u32.to_le_bytes());
+        file
+    };
+    let writer = Jet4Writer::new(file).expect("opens");
+    let err = writer.table_used_map(2).unwrap_err();
+    assert!(
+        err.to_string().contains("not a data page"),
+        "the non-data map page is named: {err}"
+    );
+
+    // A map page that lacks the referenced row is a precise error too.
+    let file = {
+        let mut file = support::file_shell(4);
+        support::write_tdef(&mut file, 2, 0, 0x4E, &[]);
+        let at = 8 + 47;
+        file[2 * support::PAGE + at..2 * support::PAGE + at + 4]
+            .copy_from_slice(&((3u32 << 8) | 9).to_le_bytes()); // page 3, row 9
+        let empty = datacraft_storage::jet::usage_map::UsageMap {
+            start_page: 0,
+            bitmap: vec![0u8; 8],
+        }
+        .encode_row();
+        // Usage page: a data page (owner 0) holding the one empty row.
+        let base = 3 * support::PAGE;
+        file[base] = 0x01;
+        file[base + 1] = 0x01;
+        let start = support::PAGE - empty.len();
+        file[base + start..base + start + empty.len()].copy_from_slice(&empty);
+        file[base + 12..base + 14].copy_from_slice(&1u16.to_le_bytes());
+        file[base + 14..base + 16].copy_from_slice(&(start as u16).to_le_bytes());
+        file
+    };
+    let writer = Jet4Writer::new(file).expect("opens");
+    let err = writer.table_used_map(2).unwrap_err();
+    assert!(err.to_string().contains("no row 9"), "{err}");
+    let _ = MapRef { page: 0, row: 0 };
+}
+
+#[test]
+fn growing_a_map_below_its_window_start_is_rejected() {
+    let mut map = datacraft_storage::jet::usage_map::UsageMap::decode_row(&map_row(100, &[0u8; 8]))
+        .expect("decodes");
+    let err = map.set(50).unwrap_err();
+    assert!(
+        matches!(err, datacraft_storage::StorageError::Corrupt { .. }),
+        "{err}"
     );
 }
