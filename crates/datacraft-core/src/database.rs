@@ -22,6 +22,7 @@ impl crate::core::Core {
                 let name = opened.name.clone();
                 let format = opened.format;
                 let relationships = self.port.relationships().unwrap_or_default();
+                self.state.sql_result = None;
                 self.state.database = Some(DatabaseState {
                     path,
                     name: name.clone(),
@@ -50,6 +51,8 @@ impl crate::core::Core {
         self.state.active_tab = None;
         self.state.database = None;
         self.state.relationship_mapper_open = false;
+        self.state.sql_window_open = false;
+        self.state.sql_result = None;
         self.port.close();
         events.push(Event::DatabaseClosed);
         events

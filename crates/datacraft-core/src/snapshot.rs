@@ -26,6 +26,8 @@ pub struct UiStateSnapshot {
     pub active_tab: Option<TabId>,
     /// Whether the relationship mapper is open.
     pub relationship_mapper_open: bool,
+    /// Whether the SQL window is open (step 13.3, H37).
+    pub sql_window_open: bool,
 }
 
 /// Snapshot of the open database.
@@ -155,6 +157,7 @@ impl UiStateSnapshot {
                 .collect(),
             active_tab: state.active_tab,
             relationship_mapper_open: state.relationship_mapper_open,
+            sql_window_open: state.sql_window_open,
         }
     }
 

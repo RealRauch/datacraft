@@ -50,6 +50,11 @@ pub struct App {
     preview_page: HashMap<TabId, usize>,
     /// Cached preview pages per report tab (refreshed on dispatch).
     previews: HashMap<TabId, Vec<datacraft_core::report_preview::PreviewPage>>,
+    /// SQL window editor text (presentation state; the statement runs
+    /// through the command bus).
+    sql_text: String,
+    /// Reason of the last failed SQL run (the window renders it).
+    sql_error: Option<String>,
 }
 
 /// View mode of a document tab (presentation state).
@@ -83,14 +88,48 @@ impl App {
             drags: HashMap::new(),
             form_record: HashMap::new(),
             design_selection: HashMap::new(),
+            sql_text: "SELECT 1 AS one;".to_owned(),
+            sql_error: None,
         }
     }
 
     /// Applies one command and refreshes the rendered snapshot and caches.
-    pub fn dispatch(&mut self, command: Command) {
+    pub fn dispatch(&mut self, command: Command) -> Vec<Event> {
         let events = self.core.dispatch(command);
         self.snapshot = self.core.inspect();
         self.maintain_caches(&events);
+        events
+    }
+
+    /// SQL window editor text.
+    pub fn sql_text(&self) -> &str {
+        &self.sql_text
+    }
+
+    /// Replaces the SQL editor text.
+    pub fn set_sql_text(&mut self, text: impl Into<String>) {
+        self.sql_text = text.into();
+    }
+
+    /// Runs the editor's statement through the bus and caches the outcome.
+    pub fn run_sql(&mut self) {
+        let events = self.dispatch(Command::RunSql {
+            sql: self.sql_text.clone(),
+        });
+        self.sql_error = events.iter().find_map(|event| match event {
+            Event::Failed { reason } => Some(reason.clone()),
+            _ => None,
+        });
+    }
+
+    /// Result of the last successful SQL run (rendered by the window).
+    pub fn sql_result(&self) -> Option<&datacraft_core::sql_engine::SqlResult> {
+        self.core.sql_result()
+    }
+
+    /// Precise reason of the last failed SQL run.
+    pub fn sql_error(&self) -> Option<&str> {
+        self.sql_error.as_deref()
     }
 
     /// Row data of one table tab (cached; `None` until loaded).
@@ -383,6 +422,7 @@ impl eframe::App for App {
         crate::workspace::workspace_ui(self, ui);
 
         crate::relationships::mapper_window(self, ui);
+        crate::sql_window::sql_window(self, ui);
     }
 }
 

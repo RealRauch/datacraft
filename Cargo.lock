@@ -791,6 +791,7 @@ name = "datacraft-core"
 version = "0.1.0"
 dependencies = [
  "proptest",
+ "rusqlite",
  "serde",
  "serde_json",
 ]

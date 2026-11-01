@@ -328,3 +328,62 @@ impl StoragePort for MockPort {
         Ok(self.relationships.clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::schema::{FieldDef, FieldKind};
+
+    fn table() -> TableDef {
+        TableDef::new(
+            "T",
+            vec![FieldDef::new(
+                "n",
+                FieldKind::Number(crate::schema::NumericKind::LongInteger),
+            )],
+        )
+    }
+
+    /// Every write path reports a configured failure before touching state.
+    #[test]
+    fn mock_write_failures_cover_all_write_operations() {
+        let mut port = MockPort::failing_writes("disk full");
+        assert!(matches!(
+            port.create_table(&table()),
+            Err(PortError::WriteFailed { .. })
+        ));
+        assert!(matches!(
+            port.drop_table("T"),
+            Err(PortError::WriteFailed { .. })
+        ));
+        assert!(matches!(
+            port.insert_row("T", &[FieldValue::Integer(1)]),
+            Err(PortError::WriteFailed { .. })
+        ));
+    }
+
+    /// The mock insert validates the table and the value arity itself.
+    #[test]
+    fn mock_insert_row_checks_table_and_arity() {
+        let mut port = MockPort::with_tables(vec![table()]);
+        assert!(matches!(
+            port.insert_row("missing", &[]),
+            Err(PortError::TableNotFound(_))
+        ));
+        match port.insert_row("t", &[]) {
+            Err(PortError::WriteFailed { detail }) => {
+                assert!(detail.contains("expected 1 values"), "{detail}");
+            }
+            other => panic!("expected WriteFailed, got {other:?}"),
+        }
+        port.insert_row("t", &[FieldValue::Integer(1)])
+            .expect("valid insert");
+        port.open(std::path::Path::new("memory.mock"))
+            .expect("open the mock");
+        assert_eq!(
+            port.read_rows("T", RowRange { start: 0, len: 1 })
+                .expect("row is stored"),
+            vec![vec![FieldValue::Integer(1)]]
+        );
+    }
+}

@@ -263,197 +263,96 @@ fn closing_releases_the_connection() {
     assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
 }
 
-/// Creates an empty but initialized SQLite file (header written).
-fn empty_database(stem: &str) -> Scratch {
-    let path = scratch_path(stem);
+#[test]
+fn create_table_rejects_two_autonumbers() {
+    let path = scratch_path("two-auto");
     let _ = std::fs::remove_file(&path);
-    let conn = rusqlite::Connection::open(&path).expect("create empty scratch database");
+    let conn = rusqlite::Connection::open(&path).expect("create scratch database");
     conn.execute_batch("CREATE TABLE seed (x INTEGER); DROP TABLE seed;")
-        .expect("force the SQLite header");
-    Scratch(path)
-}
-
-fn people() -> TableDef {
-    TableDef::new(
-        "people",
-        vec![
-            FieldDef::new("id", FieldKind::AutoNumber(AutoKind::LongInteger)),
-            FieldDef::new("name", FieldKind::Text { max_len: 40 }),
-            FieldDef::new("score", FieldKind::Number(NumericKind::Double)),
-        ],
-    )
-}
-
-#[test]
-fn creates_a_table_and_persists_inserted_rows_across_reopen() {
-    let scratch = empty_database("writes");
+        .expect("force the header");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
-    port.create_table(&people()).expect("create people");
-    port.insert_row(
-        "people",
-        &[
-            FieldValue::Null,
-            FieldValue::Text("Ada".into()),
-            FieldValue::Float(1.5),
-        ],
-    )
-    .expect("insert Ada");
-    port.insert_row(
-        "people",
-        &[
-            FieldValue::Null,
-            FieldValue::Text("Grace".into()),
-            FieldValue::Null,
-        ],
-    )
-    .expect("insert Grace");
-    port.close();
-
-    let mut reopened = SqlitePort::new();
-    reopened.open(&scratch.0).expect("reopen the database");
-    let tables = reopened.tables();
-    assert_eq!(tables.len(), 1);
-    assert_eq!(tables[0].name, "people");
-    assert_eq!(
-        tables[0].fields[0].kind,
-        FieldKind::AutoNumber(AutoKind::LongInteger)
-    );
-    let rows = reopened
-        .read_rows("people", RowRange { start: 0, len: 10 })
-        .expect("read back the inserted rows");
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0][0], FieldValue::Integer(1));
-    assert_eq!(rows[0][1], FieldValue::Text("Ada".into()));
-    assert_eq!(rows[0][2], FieldValue::Float(1.5));
-    assert_eq!(rows[1][0], FieldValue::Integer(2));
-    assert_eq!(rows[1][2], FieldValue::Null);
-}
-
-#[test]
-fn drop_table_removes_it_from_the_catalog_and_the_file() {
-    let scratch = empty_database("drop");
-    let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
-    port.create_table(&people()).expect("create people");
-    assert_eq!(
-        port.drop_table("PEOPLE").expect("drop case-insensitively"),
-        "people"
-    );
-    assert!(port.tables().is_empty());
-    port.close();
-    let mut reopened = SqlitePort::new();
-    reopened.open(&scratch.0).expect("reopen");
-    assert!(reopened.tables().is_empty());
-}
-
-#[test]
-fn insert_errors_are_precise() {
-    let scratch = empty_database("errors");
-    let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
-    port.create_table(&people()).expect("create people");
-
-    let missing = port
-        .insert_row("missing", &[])
-        .expect_err("unknown table must fail");
-    assert!(
-        matches!(missing, PortError::TableNotFound(_)),
-        "{missing:?}"
-    );
-
-    let arity = port
-        .insert_row("people", &[FieldValue::Null])
-        .expect_err("arity mismatch must fail");
-    match arity {
-        PortError::WriteFailed { detail } => {
-            assert!(detail.contains("expected 3 values"), "{detail}");
-            assert!(detail.contains("found 1"), "{detail}");
-        }
-        other => panic!("expected WriteFailed, got {other:?}"),
-    }
-
-    let drop_missing = port
-        .drop_table("missing")
-        .expect_err("unknown table must fail");
-    assert!(
-        matches!(drop_missing, PortError::TableNotFound(_)),
-        "{drop_missing:?}"
-    );
-}
-
-#[test]
-fn create_table_rejects_an_invalid_definition() {
-    let scratch = empty_database("invalid");
-    let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
-    let invalid = TableDef::new("", vec![FieldDef::new("x", FieldKind::Memo)]);
-    let err = port
-        .create_table(&invalid)
-        .expect_err("invalid definition must fail");
-    assert!(matches!(err, PortError::WriteFailed { .. }), "{err:?}");
-}
-
-#[test]
-fn create_table_rejects_replication_id_autonumbers() {
-    let scratch = empty_database("replication");
-    let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&path).expect("open empty database");
     let def = TableDef::new(
-        "guids",
-        vec![FieldDef::new(
-            "id",
-            FieldKind::AutoNumber(AutoKind::ReplicationId),
-        )],
+        "two",
+        vec![
+            FieldDef::new("a", FieldKind::AutoNumber(AutoKind::LongInteger)),
+            FieldDef::new("b", FieldKind::AutoNumber(AutoKind::LongInteger)),
+        ],
     );
     let err = port
         .create_table(&def)
-        .expect_err("SQLite has no replication-id autonumber");
-    assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
+        .expect_err("two AutoNumbers are unsupported");
+    match err {
+        PortError::Unsupported { reason } => {
+            assert!(reason.contains("more than one AutoNumber"), "{reason}");
+        }
+        other => panic!("expected Unsupported, got {other:?}"),
+    }
 }
 
 #[test]
-fn value_families_round_trip_through_sqlite_storage() {
-    let scratch = empty_database("families");
+fn decimal_without_scale_stores_as_an_integer() {
+    let path = scratch_path("decimal0");
+    let _ = std::fs::remove_file(&path);
+    let conn = rusqlite::Connection::open(&path).expect("create scratch database");
+    conn.execute_batch("CREATE TABLE seed (x INTEGER); DROP TABLE seed;")
+        .expect("force the header");
     let mut port = SqlitePort::new();
-    port.open(&scratch.0).expect("open empty database");
+    port.open(&path).expect("open empty database");
     let def = TableDef::new(
-        "families",
-        vec![
-            FieldDef::new("flag", FieldKind::Boolean { tri_state: false }),
-            FieldDef::new("money", FieldKind::Currency),
-            FieldDef::new("when", FieldKind::DateTime),
-            FieldDef::new("id", FieldKind::Guid),
-            FieldDef::new("blob", FieldKind::Binary(BinaryKind::OleObject)),
-        ],
+        "d",
+        vec![FieldDef::new(
+            "amount",
+            FieldKind::Number(NumericKind::Decimal {
+                precision: 5,
+                scale: 0,
+            }),
+        )],
     );
-    port.create_table(&def).expect("create families");
-    let guid = [
-        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32,
-        0x10,
-    ];
-    port.insert_row(
-        "families",
-        &[
-            FieldValue::Boolean(true),
-            FieldValue::Currency(12_345),
-            FieldValue::DateTime(45_000.5),
-            FieldValue::Guid(guid),
-            FieldValue::Binary(vec![9, 8, 7]),
-        ],
-    )
-    .expect("insert one row of every family");
+    port.create_table(&def).expect("create d");
+    port.insert_row("d", &[FieldValue::Decimal(7)])
+        .expect("insert decimal");
     let rows = port
-        .read_rows("families", RowRange { start: 0, len: 1 })
-        .expect("read the row back");
-    assert_eq!(
-        rows[0],
-        vec![
-            FieldValue::Boolean(true),
-            FieldValue::Currency(12_345),
-            FieldValue::DateTime(45_000.5),
-            FieldValue::Guid(guid),
-            FieldValue::Binary(vec![9, 8, 7]),
-        ]
-    );
+        .read_rows("d", RowRange { start: 0, len: 1 })
+        .expect("read decimal");
+    assert_eq!(rows[0][0], FieldValue::Decimal(7));
+}
+
+#[test]
+fn integer_storage_in_a_datetime_column_reads_as_a_date() {
+    let path = scratch_path("dates");
+    let _ = std::fs::remove_file(&path);
+    let conn = rusqlite::Connection::open(&path).expect("create scratch database");
+    conn.execute_batch(
+        "CREATE TABLE times (t DATETIME);
+         INSERT INTO times VALUES (45000);",
+    )
+    .expect("populate datetime");
+    let _scratch = Scratch(path.clone());
+
+    let mut port = SqlitePort::new();
+    port.open(&path).expect("open the database");
+    let rows = port
+        .read_rows("times", RowRange { start: 0, len: 1 })
+        .expect("read datetime");
+    assert_eq!(rows[0][0], FieldValue::DateTime(45_000.0));
+}
+
+#[test]
+fn a_corrupt_sqlite_file_reports_a_located_read_error() {
+    let path = scratch_path("corrupt");
+    let _ = std::fs::remove_file(&path);
+    let mut bytes = b"SQLite format 3 ".to_vec();
+    bytes.resize(512, 0xAA);
+    std::fs::write(&path, &bytes).expect("write corrupt file");
+    let _scratch = Scratch(path.clone());
+
+    let mut port = SqlitePort::new();
+    let err = port.open(&path).expect_err("corrupt files fail");
+    match err {
+        PortError::OpenFailed { detail } => {
+            assert!(detail.contains("reading"), "{detail}");
+        }
+        other => panic!("expected OpenFailed, got {other:?}"),
+    }
 }

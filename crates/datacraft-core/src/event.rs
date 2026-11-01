@@ -177,6 +177,17 @@ pub enum Event {
         /// Openness after the toggle.
         open: bool,
     },
+    /// The SQL window visibility changed (step 13.3, H37).
+    SqlWindowToggled {
+        /// Openness after the toggle.
+        open: bool,
+    },
+    /// A SQL statement ran successfully (step 13.3, H37); the result data
+    /// is fetched via `Core::run_sql`/the cached result.
+    SqlRan {
+        /// Number of result rows.
+        rows: usize,
+    },
     /// A command could not be executed; the reason is precise and
     /// user-renderable (LESSONS #4 — no silent swallowing).
     Failed {

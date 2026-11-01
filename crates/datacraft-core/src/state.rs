@@ -29,6 +29,11 @@ pub struct AppState {
     pub next_tab_id: u64,
     /// Whether the relationship mapper is open.
     pub relationship_mapper_open: bool,
+    /// Whether the SQL window is open (step 13.3, H37).
+    pub sql_window_open: bool,
+    /// Result of the last successful SQL run (not projected into the
+    /// snapshot; the UI renders it from the core's state).
+    pub sql_result: Option<crate::sql_engine::SqlResult>,
 }
 
 impl AppState {

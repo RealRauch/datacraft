@@ -25,6 +25,7 @@ pub mod reports;
 pub mod ribbon;
 pub mod schema;
 pub mod snapshot;
+pub mod sql_engine;
 pub mod state;
 pub mod transport;
 

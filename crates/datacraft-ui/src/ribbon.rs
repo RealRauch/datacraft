@@ -116,6 +116,7 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
         "close_database" => Some(Command::CloseDatabase),
         "toggle_nav_pane" => Some(Command::ToggleNavPane),
         "relationships" => Some(Command::ToggleRelationshipMapper),
+        "query_sql" => Some(Command::ToggleSqlWindow),
         "query_design" => Some(Command::CreateQuery {
             name: next_query_name(app),
         }),

@@ -8,9 +8,7 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::port::MockPort;
-use datacraft_core::schema::{
-    AutoKind, FieldDef, FieldKind, FieldValue, TableDef,
-};
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, TableDef};
 
 fn table() -> TableDef {
     TableDef::new(
@@ -35,7 +33,10 @@ fn core() -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
     });
-    assert!(matches!(events[0], Event::DatabaseOpened { .. }), "{events:?}");
+    assert!(
+        matches!(events[0], Event::DatabaseOpened { .. }),
+        "{events:?}"
+    );
     core
 }
 
@@ -57,10 +58,7 @@ fn core_run_sql_returns_columns_and_values_for_the_ui() {
     assert_eq!(result.columns, ["id", "name"]);
     assert_eq!(
         result.rows,
-        vec![vec![
-            FieldValue::Integer(1),
-            FieldValue::Text("Ada".into())
-        ]]
+        vec![vec![FieldValue::Integer(1), FieldValue::Text("Ada".into())]]
     );
 }
 
@@ -108,4 +106,30 @@ fn run_sql_commands_round_trip_through_json() {
     let json = serde_json::to_string(&command).expect("serialize command");
     let back: Command = serde_json::from_str(&json).expect("deserialize command");
     assert_eq!(back, command);
+}
+
+#[test]
+fn the_cached_result_is_exposed_and_cleared_by_failures() {
+    let mut core = core();
+    core.dispatch(Command::RunSql {
+        sql: "SELECT 1 AS one".into(),
+    });
+    assert!(core.sql_result().is_some());
+    core.dispatch(Command::RunSql {
+        sql: "DROP TABLE customers".into(),
+    });
+    assert!(core.sql_result().is_none(), "a failure clears the cache");
+}
+
+#[test]
+fn materialization_failures_are_precise() {
+    // The table is catalogued but its rows cannot be read through the port.
+    let mut core = Core::new(Box::new(MockPort::with_tables(vec![table()])));
+    core.dispatch(Command::OpenDatabase {
+        path: "memory.mock".into(),
+    });
+    let err = core
+        .run_sql("SELECT * FROM customers")
+        .expect_err("materialization must fail");
+    assert!(err.contains("materializing \"customers\" failed"), "{err}");
 }

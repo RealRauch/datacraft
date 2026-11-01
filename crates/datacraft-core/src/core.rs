@@ -72,6 +72,49 @@ impl Core {
         crate::query_engine::run_query(def, source, &rows).map_err(|e| e.to_string())
     }
 
+    /// Runs one gated SQL statement over the loaded tables in a throwaway
+    /// in-memory database (step 13.3, H37) — the data seam of the SQL
+    /// window. Sources are read through the port and never written.
+    pub fn run_sql(&self, sql: &str) -> Result<crate::sql_engine::SqlResult, String> {
+        let Some(db) = &self.state.database else {
+            return Err("no database is open".to_owned());
+        };
+        let mut sources = Vec::with_capacity(db.tables.len());
+        for table in &db.tables {
+            let rows = self
+                .port
+                .read_rows(
+                    &table.name,
+                    crate::port::RowRange {
+                        start: 0,
+                        len: usize::MAX,
+                    },
+                )
+                .map_err(|e| format!("materializing {:?} failed: {e}", table.name))?;
+            sources.push((table.clone(), rows));
+        }
+        crate::sql_engine::run_sql(sql, &sources)
+    }
+
+    /// Result of the last successful `RunSql` (the UI's data source).
+    pub fn sql_result(&self) -> Option<&crate::sql_engine::SqlResult> {
+        self.state.sql_result.as_ref()
+    }
+
+    fn run_sql_command(&mut self, sql: &str) -> Vec<Event> {
+        match self.run_sql(sql) {
+            Ok(result) => {
+                let rows = result.rows.len();
+                self.state.sql_result = Some(result);
+                vec![Event::SqlRan { rows }]
+            }
+            Err(reason) => {
+                self.state.sql_result = None;
+                failed(reason)
+            }
+        }
+    }
+
     /// Reads a window of rows through the port (the datasheet's data
     /// source; the port owns the backend mapping).
     pub fn read_rows(
@@ -97,6 +140,13 @@ impl Core {
                     open: self.state.relationship_mapper_open,
                 }]
             }
+            Command::ToggleSqlWindow => {
+                self.state.sql_window_open = !self.state.sql_window_open;
+                vec![Event::SqlWindowToggled {
+                    open: self.state.sql_window_open,
+                }]
+            }
+            Command::RunSql { sql } => self.run_sql_command(&sql),
             Command::CreateQuery { name } => self.create_query(&name),
             Command::SetQbeCell {
                 query,

@@ -75,7 +75,7 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
 /// The shared Access grid: teal header band, ink hairlines, a clickable
 /// row selector (reports the clicked row to `on_select`) and a washed
 /// cursor row. Pure paint over pre-rendered cell strings.
-fn grid_ui(
+pub(crate) fn grid_ui(
     ui: &mut egui::Ui,
     metrics: &GridMetrics,
     columns: &[String],

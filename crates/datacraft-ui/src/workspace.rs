@@ -105,7 +105,11 @@ enum WorkspaceIntent {
 
 fn apply(app: &mut App, intent: WorkspaceIntent) {
     match intent {
-        WorkspaceIntent::Activate(tab_id) => app.dispatch(Command::SetActiveTab { tab_id }),
-        WorkspaceIntent::Close(tab_id) => app.dispatch(Command::CloseTab { tab_id }),
+        WorkspaceIntent::Activate(tab_id) => {
+            app.dispatch(Command::SetActiveTab { tab_id });
+        }
+        WorkspaceIntent::Close(tab_id) => {
+            app.dispatch(Command::CloseTab { tab_id });
+        }
     }
 }

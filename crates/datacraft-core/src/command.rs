@@ -66,6 +66,14 @@ pub enum Command {
     /// Shows or hides the relationship mapper (Access opens it as a
     /// document; the headless core models it as a pane flag).
     ToggleRelationshipMapper,
+    /// Shows or hides the SQL window (step 13.3, H37).
+    ToggleSqlWindow,
+    /// Runs exactly one SELECT/WITH statement over the loaded tables in a
+    /// throwaway in-memory SQLite database (step 13.3, H37).
+    RunSql {
+        /// The statement; anything but one SELECT/WITH is rejected.
+        sql: String,
+    },
     /// Creates an empty query (name unique, case-insensitive).
     CreateQuery {
         /// Query name; rejected on duplicates.

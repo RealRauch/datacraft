@@ -16,11 +16,6 @@
 
 > No open items.
 
-### [ ] H36 — SQL-Integration: SQLite-Writes + Row-Insert im Command-Bus — 🟠
-- **Location:** `crates/datacraft-core/src/port.rs` (Trait), `command.rs`, `database.rs`, `event.rs`, `crates/datacraft-storage/src/sqlite.rs` (Writes), `tests/port_adapter.rs`, `tests/server_e2e.rs`
-- **Scope:** `StoragePort::insert_row(&mut self, table, values: &[FieldValue])` + MockPort-Impl (rows-HashMap) + `Command::InsertRow { table, values }` + `Event::RowInserted` + Reducer-Validierung (Anzahl/Typen/required, port first, dann State) — faltet den insert-Teil der geparkten Phase 11 ein. SqlitePort schreibbar: `create_table` (DDL-Forward-Mapping FieldKind→SQLite, Lossiness-Tabelle dokumentiert), `drop_table`, `insert_row` (parameterisiert, FieldValue→rusqlite-Params).
-- **Acceptance:** Bus-Tests (InsertRow-Ereignisse, Validierungsfehler präzise); E2E über JSON-RPC: Tabelle anlegen + Zeilen einfügen in eine .sqlite, Reopen verifiziert Persistenz; MockPort-Insert erscheint im Datasheet-Cache.
-
 ### [ ] H37 — SQL-Integration: SQL über alle Quellen (In-Memory-Engine + UI) — 🟠
 - **Location:** `crates/datacraft-core/src/sql_engine.rs` (neu), `command.rs`, `event.rs`, UI: SQL-Fenster nach Relationships-Muster, Ribbon `database_tools`
 - **Ansatz:** Shadow-In-Memory-SQLite statt DuckDB/DataFusion — `Core::run_sql` materialisiert die geladenen Tabellen (Schema aus `state.database.tables`, Zeilen via `port.read_rows`) in ein flüchtiges SQLite und führt das SELECT dort aus. Ein Dialekt, keine Heavy-Dependency; Joins/Aggregate auch über Jet-Tabellen (Proof-Tests: SQL inkl. JOIN über MockPort-Tabellen). V1: frisches Shadow-DB pro Command (deterministisch, keine Stale-Caches); inkrementelle Materialisierung für große DBs = spätere Optimierung.
@@ -156,3 +151,4 @@
 - L2 — Jet4 column type 0x11 (MSysAccessObjects.Data) — study and decide mapping — done (Phase 10, step 10.7 (checkpoint 8faeac3): 0x11 = JetType::LongBinary (fixed OLE compound docs); oracle skip documented)
 - T3 — Fixture pin integrity — restore pristine testV2000, keep Access-touched variant, manifest + CI hash gate — done (Phase 10, step 10.8 (checkpoint aafb794): pristine restored (126bad49…), touched variant kept, manifest + CI hash gate, immutability rule in TESTING.md)
 - H35 — SQL-Integration: SQLite-Datenquelle (Backend, Detection, Format) — done (Phase 13.1 — SqlitePort (catalog, affinity schema, rows, FKs), DetectingPort magic sniff, DatabaseFormat::Sqlite; tests ca61638, feat 5a04e94)
+- H36 — SQL-Integration: SQLite-Writes + Row-Insert im Command-Bus — done (Phase 13.2 — StoragePort::insert_row, Command::InsertRow/Event::RowInserted with unit validation, SqlitePort create/drop/insert; tests 99ddb0b, feat 390c79c)

@@ -378,3 +378,11 @@
 - **Scope:** `SqlitePort` hinter `StoragePort`: open (Magic `SQLite format 3\0`), tables (`sqlite_master`, ohne `sqlite_%`), Schema via `PRAGMA table_info` → `FieldKind` (Affinity-Tabelle dokumentiert: TEXT→Text, INTEGER→LongInteger, INTEGER PK AUTOINCREMENT→AutoNumber, REAL→Double, BLOB→Binary(OleObject), NUMERIC→Decimal), `read_rows` (rowid-Ordnung; NULL- und Bool-Feinheit dokumentiert — SQLite kennt kein BOOL), `relationships` via `PRAGMA foreign_key_list`. `DatabaseFormat::Sqlite` + Display „SQLite" + serde `"sqlite"`. Detection: neuer `DetectingPort` mit Magic-Sniff (Jet/ACE-Magic vs. SQLite vs. präziser `OpenFailed`); Kompositionsstellen umstellen: datacraft-ui main.rs, datacraft-mcp, datacraft-cli main.rs, server_e2e.
 - **Acceptance:** Tests: Schema/Zeilen/FKs einer testgenerischen .sqlite; Detection erkennt Jet-Fixture (Jet4), .sqlite (Sqlite), Mülldatei (präziser Fehler); UI/Status zeigt „(SQLite)"; MCP/CLI öffnen .sqlite über dieselbe Bus-Vokabel.
 - **Done:** Phase 13.1 — SqlitePort (catalog, affinity schema, rows, FKs), DetectingPort magic sniff, DatabaseFormat::Sqlite; tests ca61638, feat 5a04e94
+
+---
+
+### [x] H36 — SQL-Integration: SQLite-Writes + Row-Insert im Command-Bus — 🟠
+- **Location:** `crates/datacraft-core/src/port.rs` (Trait), `command.rs`, `database.rs`, `event.rs`, `crates/datacraft-storage/src/sqlite.rs` (Writes), `tests/port_adapter.rs`, `tests/server_e2e.rs`
+- **Scope:** `StoragePort::insert_row(&mut self, table, values: &[FieldValue])` + MockPort-Impl (rows-HashMap) + `Command::InsertRow { table, values }` + `Event::RowInserted` + Reducer-Validierung (Anzahl/Typen/required, port first, dann State) — faltet den insert-Teil der geparkten Phase 11 ein. SqlitePort schreibbar: `create_table` (DDL-Forward-Mapping FieldKind→SQLite, Lossiness-Tabelle dokumentiert), `drop_table`, `insert_row` (parameterisiert, FieldValue→rusqlite-Params).
+- **Acceptance:** Bus-Tests (InsertRow-Ereignisse, Validierungsfehler präzise); E2E über JSON-RPC: Tabelle anlegen + Zeilen einfügen in eine .sqlite, Reopen verifiziert Persistenz; MockPort-Insert erscheint im Datasheet-Cache.
+- **Done:** Phase 13.2 — StoragePort::insert_row, Command::InsertRow/Event::RowInserted with unit validation, SqlitePort create/drop/insert; tests 99ddb0b, feat 390c79c

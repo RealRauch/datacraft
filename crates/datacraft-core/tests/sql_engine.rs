@@ -5,9 +5,7 @@
 //! against it. Sources are never touched; the gate rejects every other
 //! statement before SQLite sees it.
 
-use datacraft_core::schema::{
-    AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_core::sql_engine::{SqlResult, run_sql};
 
 fn customers() -> TableDef {
@@ -184,7 +182,7 @@ fn an_unknown_table_surfaces_the_engine_error_without_panicking() {
 
 #[test]
 fn sources_are_not_touched_and_each_call_is_isolated() {
-    let mut data = sources();
+    let data = sources();
     let before = data.clone();
     let _ = run_sql("SELECT * FROM customers", &data).expect("read");
     assert_eq!(data, before, "materialization must not mutate the sources");
@@ -202,4 +200,62 @@ fn sql_result_serializes_for_transports() {
     let json = serde_json::to_string(&result).expect("serialize result");
     let back: SqlResult = serde_json::from_str(&json).expect("deserialize result");
     assert_eq!(back, result);
+}
+
+#[test]
+fn blob_and_real_expressions_map_to_their_families() {
+    let result = run_sql("SELECT x'0102' AS b, 1.5 AS f, 2 AS i", &[]).expect("run SQL");
+    assert_eq!(
+        result.rows,
+        vec![vec![
+            FieldValue::Binary(vec![1, 2]),
+            FieldValue::Float(1.5),
+            FieldValue::Integer(2)
+        ]]
+    );
+}
+
+#[test]
+fn syntax_errors_surface_precisely() {
+    let err = run_sql("SELECT FROM", &[]).expect_err("syntax error");
+    assert!(err.starts_with("SQL error:"), "{err}");
+}
+
+#[test]
+fn a_bare_terminator_is_rejected_without_a_keyword() {
+    let err = run_sql(";", &[]).expect_err("no statement");
+    assert!(err.contains("no keyword"), "{err}");
+}
+
+#[test]
+fn bracketed_identifiers_may_contain_semicolons() {
+    let result = run_sql("SELECT 1 AS [a;b]", &[]).expect("bracketed identifier");
+    assert_eq!(result.columns, ["a;b"]);
+}
+
+#[test]
+fn decimal_sources_materialize_with_their_scale() {
+    let def = TableDef::new(
+        "money",
+        vec![FieldDef::new(
+            "amount",
+            FieldKind::Number(NumericKind::Decimal {
+                precision: 6,
+                scale: 2,
+            }),
+        )],
+    );
+    let result = run_sql(
+        "SELECT amount FROM money",
+        &[(def, vec![vec![FieldValue::Decimal(1234)]])],
+    )
+    .expect("decimal materialization");
+    assert_eq!(result.rows, vec![vec![FieldValue::Float(12.34)]]);
+}
+
+#[test]
+fn runtime_errors_surface_precisely() {
+    let err = run_sql("SELECT abs(-9223372036854775808) AS v", &[])
+        .expect_err("integer overflow is a runtime error");
+    assert!(err.contains("SQL error"), "{err}");
 }

@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{DatabaseFormat, PortError, RowRange, StoragePort};
-use datacraft_core::schema::FieldValue;
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, TableDef};
 use datacraft_storage::detecting::DetectingPort;
 
 fn fixture() -> PathBuf {
@@ -115,4 +115,109 @@ fn unopened_port_reports_reads_as_unsupported() {
         .read_rows("notes", RowRange { start: 0, len: 1 })
         .expect_err("nothing is open");
     assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
+}
+
+#[test]
+fn sqlite_writes_relationships_and_close_delegate_through_detection() {
+    let path = scratch_path("delegate.sqlite");
+    let _ = std::fs::remove_file(&path);
+    let conn = rusqlite::Connection::open(&path).expect("create scratch database");
+    conn.execute_batch(
+        "CREATE TABLE parents (id INTEGER PRIMARY KEY, label TEXT);
+         CREATE TABLE children (id INTEGER PRIMARY KEY,
+             parent INTEGER REFERENCES parents);",
+    )
+    .expect("populate the scratch database");
+    let _scratch = Scratch(path.clone());
+
+    let mut port = DetectingPort::new();
+    port.open(&path).expect("open SQLite");
+    let relationships = port.relationships().expect("relationships delegate");
+    assert_eq!(relationships.len(), 1);
+
+    let def = TableDef::new(
+        "people",
+        vec![
+            FieldDef::new("id", FieldKind::AutoNumber(AutoKind::LongInteger)),
+            FieldDef::new("name", FieldKind::Text { max_len: 20 }),
+        ],
+    );
+    port.create_table(&def).expect("create delegates");
+    port.insert_row(
+        "people",
+        &[FieldValue::Null, FieldValue::Text("Ada".into())],
+    )
+    .expect("insert delegates");
+    let rows = port
+        .read_rows("people", RowRange { start: 0, len: 10 })
+        .expect("read delegates");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(port.drop_table("people").expect("drop delegates"), "people");
+
+    port.close();
+    assert!(port.tables().is_empty());
+    assert!(
+        port.relationships()
+            .expect("closed relationships")
+            .is_empty()
+    );
+    let err = port
+        .read_rows("people", RowRange { start: 0, len: 1 })
+        .expect_err("closed port has no database");
+    assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
+}
+
+#[test]
+fn jet_paths_report_the_backend_limitations() {
+    let mut port = DetectingPort::new();
+    port.open(&fixture()).expect("open Jet4");
+    assert!(matches!(
+        port.insert_row("Table1", &[FieldValue::Null]),
+        Err(PortError::Unsupported { .. })
+    ));
+    let def = TableDef::new("x", vec![FieldDef::new("y", FieldKind::Memo)]);
+    assert!(matches!(
+        port.create_table(&def),
+        Err(PortError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        port.drop_table("Table1"),
+        Err(PortError::Unsupported { .. })
+    ));
+    assert!(port.relationships().is_ok());
+}
+
+#[test]
+fn write_operations_require_an_open_database() {
+    let mut port = DetectingPort::new();
+    let def = TableDef::new("x", vec![FieldDef::new("y", FieldKind::Memo)]);
+    assert!(matches!(
+        port.create_table(&def),
+        Err(PortError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        port.insert_row("x", &[FieldValue::Null]),
+        Err(PortError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        port.drop_table("x"),
+        Err(PortError::Unsupported { .. })
+    ));
+}
+
+#[test]
+fn a_failed_open_keeps_the_previous_database() {
+    let path = scratch_path("junk-after-open.bin");
+    std::fs::write(&path, b"not a database").expect("write junk");
+    let _scratch = Scratch(path.clone());
+
+    let mut port = DetectingPort::new();
+    port.open(&fixture()).expect("open Jet4");
+    assert!(port.open(&path).is_err());
+    assert!(
+        !port.tables().is_empty(),
+        "the previous backend stays intact"
+    );
+    port.read_rows("Table1", RowRange { start: 0, len: 1 })
+        .expect("the previous database remains usable");
 }
