@@ -132,7 +132,7 @@ any code embedded in database files without explicit user consent/permissions.
 | M0 | Storage read milestones (Jet4 → ACE) | everything | ✅ Jet4 (Phase 2), Jet3 (Phase 10), ACE 2007/2010/2016 (Phase 14, oracle-checked); SQLite sources (Phase 13) |
 | M1 | Expression service (Ring 1) | queries, macros, forms, validation | ⬜ Phase 15 (planned, H41) |
 | M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 |
-| M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | 🔄 Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles → Phase 11 (steps 11.10–11.11) |
+| M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11) |
 | M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview; grouped/aggregate bands await M1 → Phase 15) |
 | M5 | Macros (Ring 3) | unattended app logic | ⬜ Phase 17 (planned; read-only inventory first, L4) |
 | M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ⬜ Phase 17 (planned, L5) |

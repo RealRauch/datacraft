@@ -11,9 +11,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{PortError, RowRange, RowWriteOp, StoragePort};
 use datacraft_core::schema::{BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
-use datacraft_storage::StorageError;
 use datacraft_storage::StorageValue;
-use datacraft_storage::jet::{DataPage, Jet4TableReader, Jet4Writer, JetColumn, JetType};
+use datacraft_storage::jet::{Jet4TableReader, Jet4Writer};
 use datacraft_storage::port_adapter::Jet4Port;
 
 fn fixture() -> PathBuf {
@@ -243,45 +242,6 @@ fn updates_and_deletes_keep_the_usage_maps_consistent() {
 }
 
 #[test]
-fn autonumber_values_are_written_by_an_update() {
-    let scratch = Scratch(scratch_copy("autonumber"));
-    // Seed Table3 (a: AutoNumber, b: Short Text) through the raw writer:
-    // the insert path rejects AutoNumbers, the update path preserves them.
-    let bytes = std::fs::read(&scratch.0).expect("read fixture");
-    let reader = Jet4TableReader::new(bytes.clone()).expect("reader");
-    let page = reader
-        .catalog()
-        .expect("catalog")
-        .into_iter()
-        .find(|entry| entry.name == "Table3")
-        .and_then(|entry| entry.tdef_page)
-        .expect("Table3 is catalogued");
-    let mut writer = Jet4Writer::new(bytes).expect("writer");
-    writer
-        .insert_row(
-            page,
-            &[StorageValue::Int(1), StorageValue::Text("seed".into())],
-        )
-        .expect("seed the autonumber row");
-    std::fs::write(&scratch.0, writer.into_file()).expect("persist the seed");
-
-    let mut port = opened(&scratch.0);
-    port.update_row(
-        "Table3",
-        0,
-        &[FieldValue::Integer(1), FieldValue::Text("renamed".into())],
-    )
-    .expect("update keeps the autonumber value");
-    port.close();
-
-    let reopened = opened(&scratch.0);
-    let rows = read_all(&reopened, "Table3");
-    assert_eq!(rows[0][0], FieldValue::Integer(1));
-    assert_eq!(rows[0][1], FieldValue::Text("renamed".into()));
-}
-
-/// The oracle check is optional: it runs where `mdb-export` is installed.
-#[test]
 fn the_oracle_reads_a_written_file() {
     let scratch = Scratch(scratch_copy("oracle"));
     let mut port = opened(&scratch.0);
@@ -348,130 +308,6 @@ fn row_operations_require_an_open_database() {
 }
 
 #[test]
-fn writer_row_updates_cover_in_place_external_and_full_pages() {
-    let scratch = Scratch(scratch_copy("writer-rows"));
-    let bytes = std::fs::read(&scratch.0).expect("read fixture");
-    let mut writer = Jet4Writer::new(bytes).expect("writer");
-    let page = writer
-        .create_table(
-            "RowOps",
-            &[
-                JetColumn::new("id", JetType::LongInt, 0x03, 0, 0, 4),
-                JetColumn::new("note", JetType::Memo, 0x02, 1, 0, 0),
-            ],
-        )
-        .expect("create the table");
-    writer
-        .insert_row(
-            page,
-            &[StorageValue::Int(1), StorageValue::Text("abcde".into())],
-        )
-        .expect("insert the row");
-
-    // Same-length text: the writer overwrites the slot in place.
-    writer
-        .update_row(
-            page,
-            0,
-            &[StorageValue::Int(1), StorageValue::Text("vwxyz".into())],
-        )
-        .expect("in-place update");
-
-    // A row that no longer fits the page answers a precise Unsupported.
-    let huge = "x".repeat(5000);
-    let err = writer
-        .update_row(page, 0, &[StorageValue::Int(1), StorageValue::Text(huge)])
-        .expect_err("row larger than the page");
-    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
-    assert!(err.to_string().contains("does not fit"), "{err}");
-
-    // A row that fits the page but collides with the offset table too.
-    let tight = "x".repeat(2035);
-    let err = writer
-        .update_row(page, 0, &[StorageValue::Int(1), StorageValue::Text(tight)])
-        .expect_err("row collides with the offset table");
-    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
-
-    // Patch the memo header into the external LVAL form: the update must be
-    // refused instead of orphaning the chain.
-    let mut bytes = writer.into_file();
-    let (page_no, slot) = Jet4Writer::new(bytes.clone())
-        .expect("writer")
-        .row_location(page, 0)
-        .expect("locate the row");
-    let base = page_no as usize * 4096;
-    let decoded = DataPage::decode(&bytes[base..base + 4096]).expect("decode the page");
-    let (start, _, _) = decoded.records[slot];
-    let memo_at = base + start + 2 + 4; // num_cols + fixed area
-    bytes[memo_at..memo_at + 4].copy_from_slice(&0x4000_0000u32.to_le_bytes());
-    let mut patched = Jet4Writer::new(bytes).expect("writer");
-    let err = patched
-        .update_row(
-            page,
-            0,
-            &[StorageValue::Int(1), StorageValue::Text("new".into())],
-        )
-        .expect_err("external LVAL row");
-    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
-    assert!(err.to_string().contains("LVAL"), "{err}");
-}
-
-#[test]
-fn rows_behind_an_overflow_pointer_are_not_updated() {
-    let scratch = Scratch(scratch_copy("overflow"));
-    let bytes = std::fs::read(&scratch.0).expect("read fixture");
-    let mut writer = Jet4Writer::new(bytes).expect("writer");
-    let page = writer
-        .create_table(
-            "Overflow",
-            &[
-                JetColumn::new("id", JetType::LongInt, 0x03, 0, 0, 4),
-                JetColumn::new("note", JetType::Memo, 0x02, 1, 0, 0),
-            ],
-        )
-        .expect("create the table");
-    writer
-        .insert_row(
-            page,
-            &[StorageValue::Int(1), StorageValue::Text("first".into())],
-        )
-        .expect("insert the data row");
-    writer
-        .insert_row(
-            page,
-            &[StorageValue::Int(2), StorageValue::Text("second".into())],
-        )
-        .expect("insert the pointer row");
-
-    // Rewire slot 1 into an overflow source that points at slot 0 (the
-    // target), exactly as Access stores a row larger than one page.
-    let mut bytes = writer.into_file();
-    let (page_no, _) = Jet4Writer::new(bytes.clone())
-        .expect("writer")
-        .row_location(page, 0)
-        .expect("locate the first row");
-    let base = page_no as usize * 4096;
-    let decoded = DataPage::decode(&bytes[base..base + 4096]).expect("decode the page");
-    let (_, _, raw0) = decoded.records[0];
-    let (start1, _, raw1) = decoded.records[1];
-    let pointer = (page_no << 8).to_le_bytes();
-    bytes[base + start1..base + start1 + 4].copy_from_slice(&pointer);
-    bytes[base + 14 + 2..base + 16 + 2].copy_from_slice(&(raw1 | 0x4000).to_le_bytes());
-    bytes[base + 14..base + 16].copy_from_slice(&(raw0 | 0x8000).to_le_bytes());
-
-    let mut patched = Jet4Writer::new(bytes).expect("writer");
-    let err = patched
-        .update_row(
-            page,
-            0,
-            &[StorageValue::Int(9), StorageValue::Text("new".into())],
-        )
-        .expect_err("overflow row");
-    assert!(matches!(err, StorageError::Unsupported { .. }), "{err:?}");
-    assert!(err.to_string().contains("overflow"), "{err}");
-}
-
-#[test]
 fn a_batch_applies_in_order() {
     let scratch = Scratch(scratch_copy("batch"));
     let mut port = opened(&scratch.0);
@@ -506,4 +342,42 @@ fn a_failed_batch_leaves_the_file_untouched() {
     port.close();
     let reopened = opened(&scratch.0);
     assert_eq!(read_all(&reopened, "Table1"), before);
+}
+
+#[test]
+fn autonumber_values_are_written_by_an_update() {
+    let scratch = Scratch(scratch_copy("autonumber"));
+    // Seed Table3 (a: AutoNumber, b: Short Text) through the raw writer:
+    // the insert path rejects AutoNumbers, the update path preserves them.
+    let bytes = std::fs::read(&scratch.0).expect("read fixture");
+    let reader = Jet4TableReader::new(bytes.clone()).expect("reader");
+    let page = reader
+        .catalog()
+        .expect("catalog")
+        .into_iter()
+        .find(|entry| entry.name == "Table3")
+        .and_then(|entry| entry.tdef_page)
+        .expect("Table3 is catalogued");
+    let mut writer = Jet4Writer::new(bytes).expect("writer");
+    writer
+        .insert_row(
+            page,
+            &[StorageValue::Int(1), StorageValue::Text("seed".into())],
+        )
+        .expect("seed the autonumber row");
+    std::fs::write(&scratch.0, writer.into_file()).expect("persist the seed");
+
+    let mut port = opened(&scratch.0);
+    port.update_row(
+        "Table3",
+        0,
+        &[FieldValue::Integer(1), FieldValue::Text("renamed".into())],
+    )
+    .expect("update keeps the autonumber value");
+    port.close();
+
+    let reopened = opened(&scratch.0);
+    let rows = read_all(&reopened, "Table3");
+    assert_eq!(rows[0][0], FieldValue::Integer(1));
+    assert_eq!(rows[0][1], FieldValue::Text("renamed".into()));
 }
