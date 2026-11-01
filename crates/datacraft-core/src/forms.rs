@@ -204,7 +204,8 @@ impl crate::core::Core {
         }]
     }
 
-    /// Writes forms + queries to a sidecar file (deterministic bytes).
+    /// Writes forms + queries + reports to a sidecar file (deterministic
+    /// bytes).
     pub(crate) fn save_design_document(&mut self, path: &std::path::Path) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
@@ -215,6 +216,7 @@ impl crate::core::Core {
             tables: Vec::new(),
             queries: db.queries.clone(),
             forms: db.forms.clone(),
+            reports: db.reports.clone(),
         };
         match std::fs::write(path, document.to_json()) {
             Ok(()) => vec![Event::DesignDocumentSaved {
@@ -247,15 +249,18 @@ impl crate::core::Core {
         }
         let forms = document.forms.len();
         let queries = document.queries.len();
+        let reports = document.reports.len();
         let Some(db) = self.state.database.as_mut() else {
             return failed("no database is open — open a database first");
         };
         db.forms = document.forms;
         db.queries = document.queries;
+        db.reports = document.reports;
         vec![Event::DesignDocumentLoaded {
             path: path.to_path_buf(),
             forms,
             queries,
+            reports,
         }]
     }
 }

@@ -150,6 +150,26 @@ impl App {
         self.form_selection.insert(tab_id, control);
     }
 
+    /// Selected control of a report-design tab (shares the per-tab control
+    /// selection map with forms — tab ids never collide).
+    pub fn report_selection(&self, tab_id: TabId) -> Option<String> {
+        self.form_selection.get(&tab_id).cloned()
+    }
+
+    /// Selects a report control.
+    pub fn set_report_selection(&mut self, tab_id: TabId, control: String) {
+        self.form_selection.insert(tab_id, control);
+    }
+
+    /// Report design documents (ribbon naming, report views).
+    pub fn reports(&self) -> &[datacraft_core::report::ReportDef] {
+        self.snapshot()
+            .database
+            .as_ref()
+            .map(|db| db.reports.as_slice())
+            .unwrap_or(&[])
+    }
+
     /// Accumulates drag motion for a control (starting a gesture lazily).
     pub fn accumulate_drag(&mut self, tab_id: TabId, control: &str, dx: f32, dy: f32) {
         let entry = self

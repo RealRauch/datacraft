@@ -117,6 +117,20 @@ impl Core {
             } => self.set_control_rect(&form, &control, rect),
             Command::DeleteFormControl { form, control } => self.delete_control(&form, &control),
             Command::SetFormSource { form, table } => self.set_form_source(&form, &table),
+            Command::CreateReport { name } => self.create_report(&name),
+            Command::DeleteReport { name } => self.delete_report(&name),
+            Command::AddReportControl { report, control } => {
+                self.add_report_control(&report, control)
+            }
+            Command::SetReportControlRect {
+                report,
+                control,
+                rect,
+            } => self.set_report_control_rect(&report, &control, rect),
+            Command::DeleteReportControl { report, control } => {
+                self.delete_report_control(&report, &control)
+            }
+            Command::SetReportSource { report, table } => self.set_report_source(&report, &table),
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
             Command::OpenDatabase { path } => self.open_database(path),
@@ -147,6 +161,7 @@ impl Core {
                     relationships,
                     queries: Vec::new(),
                     forms: Vec::new(),
+                    reports: Vec::new(),
                 });
                 vec![Event::DatabaseOpened { name, format }]
             }
@@ -244,7 +259,10 @@ impl Core {
                 .forms
                 .iter()
                 .any(|f| f.name.to_lowercase() == object.name.to_lowercase()),
-            _ => false,
+            ObjectKind::Report => db
+                .reports
+                .iter()
+                .any(|r| r.name.to_lowercase() == object.name.to_lowercase()),
         };
         if !exists {
             return failed(PortError::TableNotFound(object.name).to_string());

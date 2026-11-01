@@ -109,11 +109,51 @@ pub enum Event {
         forms: usize,
         /// Number of queries loaded.
         queries: usize,
+        /// Number of reports loaded (step 10.4, H31).
+        reports: usize,
     },
     /// A form was deleted.
     FormDropped {
         /// Canonical form name.
         name: String,
+    },
+    /// A report was created (step 10.4, H31).
+    ReportCreated {
+        /// Canonical report name.
+        name: String,
+    },
+    /// A report was deleted.
+    ReportDropped {
+        /// Canonical report name.
+        name: String,
+    },
+    /// A control was placed on a report.
+    ReportControlAdded {
+        /// Canonical report name.
+        report: String,
+        /// Canonical control name.
+        control: String,
+    },
+    /// A report control was moved/resized.
+    ReportControlRectSet {
+        /// Canonical report name.
+        report: String,
+        /// Canonical control name.
+        control: String,
+    },
+    /// A report control was removed.
+    ReportControlDropped {
+        /// Canonical report name.
+        report: String,
+        /// Canonical control name.
+        control: String,
+    },
+    /// A report's source table was assigned.
+    ReportSourceSet {
+        /// Canonical report name.
+        report: String,
+        /// Canonical table name.
+        table: String,
     },
     /// A query executed successfully.
     QueryRan {

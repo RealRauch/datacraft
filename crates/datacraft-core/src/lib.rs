@@ -18,6 +18,8 @@ pub mod present;
 pub mod qbe;
 pub mod query_criteria;
 pub mod query_engine;
+pub mod report;
+pub mod reports;
 pub mod ribbon;
 pub mod schema;
 pub mod snapshot;

@@ -135,8 +135,9 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     });
 }
 
-/// Kind-specific painting (pure paint; no logic).
-fn paint_control(
+/// Kind-specific painting (pure paint; no logic). Shared with the
+/// report design view (same palette, step 10.4).
+pub(crate) fn paint_control(
     ui: &egui::Ui,
     painter: &egui::Painter,
     rect: egui::Rect,

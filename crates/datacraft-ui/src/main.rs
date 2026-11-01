@@ -17,6 +17,7 @@ mod form_runtime;
 mod nav_pane;
 mod qbe;
 mod relationships;
+mod report_design;
 mod ribbon;
 mod workspace;
 

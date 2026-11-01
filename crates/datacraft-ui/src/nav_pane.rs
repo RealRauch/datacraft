@@ -55,6 +55,19 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 });
             }
         }
+        if !db.reports.is_empty() {
+            ui.weak("Reports");
+            for report in &db.reports {
+                ui.push_id(&report.name, |ui| {
+                    let is_active = active_object
+                        .as_deref()
+                        .is_some_and(|name| name.eq_ignore_ascii_case(&report.name));
+                    if ui.selectable_label(is_active, &report.name).clicked() {
+                        intent = Some((datacraft_core::ObjectKind::Report, report.name.clone()));
+                    }
+                });
+            }
+        }
         if !db.queries.is_empty() {
             ui.weak("Queries");
             for query in &db.queries {

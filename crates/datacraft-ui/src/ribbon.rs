@@ -93,6 +93,9 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
         "form_design" => Some(Command::CreateForm {
             name: next_form_name(app),
         }),
+        "report_design" => Some(Command::CreateReport {
+            name: next_report_name(app),
+        }),
         _ => None,
     }
 }
@@ -102,6 +105,17 @@ fn next_form_name(app: &App) -> String {
     next_name(
         app.forms().iter().map(|f| f.name.to_lowercase()).collect(),
         "Form",
+    )
+}
+
+/// First free "ReportN" name (case-insensitive against the snapshot).
+fn next_report_name(app: &App) -> String {
+    next_name(
+        app.reports()
+            .iter()
+            .map(|r| r.name.to_lowercase())
+            .collect(),
+        "Report",
     )
 }
 

@@ -70,6 +70,8 @@ pub struct DatabaseState {
     pub queries: Vec<QueryDef>,
     /// Form design documents in creation order.
     pub forms: Vec<FormDef>,
+    /// Report design documents in creation order (step 10.4, H31).
+    pub reports: Vec<crate::report::ReportDef>,
 }
 
 /// State of one open document tab.

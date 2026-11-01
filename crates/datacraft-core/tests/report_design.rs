@@ -14,7 +14,7 @@ use datacraft_core::event::Event;
 use datacraft_core::form::{ControlDef, ControlKind};
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
-use datacraft_core::{ObjectKind, ObjectId};
+use datacraft_core::{ObjectId, ObjectKind};
 
 fn customers_table() -> TableDef {
     let mut field = FieldDef::new("Name", FieldKind::Text { max_len: 50 });
@@ -250,9 +250,9 @@ fn sidecar_round_trips_reports() {
     });
     let events = fresh.dispatch(Command::LoadDesignDocument { path });
     assert!(
-        events.iter().any(
-            |e| matches!(e, Event::DesignDocumentLoaded { reports: 1, .. })
-        ),
+        events
+            .iter()
+            .any(|e| matches!(e, Event::DesignDocumentLoaded { reports: 1, .. })),
         "{events:?}"
     );
     let loaded = fresh.inspect().database.unwrap().reports;

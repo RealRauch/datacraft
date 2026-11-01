@@ -127,8 +127,49 @@ pub enum Command {
         /// Source table name.
         table: String,
     },
-    /// Writes the design layer (forms + queries) to a `.datacraft`
-    /// sidecar file (ADR-1).
+    /// Creates an empty report with print-oriented page defaults
+    /// (step 10.4, item H31).
+    CreateReport {
+        /// Report name; rejected on duplicates.
+        name: String,
+    },
+    /// Deletes a report.
+    DeleteReport {
+        /// Report name (case-insensitive).
+        name: String,
+    },
+    /// Places a control on a report (page-bounds-checked, snapped).
+    AddReportControl {
+        /// Target report name (case-insensitive).
+        report: String,
+        /// The control definition.
+        control: ControlDef,
+    },
+    /// Moves/resizes a report control (snapped, page-bounds-checked).
+    SetReportControlRect {
+        /// Target report name (case-insensitive).
+        report: String,
+        /// Control name (case-insensitive).
+        control: String,
+        /// New page rect.
+        rect: Rect,
+    },
+    /// Removes a report control.
+    DeleteReportControl {
+        /// Target report name (case-insensitive).
+        report: String,
+        /// Control name (case-insensitive).
+        control: String,
+    },
+    /// Assigns a report's source table (whitelisted; bindings re-validated).
+    SetReportSource {
+        /// Target report name (case-insensitive).
+        report: String,
+        /// Source table name.
+        table: String,
+    },
+    /// Writes the design layer (forms + queries + reports) to a
+    /// `.datacraft` sidecar file (ADR-1).
     SaveDesignDocument {
         /// Target file path.
         path: std::path::PathBuf,

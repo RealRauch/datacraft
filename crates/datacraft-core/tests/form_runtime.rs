@@ -176,6 +176,7 @@ fn the_design_document_saves_and_loads() {
             path: path.clone(),
             forms: 1,
             queries: 1,
+            reports: 0,
         }]
     );
     let db = core.inspect().database.unwrap();

@@ -45,6 +45,8 @@ pub struct DatabaseSnapshot {
     pub queries: Vec<QueryEntrySnapshot>,
     /// Form design documents in creation order.
     pub forms: Vec<crate::form::FormDef>,
+    /// Report design documents in creation order (step 10.4, H31).
+    pub reports: Vec<crate::report::ReportDef>,
 }
 
 /// One query in the snapshot.
@@ -105,6 +107,7 @@ impl UiStateSnapshot {
                 format: db.format,
                 relationships: db.relationships.clone(),
                 forms: db.forms.clone(),
+                reports: db.reports.clone(),
                 queries: db
                     .queries
                     .iter()

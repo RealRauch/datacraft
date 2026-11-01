@@ -44,6 +44,9 @@ pub struct SchemaDocument {
     /// Form design documents (additive v1 field, ADR-1).
     #[serde(default)]
     pub forms: Vec<crate::form::FormDef>,
+    /// Report design documents (additive v1 field, step 10.4 / H31).
+    #[serde(default)]
+    pub reports: Vec<crate::report::ReportDef>,
 }
 
 impl SchemaDocument {
@@ -55,6 +58,7 @@ impl SchemaDocument {
             tables: Vec::new(),
             queries: Vec::new(),
             forms: Vec::new(),
+            reports: Vec::new(),
         }
     }
 
