@@ -193,4 +193,6 @@ fn table_entries_carry_their_field_names() {
         .map(|f| f.name.as_str())
         .collect();
     assert_eq!(names, ["id", "name"]);
+    assert_eq!(db.tables[0].fields[0].kind_display, "Long Integer");
+    assert_eq!(db.tables[0].fields[1].kind_display, "Short Text");
 }

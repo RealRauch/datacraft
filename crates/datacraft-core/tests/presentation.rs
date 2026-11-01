@@ -108,3 +108,65 @@ fn display_values_are_user_renderable() {
         "00000000-0000-0000-0000-000000000000"
     );
 }
+
+#[test]
+fn field_kinds_display_access_ui_names() {
+    use datacraft_core::present::field_kind_display;
+    use datacraft_core::schema::{AutoKind, BinaryKind, FieldKind, NumericKind};
+
+    assert_eq!(
+        field_kind_display(&FieldKind::Text { max_len: 255 }),
+        "Short Text"
+    );
+    assert_eq!(field_kind_display(&FieldKind::Memo), "Long Text");
+    assert_eq!(
+        field_kind_display(&FieldKind::Number(NumericKind::Byte)),
+        "Byte"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Number(NumericKind::Integer)),
+        "Integer"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Number(NumericKind::LongInteger)),
+        "Long Integer"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Number(NumericKind::Single)),
+        "Single"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Number(NumericKind::Double)),
+        "Double"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Number(NumericKind::Decimal {
+            precision: 18,
+            scale: 2
+        })),
+        "Decimal (18, 2)"
+    );
+    assert_eq!(field_kind_display(&FieldKind::DateTime), "Date/Time");
+    assert_eq!(field_kind_display(&FieldKind::Currency), "Currency");
+    assert_eq!(
+        field_kind_display(&FieldKind::AutoNumber(AutoKind::LongInteger)),
+        "AutoNumber"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::AutoNumber(AutoKind::ReplicationId)),
+        "AutoNumber (Replication ID)"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Boolean { tri_state: true }),
+        "Yes/No"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Binary(BinaryKind::OleObject)),
+        "OLE Object"
+    );
+    assert_eq!(
+        field_kind_display(&FieldKind::Binary(BinaryKind::Attachment)),
+        "Attachment"
+    );
+    assert_eq!(field_kind_display(&FieldKind::Guid), "GUID");
+}
