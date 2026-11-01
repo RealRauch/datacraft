@@ -13,12 +13,14 @@ use datacraft_core::grid::GridMetrics;
 use crate::app::App;
 use crate::i18n::{plural, t};
 use crate::labels::value_label;
+use crate::theme::tokens;
 
 /// Renders the SQL window (when open).
 pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
     if !app.snapshot().sql_window_open {
         return;
     }
+    let tokens = tokens(ui.visuals());
     let mut close = false;
     let mut run = false;
     let mut text = app.sql_text().to_owned();
@@ -50,7 +52,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                 ui.weak(t("one SELECT/WITH statement · read-only"));
             });
             if let Some(reason) = &error {
-                ui.colored_label(egui::Color32::from_rgb(0xB0, 0x2A, 0x2A), reason);
+                ui.colored_label(tokens.danger, reason);
             }
             if let Some(result) = &result {
                 ui.separator();

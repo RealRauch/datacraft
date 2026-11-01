@@ -16,7 +16,7 @@ use datacraft_core::snapshot::TabSnapshot;
 use crate::app::App;
 use crate::i18n::{plural, t};
 use crate::labels::value_label;
-use crate::theme::{HAIRLINE, INK, ON_TEAL, TEAL};
+use crate::theme::tokens;
 
 /// Default column width (points) before any resize logic lands.
 const DEFAULT_COLUMN_WIDTH: f32 = 140.0;
@@ -127,6 +127,7 @@ pub(crate) fn grid_ui(
     mut on_select: impl FnMut(&mut egui::Ui, usize),
 ) {
     let font = egui::TextStyle::Body.resolve(ui.style());
+    let tokens = tokens(ui.visuals());
 
     // Header band: teal fill, paper text — the icon's header-row grammar.
     let header_top = ui.cursor().top();
@@ -138,7 +139,7 @@ pub(crate) fn grid_ui(
         egui::pos2(ui.cursor().left(), header_top),
         egui::vec2(band_width, metrics.header_height),
     );
-    ui.painter().rect_filled(band, 0.0, TEAL);
+    ui.painter().rect_filled(band, 0.0, tokens.accent);
     for (col, name) in columns.iter().enumerate() {
         let cell = egui::Rect::from_min_size(
             band.left_top() + egui::vec2(SELECTOR_WIDTH + DEFAULT_COLUMN_WIDTH * col as f32, 0.0),
@@ -149,7 +150,7 @@ pub(crate) fn grid_ui(
             egui::Align2::LEFT_CENTER,
             name,
             font.clone(),
-            ON_TEAL,
+            tokens.on_accent,
         );
     }
 
@@ -166,8 +167,13 @@ pub(crate) fn grid_ui(
                                 [SELECTOR_WIDTH, metrics.row_height],
                                 egui::Button::selectable(
                                     is_cursor,
-                                    egui::RichText::new(format!("{:>6}", row_idx + 1))
-                                        .color(if is_cursor { ON_TEAL } else { INK }),
+                                    egui::RichText::new(format!("{:>6}", row_idx + 1)).color(
+                                        if is_cursor {
+                                            tokens.accent_text
+                                        } else {
+                                            tokens.text
+                                        },
+                                    ),
                                 ),
                             );
                             if selector.clicked() {
@@ -184,22 +190,19 @@ pub(crate) fn grid_ui(
                                     egui::Align2::LEFT_CENTER,
                                     text,
                                     font.clone(),
-                                    INK,
+                                    tokens.text,
                                 );
                                 let x = cell.right();
                                 ui.painter().line_segment(
                                     [egui::pos2(x, cell.top()), egui::pos2(x, cell.bottom())],
-                                    egui::Stroke::new(1.0, HAIRLINE),
+                                    egui::Stroke::new(1.0, tokens.border),
                                 );
                             }
                         })
                         .response;
                     if is_cursor {
-                        ui.painter().rect_filled(
-                            inner.rect,
-                            0.0,
-                            egui::Color32::from_rgba_premultiplied(0x0F, 0x8B, 0x7E, 0x24),
-                        );
+                        ui.painter()
+                            .rect_filled(inner.rect, 0.0, tokens.accent_faint);
                     }
                 });
             }

@@ -34,8 +34,9 @@ _By the ArtCraft team._
 
 > [!NOTE]
 > **DataCraft is in early development.** Phases 1–19 are complete; Phase 20
-> (the look rebase: neutral tokens, teal accent, typography, dark mode) is
-> next.
+> (the look rebase) is in progress — the neutral token system with the teal
+> accent has landed (step 20.1); typography, original iconography and dark
+> mode follow.
 > The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
 > `.accdb` files (Jet4/ACE cross-checked against the libmdb oracle in CI) and
 > writes verified Jet4 table/row paths; the headless command bus drives a
@@ -206,7 +207,8 @@ Seventeen delivered phases and the planned UI work:
 | 15 — Expressions & Saved Queries | expression service, field wiring, `MSysQueries` decode | ✅ |
 | 16 — Complex Values & Encryption | attachments/multi-value/version history, RC4 passwords, Jet3 remainders | ✅ |
 | 17 — Macros, VBA & Docs Accuracy | read-only macro inventory, VBA extraction/viewer/static analysis, verified compatibility matrix | ✅ |
-| 18–21 — UI Localization & Alignment | i18n, settings/language switcher, look & typography, Access UI alignment | ⬜ planned |
+| 18–19 — UI Localization & Settings | i18n kernel, complete German catalog, `ui.json`, language switcher | ✅ |
+| 20–21 — Look & Typography, Access UI Alignment | neutral token system (step 20.1 landed), typography, original iconography, dark mode, Access UI alignment | ⬜ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
@@ -236,7 +238,7 @@ three colours** — ink `#0B0B0C`, paper `#EFE9DC` and DataCraft teal `#0F8B7E`
 — with a flat paper-and-ink object rotated −6°. DataCraft's object is a
 database cylinder whose front is a datasheet. Construction, palette and
 acceptance checklist: [docs/brand/DATACRAFT-ICON.md](docs/brand/DATACRAFT-ICON.md);
-renders and the Windows `.ico` live in [`assets/app-icon/`](assets/app-icon/). The app itself wears the same palette: the theme colour is the icon's teal tile field, chrome surfaces are paper, text and hairlines are ink — the datasheet renders in the icon's header-row grammar (teal header, paper text).
+renders and the Windows `.ico` live in [`assets/app-icon/`](assets/app-icon/). The app's UI rebases on a neutral token system (chrome, ribbon, canvas and panel surfaces in neutral greys; text and border ramps; ADR-6) while the accent family derives from the icon's teal tile field — the datasheet keeps the icon's header-row grammar (teal header, paper text), and hover/pressed states stay neutral.
 
 ## License and credits
 

@@ -14,7 +14,7 @@ use datacraft_core::ribbon::{ActionState, ribbon_spec};
 use crate::app::App;
 use crate::i18n::{t, tr};
 use crate::settings::LanguageSetting;
-use crate::theme::INK_SOFT;
+use crate::theme::tokens;
 
 /// Renders the ribbon in Access structure (step 12.2): a tab strip row on
 /// top, the active tab's command groups below — each group carries its
@@ -22,6 +22,7 @@ use crate::theme::INK_SOFT;
 /// paint: intents are collected during paint and dispatched once.
 pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     let spec = ribbon_spec();
+    let tokens = tokens(ui.visuals());
 
     // Tab strip row: the active tab reads as a teal selection.
     ui.horizontal(|ui| {
@@ -103,7 +104,11 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                 ui.with_layout(
                     egui::Layout::top_down_justified(egui::Align::Center),
                     |ui| {
-                        ui.label(egui::RichText::new(t(group.label)).small().color(INK_SOFT));
+                        ui.label(
+                            egui::RichText::new(t(group.label))
+                                .small()
+                                .color(tokens.text_muted),
+                        );
                     },
                 );
             });
@@ -121,6 +126,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
 /// Language switcher (step 19.2, item I5): the File tab owns the UI-only
 /// language choice; selecting applies live and persists to `ui.json`.
 fn language_group(ui: &mut egui::Ui, app: &mut App) {
+    let tokens = tokens(ui.visuals());
     ui.vertical(|ui| {
         ui.set_min_width(120.0);
         ui.add_space(2.0);
@@ -145,7 +151,11 @@ fn language_group(ui: &mut egui::Ui, app: &mut App) {
         ui.with_layout(
             egui::Layout::top_down_justified(egui::Align::Center),
             |ui| {
-                ui.label(egui::RichText::new(t("Language")).small().color(INK_SOFT));
+                ui.label(
+                    egui::RichText::new(t("Language"))
+                        .small()
+                        .color(tokens.text_muted),
+                );
             },
         );
     });

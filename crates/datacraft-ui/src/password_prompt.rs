@@ -9,6 +9,7 @@ use eframe::egui;
 
 use crate::app::App;
 use crate::i18n::{t, tr};
+use crate::theme::tokens;
 
 /// Rejection-message key, kept as a key so a language switch re-renders
 /// the open prompt live (the parity test consumes the constant).
@@ -99,6 +100,7 @@ pub fn password_prompt(app: &mut App, ui: &mut egui::Ui) {
     let Some(prompt) = app.password_prompt().cloned() else {
         return;
     };
+    let tokens = tokens(ui.visuals());
     let mut input = prompt.input.clone();
     let mut submit = false;
     let mut cancel = false;
@@ -122,7 +124,7 @@ pub fn password_prompt(app: &mut App, ui: &mut egui::Ui) {
                 submit = true;
             }
             if let Some(error) = prompt.error {
-                ui.colored_label(egui::Color32::from_rgb(0xB0, 0x2A, 0x2A), t(error));
+                ui.colored_label(tokens.danger, t(error));
             }
             ui.add_space(4.0);
             ui.horizontal(|ui| {
