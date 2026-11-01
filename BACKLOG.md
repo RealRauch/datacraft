@@ -16,11 +16,6 @@
 
 > No open items.
 
-### [ ] H41 — Expression-Service (Ring 1 / Roadmap M1) — 🟠
-- **Location:** `crates/datacraft-core/src/expr/` (neu: lexer/parser/eval), `schema/field.rs` (Default/Validation), `report.rs`/`reports.rs` (Bänder), `command.rs`
-- **Ansatz:** Kleiner, totaler Ausdrucks-Evaluator: Feldreferenzen, Literale, Arithmetik/Konkatenation, Vergleichslogik, NULL-Semantik nach Access-Muster; Funktionsfamilien IIf/NZ/Format, Datums-/String-Funktionen, LIKE mit Access-Wildcards; typisiert über `FieldKind`. Anschlüsse: Default Values, Validation Rules, Calculated Fields sowie gruppierte/aggregate Report-Bänder (löst die M4-Report-Reste aus Phase 10 ein).
-- **Acceptance:** Evaluator-Suite inkl. NULL-/Coercion-Fällen; Validation-/Default-/Calculated-Tests; Report-Preview mit Gruppen-/Aggregatbändern; Ausdrücke über Bus/MCP/CLI ausführbar; Expressions-Suite ist die Referenz für Ring 2/3.
-
 ---
 
 ## 🟡 MEDIUM
@@ -160,3 +155,4 @@
 - H39 — ACCDB-Read-Pfad (Catalog/TDEF/TDAT über den Jet4-4096-Pfad) — done (Phase 14.2 — ACE read path through Jet4 4096; oracle match (mdbtools 1.0.1), format through all clients, precise header errors; commit d6a3a66)
 - H40 — Jet4 Update/Delete-Writes (RowOp am echten Dateipfad) — done (done in `ea76d2d` (step 11.10; in-place/repack updates, 0x8000 deletes, precise Unsupported for overflow/LVAL/oversized rows, port + bus commands))
 - M2 — Journaled/restringierte Write-Profile (Preview, Bestätigung, Feldfamilien) — done (done in `dcb6852` (step 11.11; preview→apply→rollback journal, atomic Jet batch, field-family profile))
+- H41 — Expression-Service (Ring 1 / Roadmap M1) — done (15.1 (b6c7c73 RED, a657762 GREEN) + 15.2 (7eb3bbc RED, 6cb634d GREEN): evaluator suite, NULL/coercion contracts, defaults/rules/calculated wiring, RunExpression over the bus and grouped/aggregate report bands)

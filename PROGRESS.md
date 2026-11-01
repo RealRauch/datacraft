@@ -34,6 +34,47 @@
 - **17.3 Statische Analyse headless (L5)**
 - **17.4 Doku-Genauigkeit: Kompatibilitätsmatrix (M6)**
 - **17.5 Phase 17 Quality Gate Review**
+### Phase 18 — UI Localization (i18n)
+
+**Scope (Steps):**
+
+- **18.1 i18n kernel in the UI crate (I1)**
+- **18.2 All UI literals through t() (I2)**
+- **18.3 German catalog complete (I3)**
+- **18.4 Phase 18 Quality Gate Review**
+### Phase 19 — App Settings & Language Switcher
+
+**Scope (Steps):**
+
+- **19.1 App settings store ui.json (I4)**
+- **19.2 Language switcher in the UI (I5)**
+- **19.3 Phase 19 Quality Gate Review**
+### Phase 20 — Look & Typography (WordCraft neutrals, Teal accent)
+
+**Scope (Steps):**
+
+- **20.1 Theme rebase: neutral tokens, Teal accent (U1)**
+- **20.2 Typography: Inter + type rungs (U2)**
+- **20.3 Original vector iconography (U3)**
+- **20.4 Dark mode: Appearance Light/Dark/System (U4)**
+- **20.5 Phase 20 Quality Gate Review**
+### Phase 21 — Access UI Alignment
+
+**Scope (Steps):**
+
+- **21.1 Contextual ribbon tabs + Views split-button (U5)**
+- **21.2 Quick Access Toolbar (U6)**
+- **21.3 File backstage page (U7)**
+- **21.4 Datasheet UX: column resize, header sort, row shading (U8)**
+- **21.5 Nav pane: category dropdown, context menu, group sort (U9)**
+- **21.6 Tabs: middle-click close, context menu (U10)**
+- **21.7 Window title & status-bar conventions (U11)**
+- **21.8 Keyboard: shortcuts & ribbon key tips (U12)**
+- **21.9 Phase 21 Quality Gate Review**
+
+
+
+
 
 
 
@@ -132,7 +173,7 @@
 | 14.2 | ACCDB-Read-Pfad (H39) | ✅ |
 | 14.3 | Phase 14 Quality Gate Review | ✅ |
 | 15.1 | Expression-Kern: Evaluator & Funktionen (H41) | ✅ |
-| 15.2 | Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41) | ⬜ |
+| 15.2 | Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41) | ✅ |
 | 15.3 | Native Saved Queries: MSysQueries (M3) | ⬜ |
 | 15.4 | Phase 15 Quality Gate Review | ⬜ |
 | 16.1 | Complex Values/Multivalue (M4) | ⬜ |
@@ -144,3 +185,24 @@
 | 17.3 | Statische Analyse headless (L5) | ⬜ |
 | 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | ⬜ |
 | 17.5 | Phase 17 Quality Gate Review | ⬜ |
+| 18.1 | i18n kernel in the UI crate (I1) | ⬜ |
+| 18.2 | All UI literals through t() (I2) | ⬜ |
+| 18.3 | German catalog complete (I3) | ⬜ |
+| 18.4 | Phase 18 Quality Gate Review | ⬜ |
+| 19.1 | App settings store ui.json (I4) | ⬜ |
+| 19.2 | Language switcher in the UI (I5) | ⬜ |
+| 19.3 | Phase 19 Quality Gate Review | ⬜ |
+| 20.1 | Theme rebase: neutral tokens, Teal accent (U1) | ⬜ |
+| 20.2 | Typography: Inter + type rungs (U2) | ⬜ |
+| 20.3 | Original vector iconography (U3) | ⬜ |
+| 20.4 | Dark mode: Appearance Light/Dark/System (U4) | ⬜ |
+| 20.5 | Phase 20 Quality Gate Review | ⬜ |
+| 21.1 | Contextual ribbon tabs + Views split-button (U5) | ⬜ |
+| 21.2 | Quick Access Toolbar (U6) | ⬜ |
+| 21.3 | File backstage page (U7) | ⬜ |
+| 21.4 | Datasheet UX: column resize, header sort, row shading (U8) | ⬜ |
+| 21.5 | Nav pane: category dropdown, context menu, group sort (U9) | ⬜ |
+| 21.6 | Tabs: middle-click close, context menu (U10) | ⬜ |
+| 21.7 | Window title & status-bar conventions (U11) | ⬜ |
+| 21.8 | Keyboard: shortcuts & ribbon key tips (U12) | ⬜ |
+| 21.9 | Phase 21 Quality Gate Review | ⬜ |

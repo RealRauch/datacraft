@@ -428,3 +428,11 @@
 - **Ansatz:** Schreiboperationen optional als Journal führen: Preview (Diff) → Bestätigung → Ausführung → Rollback-Info; Restriktion auf qualifizierte Feldfamilien (typsicher, Fixed-Width zuerst); Operationen außerhalb des Profils → präzise `Unsupported` statt stiller Annahmen. Baut auf H40 auf und ist die Voraussetzung für gefahrloses UI-Editing (Phase 11).
 - **Acceptance:** Preview→Confirm→Apply-Tests; Rollback-/Journal-Tests; Restriktionsfehler präzise; E2E über JSON-RPC.
 - **Done:** done in `dcb6852` (step 11.11; preview→apply→rollback journal, atomic Jet batch, field-family profile)
+
+---
+
+### [x] H41 — Expression-Service (Ring 1 / Roadmap M1) — 🟠
+- **Location:** `crates/datacraft-core/src/expr/` (neu: lexer/parser/eval), `schema/field.rs` (Default/Validation), `report.rs`/`reports.rs` (Bänder), `command.rs`
+- **Ansatz:** Kleiner, totaler Ausdrucks-Evaluator: Feldreferenzen, Literale, Arithmetik/Konkatenation, Vergleichslogik, NULL-Semantik nach Access-Muster; Funktionsfamilien IIf/NZ/Format, Datums-/String-Funktionen, LIKE mit Access-Wildcards; typisiert über `FieldKind`. Anschlüsse: Default Values, Validation Rules, Calculated Fields sowie gruppierte/aggregate Report-Bänder (löst die M4-Report-Reste aus Phase 10 ein).
+- **Acceptance:** Evaluator-Suite inkl. NULL-/Coercion-Fällen; Validation-/Default-/Calculated-Tests; Report-Preview mit Gruppen-/Aggregatbändern; Ausdrücke über Bus/MCP/CLI ausführbar; Expressions-Suite ist die Referenz für Ring 2/3.
+- **Done:** 15.1 (b6c7c73 RED, a657762 GREEN) + 15.2 (7eb3bbc RED, 6cb634d GREEN): evaluator suite, NULL/coercion contracts, defaults/rules/calculated wiring, RunExpression over the bus and grouped/aggregate report bands
