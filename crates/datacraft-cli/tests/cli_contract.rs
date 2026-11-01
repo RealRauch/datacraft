@@ -120,6 +120,24 @@ fn usage_errors_exit_with_code_one() {
 }
 
 #[test]
+fn missing_arguments_are_usage_errors() {
+    let mut core = fresh_core();
+    let mut out: Vec<u8> = Vec::new();
+    assert_eq!(
+        run(&mut core, &["open".to_owned()], &mut out),
+        Outcome::UsageError
+    );
+    assert!(String::from_utf8(out).unwrap().contains("open <path>"));
+
+    let mut out: Vec<u8> = Vec::new();
+    assert_eq!(
+        run(&mut core, &["exec".to_owned()], &mut out),
+        Outcome::UsageError
+    );
+    assert!(String::from_utf8(out).unwrap().contains("exec"));
+}
+
+#[test]
 fn human_output_names_events_without_json_braces() {
     let mut core = fresh_core();
     let mut out: Vec<u8> = Vec::new();
@@ -144,4 +162,27 @@ fn repl_shares_the_transport_over_in_memory_streams() {
     datacraft_cli::repl(&mut core, &mut Cursor::new(input.to_owned()), &mut output);
     let text = String::from_utf8(output).unwrap();
     assert!(text.contains("nav_pane_visible"), "{text}");
+}
+
+#[test]
+fn a_failing_pre_open_reports_the_failure_with_exit_code_two() {
+    let mut core = Core::new(Box::new(MockPort::failing_open("disk unreadable")));
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "exec".to_owned(),
+            "{\"ToggleNavPane\":null}".to_owned(),
+            "--db".to_owned(),
+            "broken.mdb".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::CommandFailed);
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.contains("disk unreadable"), "{text}");
+    assert!(
+        !text.contains("NavPaneToggled"),
+        "the command never ran: {text}"
+    );
 }

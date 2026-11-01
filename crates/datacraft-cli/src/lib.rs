@@ -64,10 +64,7 @@ pub fn run_with_streams(
             let Some(path) = args.get(1).filter(|p| !p.as_str().starts_with("--")) else {
                 return usage(out, "usage: datacraft-cli open <path>");
             };
-            match open_command(path) {
-                Ok(command) => run_command(core, command, json_output, out),
-                Err(e) => usage(out, &e),
-            }
+            run_command(core, open_command(path), json_output, out)
         }
         "exec" => {
             let Some(json) = args.get(1) else {
@@ -78,7 +75,7 @@ pub fn run_with_streams(
             };
             let mut events = Vec::new();
             if let Some(path) = db_path {
-                events.extend(core.dispatch(open_command(&path).expect("valid db path")));
+                events.extend(core.dispatch(open_command(&path)));
                 if events
                     .iter()
                     .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. }))
@@ -100,7 +97,7 @@ pub fn run_with_streams(
         }
         "repl" => {
             if let Some(path) = db_path {
-                core.dispatch(open_command(&path).expect("valid db path"));
+                core.dispatch(open_command(&path));
             }
             repl(core, reader, out);
             Outcome::Ok
@@ -162,19 +159,47 @@ pub fn repl(core: &mut Core, reader: &mut dyn std::io::BufRead, writer: &mut dyn
     transport::serve(reader, writer, core);
 }
 
-fn open_command(path: &str) -> Result<Command, String> {
+fn open_command(path: &str) -> Command {
     serde_json::from_value(serde_json::json!({"OpenDatabase": {"path": path}}))
-        .map_err(|e| format!("invalid path: {e}"))
+        .expect("the open command shape is fixed")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use datacraft_core::port::MockPort;
 
     /// Open-command JSON stays in the command vocabulary (transport only).
     #[test]
     fn open_deserializes_into_the_command_language() {
-        let command = open_command("shop.mdb").unwrap();
+        let command = open_command("shop.mdb");
         assert!(matches!(command, Command::OpenDatabase { .. }));
+    }
+
+    /// Exit codes are part of the headless contract.
+    #[test]
+    fn outcome_codes_are_meaningful() {
+        assert_eq!(Outcome::Ok.code(), 0);
+        assert_eq!(Outcome::CommandFailed.code(), 2);
+        assert_eq!(Outcome::UsageError.code(), 1);
+    }
+
+    /// Repl honors --db (the pre-open lands before the session starts).
+    #[test]
+    fn repl_opens_the_database_first() {
+        use std::io::Cursor;
+
+        let mut core = Core::new(Box::new(MockPort::new()));
+        let input = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"inspect\"}\n";
+        let mut output: Vec<u8> = Vec::new();
+        let outcome = run_with_streams(
+            &mut core,
+            &["repl".to_owned(), "--db".to_owned(), "shop.mdb".to_owned()],
+            &mut output,
+            &mut Cursor::new(input.to_owned()),
+        );
+        assert_eq!(outcome, Outcome::Ok);
+        let text = String::from_utf8(output).unwrap();
+        assert!(text.contains("\"database\""), "{text}");
     }
 }

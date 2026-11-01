@@ -273,3 +273,60 @@ fn form_and_control_errors_are_precise() {
     }));
     assert!(reason.to_lowercase().contains("bounds"), "{reason}");
 }
+
+#[test]
+fn every_form_command_requires_an_open_database() {
+    let mut core = Core::new(Box::new(MockPort::new()));
+    let commands = vec![
+        Command::CreateForm {
+            name: "Card".into(),
+        },
+        Command::DeleteForm {
+            name: "Card".into(),
+        },
+        Command::AddFormControl {
+            form: "Card".into(),
+            control: label("x", "x", 0.0, 0.0),
+        },
+        Command::SetFormControlRect {
+            form: "Card".into(),
+            control: "x".into(),
+            rect: Rect {
+                x: 0.0,
+                y: 0.0,
+                width: 8.0,
+                height: 8.0,
+            },
+        },
+        Command::DeleteFormControl {
+            form: "Card".into(),
+            control: "x".into(),
+        },
+        Command::SetFormSource {
+            form: "Card".into(),
+            table: "T".into(),
+        },
+        Command::SaveDesignDocument {
+            path: std::path::PathBuf::from("nowhere.datacraft"),
+        },
+        Command::LoadDesignDocument {
+            path: std::path::PathBuf::from("nowhere.datacraft"),
+        },
+    ];
+    for command in commands {
+        let reason = failed_reason(&core.dispatch(command));
+        assert!(reason.contains("no database"), "{reason}");
+    }
+}
+
+#[test]
+fn form_names_must_not_be_empty_and_control_names_either() {
+    let mut core = opened_with_form();
+    let reason = failed_reason(&core.dispatch(Command::CreateForm { name: "   ".into() }));
+    assert!(reason.contains("empty"), "{reason}");
+    let reason = failed_reason(&core.dispatch(Command::AddFormControl {
+        form: "Card".into(),
+        control: label("  ", "text", 0.0, 0.0),
+    }));
+    assert!(reason.contains("empty"), "{reason}");
+}
