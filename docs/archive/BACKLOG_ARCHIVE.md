@@ -633,3 +633,11 @@
 - **Approach:** the "All Access Objects" label becomes a (single-entry) category dropdown per the Access convention; objects are opened/deleted via a context menu (Open/Design/Delete), replacing the always-visible ✕ button; group headers gain a sort menu (name/type) implemented as a pure ordering function over the snapshot-derived list.
 - **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
 - **Done:** done in `05dd600` (RED `6371c93`) — localized single-entry category dropdown, Open/Design/Delete context menu replacing the always-visible ✕, and name/type group sorting via the pure `nav::sort_entries`; Design opens in one command (`OpenObjectInMode`) with wire coverage
+
+---
+
+### [x] U10 — Tabs: middle-click close, context menu — 🟢
+- **Location:** `crates/datacraft-ui/src/workspace.rs`, `crates/datacraft-core/src/command.rs` (CloseAllTabs/CloseOtherTabs)
+- **Approach:** middle-click closes a tab; a right-click menu offers Close / Close Others / Close All — the latter two as new bus commands (one command per action, no UI-side loops over tabs), matching the §3 principle that every GUI action is exactly one command. Kind icons ride in with U3. No WordCraft counterpart: the model's desktop keeps one native window per document (`crates/ui-egui/src/windows.rs` @ `fd7f662`), with no document tab strip — the tabbed workspace is the Access convention.
+- **Acceptance:** all three actions dispatch commands; headless wire tests for the new commands; test ids per convention; canonical verification set green.
+- **Done:** done in `f2ae2a1` (RED `7e3c5f8`) — middle-click closes a tab; Close / Close Others / Close All context menu with the latter two as bus commands (CloseOtherTabs/CloseAllTabs) and JSON-RPC wire tests; closed tabs drop their presentation caches

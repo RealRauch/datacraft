@@ -66,11 +66,6 @@
 - **Approach:** two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
 - **Acceptance:** every dispatch failure carries a stable code; the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs) switch to code assertions.
 
-### [ ] U10 — Tabs: middle-click close, context menu — 🟢
-- **Location:** `crates/datacraft-ui/src/workspace.rs`, `crates/datacraft-core/src/command.rs` (CloseAllTabs/CloseOtherTabs)
-- **Approach:** middle-click closes a tab; a right-click menu offers Close / Close Others / Close All — the latter two as new bus commands (one command per action, no UI-side loops over tabs), matching the §3 principle that every GUI action is exactly one command. Kind icons ride in with U3. No WordCraft counterpart: the model's desktop keeps one native window per document (`crates/ui-egui/src/windows.rs` @ `fd7f662`), with no document tab strip — the tabbed workspace is the Access convention.
-- **Acceptance:** all three actions dispatch commands; headless wire tests for the new commands; test ids per convention; canonical verification set green.
-
 ### [ ] U11 — Window title & status-bar conventions — 🟢
 - **Location:** `crates/datacraft-ui/src/main.rs`/`shell.rs`, `app.rs`
 - **Approach:** the viewport title follows the Access convention `{db} : Database ({format})` (localized via I2's catalog), updated on open/close without per-frame churn; with no database open the plain app name shows. The status bar gains an indicator slot (filter state placeholder) consistent with the Access status bar.
@@ -186,3 +181,4 @@
 - U7 — File backstage page — done (done in `9041874` (RED `3e12e06`) — full-page backstage with Home/Open/Save/Info/Options; open/close/new-table/sidecar flows dispatch their existing commands, the path fields left the ribbon, and the language/appearance switchers moved to Options; Recent Databases deferred to follow-up U15)
 - U8 — Datasheet UX: column resize, header sort, row shading — done (done in `78e496b` (RED `165539c`) — drag-resizable columns with core hit-test/min-width/padding math, header-click and context-menu sorting through one SetQbeCell per action, alternating row shading plus the accent cursor marker; widths are per-session App state shared by the new-record row and the SQL window)
 - U9 — Nav pane: category dropdown, context menu, group sort — done (done in `05dd600` (RED `6371c93`) — localized single-entry category dropdown, Open/Design/Delete context menu replacing the always-visible ✕, and name/type group sorting via the pure `nav::sort_entries`; Design opens in one command (`OpenObjectInMode`) with wire coverage)
+- U10 — Tabs: middle-click close, context menu — done (done in `f2ae2a1` (RED `7e3c5f8`) — middle-click closes a tab; Close / Close Others / Close All context menu with the latter two as bus commands (CloseOtherTabs/CloseAllTabs) and JSON-RPC wire tests; closed tabs drop their presentation caches)
