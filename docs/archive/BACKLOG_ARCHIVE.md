@@ -617,3 +617,11 @@
 - **Approach:** activating the File tab renders a full-page backstage view (Open, Close Database, Recent Databases once I4 lands, New Table flow entry) instead of a ribbon tab with inline path inputs; the path TextEdits leave the ribbon. Every flow dispatches the same single commands as today. The model's pages are Home/New, Open, Info, Recover, Save, Save As, Print, Export, Close, Options, About — no Share/Account page; DataCraft's smaller set is a deliberate subset.
 - **Acceptance:** open/close flows work from the backstage (one command each); the File tab shows the backstage page; test ids per convention; canonical verification set green.
 - **Done:** done in `9041874` (RED `3e12e06`) — full-page backstage with Home/Open/Save/Info/Options; open/close/new-table/sidecar flows dispatch their existing commands, the path fields left the ribbon, and the language/appearance switchers moved to Options; Recent Databases deferred to follow-up U15
+
+---
+
+### [x] U8 — Datasheet UX: column resize, header sort, row shading — 🟡
+- **Location:** `crates/datacraft-core/src/grid.rs` (pure math), `command.rs`/`qbe.rs` (sort mapping), `crates/datacraft-ui/src/datasheet.rs`
+- **Approach:** draggable column separators (per-session widths as presentation state in the App; hit-test/min-width math as pure functions in core `grid.rs` per the §8 principle), header click/right-click sort asc/desc mapped onto the query sort model — one command per action —, Access-style alternating row shading plus an edit marker on the selected/edited row.
+- **Acceptance:** columns resize by drag; header sort dispatches one command per action; grid math unit-tested in core; canonical verification set green.
+- **Done:** done in `78e496b` (RED `165539c`) — drag-resizable columns with core hit-test/min-width/padding math, header-click and context-menu sorting through one SetQbeCell per action, alternating row shading plus the accent cursor marker; widths are per-session App state shared by the new-record row and the SQL window
