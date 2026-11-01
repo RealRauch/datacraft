@@ -14,6 +14,10 @@ mod layout;
 #[cfg(test)]
 mod parity;
 
+/// Serializes the tests that touch the process-wide current language.
+#[cfg(test)]
+pub(crate) static LANG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// UI display language (never leaves this crate).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lang {
@@ -134,10 +138,6 @@ fn plural_in(lang: Lang, count: usize, singular: &'static str, plural: &'static 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    /// Serializes the tests that touch the process-wide current language.
-    static LANG_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn unknown_keys_fall_back_to_the_english_source() {
@@ -179,16 +179,29 @@ mod tests {
     }
 
     #[test]
-    fn the_environment_override_beats_system_detection() {
-        assert_eq!(resolve_language(Some("de"), Some("en-US")), Lang::German);
-        assert_eq!(resolve_language(Some("en"), Some("de-DE")), Lang::English);
+    fn the_stored_setting_beats_environment_and_detection() {
+        assert_eq!(
+            resolve_language(Some(Lang::German), Some("en"), Some("en-US")),
+            Lang::German
+        );
+        assert_eq!(
+            resolve_language(Some(Lang::English), Some("de"), Some("de-DE")),
+            Lang::English
+        );
     }
 
     #[test]
-    fn unknown_or_missing_overrides_fall_through_to_detection() {
-        assert_eq!(resolve_language(Some("fr"), Some("de-DE")), Lang::German);
-        assert_eq!(resolve_language(None, Some("de-DE")), Lang::German);
-        assert_eq!(resolve_language(None, None), Lang::English);
+    fn auto_falls_through_environment_then_detection() {
+        assert_eq!(
+            resolve_language(None, Some("de"), Some("en-US")),
+            Lang::German
+        );
+        assert_eq!(
+            resolve_language(None, Some("fr"), Some("de-DE")),
+            Lang::German
+        );
+        assert_eq!(resolve_language(None, None, Some("de-DE")), Lang::German);
+        assert_eq!(resolve_language(None, None, None), Lang::English);
     }
 
     #[test]

@@ -27,6 +27,7 @@ mod relationships;
 mod report_design;
 mod ribbon;
 mod shell;
+mod settings;
 mod sql_window;
 mod theme;
 mod vba_viewer;
@@ -379,5 +380,35 @@ mod tests {
         app.submit_password();
         assert!(app.password_prompt().is_none(), "the prompt closes");
         assert!(app.snapshot().database.is_some());
+    }
+
+    #[test]
+    fn startup_settings_apply_the_language_and_survive_a_restart() {
+        use crate::settings::{LanguageSetting, Settings};
+
+        let _guard = crate::i18n::LANG_LOCK.lock().expect("language lock");
+        let dir = std::env::temp_dir().join(format!(
+            "datacraft-startup-settings-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = dir.join("ui.json");
+
+        Settings {
+            language: LanguageSetting::German,
+            window: None,
+        }
+        .save(&path)
+        .expect("save");
+
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.set_settings_path(Some(path.clone()));
+        app.apply_settings(Settings::load(&path));
+        assert_eq!(app.language_setting(), LanguageSetting::German);
+        assert_eq!(crate::i18n::t("File"), "Datei");
+
+        crate::i18n::set_lang(crate::i18n::Lang::English);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
