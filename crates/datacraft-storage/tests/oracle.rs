@@ -52,6 +52,19 @@ fn fixture_paths() -> Option<Vec<PathBuf>> {
     if complex.exists() && !paths.contains(&complex) {
         paths.push(complex);
     }
+    // The Jet3 remainder fixtures ride along as well (step 16.3, L3):
+    // chained TDEFs, overflow rows and the jump-table row are decoded on our
+    // side and compared where mdb-export supports the file.
+    for name in ["testV1997.mdb", "test2V1997.mdb"] {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("fixtures")
+            .join(name);
+        if path.exists() && !paths.contains(&path) {
+            paths.push(path);
+        }
+    }
     Some(paths)
 }
 

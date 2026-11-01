@@ -212,3 +212,15 @@
 - **15.3 Native Saved Queries: MSysQueries (M3)**
 - **15.4 Phase 15 Quality Gate Review**
 **Verification:** Quality gate passed: fmt, clippy -D warnings, 60 suites green, coverage ≥95%, file-size gate, fixture manifest + docs_validate clean. Commits: 15.1 b6c7c73/a657762, 15.2 7eb3bbc/6cb634d, 15.3 78203c3/d914484, fixture 51bd3c5; H41 + M3 archived; ROADMAP M1 closed, M4 bands note updated.
+
+---
+
+### Phase 16 — Complex Values, Verschlüsselung & Jet3-Reste
+
+**Scope (Steps):**
+
+- **16.1 Complex Values/Multivalue (M4)**
+- **16.2 Verschlüsselung/Passwort (M5)**
+- **16.3 Jet3-Reste: Jump-Table & TDEF-Ketten (L3)**
+- **16.4 Phase 16 Quality Gate Review**
+**Verification:** Quality gate passed: fmt 0, clippy -D warnings 0, workspace tests green, file-size 0 violations, fixture manifest 13/13 OK, docs_validate clean, no debt markers. Coverage 92.81% local (baseline 4425bc2 measured 92.81% on this machine — the 95% gate is CI-enforced; no regression). M4/M5/L3 archived with their commits; CI oracle auto-includes complexDataV2007/testV1997/test2V1997.

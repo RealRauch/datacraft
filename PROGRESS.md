@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 16 — Complex Values, Verschlüsselung & Jet3-Reste
-
-**Scope (Steps):**
-
-- **16.1 Complex Values/Multivalue (M4)**
-- **16.2 Verschlüsselung/Passwort (M5)**
-- **16.3 Jet3-Reste: Jump-Table & TDEF-Ketten (L3)**
-- **16.4 Phase 16 Quality Gate Review**
 ### Phase 17 — Makros, VBA & Doku-Genauigkeit
 
 **Scope (Steps):**
@@ -171,7 +163,7 @@
 | 16.1 | Complex Values/Multivalue (M4) | ✅ |
 | 16.2 | Verschlüsselung/Passwort (M5) | ✅ |
 | 16.3 | Jet3-Reste: Jump-Table & TDEF-Ketten (L3) | ✅ |
-| 16.4 | Phase 16 Quality Gate Review | ⬜ |
+| 16.4 | Phase 16 Quality Gate Review | ✅ |
 | 17.1 | Makro-Inventur (L4) | ⬜ |
 | 17.2 | VBA-Extraction & Viewer (L5) | ⬜ |
 | 17.3 | Statische Analyse headless (L5) | ⬜ |
