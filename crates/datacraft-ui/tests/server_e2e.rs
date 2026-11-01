@@ -114,7 +114,7 @@ fn opens_a_sqlite_database_over_the_wire() {
 }
 
 #[test]
-fn jet_writes_persist_over_the_wire_and_drops_stay_precise() {
+fn jet_writes_and_drops_persist_over_the_wire() {
     // Writes land on a private copy — fixtures are immutable evidence.
     let path = std::env::temp_dir().join(format!(
         "datacraft-e2e-{}-jet-write.mdb",
@@ -154,16 +154,13 @@ fn jet_writes_persist_over_the_wire_and_drops_stay_precise() {
         "Written",
         "{responses:?}"
     );
-    let failed = &result_of(&responses[3])["events"];
-    assert!(
-        failed[0]["Failed"]["reason"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("M7"),
-        "{failed}"
+    let dropped = &result_of(&responses[3])["events"];
+    assert_eq!(
+        dropped[0]["TableDropped"]["table"], "Written",
+        "{dropped}"
     );
 
-    // Reopen verifies the write persisted.
+    // Reopen verifies the write persisted and the drop removed the table.
     let mut reopened = Core::new(Box::new(DetectingPort::new()));
     let responses = session(
         &mut reopened,
@@ -172,12 +169,16 @@ fn jet_writes_persist_over_the_wire_and_drops_stay_precise() {
     );
     let snapshot = &result_of(&responses[0])["snapshot"]["database"]["tables"];
     assert!(
-        snapshot
+        !snapshot
             .as_array()
             .expect("tables")
             .iter()
             .any(|t| t["name"] == "Written"),
-        "{snapshot}"
+        "the dropped table is gone: {snapshot}"
+    );
+    assert!(
+        !snapshot.as_array().expect("tables").is_empty(),
+        "the fixture catalog survives the drop"
     );
     let _ = std::fs::remove_file(&path);
 }

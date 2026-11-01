@@ -102,14 +102,16 @@ fn writes_require_an_open_database() {
 }
 
 #[test]
-fn drop_table_is_unsupported_with_a_pointer() {
+fn drop_table_removes_a_table_on_a_private_copy() {
+    let path = fixture_copy("drop");
     let mut port = Jet4Port::new();
-    port.open(&fixture(), None).expect("fixture must open");
-    let err = port
-        .drop_table("Table1")
-        .expect_err("drop is not wired yet");
-    assert!(matches!(err, PortError::Unsupported { .. }), "{err:?}");
-    assert!(err.to_string().contains("M7"), "{err}");
+    port.open(&path, None).expect("copy opens");
+    assert!(port.tables().iter().any(|t| t.name == "Table1"));
+    let dropped = port.drop_table("Table1").expect("drop on the copy");
+    assert_eq!(dropped, "Table1");
+    assert!(!port.tables().iter().any(|t| t.name == "Table1"));
+    port.close();
+    let _ = std::fs::remove_file(&path);
 }
 
 #[test]
