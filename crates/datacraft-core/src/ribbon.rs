@@ -107,42 +107,9 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
         RibbonTab {
             id: "file",
             label: "File",
-            groups: vec![
-                RibbonGroup {
-                    id: "open",
-                    label: "Open",
-                    actions: vec![RibbonAction {
-                        id: "open_database",
-                        label: "Open Database",
-                        state: ActionState::Enabled,
-                    }],
-                },
-                RibbonGroup {
-                    id: "database",
-                    label: "Database",
-                    actions: vec![RibbonAction {
-                        id: "close_database",
-                        label: "Close Database",
-                        state: ActionState::Enabled,
-                    }],
-                },
-                RibbonGroup {
-                    id: "design",
-                    label: "Design",
-                    actions: vec![
-                        RibbonAction {
-                            id: "save_design",
-                            label: "Save Design",
-                            state: ActionState::Enabled,
-                        },
-                        RibbonAction {
-                            id: "load_design",
-                            label: "Load Design",
-                            state: ActionState::Enabled,
-                        },
-                    ],
-                },
-            ],
+            // The File tab opens the full-page backstage (step 21.3, U7);
+            // its flows live there, not in ribbon groups.
+            groups: vec![],
         },
         RibbonTab {
             id: "home",

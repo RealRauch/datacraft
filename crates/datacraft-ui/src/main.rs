@@ -12,6 +12,7 @@
 
 mod app;
 mod appearance;
+mod backstage;
 mod datasheet;
 mod design;
 mod designer_palette;

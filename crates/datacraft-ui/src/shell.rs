@@ -26,6 +26,13 @@ impl eframe::App for App {
         crate::theme::apply(ui.ctx());
         let tokens = tokens(ui.visuals());
 
+        // The File tab owns a full-page backstage (step 21.3, U7): it
+        // replaces ribbon, navigation pane, workspace and status bar.
+        if self.active_ribbon_tab == "file" {
+            crate::backstage::backstage_ui(self, ui);
+            return;
+        }
+
         egui::Panel::top("datacraft.ribbon")
             .frame(egui::Frame::side_top_panel(ui.style()).fill(tokens.ribbon))
             .show(ui, |ui| {

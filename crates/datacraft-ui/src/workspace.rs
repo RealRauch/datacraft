@@ -32,7 +32,7 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
             .show(ui, |ui| {
                 ui.centered_and_justified(|ui| {
                     if no_database {
-                        ui.weak(t("Open a database from the File ribbon tab."));
+                        ui.weak(t("Open a database from the File tab."));
                     } else {
                         ui.weak(t("No open documents"));
                     }

@@ -77,6 +77,9 @@ fn dynamic_keys() -> BTreeSet<String> {
     for entry in &ribbon_spec().quick_access {
         keys.insert(entry.label.to_owned());
     }
+    for page in crate::backstage::BackstagePage::ALL {
+        keys.insert(page.label().to_owned());
+    }
     for entry in TOOLBOX {
         keys.insert(entry.label.to_owned());
     }

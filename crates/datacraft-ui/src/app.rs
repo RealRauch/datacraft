@@ -26,6 +26,8 @@ pub struct App {
     pub open_path: String,
     /// Selected ribbon tab id (presentation state, `&'static` from the spec).
     pub active_ribbon_tab: &'static str,
+    /// Selected backstage page while the File tab is active (step 21.3).
+    pub backstage_page: crate::backstage::BackstagePage,
     /// Row data per table tab, loaded once on tab appearance.
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
     /// Query results per query tab, refreshed when the QBE model changes.
@@ -84,6 +86,7 @@ impl App {
             snapshot,
             open_path: String::new(),
             active_ribbon_tab: "home",
+            backstage_page: crate::backstage::BackstagePage::default(),
             rows: HashMap::new(),
             results: HashMap::new(),
             form_selection: HashMap::new(),
