@@ -129,7 +129,7 @@ any code embedded in database files without explicit user consent/permissions.
 
 | # | Milestone | Unlocks | Status |
 |---|-----------|---------|--------|
-| M0 | Storage read milestones (Jet4 → ACE) | everything | 🔄 Phase 2 (Jet4; Jet3 read in Phase 10) · ACCDB/ACE read → Phase 14 (planned) |
+| M0 | Storage read milestones (Jet4 → ACE) | everything | ✅ Jet4 (Phase 2), Jet3 (Phase 10), ACE 2007/2010/2016 (Phase 14, oracle-checked); SQLite sources (Phase 13) |
 | M1 | Expression service (Ring 1) | queries, macros, forms, validation | ⬜ Phase 15 (planned, H41) |
 | M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 |
 | M3 | Write path (Ring 0 write) | editing apps, bit-for-bit goal | 🔄 Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles → Phase 11 (steps 11.10–11.11) |

@@ -151,8 +151,8 @@
 | 13.3 | SQL-Engine & UI-Fenster (H37) | ✅ |
 | 13.4 | Phase 13 Quality Gate Review | ✅ |
 | 14.1 | ACCDB-Fixtures pinnen (H38) | ✅ |
-| 14.2 | ACCDB-Read-Pfad (H39) | ⬜ |
-| 14.3 | Phase 14 Quality Gate Review | ⬜ |
+| 14.2 | ACCDB-Read-Pfad (H39) | ✅ |
+| 14.3 | Phase 14 Quality Gate Review | 🔄 |
 | 15.1 | Expression-Kern: Evaluator & Funktionen (H41) | ⬜ |
 | 15.2 | Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41) | ⬜ |
 | 15.3 | Native Saved Queries: MSysQueries (M3) | ⬜ |
