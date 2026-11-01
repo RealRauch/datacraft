@@ -14,6 +14,10 @@ use crate::types::StorageValue;
 ///
 /// `row` is the record slice from the data page (starting with `num_cols`);
 /// `file`/`page_size` provide LVAL page access for memo/OLE values.
+///
+/// Null-mask bits follow the **column id**, not the descriptor position
+/// (verified against both pinned writers of `fixtures/testV2000.mdb` —
+/// real Access and jackcess; `docs/FORMAT-JET.md` "Rows").
 pub fn decode_row(
     row: &[u8],
     def: &JetTableDef,
@@ -22,13 +26,14 @@ pub fn decode_row(
 ) -> Result<Vec<StorageValue>, StorageError> {
     let layout = RowLayout::parse(row)?;
     let mut values = Vec::with_capacity(def.columns.len());
-    for (index, col) in def.columns.iter().enumerate() {
-        if index >= layout.num_cols {
-            // Column added after this row was written.
+    for col in &def.columns {
+        if col.column_id as usize >= layout.num_cols {
+            // Column added after this row was written (rows store a prefix
+            // of the column-id space).
             values.push(StorageValue::Null);
             continue;
         }
-        let mask_bit = layout.mask_bit(row, index);
+        let mask_bit = layout.mask_bit(row, col.column_id as usize);
         if col.data_type == JetType::Bool {
             // Booleans store their value in the null mask itself.
             values.push(StorageValue::Bit(mask_bit));
@@ -47,7 +52,10 @@ pub fn decode_row(
     Ok(values)
 }
 
-/// The end-anchored variable layout of one row, parsed once.
+/// The end-anchored variable layout of one row, parsed once. Tail field
+/// order as verified against both pinned writers of the oracle fixture
+/// (`docs/FORMAT-JET.md` "Rows"): `[eod][var_table × n, reverse][var_len]
+/// [null mask]`.
 struct RowLayout {
     num_cols: usize,
     mask_at: usize,
@@ -100,6 +108,8 @@ impl RowLayout {
         })
     }
 
+    /// Null-mask bit for column id `index` — bits follow the column-id space,
+    /// LSB first (`0` = NULL, except booleans whose value is the bit).
     fn mask_bit(&self, row: &[u8], index: usize) -> bool {
         row[self.mask_at + index / 8] >> (index % 8) & 1 == 1
     }

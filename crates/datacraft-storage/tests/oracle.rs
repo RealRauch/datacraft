@@ -5,12 +5,25 @@
 //! `mdb-export` comparison only runs where the CLI is installed (CI
 //! ubuntu/macOS — see the `oracle` job). Never a runtime dependency.
 
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use datacraft_storage::jet::Jet4TableReader;
 
-fn fixture_path() -> Option<String> {
-    std::env::var("DATACRAFT_ORACLE_MDB").ok()
+/// Resolves `DATACRAFT_ORACLE_MDB`: as given, or — cargo runs tests with the
+/// package root as CWD — relative to the workspace root two levels up.
+fn fixture_path() -> Option<PathBuf> {
+    let raw = std::env::var("DATACRAFT_ORACLE_MDB").ok()?;
+    let direct = Path::new(&raw);
+    if direct.exists() {
+        return Some(direct.to_path_buf());
+    }
+    let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join(&raw);
+    workspace.exists().then_some(workspace)
 }
 
 fn mdb_export_available() -> bool {
@@ -39,7 +52,7 @@ fn oracle_fixture_decodes_and_matches_mdb_tools() {
 
     for name in &names {
         let out = Command::new("mdb-export")
-            .args([&path.clone(), name])
+            .args([path.as_os_str(), OsStr::new(name)])
             .output()
             .expect("mdb-export runs");
         assert!(

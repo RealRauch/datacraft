@@ -11,10 +11,6 @@ use crate::jet::reader::{Jet4TableReader, JetTableData};
 use crate::jet::tdef::JetTableDef;
 use crate::types::StorageValue;
 
-fn u32le(b: &[u8], at: usize) -> u32 {
-    u32::from_le_bytes([b[at], b[at + 1], b[at + 2], b[at + 3]])
-}
-
 /// Object type constant for tables in MSysObjects rows.
 pub const OBJECT_TYPE_TABLE: i64 = 1;
 
@@ -59,63 +55,12 @@ impl Jet4TableReader {
                     detail: format!("catalog lacks the {name} column"),
                 })
         };
-        {
-            let page = self
-                .header
-                .page_slice(&self.file, CATALOG_TDEF_PAGE)
-                .unwrap_or(&[]);
-            if page.len() >= 12 {
-                let tl = u32le(page, 8) as usize;
-                let start = page.len().saturating_sub(tl);
-                eprintln!("DBG page2 announced tdef_len={tl} start={start}");
-                eprintln!(
-                    "DBG block head: {:02x?}",
-                    &page[start..(start + 44).min(page.len())]
-                );
-            }
-        }
-        eprintln!(
-            "DBG catalog cols: {:?}",
-            def.columns
-                .iter()
-                .map(|c| (c.name.clone(), c.data_type))
-                .collect::<Vec<_>>()
-        );
         let i_id = index_of("Id")?;
         let i_name = index_of("Name")?;
         let i_type = index_of("Type")?;
         let i_flags = index_of("Flags")?;
 
         let table = self.read_table(CATALOG_TDEF_PAGE)?;
-        eprintln!("DBG catalog rows: {}", table.rows.len());
-        if let Some(r0) = table.rows.first() {
-            eprintln!("DBG row0: {:?}", &r0[..r0.len().min(6)]);
-        }
-        {
-            let layout_probe = "see row.rs";
-            let _ = layout_probe;
-            for (ci, c) in def.columns.iter().enumerate() {
-                eprintln!(
-                    "DBG col {} {:?} fixed={} var_index={:?} flags={:#05x} len={}",
-                    ci,
-                    c.name,
-                    c.is_fixed(),
-                    c.var_index,
-                    c.flags,
-                    c.len
-                );
-            }
-        }
-        eprintln!("DBG idx: id={i_id} name={i_name} type={i_type} flags={i_flags}");
-        for row in table.rows.iter().take(5) {
-            eprintln!(
-                "DBG vals: id={:?} name={:?} type={:?} flags={:?}",
-                row.get(i_id),
-                row.get(i_name),
-                row.get(i_type),
-                row.get(i_flags)
-            );
-        }
         let mut entries = Vec::with_capacity(table.rows.len());
         for row in &table.rows {
             // Rows without a name/type (e.g. relationship or property rows)
@@ -139,17 +84,6 @@ impl Jet4TableReader {
                 flags,
                 tdef_page,
             });
-        }
-        eprintln!(
-            "DBG catalog: {} entries, tdef pages scanned: {:?}",
-            entries.len(),
-            &tdefs[..tdefs.len().min(12)]
-        );
-        for e in entries.iter().take(8) {
-            eprintln!(
-                "DBG entry: {:?} type={} flags={:#x} id_page={:?}",
-                e.name, e.object_type, e.flags, e.tdef_page
-            );
         }
         Ok(entries)
     }

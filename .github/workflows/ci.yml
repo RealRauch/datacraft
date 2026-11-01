@@ -52,6 +52,27 @@ jobs:
       - uses: actions/checkout@v4
       - run: cargo test --workspace --all-features
 
+  oracle:
+    name: Oracle (mdb-tools cross-check)
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      DATACRAFT_ORACLE_MDB: fixtures/testV2000.mdb
+    steps:
+      - uses: actions/checkout@v4
+      # ubuntu: distro package; macOS: homebrew (windows has no mdbtools
+      # package — the oracle runs on ubuntu/macOS only, see tests/oracle.rs).
+      - run: sudo apt-get update && sudo apt-get install -y mdbtools
+        if: runner.os == 'Linux'
+      - run: brew install mdbtools
+        if: runner.os == 'macOS'
+      - run: cargo test -p datacraft-storage --test oracle -- --nocapture
+
   coverage:
     name: Coverage gate (>= 95% lines)
     runs-on: ubuntu-latest

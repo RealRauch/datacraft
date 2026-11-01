@@ -54,15 +54,23 @@ with `Unsupported`** for now (rare; item to be scheduled before large-DB work).
 ```
 
 - `num_cols` = columns stored in this row (≤ TDEF column count; schema
-  evolution means rows may store fewer).
+  evolution means rows may store fewer — rows carry a **prefix of the
+  column-id space**, columns added later report NULL).
 - Fixed columns first, in TDEF order; `offset_F` is relative to the first
   byte after `num_cols`.
 - Variable columns stored first-to-last (non-null only); `eod` = offset after
   the last variable field; `var_table` holds start offsets **in reverse
   order** (entry 0 = last variable column); `var_len` = variable columns in
-  this row.
-- Null mask: `(num_cols + 7) / 8` bytes, one bit per column, LSB first.
+  this row. An empty variable slot (start equals the next start or `eod`) is
+  NULL for long-value columns, empty string for text.
+- Null mask: `(num_cols + 7) / 8` bytes, LSB first — but **bit k belongs to
+  the column with `col_num` k, not to the k-th descriptor**. TDEF descriptors
+  can be stored name-sorted (MSysObjects stores them alphabetically) while
+  `col_num` follows creation order, so the two orders diverge.
   `0` = NULL for all types **except boolean**, whose value **is** the mask bit.
+  Verified against both pinned writers of the oracle fixture (real Access
+  rewrite + pristine jackcess file): the mask agrees with the variable-slot
+  layout on every catalog row of both variants; zero contradictions.
 - Boolean columns occupy no fixed-storage space (value lives in the mask).
 
 ## Column types (TDEF byte)
@@ -123,21 +131,34 @@ bytes, not characters — verified against real files), then the index blocks
 (52 bytes per real index, 28 per logical index) and their UCS-2 names (byte
 lengths as well), then per-variable column usage-map pointers terminated by
 `0xFFFF` (real files sometimes end the block without the terminator — treat
-running out of bytes as the end).
+running out of bytes as the end). Descriptor storage order need not match the
+`col_num` order — MSysObjects stores its descriptors alphabetically; row null
+masks follow `col_num` (see "Rows").
 
-## Open: real-row tail semantics (BACKLOG T2)
+## Real-row tail semantics (RESOLVED 2026-11-01 — BACKLOG T2)
 
-Synthetic rows decode perfectly; real Jet4 rows expose a tail discrepancy the
-synthetic model does not reproduce. Evidence gathered on a real Access 2000
-fixture (jackcess `testV2000.mdb`): catalog TDEF decodes perfectly (17 columns,
-types/flags/var-indexes all plausible, e.g. Connect=Memo j=3, Name=Text j=0,
-Type=Int2 fixed); rows parse with num_cols=17, var_len=11; var data region is
-consistent (Name at 32, Owner at 44, empty slots pointing at eod); but the
-null-mask bytes read as `[ff 00 00]` where descriptor-order semantics expect
-`[5c 28 01]`, and var_table entries read 50/52 (> eod). The real tail field
-order (var_table / eod / var_len / mask) and/or mask bit semantics differ from
-the synthetic model. Resolution path: focused hex study of one row with known
-content + CI oracle cross-check (mdb-export).
+The documented tail order `[eod][var_table reverse][var_len][null mask]` and
+the reverse var_table were correct all along; the real discrepancy was the
+null-mask **bit index**. Bit k belongs to the column with `col_num` k, not to
+the k-th TDEF descriptor — and MSysObjects stores its descriptors
+alphabetically (Connect, Database, …, Type) while `col_num` follows creation
+order (Id=0, ParentId=1, Name=2, Type=3, DateCreate=4, DateUpdate=5, Owner=6,
+Flags=7, Database=8, …). Under the descriptor-position reading every catalog
+row's mask looks wrong (`ff 00 00` for container rows) and `Name`/`Type`
+decode as NULL — which had stalled catalog enumeration.
+
+Evidence (hex study on both fixture variants, hashes per
+`docs/FIXTURE-SOURCES.md` §3):
+
+- Container rows (Tables/Databases/…, `Id` 1–3) end `… 0b 00 ff 00 00` =
+  var_len 11 + mask bits 0–7 set — exactly the eight columns with values
+  (Id, ParentId, Name, Type, DateCreate, DateUpdate, Owner, Flags = col ids
+  0–7). The two-byte variable value after the name is `Owner` (Binary, col id 6).
+- Table rows (MSysNavPaneObjectIDs etc.) read `ff 40 00` — bit 14 = LvProp,
+  precisely the one variable column carrying a 64-byte payload.
+- Variable-slot layout vs. mask: zero contradictions on all 28 Access-touched
+  and all 22 pristine-jackcess catalog rows (fixed-column bits consistent
+  given that all-zero bytes are legitimate non-null values, e.g. `Flags = 0`).
 
 ## Strategy notes (DataCraft decisions)
 
