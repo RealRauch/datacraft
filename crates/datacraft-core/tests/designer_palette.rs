@@ -188,7 +188,7 @@ fn free_slots_flow_right_of_occupied_controls() {
     assert_eq!(
         slot,
         Rect {
-            x: 128.0,
+            x: 120.0,
             y: 0.0,
             width: 120.0,
             height: 24.0
@@ -236,6 +236,22 @@ fn toolbox_controls_land_in_the_next_free_slot() {
     assert!(place_toolbox_control("ghost", 8.0, (640.0, 400.0), &[]).is_none());
     // A subform (200 x 120) does not fit the 120 x 24 canvas.
     assert!(place_toolbox_control("subform", 8.0, (120.0, 24.0), &[]).is_none());
+}
+
+#[test]
+fn the_snapshot_exposes_field_kinds_for_the_designer() {
+    let core = opened_core();
+    let db = core.inspect().database.expect("database");
+    let kinds: Vec<FieldKind> = db.tables[0].fields.iter().map(|field| field.kind).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            FieldKind::Number(NumericKind::LongInteger),
+            FieldKind::Text { max_len: 50 },
+            FieldKind::Boolean { tri_state: false },
+            FieldKind::Binary(BinaryKind::OleObject),
+        ]
+    );
 }
 
 #[test]
