@@ -9,8 +9,10 @@ use eframe::egui;
 
 use datacraft_core::command::Command;
 use datacraft_core::grid::GridMetrics;
+use datacraft_core::qbe::SortOrder;
 
 use crate::app::App;
+use crate::datasheet::Grid;
 use crate::i18n::{plural, t};
 use crate::labels::value_label;
 use crate::theme::tokens;
@@ -26,6 +28,12 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
     let mut text = app.sql_text().to_owned();
     let error = app.sql_error().map(str::to_owned);
     let result = app.sql_result().cloned();
+    let columns = result
+        .as_ref()
+        .map(|result| result.columns.len())
+        .unwrap_or(0);
+    let mut widths = app.sql_column_widths(columns);
+    let sorts = vec![SortOrder::None; columns];
 
     egui::Window::new(t("SQL"))
         .id(egui::Id::unique("datacraft.sql"))
@@ -63,11 +71,16 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                     .collect();
                 crate::datasheet::grid_ui(
                     ui,
-                    &GridMetrics::default(),
-                    &result.columns,
-                    &body,
-                    0,
-                    |_ui, _row| {},
+                    Grid {
+                        metrics: GridMetrics::default(),
+                        columns: &result.columns,
+                        body: &body,
+                        cursor: 0,
+                        widths: &mut widths,
+                        sort_orders: &sorts,
+                    },
+                    &mut |_row: usize| {},
+                    None,
                 );
                 ui.label(
                     egui::RichText::new(plural(
@@ -80,6 +93,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
             }
         });
 
+    app.set_sql_column_widths(widths);
     app.set_sql_text(text);
     if run {
         app.run_sql();

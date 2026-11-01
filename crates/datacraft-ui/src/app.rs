@@ -61,6 +61,11 @@ pub struct App {
     pub(crate) last_notice: Option<String>,
     /// Buffered cells of the datasheet's new-record row per table tab.
     new_row: HashMap<TabId, Vec<String>>,
+    /// Per-tab column widths of the datasheet (presentation state; the
+    /// resize math lives in core `grid`, step 21.4).
+    column_widths: HashMap<TabId, Vec<f32>>,
+    /// Column widths of the SQL window's result grid (step 21.4).
+    sql_column_widths: Vec<f32>,
     /// Open database-password prompt (step 16.2, M5; the state and paint
     /// live in `password_prompt.rs`).
     pub(crate) password_prompt: Option<crate::password_prompt::PasswordPrompt>,
@@ -102,6 +107,8 @@ impl App {
             last_notice: None,
             sidecar_path: String::new(),
             new_row: HashMap::new(),
+            column_widths: HashMap::new(),
+            sql_column_widths: Vec::new(),
             password_prompt: None,
             vba_search: String::new(),
             settings: crate::settings::Settings::default(),
@@ -203,6 +210,40 @@ impl App {
     /// successful insert).
     pub fn clear_new_row(&mut self, tab_id: TabId) {
         self.new_row.remove(&tab_id);
+    }
+
+    /// Effective column widths of a datasheet tab: the session's resized
+    /// widths padded/truncated to the current column count (step 21.4).
+    pub fn column_widths(&self, tab_id: TabId, columns: usize) -> Vec<f32> {
+        let stored = self
+            .column_widths
+            .get(&tab_id)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        datacraft_core::grid::effective_widths(
+            stored,
+            columns,
+            datacraft_core::grid::DEFAULT_COLUMN_WIDTH,
+        )
+    }
+
+    /// Stores the session widths of a datasheet tab after a resize.
+    pub fn set_column_widths(&mut self, tab_id: TabId, widths: Vec<f32>) {
+        self.column_widths.insert(tab_id, widths);
+    }
+
+    /// Effective column widths of the SQL window's result grid.
+    pub fn sql_column_widths(&self, columns: usize) -> Vec<f32> {
+        datacraft_core::grid::effective_widths(
+            &self.sql_column_widths,
+            columns,
+            datacraft_core::grid::DEFAULT_COLUMN_WIDTH,
+        )
+    }
+
+    /// Stores the SQL window's result grid widths after a resize.
+    pub fn set_sql_column_widths(&mut self, widths: Vec<f32>) {
+        self.sql_column_widths = widths;
     }
 
     /// Domain definition of a table (the new-record row needs field kinds).
@@ -345,6 +386,7 @@ impl App {
             self.rows.clear();
             self.previews.clear();
             self.new_row.clear();
+            self.column_widths.clear();
         }
         if events.iter().any(|e| {
             matches!(

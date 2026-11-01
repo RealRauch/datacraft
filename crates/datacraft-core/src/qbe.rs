@@ -30,6 +30,18 @@ impl std::fmt::Display for SortOrder {
     }
 }
 
+impl SortOrder {
+    /// Sort state after a datasheet header click (step 21.4, item U8):
+    /// unsorted columns sort ascending, then toggle descending/ascending.
+    pub const fn toggled(self) -> Self {
+        match self {
+            Self::None => Self::Ascending,
+            Self::Ascending => Self::Descending,
+            Self::Descending => Self::Ascending,
+        }
+    }
+}
+
 /// One column of the QBE grid.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QbeField {

@@ -82,3 +82,37 @@ pub fn column_span_x(col: usize, widths: &[f32]) -> (f32, f32) {
     }
     (acc, 0.0)
 }
+
+/// Default width of a datasheet column in points (step 21.4, item U8).
+pub const DEFAULT_COLUMN_WIDTH: f32 = 140.0;
+/// Smallest width a column can be dragged to — still wide enough to show
+/// its resize handle and a sliver of content.
+pub const MIN_COLUMN_WIDTH: f32 = 24.0;
+
+/// Resize-handle hit test: returns the column whose right edge lies within
+/// `tolerance` of `x`. The last column's right edge is a valid handle.
+pub fn resize_handle_at(x: f32, widths: &[f32], tolerance: f32) -> Option<usize> {
+    let mut acc = 0.0;
+    for (i, w) in widths.iter().enumerate() {
+        acc += w;
+        if (x - acc).abs() <= tolerance {
+            return Some(i);
+        }
+    }
+    None
+}
+
+/// Applies a horizontal drag delta to one column width, never below
+/// [`MIN_COLUMN_WIDTH`].
+pub fn resize_column(width: f32, delta: f32) -> f32 {
+    (width + delta).max(MIN_COLUMN_WIDTH)
+}
+
+/// Session widths padded with the default for new columns and truncated
+/// for removed ones — a restored tab never renders zero-width columns.
+pub fn effective_widths(stored: &[f32], columns: usize, default_width: f32) -> Vec<f32> {
+    let mut widths = stored.to_vec();
+    widths.truncate(columns);
+    widths.resize(columns, default_width);
+    widths
+}
