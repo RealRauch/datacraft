@@ -801,6 +801,7 @@ dependencies = [
  "datacraft-storage",
  "eframe",
  "image",
+ "serde_json",
 ]
 
 [[package]]
