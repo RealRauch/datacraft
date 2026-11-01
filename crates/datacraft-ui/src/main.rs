@@ -170,6 +170,56 @@ mod tests {
     }
 
     #[test]
+    fn opening_a_database_prefills_the_sidecar_path_and_saving_reports_a_notice() {
+        use datacraft_core::command::Command;
+
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+        app.dispatch(Command::OpenDatabase {
+            path: "shop.mdb".into(),
+        });
+        assert_eq!(app.sidecar_path, "shop.datacraft");
+
+        let dir = std::env::temp_dir().join(format!("datacraft-sidecar-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = dir.join("shop.datacraft");
+        app.sidecar_path = path.to_string_lossy().into_owned();
+        app.dispatch(Command::CreateForm {
+            name: "Card".into(),
+        });
+        app.dispatch(Command::SaveDesignDocument { path: path.clone() });
+        assert!(app.last_error().is_none(), "{:?}", app.last_error());
+        assert!(path.exists(), "sidecar written");
+        assert!(
+            app.last_notice().unwrap_or_default().contains("Design saved"),
+            "{:?}",
+            app.last_notice()
+        );
+
+        app.dispatch(Command::DeleteForm {
+            name: "Card".into(),
+        });
+        app.dispatch(Command::LoadDesignDocument {
+            path: path.clone(),
+        });
+        assert!(
+            app.last_notice()
+                .unwrap_or_default()
+                .contains("Design loaded"),
+            "{:?}",
+            app.last_notice()
+        );
+        assert_eq!(app.forms().len(), 1);
+
+        // A failure clears the previous success notice.
+        app.dispatch(Command::LoadDesignDocument {
+            path: dir.join("missing.datacraft"),
+        });
+        assert!(app.last_error().is_some());
+        assert!(app.last_notice().is_none(), "{:?}", app.last_notice());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn the_designer_palette_places_fields_and_toolbox_controls() {
         use datacraft_core::ObjectKind;
         use datacraft_core::command::Command;
