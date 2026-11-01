@@ -57,3 +57,26 @@ fn format_names_are_human_readable() {
     );
     assert_eq!(datacraft_core::port::DatabaseFormat::Ace.to_string(), "Ace");
 }
+
+#[test]
+fn tab_placeholders_name_the_object_and_the_arriving_phase() {
+    use datacraft_core::present::tab_placeholder;
+    use datacraft_core::ObjectKind;
+
+    assert_eq!(
+        tab_placeholder(ObjectKind::Table, "Customers"),
+        "Datasheet for \"Customers\" arrives in Phase 6."
+    );
+    assert_eq!(
+        tab_placeholder(ObjectKind::Query, "Active Orders"),
+        "Query results for \"Active Orders\" arrive in Phase 7."
+    );
+    assert_eq!(
+        tab_placeholder(ObjectKind::Form, "Customer Card"),
+        "Form view for \"Customer Card\" arrives in Phase 8."
+    );
+    assert_eq!(
+        tab_placeholder(ObjectKind::Report, "Invoices"),
+        "Report preview for \"Invoices\" arrives in Phase 8."
+    );
+}
