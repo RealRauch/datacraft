@@ -6,6 +6,127 @@
 //! Language selection lives in the UI layer only — core, the sidecar and the
 //! wire stay locale-neutral.
 
+use std::sync::atomic::{AtomicU8, Ordering};
+
+mod de;
+
+/// UI display language (never leaves this crate).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Lang {
+    /// English — the source language of every key.
+    English,
+    /// German.
+    German,
+}
+
+impl Lang {
+    /// Maps a system locale onto a language (`de*` → German, else English).
+    pub fn from_locale(locale: Option<&str>) -> Self {
+        match locale {
+            Some(locale) if locale.trim().to_lowercase().starts_with("de") => Self::German,
+            _ => Self::English,
+        }
+    }
+
+    /// Maps the `DATACRAFT_LANGUAGE` override; unknown values yield `None`
+    /// so the caller falls through to system detection (ADR-5).
+    pub fn from_setting(value: &str) -> Option<Self> {
+        let value = value.trim().to_lowercase();
+        if value.is_empty() || value == "auto" {
+            return None;
+        }
+        match value.split(['-', '_']).next() {
+            Some("de") => Some(Self::German),
+            Some("en") => Some(Self::English),
+            _ => None,
+        }
+    }
+}
+
+/// Resolves the UI language: explicit setting > `DATACRAFT_LANGUAGE` >
+/// system detection > English. Phase 19 passes the stored setting through
+/// `env`; until then the environment and detection decide.
+pub fn resolve_language(env: Option<&str>, system: Option<&str>) -> Lang {
+    env.and_then(Lang::from_setting)
+        .unwrap_or_else(|| Lang::from_locale(system))
+}
+
+const CURRENT_UNSET: u8 = 0;
+const CURRENT_ENGLISH: u8 = 1;
+const CURRENT_GERMAN: u8 = 2;
+
+/// Process-wide current language, resolved once per session.
+static CURRENT: AtomicU8 = AtomicU8::new(CURRENT_UNSET);
+
+/// The current UI language (system detection and the environment override
+/// are read once, then cached).
+pub fn lang() -> Lang {
+    match CURRENT.load(Ordering::Relaxed) {
+        CURRENT_ENGLISH => Lang::English,
+        CURRENT_GERMAN => Lang::German,
+        _ => {
+            let resolved = resolve_language(
+                std::env::var("DATACRAFT_LANGUAGE").ok().as_deref(),
+                sys_locale::get_locale().as_deref(),
+            );
+            set_lang(resolved);
+            resolved
+        }
+    }
+}
+
+/// Switches the current UI language (the language switcher of step 19.2
+/// and the tests use this; the kernel itself only reads `lang()`).
+pub fn set_lang(lang: Lang) {
+    CURRENT.store(
+        match lang {
+            Lang::English => CURRENT_ENGLISH,
+            Lang::German => CURRENT_GERMAN,
+        },
+        Ordering::Relaxed,
+    );
+}
+
+/// Looks a key up in the given language (pure — no global state).
+pub fn translate(lang: Lang, key: &'static str) -> &'static str {
+    match lang {
+        Lang::English => key,
+        Lang::German => de::lookup(key).unwrap_or(key),
+    }
+}
+
+/// The English source string rendered in the current UI language.
+pub fn t(key: &'static str) -> &'static str {
+    translate(lang(), key)
+}
+
+/// A template key with `{name}` placeholders rendered in the current
+/// language; unknown placeholders stay visible instead of vanishing.
+pub fn tr(key: &'static str, args: &[(&str, &str)]) -> String {
+    fill(translate(lang(), key), args)
+}
+
+/// Substitutes `{name}` placeholders (pure).
+fn fill(template: &str, args: &[(&str, &str)]) -> String {
+    let mut out = template.to_owned();
+    for (name, value) in args {
+        out = out.replace(&format!("{{{name}}}"), value);
+    }
+    out
+}
+
+/// Count-bearing text with English/German singular and plural keys, e.g.
+/// `plural(n, "{count} row", "{count} rows")`.
+pub fn plural(count: usize, singular: &'static str, plural: &'static str) -> String {
+    plural_in(lang(), count, singular, plural)
+}
+
+fn plural_in(lang: Lang, count: usize, singular: &'static str, plural: &'static str) -> String {
+    let key = if count == 1 { singular } else { plural };
+    let count_text = count.to_string();
+    fill(translate(lang, key), &[("count", &count_text)])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -15,6 +15,7 @@ use datacraft_core::present::display_value;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
+use crate::i18n::plural;
 use crate::theme::{HAIRLINE, INK, ON_TEAL, TEAL};
 
 /// Default column width (points) before any resize logic lands.
@@ -48,7 +49,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     grid_ui(ui, &metrics, &columns, &body, cursor, |_ui, row_idx| {
         app.set_record_cursor(tab.id, row_idx, row_count);
     });
-    ui.label(egui::RichText::new(format!("{row_count} rows")).small());
+    ui.label(egui::RichText::new(plural(row_count, "{count} row", "{count} rows")).small());
     new_row_ui(app, tab, &columns, ui);
 }
 

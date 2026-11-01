@@ -463,15 +463,23 @@ impl App {
 /// Status-bar notice for successful design-document operations.
 fn notice_for(events: &[Event]) -> Option<String> {
     events.iter().find_map(|event| match event {
-        Event::DesignDocumentSaved { path } => Some(format!("Design saved to {}", path.display())),
+        Event::DesignDocumentSaved { path } => Some(crate::i18n::tr(
+            "Design saved to {path}",
+            &[("path", &path.display().to_string())],
+        )),
         Event::DesignDocumentLoaded {
             path,
             forms,
             queries,
             reports,
-        } => Some(format!(
-            "Design loaded from {} ({forms} forms, {queries} queries, {reports} reports)",
-            path.display()
+        } => Some(crate::i18n::tr(
+            "Design loaded from {path} ({forms} forms, {queries} queries, {reports} reports)",
+            &[
+                ("path", &path.display().to_string()),
+                ("forms", &forms.to_string()),
+                ("queries", &queries.to_string()),
+                ("reports", &reports.to_string()),
+            ],
         )),
         _ => None,
     })

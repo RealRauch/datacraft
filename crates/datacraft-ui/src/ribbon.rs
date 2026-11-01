@@ -12,6 +12,7 @@ use datacraft_core::command::Command;
 use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
 use crate::app::App;
+use crate::i18n::{t, tr};
 use crate::theme::INK_SOFT;
 
 /// Renders the ribbon in Access structure (step 12.2): a tab strip row on
@@ -26,7 +27,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
         ui.add_space(2.0);
         for tab in &spec.tabs {
             let selected = app.active_ribbon_tab == tab.id;
-            let label = egui::RichText::new(tab.label).strong();
+            let label = egui::RichText::new(t(tab.label)).strong();
             if ui.selectable_label(selected, label).clicked() {
                 app.active_ribbon_tab = tab.id;
             }
@@ -55,7 +56,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                     ui.add(
                         egui::TextEdit::singleline(&mut app.sidecar_path)
                             .desired_width(160.0)
-                            .hint_text("path to .datacraft"),
+                            .hint_text(t("path to .datacraft")),
                     );
                 }
                 ui.horizontal(|ui| {
@@ -64,7 +65,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                         ui.push_id(id, |ui| match &action.state {
                             ActionState::Enabled => {
                                 if action.id == "table" {
-                                    if ribbon_button(ui, action.label) {
+                                    if ribbon_button(ui, t(action.label)) {
                                         app.create_table_flow();
                                     }
                                 } else if action.id == "open_database" {
@@ -72,24 +73,27 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                         ui.add(
                                             egui::TextEdit::singleline(&mut app.open_path)
                                                 .desired_width(180.0)
-                                                .hint_text("path to .mdb"),
+                                                .hint_text(t("path to .mdb")),
                                         );
-                                        if ribbon_button(ui, action.label) {
+                                        if ribbon_button(ui, t(action.label)) {
                                             intent = Some(Command::OpenDatabase {
                                                 path: app.open_path.clone().into(),
                                                 password: None,
                                             });
                                         }
                                     });
-                                } else if ribbon_button(ui, action.label)
+                                } else if ribbon_button(ui, t(action.label))
                                     && let Some(command) = command_for(action.id, app)
                                 {
                                     intent = Some(command);
                                 }
                             }
                             ActionState::DisabledIn { phase } => {
-                                ui.add_enabled(false, ribbon_button_shape(action.label))
-                                    .on_disabled_hover_text(format!("arrives in {phase}"));
+                                ui.add_enabled(false, ribbon_button_shape(t(action.label)))
+                                    .on_disabled_hover_text(tr(
+                                        "arrives in {phase}",
+                                        &[("phase", phase)],
+                                    ));
                             }
                         });
                     }
@@ -98,7 +102,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                 ui.with_layout(
                     egui::Layout::top_down_justified(egui::Align::Center),
                     |ui| {
-                        ui.label(egui::RichText::new(group.label).small().color(INK_SOFT));
+                        ui.label(egui::RichText::new(t(group.label)).small().color(INK_SOFT));
                     },
                 );
             });

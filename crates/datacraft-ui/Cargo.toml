@@ -16,6 +16,7 @@ datacraft-core = { workspace = true }
 datacraft-storage = { workspace = true }
 eframe = "0.37.0"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
+sys-locale = "0.3.2"
 
 [lints]
 workspace = true
