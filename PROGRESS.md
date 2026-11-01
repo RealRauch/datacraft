@@ -22,6 +22,14 @@
 - **21.7 Window title & status-bar conventions (U11)**
 - **21.8 Keyboard: shortcuts & ribbon key tips (U12)**
 - **21.9 Phase 21 Quality Gate Review**
+### Phase 22 — Settings hardening (U13)
+
+**Scope (Steps):**
+
+- **22.1 Atomic ui.json save (temp + rename)**
+- **22.2 Window position, maximized state and off-screen rescue**
+- **22.3 Phase 22 Quality Gate Review**
+
 
 
 
@@ -157,3 +165,6 @@
 | 21.7 | Window title & status-bar conventions (U11) | ⬜ |
 | 21.8 | Keyboard: shortcuts & ribbon key tips (U12) | ⬜ |
 | 21.9 | Phase 21 Quality Gate Review | ⬜ |
+| 22.1 | Atomic ui.json save (temp + rename) | 🔄 |
+| 22.2 | Window position, maximized state and off-screen rescue | ⬜ |
+| 22.3 | Phase 22 Quality Gate Review | ⬜ |

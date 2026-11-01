@@ -74,7 +74,7 @@
 - **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
 
 ### [ ] U13 — ui.json hardening: atomic save + full window geometry — 🟡
-- **Placement:** follows Phase 20 (order decision 2026-11-01); not part of the Phase 20 scope.
+- **Placement:** Phase 22, steps 22.1–22.2 (scheduled right after Phase 20; order decision 2026-11-01).
 - **Location:** `crates/datacraft-ui/src/settings.rs` (`save`, window geometry), `app.rs` (capture); model: WordCraft `apps/wordcraft/src/main.rs` (`write_prefs`), `crates/ui-egui/src/window_geometry.rs` @ `fd7f662`
 - **Problem:** `Settings::save` uses `std::fs::write`, so a crash mid-write leaves `ui.json` truncated (the defaults recover, but the settings are lost); the stored geometry is the inner size only, so position and maximized state are not restored and a window can reopen off-screen after a monitor change.
 - **Approach:** write to a sibling temporary file and rename it over the target (the model's `write_prefs`); extend the stored geometry to position + maximized, clamp it against the visible monitors and drop implausible values (the model's `WindowGeometry::sanitized`/`rescue_position` pattern).

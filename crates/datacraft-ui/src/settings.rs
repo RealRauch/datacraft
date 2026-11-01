@@ -447,4 +447,46 @@ mod tests {
         assert_eq!(entries, vec!["ui.json".to_owned()]);
         assert!(!dir.join("shop.datacraft").exists());
     }
+
+    /// A crash between writing and renaming can only lose the new values —
+    /// never truncate the file that is already on disk (step 22.1, U13).
+    #[test]
+    fn a_failed_save_keeps_the_previous_file_intact() {
+        let dir = temp_dir("atomic-failure");
+        let path = dir.join("ui.json");
+        let original = Settings {
+            language: LanguageSetting::German,
+            ..Settings::default()
+        };
+        original.save(&path).expect("save");
+        let before = std::fs::read_to_string(&path).expect("read");
+
+        // Occupy the sibling temp path so the write half cannot complete.
+        let temp = temp_path(&path);
+        std::fs::create_dir(&temp).expect("block temp path");
+        let changed = Settings {
+            language: LanguageSetting::English,
+            ..Settings::default()
+        };
+        assert!(changed.save(&path).is_err());
+        assert_eq!(std::fs::read_to_string(&path).expect("read"), before);
+        std::fs::remove_dir(&temp).expect("remove blocker");
+    }
+
+    /// A stale temp file from an interrupted run never blocks the next save.
+    #[test]
+    fn a_stale_temp_file_is_replaced_on_the_next_save() {
+        let dir = temp_dir("stale-temp");
+        let path = dir.join("ui.json");
+        Settings::default().save(&path).expect("save");
+        std::fs::write(temp_path(&path), "{ truncated").expect("stale temp");
+
+        let again = Settings {
+            language: LanguageSetting::English,
+            ..Settings::default()
+        };
+        again.save(&path).expect("save over stale temp");
+        assert_eq!(Settings::load(&path), again);
+        assert!(!temp_path(&path).exists(), "temp file must be renamed away");
+    }
 }
