@@ -10,3 +10,12 @@
 # Access on open (2026-01-xx), see docs/FIXTURE-SOURCES.md §4; kept as the
 # second writer variant (T2 material, do not discard).
 5caab9ba8378316a406f3e191d864a252f5fb1aa95b905721fcc08106567509c  testV2000-access-touched.mdb
+
+# source: jahlborn/jackcess@be0a2139 src/test/data/V2007/testV2007.accdb (pristine)
+c2c3352c71aa3985bd620a322521eb9f67391cbb19ba9fefc376a24575896df7  testV2007.accdb
+
+# source: jahlborn/jackcess@be0a2139 src/test/data/V2010/testV2010.accdb (pristine)
+3cf2ff01454374abce0ee2203b89d166fe0120fb4f235894c0bbacce2abe8e18  testV2010.accdb
+
+# source: andipaetzold/mdb-reader@3dc637a test/data/V2016/attachments.accdb (pristine)
+1362f6bf865db294a382bbb05ef6af14c4f776768f436d458d3e028a1cdf45bc  attachmentsV2016.accdb

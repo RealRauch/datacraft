@@ -90,6 +90,17 @@ MIT-licensed JS reader; test databases include material nobody else ships:
 | mdb-reader `office-agile-4.2.accdb` | 315 392 | `bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2` |
 | mdb-reader `V2000_with-password.mdb` | 335 872 | `24812a5fc1f30474e86ca9d5183ef7c17d82832219ef460bb298a30db9b4622b` |
 | `fixtures/testV2000.mdb` **as on disk** (Access-touched, see §4) | 3 133 440 | `5caab9ba8378316a406f3e191d864a252f5fb1aa95b905721fcc08106567509c` |
+| jackcess `V2007/testV2007.accdb` @ be0a2139 (pristine, ACE 2007) | 425 984 | `c2c3352c71aa3985bd620a322521eb9f67391cbb19ba9fefc376a24575896df7` |
+| jackcess `V2010/testV2010.accdb` @ be0a2139 (pristine, ACE 2010) | 446 464 | `3cf2ff01454374abce0ee2203b89d166fe0120fb4f235894c0bbacce2abe8e18` |
+| mdb-reader `V2016/attachments.accdb` @ 3dc637a (pristine, ACE 2016) | 524 288 | `1362f6bf865db294a382bbb05ef6af14c4f776768f436d458d3e028a1cdf45bc` |
+
+The three ACE fixtures are pinned as `fixtures/testV2007.accdb`,
+`fixtures/testV2010.accdb` and `fixtures/attachmentsV2016.accdb` (hashes and
+`repo@commit` provenance in `fixtures/manifest`; the CI fixtures job verifies
+them offline). Header dwords: 2007 = `0x00000002`, 2010 = `0x00000103`,
+2016 = `0x00000002` — the 2016 file uses the 2007 format version with the
+4096-byte ACE page geometry, so generation is identified by product string +
+version, not by the file extension.
 
 ## 4. Provenance case study: `fixtures/testV2000.mdb` was rewritten by Access
 

@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T13:54
+# BACKLOG.md — Open items (As of: 2026-11-01T14:48
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -93,6 +93,18 @@
 ## 🔵 TEST GAPS
 
 > No open items.
+
+### [ ] T4 — CLI-Bin-E2E über echten Subprozess (assert_cmd) — 🔵
+- **Location:** `crates/datacraft-cli/tests/` (neu: `cli_process.rs`), `crates/datacraft-cli/Cargo.toml` (dev-deps `assert_cmd`, `assert_fs`, `predicates`); `docs/TESTING.md` §3 Registry #2
+- **Problem:** Der CLI-Bin wird heute nur über injizierte Streams (`run_with_streams`) getestet — genau deshalb steht `main.rs` mit 17 Zeilen als ungedeckte Ausnahme in der Coverage-Registry (#2, „there is nothing to assert without a subprocess"). Prozessgrenze, echtes stdin/stdout, Arg-Parsing und Exit-Codes sind ungetestet, obwohl README deterministische Exit-Codes als Feature nennt.
+- **Ansatz:** Bin als echten Kindprozess starten (`assert_cmd::Command::cargo_bin`), gegen `fixtures/testV2000.mdb` sowie Scratch-SQLite (`assert_fs`/`tempfile`); open/exec/repl-Abläufe über echte stdio-Rohre fahren; Exit-Code-Matrix je Fehlerklasse (fehlende Datei, kaputtes Argument, Read-only-Write) explizit assertieren; Timeouts so setzen, dass ein hängendes REPL den Lauf nicht blockiert.
+- **Acceptance:** Mindestens open+exec+nicht-interaktives REPL über den echten Prozess getestet; jeder dokumentierte Exit-Code einmal getroffen und geprüft; Fehlerfälle präzise auf stderr; Registry-Ausnahme #2 in `docs/TESTING.md` neu bewertet (verkleinert oder begründet bestehen bleiben); canonical verification set grün inkl. Coverage-Gate.
+
+### [ ] T5 — egui/eframe headless UI-Tests (egui_kittest, Layout-Regressionen) — 🔵
+- **Location:** `crates/datacraft-ui/tests/` (neu: `ui_kittest.rs`), `crates/datacraft-ui/Cargo.toml` (dev-dep `egui_kittest`), `docs/TESTING.md` §3 Registry #1, `docs/ARCHITECTURE.md` (Schichtgrenze ui/core)
+- **Problem:** Die UI-Schicht ist komplett aus der Coverage ausgeschlossen (Registry #1: „eframe startet keinen headless Event-Loop"). Damit sind alle Render-Pfade — Datasheet, SQL-Fenster, Nav-Pane, Ribbon, Statusleiste — ungetestet: Layout-Regressionen und kaputte Widget-Bindings fallen erst im manuellen Lauf auf. `egui_kittest` (offiziell im egui-Repo, AccessKit-basiert, Snapshot-Renderer) schließt genau diese Lücke.
+- **Ansatz:** Harness mit `Harness::new_ui`/`new_state` gegen den echten `Core` mit MockPort aufsetzen; Widgets über AccessKit-Knoten (Label/Rolle) ansprechen statt über Pixelkoordinaten; Abläufe fahren (Tabelle in Nav-Pane wählen → Datasheet zeigt Zeilen, Query ausführen → Ergebnis-Grid, Ribbon-Aktion → Bus-Event); Snapshot-Vergleiche (`insta`-Backend von egui_kittest) für die Hauptfenster als Layout-Gate. **Versionskopplung vorab klären:** `egui_kittest` muss exakt zur gepinnten `eframe`/`egui`-Version (0.37) passen — falls für 0.37 nicht verfügbar, Item auf ⛔ setzen und Alternative (Upgrade-Kopplung an egui-Release) im Item notieren statt zu improvisieren.
+- **Acceptance:** Harness startet headless ohne Fenster/GPU-Zwang und ohne echtes Event-Loop; je Hauptbereich (Datasheet, SQL/QBE-Fenster, Nav-Pane, Ribbon) mindestens ein Interaktions- plus ein Snapshot-Test; Assertions auf Domain-Zustand (`UiStateSnapshot`) statt auf Pixel; Registry-Ausnahme #1 in `docs/TESTING.md` neu bewertet (Verkleinerung dokumentieren oder Restbegründung); canonical verification set grün, Snapshot-Artefakte reproduzierbar (kein Flaky-Vergleich durch Font-/DPI-Unterschiede in CI).
 
 ---
 
