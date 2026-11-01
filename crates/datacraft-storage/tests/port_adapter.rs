@@ -110,3 +110,18 @@ fn close_is_idempotent_and_clears_the_catalog() {
     port.open(&fixture()).expect("re-open");
     assert!(!port.tables().is_empty());
 }
+
+#[test]
+fn tables_behind_multi_page_tdefs_decode() {
+    // Table2 in the Access-rewritten fixture spans multiple TDEF pages
+    // (Access chains them via the next-TDEF-page pointer at offset 4 —
+    // docs/FORMAT-JET.md). The adapter must surface the table, not fail
+    // the whole open.
+    let mut port = Jet4Port::new();
+    port.open(&fixture()).expect("fixture must open");
+    let names: Vec<&str> = port.tables().iter().map(|t| t.name.as_str()).collect();
+    assert!(
+        names.contains(&"Table2"),
+        "multi-page TDEF table must surface: {names:?}"
+    );
+}
