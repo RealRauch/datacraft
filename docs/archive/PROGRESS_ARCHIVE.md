@@ -284,3 +284,20 @@
 - **22.2 Window position, maximized state and off-screen rescue**
 - **22.3 Phase 22 Quality Gate Review**
 **Verification:** fmt --check and clippy -D warnings green; cargo test --workspace green (69 UI tests incl. atomic-save and geometry suites); file-size gate green (settings split into `settings/tests.rs`); local Windows coverage 91.98 % lines unchanged (datacraft-ui excluded by registry #1, platform gap documented in docs/TESTING.md §3); runtime smoke test confirmed position round-trip and off-screen rescue (9000,9000 → 820,380). (checkpoint: 21044b2)
+
+---
+
+### Phase 21 — Access UI Alignment *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **21.1 Contextual ribbon tabs + Views split-button (U5)**
+- **21.2 Quick Access Toolbar (U6)**
+- **21.3 File backstage page (U7)**
+- **21.4 Datasheet UX: column resize, header sort, row shading (U8)**
+- **21.5 Nav pane: category dropdown, context menu, group sort (U9)**
+- **21.6 Tabs: middle-click close, context menu (U10)**
+- **21.7 Window title & status-bar conventions (U11)**
+- **21.8 Keyboard: shortcuts & ribbon key tips (U12)**
+- **21.9 Phase 21 Quality Gate Review**
+**Verification:** Phase 21 gate: fmt --check, clippy -D warnings, workspace tests and the file-size gate are green; no banned markers; local Windows llvm-cov reports 93.50% (documented platform note — CI ubuntu is the binding gate); README phase table and intro updated; all U5–U12 items archived, follow-ups U14/U15 recorded. (checkpoint: dd8fe9e)

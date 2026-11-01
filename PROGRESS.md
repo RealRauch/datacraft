@@ -9,19 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 21 — Access UI Alignment *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **21.1 Contextual ribbon tabs + Views split-button (U5)**
-- **21.2 Quick Access Toolbar (U6)**
-- **21.3 File backstage page (U7)**
-- **21.4 Datasheet UX: column resize, header sort, row shading (U8)**
-- **21.5 Nav pane: category dropdown, context menu, group sort (U9)**
-- **21.6 Tabs: middle-click close, context menu (U10)**
-- **21.7 Window title & status-bar conventions (U11)**
-- **21.8 Keyboard: shortcuts & ribbon key tips (U12)**
-- **21.9 Phase 21 Quality Gate Review**
 ### Phase 23 — Hardening & Test Gaps *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -175,7 +162,7 @@
 | 21.6 | Tabs: middle-click close, context menu (U10) | ✅ |
 | 21.7 | Window title & status-bar conventions (U11) | ✅ |
 | 21.8 | Keyboard: shortcuts & ribbon key tips (U12) | ✅ |
-| 21.9 | Phase 21 Quality Gate Review | ⬜ |
+| 21.9 | Phase 21 Quality Gate Review | ✅ |
 | 22.1 | Atomic ui.json save (temp + rename) | ✅ |
 | 22.2 | Window position, maximized state and off-screen rescue | ✅ |
 | 22.3 | Phase 22 Quality Gate Review | ✅ |

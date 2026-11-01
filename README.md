@@ -33,14 +33,14 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–20 and 22 are complete: the
+> **DataCraft is in early development.** Phases 1–22 are complete: the
 > UI shell wears the rebased look (neutral tokens, teal accent,
 > Inter/JetBrains Mono typography, original vector iconography and
-> Light/Dark/System appearance), and the UI-owned `ui.json` saves atomically
-> and restores the full window geometry. Phase 21 (Access UI alignment:
-> contextual ribbon tabs with the Views split-button, quick access toolbar
-> and the File backstage, then datasheet/nav-pane/tab UX, keyboard) is in
-> progress.
+> Light/Dark/System appearance), the UI-owned `ui.json` saves atomically
+> and restores the full window geometry, and the Access UI alignment landed
+> (contextual ribbon tabs with the Views split-button, quick access toolbar,
+> File backstage, datasheet/nav-pane/tab UX, window title and keyboard
+> shortcuts/key tips).
 > The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
 > `.accdb` files (Jet4/ACE cross-checked against the libmdb oracle in CI) and
 > writes verified Jet4 table/row paths; the headless command bus drives a
@@ -215,7 +215,7 @@ Seventeen delivered phases and the planned UI work:
 | 17 — Macros, VBA & Docs Accuracy | read-only macro inventory, VBA extraction/viewer/static analysis, verified compatibility matrix | ✅ |
 | 18–19 — UI Localization & Settings | i18n kernel, complete German catalog, `ui.json`, language switcher | ✅ |
 | 20 — Look & Typography | neutral tokens, Inter/JetBrains Mono typography, original vector iconography, Light/Dark/System appearance | ✅ |
-| 21 — Access UI Alignment | contextual ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX, keyboard | ⬜ |
+| 21 — Access UI Alignment | contextual ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX, keyboard | ✅ |
 | 22 — Settings Hardening | atomic `ui.json` save, window position/maximized state, off-screen rescue | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
