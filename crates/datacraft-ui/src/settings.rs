@@ -5,6 +5,175 @@
 //! core/wire contract stay untouched. Unknown or corrupt values fall back to
 //! defaults instead of failing (WordCraft `ui.json` pattern).
 
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+
+use serde::{Deserialize, Serialize};
+
+use crate::i18n::Lang;
+
+/// Persisted UI preferences: language and window geometry now, appearance
+/// with step U4.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Settings {
+    /// Language choice; `Auto` follows environment and system detection.
+    pub language: LanguageSetting,
+    /// Last inner window size (sanitized; `None` uses the default).
+    pub window: Option<WindowSize>,
+}
+
+/// Language choice stored in `ui.json`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LanguageSetting {
+    /// Follow `DATACRAFT_LANGUAGE` and system detection.
+    #[default]
+    Auto,
+    /// German.
+    German,
+    /// English.
+    English,
+}
+
+impl LanguageSetting {
+    /// Maps the stored value; unknown values fall back to `Auto`.
+    pub fn from_value(value: Option<&str>) -> Self {
+        match value.and_then(Lang::from_setting) {
+            Some(Lang::German) => Self::German,
+            Some(Lang::English) => Self::English,
+            _ => Self::Auto,
+        }
+    }
+
+    /// Stored value of this choice.
+    pub fn as_value(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::German => "de",
+            Self::English => "en",
+        }
+    }
+
+    /// Explicit language of this choice; `None` means detection (`Auto`).
+    pub fn lang(self) -> Option<Lang> {
+        match self {
+            Self::Auto => None,
+            Self::German => Some(Lang::German),
+            Self::English => Some(Lang::English),
+        }
+    }
+}
+
+/// Window size in points.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct WindowSize {
+    /// Inner width.
+    pub width: f32,
+    /// Inner height.
+    pub height: f32,
+}
+
+impl WindowSize {
+    /// Drops implausible geometry (zero, negative, NaN, absurd) so a corrupt
+    /// file never yields an unusable window.
+    fn sane(self) -> Option<Self> {
+        let usable = self.width.is_finite()
+            && self.height.is_finite()
+            && (320.0..=16_384.0).contains(&self.width)
+            && (240.0..=16_384.0).contains(&self.height);
+        usable.then_some(self)
+    }
+}
+
+impl Settings {
+    /// Loads the settings; a missing, empty or corrupt file yields defaults.
+    pub fn load(path: &Path) -> Self {
+        let Ok(text) = std::fs::read_to_string(path) else {
+            return Self::default();
+        };
+        let Ok(file) = serde_json::from_str::<SettingsFile>(&text) else {
+            return Self::default();
+        };
+        Self::from_file(file)
+    }
+
+    /// Writes the settings, creating the config directory as needed.
+    pub fn save(&self, path: &Path) -> std::io::Result<()> {
+        let file = SettingsFile {
+            language: Some(self.language.as_value().to_owned()),
+            window: self.window,
+        };
+        let json = serde_json::to_string_pretty(&file).map_err(std::io::Error::other)?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(path, json)
+    }
+
+    /// Records the current viewport size (ignored when implausible).
+    pub fn set_window(&mut self, width: f32, height: f32) {
+        self.window = WindowSize { width, height }.sane();
+    }
+
+    fn from_file(file: SettingsFile) -> Self {
+        Self {
+            language: LanguageSetting::from_value(file.language.as_deref()),
+            window: file.window.and_then(WindowSize::sane),
+        }
+    }
+}
+
+/// On-disk shape: strings and optional fields so one unknown value cannot
+/// discard the rest of the file.
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
+struct SettingsFile {
+    language: Option<String>,
+    window: Option<WindowSize>,
+}
+
+/// Platform conventions for the config directory (resolved without a new
+/// dependency).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Platform {
+    Windows,
+    MacOs,
+    Linux,
+}
+
+fn platform() -> Platform {
+    if cfg!(windows) {
+        Platform::Windows
+    } else if cfg!(target_os = "macos") {
+        Platform::MacOs
+    } else {
+        Platform::Linux
+    }
+}
+
+fn config_dir_on(platform: Platform, env: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
+    match platform {
+        Platform::Windows => env("APPDATA").map(PathBuf::from),
+        Platform::MacOs => env("HOME").map(|home| {
+            PathBuf::from(home)
+                .join("Library")
+                .join("Application Support")
+        }),
+        Platform::Linux => env("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| env("HOME").map(|home| PathBuf::from(home).join(".config"))),
+    }
+}
+
+fn default_path_on(platform: Platform, env: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
+    config_dir_on(platform, env).map(|dir| dir.join("datacraft").join("ui.json"))
+}
+
+/// `<config>/datacraft/ui.json` for the running platform; `None` when no
+/// config directory can be resolved (settings then stay session-only).
+pub fn default_path() -> Option<PathBuf> {
+    default_path_on(platform(), &|name| std::env::var_os(name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -12,10 +181,8 @@ mod tests {
     use std::path::PathBuf;
 
     fn temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "datacraft-settings-{}-{name}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("datacraft-settings-{}-{name}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp dir");
         dir

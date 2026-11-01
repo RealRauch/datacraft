@@ -18,6 +18,7 @@ pub(crate) const STATUS_TABLES: &str = "{database} ({format}) — {count} tables
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.capture_window_size(ui.ctx());
         crate::theme::apply(ui.ctx());
 
         egui::Panel::top("datacraft.ribbon").show(ui, |ui| {
@@ -66,6 +67,12 @@ impl eframe::App for App {
         crate::relationships::mapper_window(self, ui);
         crate::sql_window::sql_window(self, ui);
         crate::password_prompt::password_prompt(self, ui);
+    }
+
+    fn on_exit(&mut self) {
+        // Settings are best-effort on shutdown: no surface is left to
+        // report a failure.
+        let _ = self.persist_settings();
     }
 }
 

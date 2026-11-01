@@ -814,6 +814,7 @@ dependencies = [
  "eframe",
  "image",
  "rusqlite",
+ "serde",
  "serde_json",
  "sys-locale",
 ]

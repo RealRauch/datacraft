@@ -67,6 +67,10 @@ pub struct App {
     /// VBA viewer search text (module list + source full-text filter,
     /// step 17.2).
     pub vba_search: String,
+    /// UI-owned settings (ADR-5); persisted only when a path is attached.
+    settings: crate::settings::Settings,
+    /// Path of `ui.json`; `None` keeps settings session-only (tests).
+    settings_path: Option<std::path::PathBuf>,
 }
 
 /// View mode of a document tab (presentation state).
@@ -108,6 +112,41 @@ impl App {
             new_row: HashMap::new(),
             password_prompt: None,
             vba_search: String::new(),
+            settings: crate::settings::Settings::default(),
+            settings_path: None,
+        }
+    }
+
+    /// Attaches the UI settings file (the composition root sets this).
+    pub fn set_settings_path(&mut self, path: Option<std::path::PathBuf>) {
+        self.settings_path = path;
+    }
+
+    /// Applies persisted settings at startup: the stored language choice
+    /// beats the environment and system detection (ADR-5).
+    pub fn apply_settings(&mut self, settings: crate::settings::Settings) {
+        self.settings = settings;
+        crate::i18n::init_language(self.language_setting().lang());
+    }
+
+    /// Current language choice.
+    pub fn language_setting(&self) -> crate::settings::LanguageSetting {
+        self.settings.language
+    }
+
+    /// Writes the settings file; `Ok(())` when none is attached.
+    pub fn persist_settings(&self) -> std::io::Result<()> {
+        match &self.settings_path {
+            Some(path) => self.settings.save(path),
+            None => Ok(()),
+        }
+    }
+
+    /// Records the current viewport size for the next save.
+    pub(crate) fn capture_window_size(&mut self, ctx: &eframe::egui::Context) {
+        let size = ctx.input(|input| input.viewport().inner_rect.map(|rect| rect.size()));
+        if let Some(size) = size {
+            self.settings.set_window(size.x, size.y);
         }
     }
 

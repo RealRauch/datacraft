@@ -26,8 +26,8 @@ mod qbe;
 mod relationships;
 mod report_design;
 mod ribbon;
-mod shell;
 mod settings;
+mod shell;
 mod sql_window;
 mod theme;
 mod vba_viewer;
@@ -55,9 +55,17 @@ fn window_icon() -> Option<egui::IconData> {
 }
 
 fn main() -> eframe::Result {
-    let mut viewport = egui::ViewportBuilder::default()
-        .with_inner_size([1280.0, 800.0])
-        .with_min_inner_size([960.0, 600.0]);
+    let settings_path = crate::settings::default_path();
+    let settings = settings_path
+        .as_deref()
+        .map(crate::settings::Settings::load)
+        .unwrap_or_default();
+
+    let mut viewport = egui::ViewportBuilder::default().with_min_inner_size([960.0, 600.0]);
+    viewport = match settings.window {
+        Some(window) => viewport.with_inner_size([window.width, window.height]),
+        None => viewport.with_inner_size([1280.0, 800.0]),
+    };
     if let Some(icon) = window_icon() {
         viewport = viewport.with_icon(icon);
     }
@@ -68,10 +76,11 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "DataCraft",
         options,
-        Box::new(|_cc| {
-            Ok(Box::new(App::new(Box::new(
-                datacraft_storage::detecting::DetectingPort::new(),
-            ))))
+        Box::new(move |_cc| {
+            let mut app = App::new(Box::new(datacraft_storage::detecting::DetectingPort::new()));
+            app.set_settings_path(settings_path);
+            app.apply_settings(settings);
+            Ok(Box::new(app))
         }),
     )
 }
@@ -387,10 +396,8 @@ mod tests {
         use crate::settings::{LanguageSetting, Settings};
 
         let _guard = crate::i18n::LANG_LOCK.lock().expect("language lock");
-        let dir = std::env::temp_dir().join(format!(
-            "datacraft-startup-settings-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("datacraft-startup-settings-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp dir");
         let path = dir.join("ui.json");

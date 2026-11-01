@@ -51,35 +51,38 @@ impl Lang {
     }
 }
 
-/// Resolves the UI language: explicit setting > `DATACRAFT_LANGUAGE` >
-/// system detection > English. Phase 19 passes the stored setting through
-/// `env`; until then the environment and detection decide.
-pub fn resolve_language(env: Option<&str>, system: Option<&str>) -> Lang {
-    env.and_then(Lang::from_setting)
+/// Resolves the UI language (ADR-5 precedence): explicit setting >
+/// `DATACRAFT_LANGUAGE` > system detection > English.
+pub fn resolve_language(setting: Option<Lang>, env: Option<&str>, system: Option<&str>) -> Lang {
+    setting
+        .or_else(|| env.and_then(Lang::from_setting))
         .unwrap_or_else(|| Lang::from_locale(system))
 }
 
-const CURRENT_UNSET: u8 = 0;
+/// Resolves and applies the language — called once at startup and on every
+/// switcher change. Until this runs, `t()` renders English, which keeps
+/// headless tests independent of the host locale.
+pub fn init_language(setting: Option<Lang>) -> Lang {
+    let resolved = resolve_language(
+        setting,
+        std::env::var("DATACRAFT_LANGUAGE").ok().as_deref(),
+        sys_locale::get_locale().as_deref(),
+    );
+    set_lang(resolved);
+    resolved
+}
+
 const CURRENT_ENGLISH: u8 = 1;
 const CURRENT_GERMAN: u8 = 2;
 
-/// Process-wide current language, resolved once per session.
-static CURRENT: AtomicU8 = AtomicU8::new(CURRENT_UNSET);
+/// Process-wide current language; English until `init_language` runs.
+static CURRENT: AtomicU8 = AtomicU8::new(CURRENT_ENGLISH);
 
-/// The current UI language (system detection and the environment override
-/// are read once, then cached).
+/// The current UI language.
 pub fn lang() -> Lang {
     match CURRENT.load(Ordering::Relaxed) {
-        CURRENT_ENGLISH => Lang::English,
         CURRENT_GERMAN => Lang::German,
-        _ => {
-            let resolved = resolve_language(
-                std::env::var("DATACRAFT_LANGUAGE").ok().as_deref(),
-                sys_locale::get_locale().as_deref(),
-            );
-            set_lang(resolved);
-            resolved
-        }
+        _ => Lang::English,
     }
 }
 
