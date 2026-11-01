@@ -43,6 +43,9 @@ pub struct App {
     form_record: HashMap<TabId, usize>,
     /// Selected design-grid field index per tab.
     design_selection: HashMap<TabId, usize>,
+    /// Current record cursor per table/query tab (the status bar's
+    /// record-navigation box and the datasheet row selector).
+    record_cursor: HashMap<TabId, usize>,
     /// Current preview page of a report tab (defaults to the first).
     preview_page: HashMap<TabId, usize>,
     /// Cached preview pages per report tab (refreshed on dispatch).
@@ -76,6 +79,7 @@ impl App {
             form_selection: HashMap::new(),
             preview_page: HashMap::new(),
             previews: HashMap::new(),
+            record_cursor: HashMap::new(),
             drags: HashMap::new(),
             form_record: HashMap::new(),
             design_selection: HashMap::new(),
@@ -175,6 +179,17 @@ impl App {
     /// Sets the current preview page of a report tab.
     pub fn set_preview_page(&mut self, tab_id: TabId, page: usize) {
         self.preview_page.insert(tab_id, page);
+    }
+
+    /// Current record cursor of a table/query tab (defaults to the first).
+    pub fn record_cursor(&self, tab_id: TabId) -> usize {
+        self.record_cursor.get(&tab_id).copied().unwrap_or(0)
+    }
+
+    /// Moves the record cursor of a table/query tab, clamped to `len`.
+    pub fn set_record_cursor(&mut self, tab_id: TabId, row: usize, len: usize) {
+        let clamped = len.saturating_sub(1).min(row);
+        self.record_cursor.insert(tab_id, clamped);
     }
 
     /// Cached print-preview pages of a report tab (empty until refreshed).
@@ -320,11 +335,82 @@ impl eframe::App for App {
         }
 
         egui::Panel::bottom("datacraft.status").show(ui, |ui| {
-            ui.label(status_line(self.snapshot()));
+            ui.horizontal(|ui| {
+                // Left: database context (Access convention — the active
+                // document's object replaces the generic count).
+                let active = self.snapshot().active_tab.and_then(|id| {
+                    self.snapshot()
+                        .tabs
+                        .iter()
+                        .find(|t| t.id == id)
+                        .map(|t| (t.object_kind.clone(), t.object_name.clone()))
+                });
+                ui.label(status_line(
+                    self.snapshot(),
+                    active.as_ref().map(|(k, n)| (k.as_str(), n.as_str())),
+                ));
+                // Right: the record-navigation box over the active view's
+                // record domain (rows / results / form record / pages).
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    self.record_navigation_ui(ui);
+                });
+            });
         });
 
         crate::workspace::workspace_ui(self, ui);
 
         crate::relationships::mapper_window(self, ui);
+    }
+}
+
+impl App {
+    /// The status bar's record-navigation box (step 12.4): `◀ 3 of 12 ▶`
+    /// over the active tab's record domain. Paint-only presentation state —
+    /// each view kind maps to its own record cursor.
+    fn record_navigation_ui(&mut self, ui: &mut egui::Ui) {
+        let snapshot = self.snapshot().clone();
+        let Some(active) = snapshot
+            .active_tab
+            .and_then(|id| snapshot.tabs.iter().find(|t| t.id == id).cloned())
+        else {
+            return;
+        };
+        let (current, len) = match active.object_kind.as_str() {
+            // Forms navigate their source rows (the maintain_caches pass
+            // loads them per form tab); queries walk their result set.
+            "query" => (
+                self.record_cursor(active.id),
+                self.results_for(active.id).map_or(0, |r| r.rows.len()),
+            ),
+            "report" => (
+                self.preview_page(active.id),
+                self.preview_pages(active.id).len(),
+            ),
+            _ => (
+                self.form_record(active.id),
+                self.rows_for(active.id).map_or(0, Vec::len),
+            ),
+        };
+        if len == 0 {
+            return;
+        }
+        let current = current.min(len - 1);
+        if ui.small_button("\u{25c0}").clicked() && current > 0 {
+            self.step_record(&active, current - 1, len);
+        }
+        ui.label(egui::RichText::new(format!("{} of {len}", current + 1)).small());
+        if ui.small_button("\u{25b6}").clicked() && current + 1 < len {
+            self.step_record(&active, current + 1, len);
+        }
+    }
+
+    /// Writes the stepped record position into the active view's cursor.
+    fn step_record(&mut self, tab: &datacraft_core::snapshot::TabSnapshot, to: usize, len: usize) {
+        match tab.object_kind.as_str() {
+            "table" | "query" => self.set_record_cursor(tab.id, to, len),
+            "form" => self.set_form_record(tab.id, to),
+            "report" => self.set_preview_page(tab.id, to),
+            _ => {}
+        }
     }
 }

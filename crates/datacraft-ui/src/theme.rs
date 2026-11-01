@@ -66,9 +66,3 @@ pub fn apply(ctx: &egui::Context) {
         style.spacing.item_spacing = egui::vec2(8.0, 4.0);
     });
 }
-
-/// Paint helper: a teal-filled caption bar (datasheet headers, active tab
-/// underline) — the icon's header-row grammar.
-pub fn teal_fill(rect: egui::Rect, painter: &egui::Painter) {
-    painter.rect_filled(rect, 0.0, TEAL);
-}

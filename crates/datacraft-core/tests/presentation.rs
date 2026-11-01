@@ -29,20 +29,43 @@ fn add_table(core: &mut Core, name: &str) {
 #[test]
 fn closed_core_reports_no_database() {
     let snapshot = Core::new(Box::new(MockPort::new())).inspect();
-    assert_eq!(status_line(&snapshot), "No database open");
+    assert_eq!(status_line(&snapshot, None), "No database open");
 }
 
 #[test]
-fn open_database_states_name_format_and_table_count() {
+fn status_context_prefers_the_active_object_over_the_table_count() {
     let mut core = open_core("shop.mdb");
     let snapshot = core.inspect();
-    assert_eq!(status_line(&snapshot), "shop (Jet4) — 0 tables");
+    assert_eq!(status_line(&snapshot, None), "shop (Jet4) — 0 tables");
 
     add_table(&mut core, "Customers");
-    assert_eq!(status_line(&core.inspect()), "shop (Jet4) — 1 table");
+    let snapshot = core.inspect();
+    assert_eq!(status_line(&snapshot, None), "shop (Jet4) — 1 table");
+
+    // An active document replaces the generic count with its context.
+    core.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Customers",
+    )));
+    let snapshot = core.inspect();
+    let active = snapshot
+        .active_tab
+        .and_then(|id| snapshot.tabs.iter().find(|t| t.id == id))
+        .map(|t| (t.object_kind.clone(), t.object_name.clone()));
+    assert_eq!(
+        status_line(
+            &snapshot,
+            active.as_ref().map(|(k, n)| (k.as_str(), n.as_str()))
+        ),
+        "shop (Jet4) — Customers"
+    );
+    assert_eq!(
+        status_line(&snapshot, Some(("report", "Weekly"))),
+        "shop (Jet4) — Weekly"
+    );
 
     add_table(&mut core, "Orders");
-    assert_eq!(status_line(&core.inspect()), "shop (Jet4) — 2 tables");
+    assert_eq!(status_line(&core.inspect(), None), "shop (Jet4) — 2 tables");
 }
 
 #[test]

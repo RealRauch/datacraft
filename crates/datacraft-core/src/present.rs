@@ -10,11 +10,17 @@ use crate::schema::FieldKind;
 use crate::schema::FieldValue;
 use crate::snapshot::UiStateSnapshot;
 
-/// Status bar line for the given snapshot.
-pub fn status_line(snapshot: &UiStateSnapshot) -> String {
-    match &snapshot.database {
-        None => "No database open".to_owned(),
-        Some(db) => {
+/// Status bar line for the given snapshot (step 12.4): the database
+/// context, replaced by the active document's object when one is open —
+/// the Access status-bar convention. `active` carries the tab snapshot's
+/// `(object_kind, object_name)`.
+pub fn status_line(snapshot: &UiStateSnapshot, active: Option<(&str, &str)>) -> String {
+    let Some(db) = &snapshot.database else {
+        return "No database open".to_owned();
+    };
+    match active {
+        Some((_, name)) => format!("{} ({}) — {name}", db.name, db.format),
+        None => {
             let count = db.tables.len();
             let noun = if count == 1 { "table" } else { "tables" };
             format!("{} ({}) — {count} {noun}", db.name, db.format)
