@@ -84,8 +84,8 @@
 | 10.3 | Jet4 Writer Round-Trip Acceptance (h9) | ✅ |
 | 10.4 | Report Canvas — Print Layout & Design (h31) | ✅ |
 | 10.5 | Report Print Preview Runtime (h31) | ✅ |
-| 10.6 | Jet 3 (Access 97) Read Support (l1) | 🔄 |
-| 10.7 | Jet4 Column Type 0x11 — Study & Mapping Decision (l2) | ⬜ |
+| 10.6 | Jet 3 (Access 97) Read Support (l1) | ✅ |
+| 10.7 | Jet4 Column Type 0x11 — Study & Mapping Decision (l2) | 🔄 |
 | 10.8 | Fixture Pin Integrity — Manifest & CI Hash Gate (t3) | ⬜ |
 | 10.9 | Final Documentation & Release Prep (h34) | ⬜ |
 | 10.10 | Phase 10 Quality Gate Review | ⬜ |

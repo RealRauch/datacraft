@@ -206,7 +206,9 @@ fn field_def(column: &JetColumn) -> FieldDef {
             scale: column.scale,
         }),
         JetType::DateTime => FieldKind::DateTime,
-        JetType::Binary | JetType::Ole => FieldKind::Binary(BinaryKind::OleObject),
+        JetType::Binary | JetType::Ole | JetType::LongBinary => {
+            FieldKind::Binary(BinaryKind::OleObject)
+        }
         JetType::Text => FieldKind::Text {
             max_len: text_max_len(column),
         },

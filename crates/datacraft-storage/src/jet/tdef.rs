@@ -42,6 +42,10 @@ pub enum JetType {
     Numeric = 0x10,
     /// Complex (multi-value/attachment) column.
     Complex = 0x12,
+    /// Fixed-storage long binary — embedded OLE compound documents
+    /// (BACKLOG L2 decision, 2026-11-01: the fixture's MSysAccessObjects
+    /// rows carry the `D0 CF 11 E0` compound-file signature inline).
+    LongBinary = 0x11,
 }
 
 impl JetType {
@@ -63,6 +67,7 @@ impl JetType {
             0x0F => Self::Guid,
             0x10 => Self::Numeric,
             0x12 => Self::Complex,
+            0x11 => Self::LongBinary,
             other => {
                 return Err(StorageError::Unsupported {
                     reason: format!("column type 0x{other:02x} not supported"),
@@ -83,7 +88,7 @@ impl JetType {
             Self::Float => StorageDataType::Float4,
             Self::Double => StorageDataType::Float8,
             Self::DateTime => StorageDataType::DateTime,
-            Self::Binary | Self::Ole => StorageDataType::Binary,
+            Self::Binary | Self::Ole | Self::LongBinary => StorageDataType::Binary,
             Self::Text => StorageDataType::Text,
             Self::Memo => StorageDataType::Memo,
             Self::Guid => StorageDataType::Guid,

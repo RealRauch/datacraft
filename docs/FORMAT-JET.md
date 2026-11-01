@@ -324,3 +324,21 @@ pinned yet; the oracle comparison applies when one is sourced (see
 - **Text**: no unicode; CP1252 (writer-machine dependent) is decoded for
   names and cell text. No compressed form exists.
 - **Writer**: unchanged — the writer milestone targets Jet4/ACE only.
+
+## Column type 0x11 — decision record (2026-11-01, step 10.7, BACKLOG L2)
+
+**Decision:** `0x11` maps to `JetType::LongBinary` — a **fixed-storage long
+binary** (`StorageDataType::Binary`, domain `Binary(OleObject)`).
+
+**Evidence (fixture hex study):** MSysAccessObjects (TDEF page 16) defines
+`Data` as type `0x11`, flags `0x03` (fixed+nullable), `len = 3992` — and the
+decoded rows carry the **OLE Compound File signature `D0 CF 11 E0 A1 B1 1A E1`**
+inline: each row embeds an Access version-history OLE document. The type is
+neither memo/OLE (no LVAL indirection — the payload sits in the fixed area)
+nor the HACKING type table's members.
+
+**Consequences:** the table decodes on our side (5 rows on the fixture);
+the mdb-tools oracle **cannot** cross-check it ("unsupported data type 17" —
+impossible by construction), so `tests/oracle.rs` skips that one table with
+this documented reason. HACKING's type table remains incomplete (as already
+noted for this byte); no format-doc update is needed beyond this record.

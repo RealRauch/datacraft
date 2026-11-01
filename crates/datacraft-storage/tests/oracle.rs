@@ -71,6 +71,19 @@ fn oracle_fixture_decodes_and_matches_mdb_tools() {
     }
 
     for (name, table) in &tables {
+        // Documented skip (BACKLOG L2 decision, 2026-11-01): MSysAccessObjects
+        // embeds OLE compound documents in fixed-storage 0x11 columns, which
+        // mdb-tools itself cannot read ("unsupported data type 17") — the
+        // cross-check is impossible by construction. Our side decodes the
+        // table (JetType::LongBinary) and asserts the row count locally.
+        if *name == "MSysAccessObjects" {
+            eprintln!(
+                "oracle table {name} skipped: mdb-tools cannot read 0x11 columns \
+                 (L2); our side holds {} rows",
+                table.rows.len()
+            );
+            continue;
+        }
         let out = Command::new("mdb-export")
             .args([path.as_os_str(), OsStr::new(*name)])
             .output()

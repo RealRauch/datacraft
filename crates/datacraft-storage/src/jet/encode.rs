@@ -145,6 +145,7 @@ fn scalar_bytes(col: &JetColumn, value: &StorageValue) -> Result<Vec<u8>, Storag
         (JetType::Guid, StorageValue::Guid(g)) => g.to_vec(),
         (JetType::Numeric, StorageValue::Decimal(d)) => encode_numeric(*d),
         (JetType::Binary, StorageValue::Binary(b)) if b.len() == fixed_len(col) => b.clone(),
+        (JetType::LongBinary, StorageValue::Binary(b)) if b.len() == fixed_len(col) => b.clone(),
         _ => return Err(type_error(col, value)),
     };
     Ok(out)
@@ -174,6 +175,7 @@ fn append_variable(
     let payload = match (col.data_type, value) {
         (JetType::Text, StorageValue::Text(s)) => encode_text(s, col),
         (JetType::Binary, StorageValue::Binary(b)) => b.clone(),
+        (JetType::LongBinary, StorageValue::Binary(b)) => b.clone(),
         (JetType::Memo, StorageValue::Text(s)) => {
             // Inline long-value form; LVAL chains are a later milestone.
             let body = encode_text(s, col);

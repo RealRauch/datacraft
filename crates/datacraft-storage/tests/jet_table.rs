@@ -458,19 +458,15 @@ fn overclaimed_var_entries_read_adjacent_bytes_structurally() {
 /// (the `D0 CF 11 E0 A1 B1 1A E1` signature, verified on the fixture).
 #[test]
 fn column_type_0x11_decodes_as_fixed_long_binary() {
-    let columns = vec![JetColumn::new(
-        "Data",
-        JetType::LongBinary,
-        0x03,
-        0,
-        0,
-        16,
-    )];
+    let columns = vec![JetColumn::new("Data", JetType::LongBinary, 0x03, 0, 0, 16)];
     let mut file = file_shell(2);
     write_tdef(&mut file, 1, 1, 0x53, &columns);
     let def = JetTableDef::decode(&file, 1).expect("0x11 decodes since the L2 decision");
     assert_eq!(def.columns[0].data_type, JetType::LongBinary);
-    assert_eq!(def.columns[0].data_type.storage_type(), StorageDataType::Binary);
+    assert_eq!(
+        def.columns[0].data_type.storage_type(),
+        StorageDataType::Binary
+    );
 
     // A row carrying the OLE compound-file signature decodes to Binary.
     let mut blob = vec![0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
