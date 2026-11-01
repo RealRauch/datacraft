@@ -84,3 +84,35 @@
 - **Scope:** Focused hex study of one known-content row per variant + CI oracle cross-check (mdb-export) per docs/FORMAT-JET.md "Open: real-row tail semantics"; then fix RowLayout, keep synthetic fixtures byte-exact with reality, re-run the oracle comparison to green.
 - **Acceptance:** `DATACRAFT_ORACLE_MDB` oracle test lists tables and matches mdb-export row counts/columns; all gates green; catalog names resolve for the fixture.
 - **Done:** commit: null-mask bit index = column id (row.rs); oracle green on both fixture writers; CI oracle job added
+
+---
+
+### [x] H4 — Define StorageEngine trait boundary — 🟠
+- **Location:** `datacraft-storage/src/engine.rs`
+- **Scope:** Backend-agnostic traits (open, schema introspection, row reads, writes, transactions), error taxonomy, feature-gated backends: `jet-rs` (product) and `libmdb-oracle` (test-only, behind cfg(test)/feature flag).
+- **Acceptance:** Trait and mock backend fully unit-tested; no Jet/ACE-specific types leak across the boundary.
+- **Done:** steps 2.1 (test 4a507ec, feat 6b7dbc8)
+
+---
+
+### [x] H5 — Pure-Rust Jet page layer and file header decoder — 🟠
+- **Location:** `datacraft-storage/src/jet/` (page layer, file header)
+- **Scope:** Clean-room decoder for the Jet page layer based on public format documentation only (MDB Tools community docs, Microsoft Open Specifications): page headers, page allocation (usage maps), file header, version detection.
+- **Acceptance:** Table-driven and proptest unit tests; byte-level parsing verified against fixture files; no code copied from MDB Tools.
+- **Done:** steps 2.2 (test 442f1c9, feat 984006f)
+
+---
+
+### [x] H6 — Pure-Rust table definition and data decoder — 🟠
+- **Location:** `datacraft-storage/src/jet/` (TDEF/TDAT decoders)
+- **Scope:** Table definition pages (TDEF), column metadata (V2/V3 descriptors), data pages (TDAT), data types (text/memo/number/date/currency/boolean/OLE), system table (`MSysObjects`) introspection.
+- **Acceptance:** Fixtures readable table-by-table with deterministic ordering; unit tests colocated; coverage gate green.
+- **Done:** steps 2.3 (test b2c8f63, feat 367a07b)
+
+---
+
+### [x] H7 — libmdb test oracle integration and golden-file suite — 🟠
+- **Location:** `datacraft-storage/tests/`, `fixtures/`, CI oracle job
+- **Scope (revised 2026-10-31, human decisions):** libmdb oracle runs **in CI only** — ubuntu (apt `mdbtools`) and macOS (brew), no local Windows oracle. Oracle compares our decoder against **real `.mdb` sample databases pinned from a public source** (test data, not code — MDB Tools cannot create databases); local Windows verification relies on synthetic fixtures built by our own test helpers. Strict schema + row comparison; golden-file round-trip harness for the later write path. Encrypted/password-protected databases are detected and rejected with `Unsupported` (no decryption). The CI system-deps step is High-class (within released H7 scope, flagged at the step).
+- **Acceptance:** Oracle comparison green in CI on ubuntu + macOS against pinned real fixtures; mismatches fail with byte-level diagnostics; local suite passes with synthetic fixtures only.
+- **Done:** steps 2.4 + T2 fixes (a200dee, 92bce57, 683a88f); CI oracle job added; T3 keeps fixture-pin follow-up open
