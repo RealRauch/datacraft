@@ -68,6 +68,27 @@ pub enum Event {
         /// Canonical form name.
         name: String,
     },
+    /// A control was placed on a form.
+    ControlAdded {
+        /// Canonical form name.
+        form: String,
+        /// Canonical control name.
+        control: String,
+    },
+    /// A control was moved/resized.
+    ControlRectSet {
+        /// Canonical form name.
+        form: String,
+        /// Canonical control name.
+        control: String,
+    },
+    /// A control was removed.
+    ControlDropped {
+        /// Canonical form name.
+        form: String,
+        /// Canonical control name.
+        control: String,
+    },
     /// A form was deleted.
     FormDropped {
         /// Canonical form name.

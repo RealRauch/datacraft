@@ -10,6 +10,8 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::ObjectId;
+use crate::canvas::Rect;
+use crate::form::ControlDef;
 use crate::ids::TabId;
 use crate::qbe::{QbeRow, QbeValue};
 use crate::schema::TableDef;
@@ -92,5 +94,29 @@ pub enum Command {
     DeleteForm {
         /// Form name (case-insensitive).
         name: String,
+    },
+    /// Places a control on a form (rect snapped to the form grid at
+    /// dispatch, bounds-checked against the canvas).
+    AddFormControl {
+        /// Target form name (case-insensitive).
+        form: String,
+        /// The control definition.
+        control: ControlDef,
+    },
+    /// Moves/resizes a control (snapped and bounds-checked).
+    SetFormControlRect {
+        /// Target form name (case-insensitive).
+        form: String,
+        /// Control name (case-insensitive).
+        control: String,
+        /// New canvas rect.
+        rect: Rect,
+    },
+    /// Removes a control.
+    DeleteFormControl {
+        /// Target form name (case-insensitive).
+        form: String,
+        /// Control name (case-insensitive).
+        control: String,
     },
 }

@@ -16,7 +16,7 @@ use crate::state::{AppState, DatabaseState, TabState};
 
 /// The headless application core: reducer + state + storage port.
 pub struct Core {
-    state: AppState,
+    pub(crate) state: AppState,
     port: Box<dyn StoragePort>,
 }
 
@@ -109,6 +109,13 @@ impl Core {
             Command::RunQuery { query } => self.run_query_command(&query),
             Command::CreateForm { name } => self.create_form(&name),
             Command::DeleteForm { name } => self.delete_form(&name),
+            Command::AddFormControl { form, control } => self.add_control(&form, control),
+            Command::SetFormControlRect {
+                form,
+                control,
+                rect,
+            } => self.set_control_rect(&form, &control, rect),
+            Command::DeleteFormControl { form, control } => self.delete_control(&form, &control),
             Command::OpenDatabase { path } => self.open_database(path),
             Command::CloseDatabase => self.close_database(),
             Command::CreateTable { definition } => self.create_table(definition),
@@ -411,52 +418,6 @@ impl Core {
         events
     }
 
-    fn create_form(&mut self, name: &str) -> Vec<Event> {
-        if self.state.database.is_none() {
-            return failed("no database is open — open a database first");
-        }
-        if name.trim().is_empty() {
-            return failed(
-                crate::schema::SchemaError::InvalidName {
-                    detail: "names must not be empty or whitespace-only".to_owned(),
-                }
-                .to_string(),
-            );
-        }
-        let db = self.state.database.as_ref().expect("checked above");
-        if db
-            .forms
-            .iter()
-            .any(|f| f.name.to_lowercase() == name.to_lowercase())
-        {
-            return failed(format!("duplicate form name {name:?}"));
-        }
-        self.state
-            .database
-            .as_mut()
-            .expect("checked above")
-            .forms
-            .push(crate::form::FormDef::new(name));
-        vec![Event::FormCreated {
-            name: name.to_owned(),
-        }]
-    }
-
-    fn delete_form(&mut self, name: &str) -> Vec<Event> {
-        let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
-        };
-        let Some(pos) = db
-            .forms
-            .iter()
-            .position(|f| f.name.to_lowercase() == name.to_lowercase())
-        else {
-            return failed(format!("form {name:?} not found"));
-        };
-        let canonical = db.forms.remove(pos).name;
-        vec![Event::FormDropped { name: canonical }]
-    }
-
     fn run_query_command(&mut self, query: &str) -> Vec<Event> {
         let canonical = self
             .state
@@ -521,7 +482,7 @@ impl Core {
     }
 }
 
-fn failed(reason: impl Into<String>) -> Vec<Event> {
+pub(crate) fn failed(reason: impl Into<String>) -> Vec<Event> {
     vec![Event::Failed {
         reason: reason.into(),
     }]

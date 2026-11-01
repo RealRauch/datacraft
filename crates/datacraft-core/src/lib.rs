@@ -10,6 +10,7 @@ pub mod command;
 pub mod core;
 pub mod event;
 pub mod form;
+pub mod forms;
 pub mod grid;
 pub mod ids;
 pub mod port;

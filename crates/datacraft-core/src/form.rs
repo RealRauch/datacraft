@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::canvas::Rect;
 
-/// One control kind (Access palette; kinds grow in step 8.2).
+/// One control kind (the Access toolbox palette).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "snake_case")]
 pub enum ControlKind {
@@ -18,6 +18,50 @@ pub enum ControlKind {
         /// The displayed text.
         text: String,
     },
+    /// Single-line edit bound to a source field (read-only until the
+    /// write path lands).
+    TextBox {
+        /// Bound source field, if any.
+        bound_field: Option<String>,
+    },
+    /// Checkbox bound to a boolean source field.
+    CheckBox {
+        /// Bound source field, if any.
+        bound_field: Option<String>,
+    },
+    /// Drop-down bound to a source field.
+    ComboBox {
+        /// Bound source field, if any.
+        bound_field: Option<String>,
+    },
+    /// Command button.
+    Button {
+        /// Button caption.
+        caption: String,
+    },
+    /// Embedded subform.
+    SubForm {
+        /// The embedded form's name.
+        form: String,
+    },
+}
+
+/// Canvas size in points.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct CanvasSize {
+    /// Canvas width.
+    pub width: f32,
+    /// Canvas height.
+    pub height: f32,
+}
+
+impl Default for CanvasSize {
+    fn default() -> Self {
+        Self {
+            width: 640.0,
+            height: 400.0,
+        }
+    }
 }
 
 /// One placed control.
@@ -38,6 +82,9 @@ pub struct FormDef {
     pub name: String,
     /// Snap grid in points (Access-like default: 8).
     pub grid: f32,
+    /// Canvas size (default 640 x 400).
+    #[serde(default)]
+    pub size: CanvasSize,
     /// Controls in tab order (paint order: back to front).
     pub controls: Vec<ControlDef>,
 }
@@ -48,6 +95,7 @@ impl FormDef {
         Self {
             name: name.into(),
             grid: 8.0,
+            size: CanvasSize::default(),
             controls: Vec::new(),
         }
     }

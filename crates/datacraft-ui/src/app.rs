@@ -35,6 +35,10 @@ pub struct App {
     results: HashMap<TabId, QueryResult>,
     /// View mode per tab (Datasheet default; Design is read-only in Phase 6).
     pub tab_mode: HashMap<TabId, TabMode>,
+    /// Selected control per form-design tab.
+    form_selection: HashMap<TabId, String>,
+    /// Drag accumulation per (tab, control): (dx, dy), present while dragging.
+    drags: HashMap<(TabId, String), (f32, f32)>,
     /// Selected design-grid field index per tab.
     design_selection: HashMap<TabId, usize>,
 }
@@ -63,6 +67,8 @@ impl App {
             rows: HashMap::new(),
             results: HashMap::new(),
             tab_mode: HashMap::new(),
+            form_selection: HashMap::new(),
+            drags: HashMap::new(),
             design_selection: HashMap::new(),
         }
     }
@@ -101,6 +107,31 @@ impl App {
             TabMode::Design => TabMode::Datasheet,
         };
         self.tab_mode.insert(tab_id, next);
+    }
+
+    /// Selected control of a form-design tab (if any).
+    pub fn form_selection(&self, tab_id: TabId) -> Option<String> {
+        self.form_selection.get(&tab_id).cloned()
+    }
+
+    /// Selects a form control.
+    pub fn set_form_selection(&mut self, tab_id: TabId, control: String) {
+        self.form_selection.insert(tab_id, control);
+    }
+
+    /// Accumulates drag motion for a control (starting a gesture lazily).
+    pub fn accumulate_drag(&mut self, tab_id: TabId, control: &str, dx: f32, dy: f32) {
+        let entry = self
+            .drags
+            .entry((tab_id, control.to_owned()))
+            .or_insert((0.0, 0.0));
+        entry.0 += dx;
+        entry.1 += dy;
+    }
+
+    /// Ends a drag and returns the accumulated delta.
+    pub fn finish_drag(&mut self, tab_id: TabId, control: &str) -> Option<(f32, f32)> {
+        self.drags.remove(&(tab_id, control.to_owned()))
     }
 
     /// Selected design-grid field index of a tab (defaults to the first).

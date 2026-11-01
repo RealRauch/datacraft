@@ -152,3 +152,15 @@ fn display_guid(bytes: &[u8; 16]) -> String {
         &hex[20..32]
     )
 }
+
+/// Access toolbox name of a control kind (the designer's palette label).
+pub fn control_kind_display(kind: &crate::form::ControlKind) -> &'static str {
+    match kind {
+        crate::form::ControlKind::Label { .. } => "Label",
+        crate::form::ControlKind::TextBox { .. } => "Text Box",
+        crate::form::ControlKind::CheckBox { .. } => "Check Box",
+        crate::form::ControlKind::ComboBox { .. } => "Combo Box",
+        crate::form::ControlKind::Button { .. } => "Button",
+        crate::form::ControlKind::SubForm { .. } => "Subform",
+    }
+}
