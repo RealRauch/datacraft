@@ -123,13 +123,20 @@ impl StoragePort for Jet4Port {
         Ok(())
     }
 
-    fn drop_table(&mut self, _name: &str) -> Result<String, PortError> {
+    fn drop_table(&mut self, name: &str) -> Result<String, PortError> {
         if self.reader.is_none() {
             return Err(no_database());
         }
-        Err(PortError::Unsupported {
-            reason: "dropping Jet tables is not implemented yet (BACKLOG M7)".to_owned(),
-        })
+        let Some((canonical, page)) = self
+            .pages
+            .iter()
+            .find(|(candidate, _)| candidate.eq_ignore_ascii_case(name))
+            .map(|(candidate, page)| (candidate.clone(), *page))
+        else {
+            return Err(PortError::TableNotFound(name.to_owned()));
+        };
+        self.with_writer(|writer| writer.drop_table(page))?;
+        Ok(canonical)
     }
 
     fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {

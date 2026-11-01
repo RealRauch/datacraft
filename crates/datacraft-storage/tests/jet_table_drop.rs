@@ -10,8 +10,8 @@ use datacraft_core::port::{PortError, RowRange, StoragePort};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
 use datacraft_storage::port_adapter::Jet4Port;
 use datacraft_storage::{
-    jet::{Jet4TableReader, Jet4Writer, JetColumn, JetType},
     StorageValue,
+    jet::{Jet4TableReader, Jet4Writer, JetColumn, JetType},
 };
 
 fn fixture() -> PathBuf {
@@ -23,10 +23,8 @@ fn fixture() -> PathBuf {
 }
 
 fn fixture_copy(stem: &str) -> PathBuf {
-    let path = std::env::temp_dir().join(format!(
-        "datacraft-drop-{}-{stem}.mdb",
-        std::process::id()
-    ));
+    let path =
+        std::env::temp_dir().join(format!("datacraft-drop-{}-{stem}.mdb", std::process::id()));
     std::fs::copy(fixture(), &path).expect("copy the fixture");
     path
 }
@@ -68,7 +66,9 @@ fn the_writer_frees_the_table_pages_and_its_catalog_row() {
     let reader = Jet4TableReader::new(written.clone()).expect("written file opens");
     let names = reader.table_names().expect("catalog after drop");
     assert!(!names.iter().any(|name| name == "DropWriter"), "{names:?}");
-    let other = reader.open_table(&untouched).expect("other table still reads");
+    let other = reader
+        .open_table(&untouched)
+        .expect("other table still reads");
     assert!(!other.rows.is_empty(), "{untouched} keeps its rows");
 
     let check = Jet4Writer::new(written).expect("written file is a valid writer input");

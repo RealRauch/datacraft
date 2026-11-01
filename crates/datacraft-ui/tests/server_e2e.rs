@@ -155,10 +155,7 @@ fn jet_writes_and_drops_persist_over_the_wire() {
         "{responses:?}"
     );
     let dropped = &result_of(&responses[3])["events"];
-    assert_eq!(
-        dropped[0]["TableDropped"]["table"], "Written",
-        "{dropped}"
-    );
+    assert_eq!(dropped[0]["TableDropped"]["table"], "Written", "{dropped}");
 
     // Reopen verifies the write persisted and the drop removed the table.
     let mut reopened = Core::new(Box::new(DetectingPort::new()));

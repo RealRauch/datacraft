@@ -313,8 +313,14 @@ column mapping (with its lossiness) is documented in `src/port_write.rs`:
   fills the counter value and advances `+12` (persisted across reopen); a
   user-supplied value is rejected. GUID AutoNumbers (`ReplicationId`) stay a
   precise `Unsupported` (step 24.1, M8).
+- **Table drop (M7, step 24.2):** the `MSysObjects` row is deleted (the
+  `0x8000` slot flag, `num_rows` decremented), every page from the table's
+  used map plus its TDEF chain returns to the global free map, the usage
+  page is freed when no other table references it, and all freed pages are
+  overwritten with the `0xFF` pattern Access leaves behind. Failures leave
+  the file untouched.
 - **`Unsupported` today:** complex-value columns (attachments, multi-value,
-  version history — read-only since M4) and `drop_table` (M7).
+  version history — read-only since M4).
 - `update_row`/`delete_row` address rows by their zero-based live-row
   index — the same order `read_rows` returns (next section).
 

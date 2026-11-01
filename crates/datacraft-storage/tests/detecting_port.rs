@@ -187,10 +187,9 @@ fn jet_writes_delegate_through_detection_on_a_copy() {
     port.create_table(&def)
         .expect("create delegates to the Jet writer");
     assert!(port.tables().iter().any(|t| t.name == "Written"));
-    assert!(matches!(
-        port.drop_table("Written"),
-        Err(PortError::Unsupported { .. })
-    ));
+    let dropped = port.drop_table("Written").expect("drop delegates to Jet");
+    assert_eq!(dropped, "Written");
+    assert!(!port.tables().iter().any(|t| t.name == "Written"));
     assert!(port.relationships().is_ok());
 }
 
