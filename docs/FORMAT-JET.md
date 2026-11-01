@@ -629,3 +629,37 @@ plain columns.
 Parameter types (`PARAM_TYPE_MAP`, jackcess): 0 value, 1 boolean, 10 text
 (Jet `TEXT`), 2 byte, 3 integer, 4 long, 5 currency, 6 single, 7 double,
 8 date/time, 9 binary, 11 OLE, 15 GUID (`DataType` values).
+
+## MSysAccessStorage — named-macro inventory (step 17.1, item L4)
+
+Access 2007+ keeps compiled application objects in a tree table
+(`MSysAccessStorage`): each row is a storage (`Type = 1`) or stream
+(`Type = 2`), addressed by `Id`/`ParentId`; stream payloads live in `Lv`.
+The column order varies between writers, so the decoder looks columns up
+by name (`Id`, `ParentId`, `Type`, `Name`, `Lv`).
+
+Named macros hang off the `Scripts` storage (observed on the pinned
+`northwind2007.accdb`):
+
+- `Scripts/<n>/Blob` — one definition stream per macro;
+- `Scripts/\u{3}DirData` — the directory:
+  `header (4 bytes)`, then entries of
+  `tag (1 byte, 0x04)`, `length (1 byte)`, `name (length − 4 bytes,
+  UTF-16LE, no terminator)`, `index (u32)`; the child storage named
+  `<index>` carries the `Blob` stream.
+
+The definition blob is a binary action tree whose readable parts are
+length-tagged UTF-16 texts (expressions, SQL statements, form names). The
+inventory decoder emits those texts in storage order and strips the
+one-byte record tag that precedes some of them (`7=MsgBox(…)`,
+`8Delete * from …`). Action-name tables and execution semantics are
+**not** decoded — DataCraft does not execute macros (ADR-2,
+`docs/ROADMAP.md` §3). The catalog names come from `MSysObjects`
+`Type = -32766` (same value in Jet 3 and ACE).
+
+Oracle: `fixtures/northwind2007.accdb` decodes `AutoExec` (5 arguments,
+including `Not [CurrentProject].[IsTrusted]` and the two form names) and
+`Delete All Data` (the `MsgBox` expression followed by six
+`Delete * from …` statements). Jet 3 keeps macro definitions inside
+`MSysAccessObjects`; that compound-file chunking is not decoded yet, so
+Jet 3 names are reported with `definition_decoded = false`.

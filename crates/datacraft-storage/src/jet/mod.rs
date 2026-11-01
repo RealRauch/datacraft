@@ -3,6 +3,7 @@
 //! Public format documentation is the only source of knowledge here; the
 //! durable fact record with sources lives in `docs/FORMAT-JET.md`.
 
+pub mod access;
 pub mod catalog;
 pub mod complex;
 pub mod crypto;
@@ -22,6 +23,7 @@ pub mod writer;
 pub mod writer_rows;
 pub mod writer_tables;
 
+pub use access::{AccessStorage, AccessStorageEntry, OBJECT_TYPE_MACRO, StoredMacro};
 pub use catalog::{CATALOG_TDEF_PAGE, CatalogEntry, OBJECT_TYPE_TABLE};
 pub use data_page::DataPage;
 pub use header::{

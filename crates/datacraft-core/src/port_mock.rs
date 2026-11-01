@@ -15,6 +15,7 @@ pub struct MockPort {
     tables: Vec<TableDef>,
     rows: HashMap<String, Vec<Vec<FieldValue>>>,
     relationships: Vec<Relationship>,
+    macros: Vec<crate::macro_def::MacroDef>,
     opened: Option<OpenedDatabase>,
     open_fail: Option<String>,
     write_fail: Option<String>,
@@ -54,6 +55,12 @@ impl MockPort {
     /// Builder: attaches referential relationships.
     pub fn with_relationships(&mut self, relationships: Vec<Relationship>) -> &mut Self {
         self.relationships = relationships;
+        self
+    }
+
+    /// Builder: attaches the named-macro inventory (step 17.1, L4).
+    pub fn with_macros(&mut self, macros: Vec<crate::macro_def::MacroDef>) -> &mut Self {
+        self.macros = macros;
         self
     }
 
@@ -297,6 +304,10 @@ impl StoragePort for MockPort {
 
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
         Ok(self.relationships.clone())
+    }
+
+    fn macros(&self) -> Result<Vec<crate::macro_def::MacroDef>, PortError> {
+        Ok(self.macros.clone())
     }
 }
 

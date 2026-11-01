@@ -17,6 +17,7 @@ pub mod forms;
 pub mod grid;
 pub mod ids;
 pub mod journal;
+pub mod macro_def;
 pub mod palette;
 pub mod port;
 mod port_mock;
@@ -50,6 +51,8 @@ pub enum ObjectKind {
     Query,
     Form,
     Report,
+    /// Named macro object (step 17.1, item L4) — read-only inventory.
+    Macro,
 }
 
 impl ObjectKind {
@@ -60,6 +63,7 @@ impl ObjectKind {
             ObjectKind::Query => "query",
             ObjectKind::Form => "form",
             ObjectKind::Report => "report",
+            ObjectKind::Macro => "macro",
         }
     }
 }
@@ -109,6 +113,7 @@ mod tests {
         assert_eq!(ObjectKind::Query.slug(), "query");
         assert_eq!(ObjectKind::Form.slug(), "form");
         assert_eq!(ObjectKind::Report.slug(), "report");
+        assert_eq!(ObjectKind::Macro.slug(), "macro");
     }
 
     proptest! {

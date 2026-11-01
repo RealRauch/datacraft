@@ -23,7 +23,11 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         ui.label("No database open");
         return;
     };
-    if db.tables.is_empty() && db.forms.is_empty() && db.reports.is_empty() && db.queries.is_empty()
+    if db.tables.is_empty()
+        && db.forms.is_empty()
+        && db.reports.is_empty()
+        && db.queries.is_empty()
+        && db.macros.is_empty()
     {
         ui.label("No objects");
         return;
@@ -53,10 +57,11 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                                 if ui.selectable_label(is_active, &name).clicked() {
                                     intent = Some((kind, name.clone()));
                                 }
-                                if ui
-                                    .small_button("✕")
-                                    .on_hover_text(format!("Delete {name}"))
-                                    .clicked()
+                                if deletable(kind)
+                                    && ui
+                                        .small_button("✕")
+                                        .on_hover_text(format!("Delete {name}"))
+                                        .clicked()
                                 {
                                     delete_intent = Some((kind, name));
                                 }
@@ -94,6 +99,13 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 .map(|r| (r.name.clone(), datacraft_core::ObjectKind::Report))
                 .collect(),
         );
+        section(
+            "Macros",
+            db.macros
+                .iter()
+                .map(|m| (m.name.clone(), datacraft_core::ObjectKind::Macro))
+                .collect(),
+        );
     });
     if let Some((kind, name)) = delete_intent {
         app.delete_object(kind, &name);
@@ -111,4 +123,9 @@ fn active_object_name(
     tabs.iter()
         .find(|tab| tab.id == active)
         .map(|tab| tab.object_name.clone())
+}
+
+/// Macros are a read-only inventory (step 17.1): no delete affordance.
+fn deletable(kind: datacraft_core::ObjectKind) -> bool {
+    !matches!(kind, datacraft_core::ObjectKind::Macro)
 }

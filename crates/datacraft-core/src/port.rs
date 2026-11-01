@@ -276,6 +276,11 @@ pub trait StoragePort {
     fn native_queries(&self) -> Result<Vec<NativeQuery>, PortError> {
         Ok(Vec::new())
     }
+    /// Named macros of the open database (step 17.1, L4). Backends without
+    /// macros return an empty list; definitions are read-only.
+    fn macros(&self) -> Result<Vec<crate::macro_def::MacroDef>, PortError> {
+        Ok(Vec::new())
+    }
 }
 
 /// One row operation of a batch write (the journal's port vocabulary).

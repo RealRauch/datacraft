@@ -44,12 +44,13 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                         if ui.selectable_label(is_active, &tab.object_name).clicked() {
                             intent = Some(WorkspaceIntent::Activate(tab.id));
                         }
-                        if ui
-                            .small_button(match app.tab_mode(tab.id) {
-                                TabMode::Datasheet => "Design",
-                                TabMode::Design => "Data",
-                            })
-                            .clicked()
+                        if has_view_toggle(&tab.object_kind)
+                            && ui
+                                .small_button(match app.tab_mode(tab.id) {
+                                    TabMode::Datasheet => "Design",
+                                    TabMode::Design => "Data",
+                                })
+                                .clicked()
                         {
                             toggled = Some(tab.id);
                         }
@@ -87,6 +88,9 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                 TabMode::Datasheet => crate::datasheet::query_results_ui(app, &tab, ui),
                 TabMode::Design => crate::qbe::qbe_ui(app, &tab, ui),
             },
+            Some(tab) if tab.object_kind == "macro" => {
+                crate::macro_viewer::macro_viewer_ui(app, &tab, ui);
+            }
             Some(tab) => match app.tab_mode(tab.id) {
                 TabMode::Datasheet => crate::datasheet::datasheet_ui(app, &tab, ui),
                 TabMode::Design => crate::design::design_ui(app, &tab, ui),
@@ -101,6 +105,12 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
 enum WorkspaceIntent {
     Activate(TabId),
     Close(TabId),
+}
+
+/// Read-only viewers (macro inventory, later the VBA source) have no
+/// datasheet/design split.
+fn has_view_toggle(object_kind: &str) -> bool {
+    matches!(object_kind, "table" | "query" | "form" | "report")
 }
 
 fn apply(app: &mut App, intent: WorkspaceIntent) {

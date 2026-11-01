@@ -197,6 +197,8 @@ fn the_status_line_names_the_ace_format() {
         forms: Vec::new(),
         reports: Vec::new(),
         native_queries: Vec::new(),
+        macros: Vec::new(),
+        macros_error: None,
     });
     let snapshot = datacraft_core::snapshot::UiStateSnapshot::of(&state);
     assert_eq!(status_line(&snapshot, None), "shop (ACE) — 0 tables");

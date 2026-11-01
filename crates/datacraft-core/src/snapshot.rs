@@ -49,6 +49,23 @@ pub struct DatabaseSnapshot {
     pub forms: Vec<crate::form::FormDef>,
     /// Report design documents in creation order (step 10.4, H31).
     pub reports: Vec<crate::report::ReportDef>,
+    /// Named macros in catalog order (step 17.1, L4; read-only inventory).
+    pub macros: Vec<MacroEntrySnapshot>,
+    /// Why the macro inventory could not be decoded, if it failed.
+    pub macros_error: Option<String>,
+}
+
+/// One macro in the snapshot (navigation pane entry and viewer input).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MacroEntrySnapshot {
+    /// Macro name as shown in the navigation pane.
+    pub name: String,
+    /// `navpane.<expanded|collapsed>.node.macro.<name>`.
+    pub ui_test_id: String,
+    /// Readable definition arguments in storage order.
+    pub actions: Vec<crate::macro_def::MacroAction>,
+    /// Whether the definition blob was decoded.
+    pub definition_decoded: bool,
 }
 
 /// One query in the snapshot.
@@ -112,6 +129,20 @@ impl UiStateSnapshot {
                 relationships: db.relationships.clone(),
                 forms: db.forms.clone(),
                 reports: db.reports.clone(),
+                macros: db
+                    .macros
+                    .iter()
+                    .map(|macro_def| MacroEntrySnapshot {
+                        name: macro_def.name.clone(),
+                        ui_test_id: state.nav_pane_test_id(&crate::ObjectId::new(
+                            crate::ObjectKind::Macro,
+                            &macro_def.name,
+                        )),
+                        actions: macro_def.actions.clone(),
+                        definition_decoded: macro_def.definition_decoded,
+                    })
+                    .collect(),
+                macros_error: db.macros_error.clone(),
                 queries: db
                     .queries
                     .iter()

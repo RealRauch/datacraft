@@ -285,6 +285,10 @@ impl Core {
                 .reports
                 .iter()
                 .any(|r| r.name.to_lowercase() == object.name.to_lowercase()),
+            ObjectKind::Macro => db
+                .macros
+                .iter()
+                .any(|m| m.name.eq_ignore_ascii_case(&object.name)),
         };
         if !exists {
             return failed(PortError::TableNotFound(object.name).to_string());

@@ -81,6 +81,7 @@ fn the_access_storage_tree_exposes_the_scripts_container_and_its_blobs() {
     let children = storage.children(scripts.id);
     let blobs: Vec<&str> = children
         .iter()
+        .flat_map(|child| storage.children(child.id))
         .filter(|child| child.is_stream())
         .map(|child| child.name.as_str())
         .collect();

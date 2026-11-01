@@ -137,6 +137,14 @@ impl StoragePort for DetectingPort {
             None => Ok(Vec::new()),
         }
     }
+
+    fn macros(&self) -> Result<Vec<datacraft_core::macro_def::MacroDef>, PortError> {
+        match &self.backend {
+            Some(Backend::Jet(port)) => port.macros(),
+            // SQLite has no macro concept; the core sees an empty inventory.
+            Some(Backend::Sqlite(_)) | None => Ok(Vec::new()),
+        }
+    }
 }
 
 /// The two recognized header families.

@@ -46,6 +46,8 @@ pub struct Jet4Port {
     pages: Vec<(String, u32)>,
     /// Complex-column mapping (`MSysComplexColumns`); empty for Jet4.
     complex: ComplexCatalog,
+    /// Named macros read at open (step 17.1, L4; read-only).
+    macros: Vec<datacraft_core::macro_def::MacroDef>,
     path: Option<PathBuf>,
 }
 
@@ -70,6 +72,20 @@ impl StoragePort for Jet4Port {
         };
         let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
         let entries = collect_tables(&reader, &complex)?;
+        let macros = reader
+            .macros()
+            .map_err(map_open)?
+            .into_iter()
+            .map(|stored| datacraft_core::macro_def::MacroDef {
+                name: stored.name,
+                actions: stored
+                    .arguments
+                    .into_iter()
+                    .map(|argument| datacraft_core::macro_def::MacroAction { argument })
+                    .collect(),
+                definition_decoded: stored.definition_decoded,
+            })
+            .collect();
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
@@ -80,6 +96,7 @@ impl StoragePort for Jet4Port {
             .map(|(def, page)| (def.name, page))
             .collect();
         self.complex = complex;
+        self.macros = macros;
         self.reader = Some(reader);
         self.path = Some(path.to_path_buf());
         Ok(OpenedDatabase { name, format })
@@ -90,6 +107,7 @@ impl StoragePort for Jet4Port {
         self.tables.clear();
         self.pages.clear();
         self.complex = ComplexCatalog::default();
+        self.macros.clear();
         self.path = None;
     }
 
@@ -120,6 +138,10 @@ impl StoragePort for Jet4Port {
         Ok(crate::port_native::to_core(
             reader.native_queries().map_err(map_open)?,
         ))
+    }
+
+    fn macros(&self) -> Result<Vec<datacraft_core::macro_def::MacroDef>, PortError> {
+        Ok(self.macros.clone())
     }
 
     fn relationships(&self) -> Result<Vec<datacraft_core::port::Relationship>, PortError> {

@@ -59,10 +59,7 @@ fn the_snapshot_exposes_the_macro_inventory_with_nav_pane_test_ids() {
     assert_eq!(database.macros.len(), 2);
     assert_eq!(database.macros[0].name, "AutoExec");
     assert_eq!(database.macros[0].actions.len(), 2);
-    assert_eq!(
-        database.macros[0].actions[1].argument,
-        "Startup Screen"
-    );
+    assert_eq!(database.macros[0].actions[1].argument, "Startup Screen");
     assert!(database.macros[0].definition_decoded);
     assert_eq!(database.macros[1].name, "Delete All Data");
     assert_eq!(
@@ -78,7 +75,10 @@ fn macros_open_read_only_tabs_and_unknown_macros_fail_precisely() {
         ObjectKind::Macro,
         "AutoExec",
     )));
-    let [Event::TabOpened { object, .. }, Event::ActiveTabChanged { .. }] = events.as_slice()
+    let [
+        Event::TabOpened { object, .. },
+        Event::ActiveTabChanged { .. },
+    ] = events.as_slice()
     else {
         panic!("expected tab open pair, got {events:?}");
     };

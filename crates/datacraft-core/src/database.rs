@@ -34,6 +34,12 @@ impl crate::core::Core {
                 let name = opened.name.clone();
                 let format = opened.format;
                 let relationships = self.port.relationships().unwrap_or_default();
+                let (macros, macros_error) = match self.port.macros() {
+                    Ok(macros) => (macros, None),
+                    // Observable degradation, never a silent drop: the
+                    // snapshot carries the precise reason.
+                    Err(error) => (Vec::new(), Some(error.to_string())),
+                };
                 self.state.sql_result = None;
                 self.state.expression_result = None;
                 self.state.database = Some(DatabaseState {
@@ -46,6 +52,8 @@ impl crate::core::Core {
                     forms: Vec::new(),
                     reports: Vec::new(),
                     native_queries: self.port.native_queries().unwrap_or_default(),
+                    macros,
+                    macros_error,
                 });
                 vec![Event::DatabaseOpened { name, format }]
             }
