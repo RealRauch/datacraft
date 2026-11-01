@@ -12,20 +12,27 @@ use datacraft_core::command::Command;
 use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
 use crate::app::App;
+use crate::theme::INK_SOFT;
 
-/// Renders the ribbon (tab strip + active tab's groups).
+/// Renders the ribbon in Access structure (step 12.2): a tab strip row on
+/// top, the active tab's command groups below — each group carries its
+/// caption at the bottom and groups are separated by hairlines. Pure
+/// paint: intents are collected during paint and dispatched once.
 pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     let spec = ribbon_spec();
 
+    // Tab strip row: the active tab reads as a teal selection.
     ui.horizontal(|ui| {
+        ui.add_space(2.0);
         for tab in &spec.tabs {
             let selected = app.active_ribbon_tab == tab.id;
-            if ui.selectable_label(selected, tab.label).clicked() {
+            let label = egui::RichText::new(tab.label).strong();
+            if ui.selectable_label(selected, label).clicked() {
                 app.active_ribbon_tab = tab.id;
             }
         }
     });
-    ui.separator();
+    ui.add(egui::Separator::default().horizontal());
 
     let Some(tab) = spec
         .tabs
@@ -37,39 +44,51 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     };
     let mut intent: Option<Command> = None;
     ui.horizontal(|ui| {
+        ui.add_space(4.0);
         for group in &tab.groups {
+            // Group: actions flow horizontally, the caption sits centred
+            // at the bottom (the Access ribbon convention).
             ui.vertical(|ui| {
                 ui.set_min_width(120.0);
-                for action in &group.actions {
-                    let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
-                    ui.push_id(id, |ui| match &action.state {
-                        ActionState::Enabled => {
-                            if action.id == "open_database" {
-                                ui.horizontal(|ui| {
-                                    ui.add(
-                                        egui::TextEdit::singleline(&mut app.open_path)
-                                            .desired_width(180.0)
-                                            .hint_text("path to .mdb"),
-                                    );
-                                    if ui.button(action.label).clicked() {
-                                        intent = Some(Command::OpenDatabase {
-                                            path: app.open_path.clone().into(),
-                                        });
-                                    }
-                                });
-                            } else if ui.button(action.label).clicked()
-                                && let Some(command) = command_for(action.id, app)
-                            {
-                                intent = Some(command);
+                ui.add_space(2.0);
+                ui.horizontal(|ui| {
+                    for action in &group.actions {
+                        let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
+                        ui.push_id(id, |ui| match &action.state {
+                            ActionState::Enabled => {
+                                if action.id == "open_database" {
+                                    ui.horizontal(|ui| {
+                                        ui.add(
+                                            egui::TextEdit::singleline(&mut app.open_path)
+                                                .desired_width(180.0)
+                                                .hint_text("path to .mdb"),
+                                        );
+                                        if ribbon_button(ui, action.label) {
+                                            intent = Some(Command::OpenDatabase {
+                                                path: app.open_path.clone().into(),
+                                            });
+                                        }
+                                    });
+                                } else if ribbon_button(ui, action.label)
+                                    && let Some(command) = command_for(action.id, app)
+                                {
+                                    intent = Some(command);
+                                }
                             }
-                        }
-                        ActionState::DisabledIn { phase } => {
-                            ui.add_enabled(false, egui::Button::new(action.label))
-                                .on_disabled_hover_text(format!("arrives in {phase}"));
-                        }
-                    });
-                }
-                ui.label(egui::RichText::new(group.label).small());
+                            ActionState::DisabledIn { phase } => {
+                                ui.add_enabled(false, ribbon_button_shape(action.label))
+                                    .on_disabled_hover_text(format!("arrives in {phase}"));
+                            }
+                        });
+                    }
+                });
+                ui.add_space(1.0);
+                ui.with_layout(
+                    egui::Layout::top_down_justified(egui::Align::Center),
+                    |ui| {
+                        ui.label(egui::RichText::new(group.label).small().color(INK_SOFT));
+                    },
+                );
             });
             ui.separator();
         }
@@ -77,6 +96,16 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     if let Some(command) = intent {
         app.dispatch(command);
     }
+}
+
+/// An Access-sized command button (comfortable hit target).
+fn ribbon_button(ui: &mut egui::Ui, label: &str) -> bool {
+    ui.add(ribbon_button_shape(label)).clicked()
+}
+
+fn ribbon_button_shape(label: &str) -> egui::Button<'static> {
+    egui::Button::new(egui::RichText::new(label.to_owned()).strong())
+        .min_size(egui::vec2(0.0, 28.0))
 }
 
 /// Maps a static ribbon action onto its command. `None` for the

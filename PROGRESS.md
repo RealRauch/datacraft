@@ -109,8 +109,8 @@
 | 11.7 | Datasheet: Neue-Zeile | ⬜ |
 | 11.8 | Sidecar-UI + Aufräumen + access_gate-Beispiel | ⬜ |
 | 11.9 | Phase 11 Quality Gate Review | ⬜ |
-| 12.1 | Theme-Modul: ArtCraft-Palette + egui Visuals | 🔄 |
-| 12.2 | Ribbon: Access-Struktur (Tab-Zeile, Gruppen-Captions, Trenner) | ⬜ |
+| 12.1 | Theme-Modul: ArtCraft-Palette + egui Visuals | ✅ |
+| 12.2 | Ribbon: Access-Struktur (Tab-Zeile, Gruppen-Captions, Trenner) | 🔄 |
 | 12.3 | Nav-Pane: Collapsing-Gruppen im Access-Stil | ⬜ |
 | 12.4 | Status-Leiste: Kontext + Record-Navigation (core-seitig) | ⬜ |
 | 12.5 | Datasheet im Icon-Look (Teal-Header, Zeilenselektor) | ⬜ |

@@ -1,8 +1,10 @@
-//! Navigation pane rendering (step 5.3, item H19).
+//! Navigation pane rendering (step 5.3, item H19; Access fidelity 12.3).
 //!
-//! Fully snapshot-driven: tables come from `UiStateSnapshot` with their
+//! Fully snapshot-driven: objects come from `UiStateSnapshot` with their
 //! convention test ids (`navpane.<expanded|collapsed>.node.<kind>.<name>`)
-//! used as egui id salts; a click dispatches `OpenObject`. No hidden state.
+//! used as egui id salts; a click dispatches `OpenObject`. Sections render
+//! as collapsible groups in the Access order (Tables, Queries, Forms,
+//! Reports). No hidden state.
 
 use eframe::egui;
 
@@ -21,7 +23,8 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         ui.label("No database open");
         return;
     };
-    if db.tables.is_empty() {
+    if db.tables.is_empty() && db.forms.is_empty() && db.reports.is_empty() && db.queries.is_empty()
+    {
         ui.label("No objects");
         return;
     }
@@ -31,56 +34,56 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
 
     let mut intent: Option<(datacraft_core::ObjectKind, String)> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
-        ui.weak("Tables");
-        for table in &db.tables {
-            ui.push_id(&table.ui_test_id, |ui| {
-                let is_active = active_object
-                    .as_deref()
-                    .is_some_and(|name| name.eq_ignore_ascii_case(&table.name));
-                if ui.selectable_label(is_active, &table.name).clicked() {
-                    intent = Some((datacraft_core::ObjectKind::Table, table.name.clone()));
-                }
-            });
-        }
-        if !db.forms.is_empty() {
-            ui.weak("Forms");
-            for form in &db.forms {
-                ui.push_id(&form.name, |ui| {
-                    let is_active = active_object
-                        .as_deref()
-                        .is_some_and(|name| name.eq_ignore_ascii_case(&form.name));
-                    if ui.selectable_label(is_active, &form.name).clicked() {
-                        intent = Some((datacraft_core::ObjectKind::Form, form.name.clone()));
+        // Section: a collapsible group whose entries open on click. The
+        // header carries the Access object-group names.
+        let mut section = |header: &str, entries: Vec<(String, datacraft_core::ObjectKind)>| {
+            if entries.is_empty() {
+                return;
+            }
+            egui::CollapsingHeader::new(egui::RichText::new(header).strong())
+                .default_open(true)
+                .show(ui, |ui| {
+                    for (name, kind) in entries {
+                        ui.push_id(format!("nav.{header}.{name}"), |ui| {
+                            let is_active = active_object
+                                .as_deref()
+                                .is_some_and(|active| active.eq_ignore_ascii_case(&name));
+                            if ui.selectable_label(is_active, &name).clicked() {
+                                intent = Some((kind, name));
+                            }
+                        });
                     }
                 });
-            }
-        }
-        if !db.reports.is_empty() {
-            ui.weak("Reports");
-            for report in &db.reports {
-                ui.push_id(&report.name, |ui| {
-                    let is_active = active_object
-                        .as_deref()
-                        .is_some_and(|name| name.eq_ignore_ascii_case(&report.name));
-                    if ui.selectable_label(is_active, &report.name).clicked() {
-                        intent = Some((datacraft_core::ObjectKind::Report, report.name.clone()));
-                    }
-                });
-            }
-        }
-        if !db.queries.is_empty() {
-            ui.weak("Queries");
-            for query in &db.queries {
-                ui.push_id(&query.ui_test_id, |ui| {
-                    let is_active = active_object
-                        .as_deref()
-                        .is_some_and(|name| name.eq_ignore_ascii_case(&query.name));
-                    if ui.selectable_label(is_active, &query.name).clicked() {
-                        intent = Some((datacraft_core::ObjectKind::Query, query.name.clone()));
-                    }
-                });
-            }
-        }
+        };
+
+        section(
+            "Tables",
+            db.tables
+                .iter()
+                .map(|t| (t.name.clone(), datacraft_core::ObjectKind::Table))
+                .collect(),
+        );
+        section(
+            "Queries",
+            db.queries
+                .iter()
+                .map(|q| (q.name.clone(), datacraft_core::ObjectKind::Query))
+                .collect(),
+        );
+        section(
+            "Forms",
+            db.forms
+                .iter()
+                .map(|f| (f.name.clone(), datacraft_core::ObjectKind::Form))
+                .collect(),
+        );
+        section(
+            "Reports",
+            db.reports
+                .iter()
+                .map(|r| (r.name.clone(), datacraft_core::ObjectKind::Report))
+                .collect(),
+        );
     });
     if let Some((kind, name)) = intent {
         app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
