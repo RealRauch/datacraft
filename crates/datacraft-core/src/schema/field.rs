@@ -179,6 +179,9 @@ pub enum FieldKind {
     },
     /// Binary data (OLE object or attachment).
     Binary(BinaryKind),
+    /// 16-byte replication identifier (plain GUID field; AutoNumbers with
+    /// GUIDs are `AutoNumber(ReplicationId)` instead).
+    Guid,
 }
 
 impl FieldKind {
@@ -198,6 +201,7 @@ impl FieldKind {
             Self::AutoNumber(_) => "autonumber",
             Self::Boolean { .. } => "boolean",
             Self::Binary(_) => "binary",
+            Self::Guid => "guid",
         }
     }
 
@@ -281,6 +285,10 @@ impl FieldKind {
                 FieldValue::Binary(_) => Ok(()),
                 _ => Err(mismatch()),
             },
+            Self::Guid => match value {
+                FieldValue::Guid(_) => Ok(()),
+                _ => Err(mismatch()),
+            },
         }
     }
 }
@@ -334,6 +342,7 @@ mod tests {
                 FieldKind::Binary(BinaryKind::OleObject),
                 FieldValue::Text("x".into()),
             ),
+            (FieldKind::Guid, FieldValue::Integer(1)),
         ];
         for (kind, value) in cases {
             let err = kind
