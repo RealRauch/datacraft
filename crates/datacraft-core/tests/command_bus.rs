@@ -465,3 +465,24 @@ fn port_error_displays_are_precise() {
     };
     assert!(unsupported.to_string().contains("encrypted"));
 }
+
+#[test]
+fn the_relationship_mapper_toggles_observably() {
+    let mut core = core();
+    assert_eq!(
+        core.dispatch(Command::ToggleRelationshipMapper),
+        vec![Event::RelationshipMapperToggled { open: true }]
+    );
+    assert_eq!(
+        core.dispatch(Command::ToggleRelationshipMapper),
+        vec![Event::RelationshipMapperToggled { open: false }]
+    );
+}
+
+#[test]
+fn closing_the_database_closes_the_relationship_mapper() {
+    let mut core = opened_core();
+    core.dispatch(Command::ToggleRelationshipMapper);
+    core.dispatch(Command::CloseDatabase);
+    assert!(!core.state().relationship_mapper_open);
+}

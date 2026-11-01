@@ -7,10 +7,11 @@
 
 use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
-const DISPATCHABLE_ACTIONS: [&str; 3] = [
+const DISPATCHABLE_ACTIONS: [&str; 4] = [
     "ribbon.file.open.open_database",
     "ribbon.file.database.close_database",
     "ribbon.home.view.toggle_nav_pane",
+    "ribbon.database_tools.relationships.relationships",
 ];
 
 #[test]

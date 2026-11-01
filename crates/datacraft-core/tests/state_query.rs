@@ -201,7 +201,9 @@ fn table_entries_carry_their_field_names() {
 fn snapshot_carries_field_properties() {
     let mut core = opened_with_customers();
     // name field gains a caption and an index for the design view.
-    core.dispatch(Command::DropTable { table: "Customers".into() });
+    core.dispatch(Command::DropTable {
+        table: "Customers".into(),
+    });
     let mut name = datacraft_core::schema::FieldDef::new(
         "name",
         datacraft_core::schema::FieldKind::Text { max_len: 50 },
@@ -224,6 +226,16 @@ fn snapshot_carries_field_properties() {
     });
     let field = &core.inspect().database.unwrap().tables[0].fields[1];
     assert_eq!(field.properties.caption.as_deref(), Some("Customer name"));
-    assert_eq!(field.properties.indexed, datacraft_core::schema::IndexMode::NoDuplicates);
+    assert_eq!(
+        field.properties.indexed,
+        datacraft_core::schema::IndexMode::NoDuplicates
+    );
     assert!(!field.properties.required);
+}
+
+#[test]
+fn the_snapshot_carries_the_relationship_mapper_state() {
+    let mut core = core();
+    core.dispatch(Command::ToggleRelationshipMapper);
+    assert!(core.inspect().relationship_mapper_open);
 }
