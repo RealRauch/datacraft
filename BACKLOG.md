@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T03:33
+# BACKLOG.md — Open items (As of: 2026-11-01T04:17
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -25,6 +25,11 @@
 - **Location:** `datacraft-storage/src/jet/` (writer), post-Phase-4 workstream
 - **Scope:** Jet4 write milestone from ARCHITECTURE §6 (create tables, insert/update rows, usage-map allocation, index maintenance deferred). UI write commands route to `InMemoryEngine` until this lands; then the `Jet4Backend` gains write capability. Bit-for-bit goal: writes must open without repair prompts in MS Access — proven by golden round-trips + oracle.
 - **Acceptance:** Access opens written files without repair; decode(encode(decode(x))) == decode(x) over fixtures; write-path coverage >= gate.
+
+### [ ] H31 — Report canvas — print layout and preview — 🟠
+- **Location:** `datacraft-core/src/form.rs` (ReportDef sharing the canvas), `datacraft-ui/src/report_design.rs`
+- **Scope:** Report canvas: ReportDef shares the ControlKind canvas (page geometry instead of form size, print-oriented defaults); report design + print preview runtime; grouped/aggregate printing lands after the expression service (M1). Deferred from Phase 8 (forms landed first; the canvas math, palette and sidecar persistence are shared and already proven).
+- **Acceptance:** A report design persists in the sidecar, renders a print-preview runtime over source rows, and passes the canonical verification set.
 
 ---
 
@@ -97,3 +102,6 @@
 - H25 — Relationship mapper pane — port relationships and canvas — done (step 7.1 (feat a7e2a6f))
 - H26 — QBE grid — query model, commands, sidecar persistence — done (step 7.2 (feat 7cb66ba))
 - H27 — Query engine integration — predicates, execution, result view — done (step 7.3 (feat ec62b7b))
+- H28 — WYSIWYG canvas — snap-to-grid math and form skeleton — done (step 8.1 (feat 414499e))
+- H29 — Access control types — palette, placement commands, drag — done (step 8.2 (feat e959928))
+- H30 — Form runtime — data binding, record navigation, sidecar file IO — done (step 8.3 (feat 7a189b8); report canvas deferred as H31)

@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 8 — Form & Report Canvas
-
-**Scope (Steps):**
-
-- **8.1 WYSIWYG Canvas & Snap-to-Grid**
-- **8.2 Access Control Types**
-- **8.3 Form Runtime & Data Binding**
-- **8.4 Phase 8 Quality Gate Review**
 ### Phase 9 — MCP Endpoint & Automation
 
 **Scope (Steps):**
@@ -72,10 +64,10 @@
 | 7.2 | QBE Grid | ✅ |
 | 7.3 | Query Engine Integration | ✅ |
 | 7.4 | Phase 7 Quality Gate Review | ✅ |
-| 8.1 | WYSIWYG Canvas & Snap-to-Grid | ⬜ |
-| 8.2 | Access Control Types | ⬜ |
-| 8.3 | Form Runtime & Data Binding | ⬜ |
-| 8.4 | Phase 8 Quality Gate Review | ⬜ |
+| 8.1 | WYSIWYG Canvas & Snap-to-Grid | ✅ |
+| 8.2 | Access Control Types | ✅ |
+| 8.3 | Form Runtime & Data Binding | ✅ |
+| 8.4 | Phase 8 Quality Gate Review | ✅ |
 | 9.1 | MCP/JSON-RPC Server Endpoint | ⬜ |
 | 9.2 | Headless E2E Test Harness | ⬜ |
 | 9.3 | Final Documentation & Release Prep | ⬜ |

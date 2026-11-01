@@ -262,3 +262,27 @@
 - **Scope:** In-memory query execution (decision default 7): criteria strings parse to predicates (comparison ops =/<>/< <=/> >= with typed literal coercion per column kind, plain value = equality); execution = read source rows through the port, filter (AND across columns, OR within a column's criteria), project shown columns, sort by sort columns (stable, asc/desc); identifier whitelist enforced at parse (unknown field/operator -> precise error). `Core::run_query(name) -> Result<QueryResult, PortError-ish>`; Command::RunQuery validates and emits QueryRan { rows }; query tabs render results as a datasheet-style grid (test ids result.<query>.cell.<row>.<col>).
 - **Acceptance:** Engine contract tests (typed comparisons incl. text/number coercion errors, AND/OR composition, projection, asc/desc stable sort, empty result, unknown identifiers); RunQuery observability; canonical verification set green.
 - **Done:** step 7.3 (feat ec62b7b)
+
+---
+
+### [x] H28 — WYSIWYG canvas — snap-to-grid math and form skeleton — 🟠
+- **Location:** `datacraft-core/src/canvas.rs` (snap/rect math), `datacraft-core/src/form.rs` (FormDef skeleton), sidecar (forms field), `datacraft-ui/src/form_design.rs`
+- **Scope:** WYSIWYG canvas foundation: pure snap-to-grid and rect math (snap coordinates, rect hit-testing, containment/bounds), FormDef skeleton (name + grid size + empty controls) in the state/snapshot/sidecar (serde-default additive v1), Command::CreateForm (+ DeleteForm), design canvas UI painting the form frame, grid dots and control placeholders with drag-to-place using the snap math (exact placement lands with 8.2's control kinds). Reports share the canvas; the report-specific print layout is deferred (separate item).
+- **Acceptance:** Snap/rect contract tests incl. proptests (snap is idempotent, hit-test inverse); form persistence round-trips; CreateForm observable in events/snapshot; canonical verification set green.
+- **Done:** step 8.1 (feat 414499e)
+
+---
+
+### [x] H29 — Access control types — palette, placement commands, drag — 🟠
+- **Location:** `datacraft-core/src/form.rs` (ControlKind palette), `datacraft-core/src/core.rs` (AddFormControl/SetFormControlRect/DeleteFormControl), `datacraft-ui/src/form_design.rs` (drag/resize)
+- **Scope:** Access control palette: Label{text}, TextBox{bound_field: Option<String>}, CheckBox{bound_field}, ComboBox{bound_field, items?}, Button{caption}, SubForm{form}; ControlDef display names (present::control_kind_display); commands add/delete controls and move/resize them (rects snapped at dispatch, bounds-checked against the canvas, names unique per form); the design canvas renders real controls with topmost-selection and pointer drag dispatching SetFormControlRect with snapped geometry.
+- **Acceptance:** Command contract tests (add with unique-name/bounds checks, move/resize snapping, delete); palette display names; canvas drag dispatches snapped rects; canonical verification set green.
+- **Done:** step 8.2 (feat e959928)
+
+---
+
+### [x] H30 — Form runtime — data binding, record navigation, sidecar file IO — 🟠
+- **Location:** `datacraft-core/src/form.rs` (FormDef.source), `datacraft-core/src/forms.rs` (SetFormSource, binding validation), `datacraft-ui/src/form_runtime.rs` (view), sidecar save/load commands
+- **Scope:** Form runtime and data binding: FormDef gains a source table; Command::SetFormSource whitelists against the database; bound control fields validate against the source table (LESSONS #5) at bind time; the runtime view renders bound values for the current record with prev/next navigation (record index is UI state per tab) and a precise read-only note (edits land with H9); Command::SaveDesignDocument/LoadDesignDocument persist the sidecar to/from a real .datacraft file (all gates: version check on load, deterministic bytes). Report canvas (print layout) is deferred as its own item.
+- **Acceptance:** Binding whitelist tests (unknown source, unknown bound field), SetFormSource observable, runtime values verified via port rows through a mock, sidecar save/load round-trip through the filesystem incl. version gate, canonical verification set green.
+- **Done:** step 8.3 (feat 7a189b8); report canvas deferred as H31

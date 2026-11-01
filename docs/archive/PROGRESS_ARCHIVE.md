@@ -102,3 +102,15 @@
 - **7.3 Query Engine Integration**
 - **7.4 Phase 7 Quality Gate Review**
 **Verification:** Gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 24 sections ok, llvm-cov --fail-under-lines 95 exit 0, file-size gate OK (the 567-line query_engine was split into query_criteria + query_engine during 7.3), zero debt markers. Work sequential on main — no merge needed. LESSONS #5: every identifier reaching the engine passes the schema whitelist (table against database, fields against source table, criteria columns re-validated in the engine). H25-H27 archived. (checkpoint: ec62b7b)
+
+---
+
+### Phase 8 — Form & Report Canvas
+
+**Scope (Steps):**
+
+- **8.1 WYSIWYG Canvas & Snap-to-Grid**
+- **8.2 Access Control Types**
+- **8.3 Form Runtime & Data Binding**
+- **8.4 Phase 8 Quality Gate Review**
+**Verification:** Gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 27 sections ok, llvm-cov --fail-under-lines 95 exit 0, file-size gate OK (core.rs/forms.rs split during 8.2), zero debt markers. Work sequential on main — no merge needed. Scope decision: the report canvas is deferred to BACKLOG H31 (canvas math, palette and sidecar persistence are shared and proven; print layout + grouped/aggregate printing wait for the expression service M1). H28-H30 archived. (checkpoint: 7a189b8)

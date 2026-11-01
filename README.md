@@ -31,13 +31,16 @@ _By the ArtCraft team._
 </div>
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–7 are complete: the
+> **DataCraft is in early development.** Phases 1–8 are complete: the
 > pure-Rust storage engine core reads Jet4 `.mdb` files (cross-checked
 > against the libmdb oracle in CI), the headless command bus drives a
 > serializable snapshot with JSON-RPC support, the egui shell has the
 > Access layout with datasheets and a read-only design view, the
 > relationship mapper is live, and the QBE grid runs an in-memory query
-> engine (no SQL parser) with sortable, filterable results. Expect
+> engine (no SQL parser) with sortable, filterable results, and the
+> form designer/runtime places Access-style controls on a WYSIWYG canvas
+> with data binding and a versioned sidecar. Reports share the canvas
+> and land as a follow-up (BACKLOG H31). Expect
 > breaking changes. The honest, step-by-step picture lives in
 > [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md).
 
@@ -70,6 +73,7 @@ _By the ArtCraft team._
 | **Headless command bus** | Total reducer (`dispatch` → deterministic events, failures as `Failed` events), serializable `inspect()` snapshots, deterministic test IDs, JSON-RPC 2.0 codec with full error semantics — GUI and agents speak the same language |
 | **Desktop shell** | Four-region egui shell (spec-driven ribbon, snapshot-driven navigation pane with click-to-open, tabbed workspace with close/activate, status bar) — all strings and logic computed in core, paint code renders only |
 | **Datasheet & design view** | Real fixture databases open through the composition root; virtualized datasheet over cached rows with Access-style cell rendering; read-only design grid with Access type names and a full property sheet |
+| **Forms** | WYSIWYG designer with snap-to-grid drag, the Access toolbox palette (Label/Text Box/Check Box/Combo Box/Button/Subform), whitelisted data binding, runtime record navigation, and sidecar persistence (versioned .datacraft, database-name checked) |
 | **Relationships & QBE** | Relationship mapper window fed by MSysRelationships through the port; Access-style QBE grid (table/field/sort/show/criteria rows, schema-whitelisted, persisted in the sidecar); in-memory query engine with typed predicate coercion, AND/OR composition and stable multi-key sorts — no SQL parser |
 | **CI quality gates** | Coverage ≥ 95 % lines, every `.rs` file < 500 lines, zero `TODO`/`FIXME`/`HACK`/`XXX`, `rustfmt --check`, `clippy -D warnings`, test matrix on ubuntu-latest, windows-latest, macos-latest |
 | **Docs & process** | Architecture blueprint, Jet/ACE binary-format knowledge base, testing policy and the clean-room playbook |
@@ -131,7 +135,7 @@ Nine phases take DataCraft from skeleton to release:
 | 5 — UI Skeleton (egui) | app shell, ribbon, navigation pane, tabbed workspace | ✅ |
 | 6 — Datasheet & Design View | shared grid core, datasheet, table design view | ✅ |
 | 7 — QBE Query Builder | relationship mapper, QBE grid, query engine | ✅ |
-| 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime | ⬜ |
+| 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime | ✅ (reports: H31) |
 | 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep | ⬜ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
