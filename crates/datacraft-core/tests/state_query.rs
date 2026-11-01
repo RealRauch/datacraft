@@ -187,6 +187,10 @@ proptest! {
 fn table_entries_carry_their_field_names() {
     let snap = opened_with_customers().inspect();
     let db = snap.database.expect("database open");
-    let names: Vec<&str> = db.tables[0].fields.iter().map(|f| f.name.as_str()).collect();
+    let names: Vec<&str> = db.tables[0]
+        .fields
+        .iter()
+        .map(|f| f.name.as_str())
+        .collect();
     assert_eq!(names, ["id", "name"]);
 }

@@ -39,6 +39,13 @@ pub struct DatabaseSnapshot {
     pub tables: Vec<TableEntrySnapshot>,
 }
 
+/// One field of a table in the snapshot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FieldSnapshot {
+    /// Field name.
+    pub name: String,
+}
+
 /// One table in the snapshot (navigation pane entry).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TableEntrySnapshot {
@@ -46,6 +53,8 @@ pub struct TableEntrySnapshot {
     pub name: String,
     /// `navpane.<expanded|collapsed>.<ObjectId::ui_test_id()>`.
     pub ui_test_id: String,
+    /// Fields in storage order (datasheet headers render from this).
+    pub fields: Vec<FieldSnapshot>,
 }
 
 /// Snapshot of one open tab.
@@ -78,6 +87,13 @@ impl UiStateSnapshot {
                             crate::ObjectKind::Table,
                             &t.name,
                         )),
+                        fields: t
+                            .fields
+                            .iter()
+                            .map(|f| FieldSnapshot {
+                                name: f.name.clone(),
+                            })
+                            .collect(),
                     })
                     .collect(),
             }),

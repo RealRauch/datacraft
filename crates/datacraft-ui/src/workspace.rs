@@ -9,10 +9,8 @@
 
 use eframe::egui;
 
-use datacraft_core::ObjectKind;
 use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
-use datacraft_core::present::tab_placeholder;
 
 use crate::app::App;
 
@@ -58,14 +56,16 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
 
     // Central area renders the post-dispatch snapshot (immediate feedback).
     egui::CentralPanel::default().show(ui, |ui| {
-        let snapshot = app.snapshot();
+        let snapshot = app.snapshot().clone();
         let active = snapshot
             .active_tab
-            .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id));
-        ui.centered_and_justified(|ui| match active {
-            Some(tab) => ui.label(tab_placeholder(kind_of(&tab.object_kind), &tab.object_name)),
-            None => ui.weak("Select a tab"),
-        });
+            .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id).cloned());
+        match active {
+            Some(tab) => crate::datasheet::datasheet_ui(app, &tab, ui),
+            None => {
+                ui.centered_and_justified(|ui| ui.weak("Select a tab"));
+            }
+        }
     });
 }
 
@@ -78,16 +78,5 @@ fn apply(app: &mut App, intent: WorkspaceIntent) {
     match intent {
         WorkspaceIntent::Activate(tab_id) => app.dispatch(Command::SetActiveTab { tab_id }),
         WorkspaceIntent::Close(tab_id) => app.dispatch(Command::CloseTab { tab_id }),
-    }
-}
-
-/// Maps a snapshot kind slug back onto the domain kind (tabs hold slugs for
-/// serializable snapshots).
-fn kind_of(slug: &str) -> ObjectKind {
-    match slug {
-        "query" => ObjectKind::Query,
-        "form" => ObjectKind::Form,
-        "report" => ObjectKind::Report,
-        _ => ObjectKind::Table,
     }
 }

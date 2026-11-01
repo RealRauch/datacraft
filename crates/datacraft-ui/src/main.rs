@@ -10,6 +10,7 @@
 //! (exception registry in `docs/TESTING.md`).
 
 mod app;
+mod datasheet;
 mod nav_pane;
 mod ribbon;
 mod workspace;
@@ -49,7 +50,11 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "DataCraft",
         options,
-        Box::new(|_cc| Ok(Box::new(App::new()))),
+        Box::new(|_cc| {
+            Ok(Box::new(App::new(Box::new(
+                datacraft_storage::port_adapter::Jet4Port::new(),
+            ))))
+        }),
     )
 }
 
@@ -67,7 +72,7 @@ mod tests {
 
     #[test]
     fn app_starts_with_a_closed_visible_shell() {
-        let app = App::new();
+        let app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         assert!(app.snapshot().database.is_none());
         assert!(app.snapshot().nav_pane_visible);
         assert!(app.snapshot().tabs.is_empty());
@@ -75,7 +80,7 @@ mod tests {
 
     #[test]
     fn dispatch_refreshes_the_snapshot() {
-        let mut app = App::new();
+        let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
         app.dispatch(datacraft_core::command::Command::ToggleNavPane);
         assert!(!app.snapshot().nav_pane_visible);
         app.dispatch(datacraft_core::command::Command::ToggleNavPane);
