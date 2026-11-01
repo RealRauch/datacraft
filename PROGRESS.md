@@ -80,7 +80,7 @@
 | 9.3 | Final Documentation & Release Prep | ✅ |
 | 9.4 | CLI Client (Headless Transport) | ✅ |
 | 10.1 | Jet4 Writer Core & Usage-Map Allocation (h9) | ✅ |
-| 10.2 | Jet4 Create Tables & Write Rows (h9) | ⬜ |
+| 10.2 | Jet4 Create Tables & Write Rows (h9) | 🔄 |
 | 10.3 | Jet4 Writer Round-Trip Acceptance (h9) | ⬜ |
 | 10.4 | Report Canvas — Print Layout & Design (h31) | ⬜ |
 | 10.5 | Report Print Preview Runtime (h31) | ⬜ |
