@@ -9,21 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 11 — UI ausbauen: Write-Pfad & Objektflüsse
-
-**Scope (Steps):**
-
-- **11.1 Port Write-Through (insert_row, Jet4Port, port_write.rs)**
-- **11.2 Core: InsertRow-Command**
-- **11.3 Ribbon + Neue-Tabelle-Flow**
-- **11.4 Nav-Pane-Löschflüsse**
-- **11.5 QBE: Run + Criteria-Clear**
-- **11.6 Designer-Paletten + Quellen-Wahl**
-- **11.7 Datasheet: Neue-Zeile**
-- **11.8 Sidecar-UI + Aufräumen + access_gate-Beispiel**
-- **11.9 Phase 11 Quality Gate Review**
-- **11.10 Jet4 Update/Delete-Writes (H40)**
-- **11.11 Journaled Write-Profile (M2)**
 ### Phase 15 — Expression-Service & Saved Queries
 
 **Scope (Steps):**
@@ -138,7 +123,7 @@
 | 12.5 | Datasheet im Icon-Look (Teal-Header, Zeilenselektor) | ✅ |
 | 12.6 | Phase 12 Quality Gate Review | ✅ |
 | 11.10 | Jet4 Update/Delete-Writes (H40) | ✅ |
-| 11.11 | Journaled Write-Profile (M2) | ⬜ |
+| 11.11 | Journaled Write-Profile (M2) | ✅ |
 | 13.1 | SQLite-Datenquelle & Detection (H35) | ✅ |
 | 13.2 | SQLite-Writes & InsertRow-Command (H36) | ✅ |
 | 13.3 | SQL-Engine & UI-Fenster (H37) | ✅ |

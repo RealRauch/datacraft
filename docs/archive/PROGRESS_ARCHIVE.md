@@ -181,3 +181,22 @@
 - **14.2 ACCDB-Read-Pfad (H39)**
 - **14.3 Phase 14 Quality Gate Review**
 **Verification:** Quality gate passed: fmt, clippy -D warnings, 49 suites green, coverage 95.13%, file-size gate, fixture manifest 5/5 OK, docs_validate clean. Phase commits: aef9b8f (14.1), d6a3a66 (14.2), 976c062 (gate); ROADMAP M0 updated; complex f_ subtable interim documented on M4.
+
+---
+
+### Phase 11 — UI ausbauen: Write-Pfad & Objektflüsse
+
+**Scope (Steps):**
+
+- **11.1 Port Write-Through (insert_row, Jet4Port, port_write.rs)**
+- **11.2 Core: InsertRow-Command**
+- **11.3 Ribbon + Neue-Tabelle-Flow**
+- **11.4 Nav-Pane-Löschflüsse**
+- **11.5 QBE: Run + Criteria-Clear**
+- **11.6 Designer-Paletten + Quellen-Wahl**
+- **11.7 Datasheet: Neue-Zeile**
+- **11.8 Sidecar-UI + Aufräumen + access_gate-Beispiel**
+- **11.9 Phase 11 Quality Gate Review**
+- **11.10 Jet4 Update/Delete-Writes (H40)**
+- **11.11 Journaled Write-Profile (M2)**
+**Verification:** Journal in core: PreviewWrite diff + token, ApplyWrite with stale-preview re-validation and atomic StoragePort::write_row_ops (Jet: one writer session), RollbackWrite (inverse ops, deletes re-appended), DiscardWrite; write profile refuses attachment/GUID-AutoNumber precisely (M4/M8). 14 contract tests incl. JSON-RPC round trip. Verification: fmt, clippy -D warnings, cargo test --workspace (55 suites), llvm-cov 95.20% lines, file-size clean. (checkpoint dcb6852)
