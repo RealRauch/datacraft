@@ -8,7 +8,7 @@
 use datacraft_core::core::Core;
 use datacraft_core::port::MockPort;
 use datacraft_core::transport::handle_json;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 fn core() -> Core {
     Core::new(Box::new(MockPort::new()))
@@ -39,7 +39,10 @@ fn dispatch_returns_events_and_snapshot() {
     );
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 1);
-    assert_eq!(response["result"]["events"][0]["NavPaneToggled"]["visible"], false);
+    assert_eq!(
+        response["result"]["events"][0]["NavPaneToggled"]["visible"],
+        false
+    );
     assert_eq!(response["result"]["snapshot"]["nav_pane_visible"], false);
 }
 
@@ -66,10 +69,7 @@ fn dispatch_round_trip_opens_a_database() {
     let events = &response["result"]["events"];
     assert_eq!(events[0]["DatabaseOpened"]["name"], "shop");
     assert_eq!(events[0]["DatabaseOpened"]["format"], "jet4");
-    assert_eq!(
-        response["result"]["snapshot"]["database"]["name"],
-        "shop"
-    );
+    assert_eq!(response["result"]["snapshot"]["database"]["name"], "shop");
 }
 
 #[test]
@@ -83,25 +83,24 @@ fn application_failures_are_results_not_errors() {
         json!({"jsonrpc": "2.0", "id": 2, "method": "dispatch",
                "params": {"OpenObject": {"kind": "table", "name": "Customers"}}}),
     );
-    assert!(response.get("error").is_none(), "no transport error: {response}");
-    assert_eq!(
-        response["result"]["events"][0]["Failed"]["reason"]
-            .as_str()
-            .unwrap_or_default()
-            .to_lowercase()
-            .contains("no database"),
-        true,
-        "{response}"
+    assert!(
+        response.get("error").is_none(),
+        "no transport error: {response}"
+    );
+    let reason = response["result"]["events"][0]["Failed"]["reason"]
+        .as_str()
+        .unwrap_or_default()
+        .to_lowercase();
+    assert!(
+        reason.contains("no database"),
+        "reason must name the failure: {response}"
     );
 }
 
 #[test]
 fn notification_style_requests_without_id_are_rejected() {
     let mut core = core();
-    let response = response_of(
-        &mut core,
-        json!({"jsonrpc": "2.0", "method": "inspect"}),
-    );
+    let response = response_of(&mut core, json!({"jsonrpc": "2.0", "method": "inspect"}));
     assert_eq!(error_code(&response), -32600);
 }
 
@@ -138,7 +137,10 @@ fn missing_method_is_an_invalid_request() {
 #[test]
 fn batch_requests_are_rejected_by_the_stub() {
     let mut core = core();
-    let raw = handle_json(&mut core, "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"inspect\"}]");
+    let raw = handle_json(
+        &mut core,
+        "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"inspect\"}]",
+    );
     let response: Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(error_code(&response), -32600);
 }
