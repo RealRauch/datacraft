@@ -69,6 +69,10 @@ pub struct RibbonSpec {
     pub tabs: Vec<RibbonTab>,
     /// Contextual tabs, appended after `tabs` while their kind is active.
     pub contextual_tabs: Vec<ContextualTab>,
+    /// Quick Access Toolbar entries in render order (step 21.2, item U6).
+    /// Entries reuse ribbon action ids so both surfaces dispatch through the
+    /// same mapping.
+    pub quick_access: Vec<RibbonAction>,
 }
 
 /// The Views group shared by Home and every contextual tab: the Access
@@ -248,6 +252,27 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
         contextual_tab("query", "query_tools", "Query Tools"),
         contextual_tab("form", "form_tools", "Form Tools"),
         contextual_tab("report", "report_tools", "Report Tools"),
+    ],
+    quick_access: vec![
+        RibbonAction {
+            id: "save_design",
+            label: "Save",
+            state: ActionState::Enabled,
+        },
+        RibbonAction {
+            id: "undo",
+            label: "Undo",
+            state: ActionState::DisabledIn {
+                phase: "BACKLOG U14",
+            },
+        },
+        RibbonAction {
+            id: "redo",
+            label: "Redo",
+            state: ActionState::DisabledIn {
+                phase: "BACKLOG U14",
+            },
+        },
     ],
 });
 

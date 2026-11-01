@@ -38,6 +38,8 @@ pub fn paint(
         "close_database" => file::close_database(painter, rect, ink, accent),
         "save_design" => file::save_design(painter, rect, ink, accent),
         "load_design" => file::load_design(painter, rect, ink, accent),
+        "undo" => file::undo(painter, rect, ink, accent),
+        "redo" => file::redo(painter, rect, ink, accent),
         "toggle_nav_pane" => file::nav_pane(painter, rect, ink, accent),
         "import_file" => file::import_file(painter, rect, ink, accent),
         "table" => data::table(painter, rect, ink, accent),

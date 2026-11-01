@@ -133,6 +133,54 @@ pub(super) fn nav_pane(painter: &egui::Painter, rect: Rect, ink: Color32, accent
     );
 }
 
+/// Undo: an arrow curving back to the left (QAT, step 21.2).
+pub(super) fn undo(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {
+    polyline(
+        painter,
+        rect,
+        &[
+            (0.80, 0.76),
+            (0.76, 0.50),
+            (0.58, 0.32),
+            (0.34, 0.34),
+            (0.18, 0.50),
+        ],
+        Stroke::new(1.2, ink),
+        false,
+    );
+    polyline(
+        painter,
+        rect,
+        &[(0.32, 0.18), (0.16, 0.50), (0.42, 0.54)],
+        Stroke::new(1.8, accent),
+        false,
+    );
+}
+
+/// Redo: the mirrored undo arrow (QAT, step 21.2).
+pub(super) fn redo(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {
+    polyline(
+        painter,
+        rect,
+        &[
+            (0.20, 0.76),
+            (0.24, 0.50),
+            (0.42, 0.32),
+            (0.66, 0.34),
+            (0.82, 0.50),
+        ],
+        Stroke::new(1.2, ink),
+        false,
+    );
+    polyline(
+        painter,
+        rect,
+        &[(0.68, 0.18), (0.84, 0.50), (0.58, 0.54)],
+        Stroke::new(1.8, accent),
+        false,
+    );
+}
+
 /// Import file: a tray with an accent download arrow.
 pub(super) fn import_file(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {
     let stroke = Stroke::new(1.2, ink);

@@ -38,8 +38,9 @@ _By the ArtCraft team._
 > Inter/JetBrains Mono typography, original vector iconography and
 > Light/Dark/System appearance), and the UI-owned `ui.json` saves atomically
 > and restores the full window geometry. Phase 21 (Access UI alignment:
-> contextual ribbon tabs with the Views split-button, then quick access
-> toolbar, backstage, datasheet/nav-pane/tab UX, keyboard) is in progress.
+> contextual ribbon tabs with the Views split-button and the quick access
+> toolbar, then backstage, datasheet/nav-pane/tab UX, keyboard) is in
+> progress.
 > The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
 > `.accdb` files (Jet4/ACE cross-checked against the libmdb oracle in CI) and
 > writes verified Jet4 table/row paths; the headless command bus drives a
@@ -88,7 +89,7 @@ _By the ArtCraft team._
 | **Storage — encryption & passwords** | Jet3/Jet4 RC4: the fixed-key page-0 header region decodes on every open, a non-zero database key decrypts every page after page 0, and database passwords are validated (Jet3 plain text in the encrypted header, Jet4 creation-date mask) — `OpenDatabase` carries the optional password for GUI/CLI/MCP, missing/wrong answers `PasswordRequired`/`PasswordRejected`; writes keep encrypted files encrypted. ACE Office encryption (RC4 CryptoAPI/AES) is detected and rejected with a precise `Unsupported` |
 | **Domain model & schema** | Access field kinds (Short Text … OLE/Attachment, multi-value, complex) with typed properties and validation semantics; versioned `.datacraft` schema document (serde, migration ladder) per ADR-1 |
 | **Headless command bus** | Total reducer (`dispatch` → deterministic events, failures as `Failed` events), serializable `inspect()` snapshots, deterministic test IDs, JSON-RPC 2.0 codec with full error semantics, and journaled writes (`PreviewWrite` diff → token-confirmed `ApplyWrite` with rollback info; the profile refuses unqualified field families precisely) — GUI and agents speak the same language |
-| **Desktop shell** | Four-region egui shell (spec-driven ribbon with contextual object tabs and the Views split-button, snapshot-driven navigation pane with click-to-open, tabbed workspace with close/activate, status bar) — all strings and logic computed in core, paint code renders only |
+| **Desktop shell** | Four-region egui shell (spec-driven ribbon with contextual object tabs, quick access toolbar and the Views split-button, snapshot-driven navigation pane with click-to-open, tabbed workspace with close/activate, status bar) — all strings and logic computed in core, paint code renders only |
 | **Datasheet & design view** | Real fixture databases open through the composition root; virtualized datasheet over cached rows with Access-style cell rendering and the new-record row (typed cell parsing, `InsertRow` through the bus); read-only design grid with Access type names and a full property sheet |
 | **Headless automation** | `datacraft-mcp` — a stdio JSON-RPC 2.0 endpoint agents spawn; the headless E2E harness drives the full stack over the wire against real fixtures; `datacraft-cli` (open/exec/repl) as the fourth command-bus client with deterministic exit codes |
 | **Forms** | WYSIWYG designer with snap-to-grid drag, the Access toolbox palette (Label/Text Box/Check Box/Combo Box/Button/Subform), the designer field list (record-source selector plus one-click bound controls at the next free slot), whitelisted data binding, runtime record navigation, and sidecar persistence (path defaults to the database's `.datacraft`, versioned and database-name checked, save/load reported in the status bar) |

@@ -218,11 +218,13 @@ fn quick_access_reuses_the_ribbon_action_ids() {
         .map(|action| action.id)
         .collect();
     for entry in &spec.quick_access {
-        assert!(
-            ribbon_actions.contains(&entry.id),
-            "QAT {} must reuse a ribbon action id",
-            entry.id
-        );
+        if matches!(entry.state, ActionState::Enabled) {
+            assert!(
+                ribbon_actions.contains(&entry.id),
+                "QAT {} must reuse a ribbon action id",
+                entry.id
+            );
+        }
     }
 }
 

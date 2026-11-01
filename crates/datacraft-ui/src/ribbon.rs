@@ -1,4 +1,4 @@
-//! Ribbon rendering (step 5.2, item H18; fix F1).
+//! Ribbon rendering (step 5.2, item H18; fix F1; QAT in step 21.2, U6).
 //!
 //! Paint code only: renders `datacraft_core::ribbon::ribbon_spec()` and
 //! maps the (spec-locked) enabled actions onto commands; the open action
@@ -10,7 +10,6 @@ use eframe::egui;
 
 use datacraft_core::command::Command;
 use datacraft_core::ribbon::{ActionState, rendered_tabs};
-use datacraft_core::state::TabMode;
 
 use crate::app::App;
 use crate::appearance::Appearance;
@@ -21,15 +20,20 @@ use crate::theme::GEOMETRY;
 use crate::theme::fonts;
 use crate::theme::tokens;
 
-/// Renders the ribbon in Access structure (step 12.2): a tab strip row on
-/// top, the active tab's command groups below — each group carries its
-/// caption at the bottom and groups are separated by hairlines. Pure
-/// paint: intents are collected during paint and dispatched once.
+mod qat;
+mod views;
+
+/// Renders the Quick Access strip and the ribbon in Access structure
+/// (step 12.2): a compact icon row on top, then a tab strip row and the
+/// active tab's command groups — each group carries its caption at the
+/// bottom and groups are separated by hairlines. Pure paint: intents are
+/// collected during paint and dispatched once.
 pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     let tokens = tokens(ui.visuals());
+    let mut intent: Option<Command> = qat::quick_access_ui(app, ui);
     // Contextual tabs follow the active object kind (step 21.1, U5); a
     // contextual tab that no longer applies falls back to Home.
-    let active_kind = active_object_kind(app);
+    let active_kind = views::active_object_kind(app);
     let tabs = rendered_tabs(active_kind.as_deref());
     if !tabs.iter().any(|tab| tab.id == app.active_ribbon_tab) {
         app.active_ribbon_tab = "home";
@@ -55,7 +59,6 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     else {
         return;
     };
-    let mut intent: Option<Command> = None;
     ui.horizontal(|ui| {
         ui.add_space(4.0);
         for group in &tab.groups {
@@ -95,7 +98,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                         }
                                     });
                                 } else if action.id == "view_mode" {
-                                    if let Some(command) = view_mode_button(ui, app) {
+                                    if let Some(command) = views::view_mode_button(ui, app) {
                                         intent = Some(command);
                                     }
                                 } else if ribbon_button(ui, t(action.label), action.id)
@@ -211,66 +214,6 @@ fn appearance_group(ui: &mut egui::Ui, app: &mut App) {
         );
     });
     ui.separator();
-}
-
-/// Object-kind slug of the active tab (contextual-tab selection and the
-/// Views button's enablement, step 21.1).
-fn active_object_kind(app: &App) -> Option<String> {
-    let snapshot = app.snapshot();
-    let active = snapshot.active_tab?;
-    snapshot
-        .tabs
-        .iter()
-        .find(|tab| tab.id == active)
-        .map(|tab| tab.object_kind.clone())
-}
-
-/// The Access Views split-button (step 21.1, item U5): the primary part
-/// switches to the other view, the arrow opens the explicit view menu.
-/// Disabled unless the active tab has a design view.
-fn view_mode_button(ui: &mut egui::Ui, app: &App) -> Option<Command> {
-    let snapshot = app.snapshot();
-    let active = snapshot
-        .active_tab
-        .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id));
-    let Some(tab) = active.filter(|tab| tab.has_design_view) else {
-        ribbon_button_disabled(ui, t("View"), "view_mode")
-            .on_hover_text(t("No active tab with a design view."));
-        return None;
-    };
-    let current = tab.mode;
-    let tab_id = tab.id;
-    let mut intent = None;
-    ui.horizontal(|ui| {
-        if ribbon_button(ui, view_label(current), "view_mode") {
-            intent = Some(Command::SetTabMode {
-                tab_id,
-                mode: current.toggled(),
-            });
-        }
-        ui.menu_button("▾", |ui| {
-            for mode in [TabMode::Datasheet, TabMode::Design] {
-                if ui
-                    .selectable_label(mode == current, view_label(mode))
-                    .clicked()
-                {
-                    intent = Some(Command::SetTabMode { tab_id, mode });
-                    ui.close();
-                }
-            }
-        })
-        .response
-        .on_hover_text(t("Switch view"));
-    });
-    intent
-}
-
-/// Localized view name (the English source string is the catalog key).
-fn view_label(mode: TabMode) -> &'static str {
-    match mode {
-        TabMode::Datasheet => t("Datasheet"),
-        TabMode::Design => t("Design"),
-    }
 }
 
 /// An Access-sized command button (icon above the label).

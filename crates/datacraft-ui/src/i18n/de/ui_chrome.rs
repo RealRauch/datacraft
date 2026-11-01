@@ -65,12 +65,14 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Query Design", "Abfrageentwurf"),
     ("Query Tools", "Abfragetools"),
     ("Record Source", "Datensatzquelle"),
+    ("Redo", "Wiederholen"),
     ("Relationships", "Beziehungen"),
     ("Report Design", "Berichtsentwurf"),
     ("Report Tools", "Berichtstools"),
     ("Reports", "Berichte"),
     ("Run", "Ausführen"),
     ("SQL", "SQL"),
+    ("Save", "Speichern"),
     ("Save Design", "Entwurf speichern"),
     ("Select a tab", "Wählen Sie eine Registerkarte"),
     (
@@ -87,6 +89,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Tables", "Tabellen"),
     ("Text Box", "Textfeld"),
     ("Toolbox", "Toolbox"),
+    ("Undo", "Rückgängig"),
     ("View", "Ansicht"),
     ("Views", "Ansichten"),
     (

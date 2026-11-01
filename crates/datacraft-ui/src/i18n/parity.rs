@@ -109,8 +109,22 @@ fn scanned_keys() -> BTreeSet<String> {
 fn ui_sources() -> Vec<String> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut sources = Vec::new();
-    for entry in std::fs::read_dir(&root).expect("src directory") {
+    collect_sources(&root, &mut sources);
+    sources
+}
+
+/// Recursively collects `.rs` files (submodules live in directories);
+/// the kernel and the catalog itself are not UI call sites.
+fn collect_sources(directory: &std::path::Path, sources: &mut Vec<String>) {
+    for entry in std::fs::read_dir(directory).expect("src directory") {
         let path = entry.expect("directory entry").path();
+        if path.is_dir() {
+            if path.file_name().and_then(|name| name.to_str()) == Some("i18n") {
+                continue;
+            }
+            collect_sources(&path, sources);
+            continue;
+        }
         if path.extension().and_then(|ext| ext.to_str()) != Some("rs") {
             continue;
         }
@@ -119,7 +133,6 @@ fn ui_sources() -> Vec<String> {
         }
         sources.push(std::fs::read_to_string(&path).expect("read ui source"));
     }
-    sources
 }
 
 fn collect_call_keys(source: &str, keys: &mut BTreeSet<String>) {
