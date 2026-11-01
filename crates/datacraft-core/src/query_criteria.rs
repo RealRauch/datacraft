@@ -151,8 +151,9 @@ fn coerce(literal: &str, kind: &FieldKind) -> Result<FieldValue, String> {
     }
 }
 
-/// Parses `YYYY-MM-DD` (optionally ` HH:MM`) into OLE Automation days.
-fn parse_date(text: &str) -> Option<FieldValue> {
+/// Parses `YYYY-MM-DD` (optionally ` HH:MM`) into OLE Automation days;
+/// shared with the expression service's date literals.
+pub(crate) fn parse_date(text: &str) -> Option<FieldValue> {
     let (date, time) = match text.split_once(' ') {
         Some((d, t)) => (d, Some(t)),
         None => (text, None),
@@ -177,8 +178,9 @@ fn parse_date(text: &str) -> Option<FieldValue> {
     Some(FieldValue::DateTime(days))
 }
 
-/// Days since 1970-01-01 for a civil date (inverse of civil_from_days).
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+/// Days since 1970-01-01 for a civil date (inverse of civil_from_days);
+/// shared with the expression service's `DateSerial`.
+pub(crate) fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
     let y = if m <= 2 { y - 1 } else { y };
     let era = if y >= 0 { y } else { y - 399 } / 400;
     let yoe = y - era * 400;

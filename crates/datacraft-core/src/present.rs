@@ -104,8 +104,9 @@ fn display_currency(scaled: i64) -> String {
 }
 
 /// OLE Automation date (days since 1899-12-30; 25569 days to the Unix
-/// epoch) rendered via the civil-from-days algorithm.
-fn display_ole_datetime(days: f64) -> String {
+/// epoch) rendered via the civil-from-days algorithm; shared with the
+/// expression service's `Format` ("General Date").
+pub(crate) fn display_ole_datetime(days: f64) -> String {
     let whole = days.floor();
     let mut minutes = ((days - whole) * 1440.0).round() as i64;
     let mut day = whole as i64;
@@ -121,8 +122,9 @@ fn display_ole_datetime(days: f64) -> String {
     )
 }
 
-/// Days since 1970-01-01 -> (year, month, day).
-fn civil_from_days(z: i64) -> (i64, i64, i64) {
+/// Days since 1970-01-01 -> (year, month, day); shared with the
+/// expression service's date components.
+pub(crate) fn civil_from_days(z: i64) -> (i64, i64, i64) {
     let z = z + 719_468;
     let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
     let doe = z - era * 146_097;

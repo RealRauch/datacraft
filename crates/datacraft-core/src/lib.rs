@@ -10,6 +10,7 @@ pub mod command;
 pub mod core;
 pub mod database;
 pub mod event;
+pub mod expr;
 pub mod form;
 pub mod forms;
 pub mod grid;

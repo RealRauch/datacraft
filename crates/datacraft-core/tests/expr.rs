@@ -26,16 +26,19 @@ fn is_runtime_error(source: &str, needle: &str) {
     let error = eval(source).expect_err("source must fail at runtime");
     match error {
         ExprError::Runtime { detail } => {
-            assert!(detail.contains(needle), "{source:?}: {detail:?} lacks {needle:?}")
+            assert!(
+                detail.contains(needle),
+                "{source:?}: {detail:?} lacks {needle:?}"
+            )
         }
         other => panic!("{source:?}: expected runtime error, got {other:?}"),
     }
 }
 
-fn is_parse_error(source: &str) {
+fn is_syntax_error(source: &str) {
     match eval(source) {
-        Err(ExprError::Parse { .. }) => {}
-        other => panic!("{source:?}: expected parse error, got {other:?}"),
+        Err(ExprError::Lex { .. } | ExprError::Parse { .. }) => {}
+        other => panic!("{source:?}: expected a syntax error, got {other:?}"),
     }
 }
 
@@ -46,13 +49,19 @@ fn literals_parse_and_evaluate() {
     assert_eq!(ok("2.5"), FieldValue::Float(2.5));
     assert_eq!(ok("\"Ada\""), FieldValue::Text("Ada".into()));
     assert_eq!(ok("'Ada'"), FieldValue::Text("Ada".into()));
-    assert_eq!(ok("\"say \"\"hi\"\"\""), FieldValue::Text("say \"hi\"".into()));
+    assert_eq!(
+        ok("\"say \"\"hi\"\"\""),
+        FieldValue::Text("say \"hi\"".into())
+    );
     assert_eq!(ok("True"), FieldValue::Boolean(true));
     assert_eq!(ok("False"), FieldValue::Boolean(false));
     assert_eq!(ok("Null"), FieldValue::Null);
     // 2025-01-05 in OLE Automation days (1970-01-01 is 25569).
     assert_eq!(ok("#2025-01-05#"), FieldValue::DateTime(45_662.0));
-    assert_eq!(ok("#2025-01-05 13:45#"), FieldValue::DateTime(45_662.0 + 825.0 / 1440.0));
+    assert_eq!(
+        ok("#2025-01-05 13:45#"),
+        FieldValue::DateTime(45_662.0 + 825.0 / 1440.0)
+    );
 }
 
 #[test]
@@ -80,7 +89,10 @@ fn field_references_resolve_case_insensitively() {
         ok_with("[UnitPrice]*2", &scope),
         FieldValue::Currency(250_000)
     );
-    assert_eq!(ok_with("[Order Details].[Qty] * 2", &scope), FieldValue::Integer(8));
+    assert_eq!(
+        ok_with("[Order Details].[Qty] * 2", &scope),
+        FieldValue::Integer(8)
+    );
     is_runtime_error("Ghost + 1", "Ghost");
     is_runtime_error("[Nope].[Qty] * 2", "Nope");
 }
@@ -185,12 +197,18 @@ fn between_in_and_is_null_follow_jet_rules() {
     let mut scope = Scope::new();
     scope.set("x", FieldValue::Null);
     assert_eq!(ok_with("[x] Is Null", &scope), FieldValue::Boolean(true));
-    assert_eq!(ok_with("[x] Is Not Null", &scope), FieldValue::Boolean(false));
+    assert_eq!(
+        ok_with("[x] Is Not Null", &scope),
+        FieldValue::Boolean(false)
+    );
 }
 
 #[test]
 fn iif_and_nz_respect_null_conditions() {
-    assert_eq!(ok("IIf(1 < 2, \"yes\", \"no\")"), FieldValue::Text("yes".into()));
+    assert_eq!(
+        ok("IIf(1 < 2, \"yes\", \"no\")"),
+        FieldValue::Text("yes".into())
+    );
     assert_eq!(ok("IIf(Null, 1, 2)"), FieldValue::Integer(2)); // Jet: Null condition -> false branch
     assert_eq!(ok("IIf(0, 1, 2)"), FieldValue::Integer(2));
     assert_eq!(ok("IIf(42, 1, 2)"), FieldValue::Integer(1));
@@ -239,8 +257,14 @@ fn date_functions_read_ole_components() {
 
 #[test]
 fn format_renders_the_documented_pictures() {
-    assert_eq!(ok("Format(4523.5, \"Fixed\")"), FieldValue::Text("4523.50".into()));
-    assert_eq!(ok("Format(0.5, \"Percent\")"), FieldValue::Text("50.00%".into()));
+    assert_eq!(
+        ok("Format(4523.5, \"Fixed\")"),
+        FieldValue::Text("4523.50".into())
+    );
+    assert_eq!(
+        ok("Format(0.5, \"Percent\")"),
+        FieldValue::Text("50.00%".into())
+    );
     assert_eq!(
         ok("Format(1234567.891, \"Standard\")"),
         FieldValue::Text("1,234,567.89".into())
@@ -249,9 +273,18 @@ fn format_renders_the_documented_pictures() {
         ok("Format(#2025-01-05 13:45#, \"yyyy-mm-dd hh:nn\")"),
         FieldValue::Text("2025-01-05 13:45".into())
     );
-    assert_eq!(ok("Format(3.14159, \"0.00\")"), FieldValue::Text("3.14".into()));
-    assert_eq!(ok("Format(1234.5, \"#,##0\")"), FieldValue::Text("1,235".into()));
-    assert_eq!(ok("Format(Null, \"Fixed\")"), FieldValue::Text(String::new()));
+    assert_eq!(
+        ok("Format(3.14159, \"0.00\")"),
+        FieldValue::Text("3.14".into())
+    );
+    assert_eq!(
+        ok("Format(1234.5, \"#,##0\")"),
+        FieldValue::Text("1,235".into())
+    );
+    assert_eq!(
+        ok("Format(Null, \"Fixed\")"),
+        FieldValue::Text(String::new())
+    );
 }
 
 #[test]
@@ -270,12 +303,12 @@ fn math_functions_round_like_vba() {
 
 #[test]
 fn malformed_sources_are_parse_errors() {
-    is_parse_error("");
-    is_parse_error("1 +");
-    is_parse_error("(1");
-    is_parse_error("\"open");
-    is_parse_error("1 @ 2");
-    is_parse_error("1 2");
+    is_syntax_error("");
+    is_syntax_error("1 +");
+    is_syntax_error("(1");
+    is_syntax_error("\"open");
+    is_syntax_error("1 @ 2");
+    is_syntax_error("1 2");
 }
 
 #[test]
