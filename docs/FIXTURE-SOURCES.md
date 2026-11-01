@@ -60,7 +60,7 @@ MIT-licensed JS reader; test databases include material nobody else ships:
 
 | File | Purpose |
 |---|---|
-| `test/password/data/V{1997,2000,2003}_with-password.mdb`, `V2010_with-password.accdb` | password-protected variants (password is `"password"`); paired `*_no-password` files for negative control — decision default #3 test material (`Unsupported`, not decrypt) |
+| `test/password/data/V{1997,2000,2003}_with-password.mdb`, `V2010_with-password.accdb` | password-protected variants (password is `"password"`); paired `*_no-password` files for negative control — Jet3/Jet4 RC4 password decode since M5; ACE Office encryption stays a precise `Unsupported` |
 | `test/encryption/data/office-agile-4.2.accdb`, `office-agile-4.4.accdb` | Office Agile (AES) encrypted — must be rejected with a precise `Unsupported` |
 | `test/data/V2016/{bigint,attachments,currency,longtext,withdeletedcol,withinsertedcol}.accdb` | ACE 2016: BIGINT, attachment complex type, schema-change artifacts |
 | `test/data/real/ASampleDatabase.accdb` | byte-identical to mdbtestdata copy (sha256-verified) |
@@ -95,13 +95,22 @@ MIT-licensed JS reader; test databases include material nobody else ships:
 | mdb-reader `V2016/attachments.accdb` @ 3dc637a (pristine, ACE 2016) | 524 288 | `1362f6bf865db294a382bbb05ef6af14c4f776768f436d458d3e028a1cdf45bc` |
 | jackcess `V2000/queryTestV2000.mdb` @ be0a2139 (pristine, native queries) | 176 128 | `03b303034e1d64779d9dff1e19d9e21d59d8fa440dc5da9dbcfd85ad051eb5ea` |
 | jackcess `V2007/complexDataTestV2007.accdb` @ be0a2139 (pristine, ACE complex values) | 524 288 | `66c655ad9f9f290c51ed808d704c2a09a7b0d6047583c6a4c67405f708cac0c3` |
+| mdb-reader `V2000_with-password.mdb` @ 3dc637a (Jet4 password "password") | 335 872 | `24812a5fc1f30474e86ca9d5183ef7c17d82832219ef460bb298a30db9b4622b` |
+| mdb-reader `V2000_no-password.mdb` @ 3dc637a (negative control) | 237 568 | `2a3298b87c4004270b75b02f43b25c0f89af6dd37720d704d4b9e3ba5109eb53` |
+| mdb-reader `V2010_with-password.accdb` @ 3dc637a (ACE Office encryption) | 319 488 | `03566c5aec35394a293ce5cdb400cb931b3ef3bb7f303bb202810209d00a655e` |
+| mdb-reader `office-agile-4.2.accdb` @ 3dc637a (Office Agile AES) | 315 392 | `bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2` |
 
 The query fixture is pinned as `fixtures/queryTestV2000.mdb` (jackcess V2000,
 provenance in `fixtures/manifest`; native saved queries for the MSysQueries
 decoder, step 15.3 / M3). The complex-value fixture is pinned as
 `fixtures/complexDataV2007.accdb` (jackcess V2007, provenance in
 `fixtures/manifest`; attachment, multi-value and version-history columns plus
-their `f_<guid>_*` backing tables for step 16.1 / M4).
+their `f_<guid>_*` backing tables for step 16.1 / M4). The password and
+encryption fixtures are pinned as `fixtures/passwordV2000.mdb` (Jet4 database
+password), `fixtures/passwordV2000-none.mdb` (negative control),
+`fixtures/passwordV2010.accdb` (ACE Office encryption) and
+`fixtures/officeAgile42.accdb` (Office Agile AES) — all mdb-reader test data
+(password `"password"`, no real user content; step 16.2 / M5).
 
 The three ACE fixtures are pinned as `fixtures/testV2007.accdb`,
 `fixtures/testV2010.accdb` and `fixtures/attachmentsV2016.accdb` (hashes and
@@ -147,7 +156,7 @@ Consequences:
 |---|---|---|
 | Phase 2 (T2) | pristine `testV2000.mdb` (oracle), `testV2000-access-touched.mdb` (2nd variant), `overflowTestV2000.mdb`, `testV2003.mdb` | tail semantics against two writers; overflow rows |
 | Phase 3+ (schema/ACE) | `testV2007.accdb`, `testV2010.accdb`, `extDateTestV2019.accdb`, `fixedNumeric*`, `fixedText*`, `del*` | format matrix, ACE path |
-| Decision #3 | `office-agile-4.2/4.4.accdb`, `V*_with-password.*` | precise `Unsupported` on crypto |
+| Decision #3 | `office-agile-4.2/4.4.accdb`, `V*_with-password.*` | Jet3/Jet4 RC4 password + page decode (M5); ACE Office encryption answers a precise `Unsupported` |
 | H9 writer | `empty.mdb`, `empty2007–2019.accdb` templates; `nwind.mdb`, `ASampleDatabase.accdb` | minimal writer targets; realistic goldens |
 | L1 (deferred) | `V1997/*` | Jet3, on file |
 

@@ -25,3 +25,19 @@ c2c3352c71aa3985bd620a322521eb9f67391cbb19ba9fefc376a24575896df7  testV2007.accd
 
 # source: jahlborn/jackcess@be0a2139 src/test/data/V2007/complexDataTestV2007.accdb (pristine)
 66c655ad9f9f290c51ed808d704c2a09a7b0d6047583c6a4c67405f708cac0c3  complexDataV2007.accdb
+
+# source: andipaetzold/mdb-reader@3dc637a test/password/data/V2000_with-password.mdb
+# (password "password"; test data, no real user content)
+24812a5fc1f30474e86ca9d5183ef7c17d82832219ef460bb298a30db9b4622b  passwordV2000.mdb
+
+# source: andipaetzold/mdb-reader@3dc637a test/password/data/V2000_no-password.mdb
+# (negative control for passwordV2000.mdb)
+2a3298b87c4004270b75b02f43b25c0f89af6dd37720d704d4b9e3ba5109eb53  passwordV2000-none.mdb
+
+# source: andipaetzold/mdb-reader@3dc637a test/password/data/V2010_with-password.accdb
+# (ACE Office encryption; password "password" — precise Unsupported, no decrypt)
+03566c5aec35394a293ce5cdb400cb931b3ef3bb7f303bb202810209d00a655e  passwordV2010.accdb
+
+# source: andipaetzold/mdb-reader@3dc637a test/encryption/data/office-agile-4.2.accdb
+# (Office Agile AES encryption — precise Unsupported, no decrypt)
+bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2  officeAgile42.accdb

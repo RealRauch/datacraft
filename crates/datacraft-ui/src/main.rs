@@ -343,4 +343,29 @@ mod tests {
         app.dispatch(datacraft_core::command::Command::ToggleNavPane);
         assert!(app.snapshot().nav_pane_visible);
     }
+
+    #[test]
+    fn a_password_required_open_raises_the_prompt_and_retries() {
+        use datacraft_core::command::Command;
+        let mut port = datacraft_core::port::MockPort::new();
+        port.with_password("secret");
+        let mut app = App::new(Box::new(port));
+        app.dispatch(Command::OpenDatabase {
+            path: "shop.mdb".into(),
+            password: None,
+        });
+        assert!(app.password_prompt().is_some(), "prompt is raised");
+        app.set_password_input("wrong");
+        app.submit_password();
+        assert!(
+            app.password_prompt()
+                .and_then(|prompt| prompt.error.as_deref())
+                .is_some(),
+            "the wrong password keeps the prompt open"
+        );
+        app.set_password_input("secret");
+        app.submit_password();
+        assert!(app.password_prompt().is_none(), "the prompt closes");
+        assert!(app.snapshot().database.is_some());
+    }
 }
