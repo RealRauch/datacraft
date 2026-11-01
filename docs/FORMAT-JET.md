@@ -179,3 +179,27 @@ Evidence (hex study on both fixture variants, hashes per
 - **Catalog enumeration (MSysObjects)** lands in step 2.4 together with the
   oracle, which verifies these facts against real files on ubuntu/macOS CI.
 - DataCraft reads Jet4/ACE; Jet3 is detected and rejected (BACKLOG L1).
+
+## Domain mapping (2026-11-01 — BACKLOG H12/H16 decisions)
+
+- **Plain GUID columns (Jet type `0x0F`)** map to a dedicated
+  `FieldKind::Guid` (accepts only 16-byte GUID values). AutoNumbers with
+  GUIDs stay `AutoNumber(ReplicationId)`. Rationale: mirrors
+  `StorageDataType::Guid` 1:1; the Access UI surfaces them under
+  "Number > Replication ID", but the domain kind is cleaner for validation.
+- **System-table filter:** user-table enumeration excludes names with the
+  `MSys` prefix. Observed on the fixture (both writers): system-table
+  `Flags` values vary (`0x80000000`, `0x2`, `0xa`) — no single flag bit is
+  writer-stable; the reserved name prefix is.
+- **Text length semantics:** the TDEF `len` field counts bytes for
+  uncompressed (UTF-16) text — the Access character budget is `len / 2`;
+  compressed-text columns are byte-per-character (`misc_flags` bit `0x01`).
+- **Jet `Numeric` (decimal) columns** carry only the scale in the `misc`
+  byte; precision is modeled as the 96-bit maximum (28).
+- **Multi-page TDEFs:** Access chains table definitions via the
+  next-TDEF-page pointer at header offset 4; the decoder concatenates the
+  post-header payloads and keeps `tdef_len` (self-inclusive) as the parse
+  bound. Chain cycles and non-TDEF chain members are precise `Corrupt`
+  errors. (Found via the Access-rewritten fixture variant — Table2.)
+- **Writes are `Unsupported`** through the port adapter until the writer
+  workstream (BACKLOG H9) lands; the adapter is read-only by design.

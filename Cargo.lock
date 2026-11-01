@@ -789,6 +789,7 @@ dependencies = [
 name = "datacraft-storage"
 version = "0.1.0"
 dependencies = [
+ "datacraft-core",
  "serde",
 ]
 

@@ -223,35 +223,47 @@ impl JetTableDef {
             file.get(..0x18).unwrap_or(file),
             file.len() as u64,
         )?;
-        let page = header.page_slice(file, tdef_page)?;
-        if crate::jet::page::page_type(page) != crate::jet::page::PAGE_TYPE_TDEF {
-            return Err(StorageError::Corrupt {
-                context: "table definition".into(),
-                detail: format!("page {tdef_page} is not a TDEF page"),
-            });
-        }
-        let next_pg = u32::from_le_bytes([page[4], page[5], page[6], page[7]]);
-        if next_pg != 0 {
-            return Err(StorageError::Unsupported {
-                reason: format!("multi-page TDEF at page {tdef_page} is not supported yet"),
-            });
+        // Multi-page TDEFs concatenate their post-header payloads via the
+        // next-TDEF-page pointer at offset 4 (docs/FORMAT-JET.md). The
+        // logical block is the concatenation; `tdef_len` (first field,
+        // self-inclusive) still bounds the parse.
+        let mut buffer: Vec<u8> = Vec::new();
+        let mut page_no = tdef_page;
+        let mut visited = std::collections::HashSet::new();
+        loop {
+            if !visited.insert(page_no) {
+                return Err(StorageError::Corrupt {
+                    context: "table definition".into(),
+                    detail: format!("TDEF page chain revisits page {page_no}"),
+                });
+            }
+            let page = header.page_slice(file, page_no)?;
+            if crate::jet::page::page_type(page) != crate::jet::page::PAGE_TYPE_TDEF {
+                return Err(StorageError::Corrupt {
+                    context: "table definition".into(),
+                    detail: format!("page {page_no} in a TDEF chain is not a TDEF page"),
+                });
+            }
+            buffer.extend_from_slice(&page[8..]);
+            let next_pg = u32::from_le_bytes([page[4], page[5], page[6], page[7]]);
+            if next_pg == 0 {
+                break;
+            }
+            page_no = next_pg;
         }
         // The block starts right after the 8-byte page header; its first
         // field announces its own (self-inclusive) length (docs/FORMAT-JET.md).
-        let tdef_len = le::u32(page, 8, "tdef_len")? as usize;
-        let end = 8usize
-            .checked_add(tdef_len)
-            .ok_or_else(|| StorageError::Corrupt {
-                context: "table definition".into(),
-                detail: format!("tdef_len {tdef_len} overflows"),
-            })?;
-        if end > page.len() {
+        let tdef_len = le::u32(&buffer, 0, "tdef_len")? as usize;
+        if tdef_len > buffer.len() {
             return Err(StorageError::Corrupt {
                 context: "table definition".into(),
-                detail: format!("tdef_len {tdef_len} exceeds the page size"),
+                detail: format!(
+                    "tdef_len {tdef_len} exceeds the chained block size {}",
+                    buffer.len()
+                ),
             });
         }
-        let b = &page[8..end];
+        let b = &buffer[..tdef_len];
 
         let _unknown0 = le::u32(b, 4, "unknown")?;
         let num_rows = le::u32(b, 8, "num_rows")?;

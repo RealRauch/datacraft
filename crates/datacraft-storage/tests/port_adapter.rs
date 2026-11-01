@@ -44,7 +44,11 @@ fn every_mapped_table_is_a_valid_domain_definition() {
         table
             .validate()
             .unwrap_or_else(|e| panic!("table {:?} must validate: {e}", table.name));
-        assert!(!table.fields.is_empty(), "table {:?} has fields", table.name);
+        assert!(
+            !table.fields.is_empty(),
+            "table {:?} has fields",
+            table.name
+        );
     }
 }
 
@@ -86,9 +90,13 @@ fn writes_are_rejected_as_unsupported() {
 #[test]
 fn open_failures_are_precise() {
     let mut port = Jet4Port::new();
-    let err = port.open(Path::new("definitely-missing-424242.mdb"))
+    let err = port
+        .open(Path::new("definitely-missing-424242.mdb"))
         .expect_err("missing file");
-    assert!(err.to_string().contains("definitely-missing-424242"), "{err}");
+    assert!(
+        err.to_string().contains("definitely-missing-424242"),
+        "{err}"
+    );
 
     let mut garbage = std::env::temp_dir();
     garbage.push(format!("datacraft-garbage-{}.mdb", std::process::id()));
@@ -119,9 +127,9 @@ fn tables_behind_multi_page_tdefs_decode() {
     // the whole open.
     let mut port = Jet4Port::new();
     port.open(&fixture()).expect("fixture must open");
-    let names: Vec<&str> = port.tables().iter().map(|t| t.name.as_str()).collect();
+    let names: Vec<String> = port.tables().into_iter().map(|t| t.name).collect();
     assert!(
-        names.contains(&"Table2"),
+        names.iter().any(|n| n == "Table2"),
         "multi-page TDEF table must surface: {names:?}"
     );
 }
