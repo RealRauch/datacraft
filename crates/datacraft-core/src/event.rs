@@ -63,6 +63,16 @@ pub enum Event {
         /// Canonical query name.
         query: String,
     },
+    /// A form was created.
+    FormCreated {
+        /// Canonical form name.
+        name: String,
+    },
+    /// A form was deleted.
+    FormDropped {
+        /// Canonical form name.
+        name: String,
+    },
     /// A query executed successfully.
     QueryRan {
         /// Canonical query name.

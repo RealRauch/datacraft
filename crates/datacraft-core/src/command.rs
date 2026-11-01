@@ -83,4 +83,14 @@ pub enum Command {
         /// Query name (case-insensitive).
         query: String,
     },
+    /// Creates an empty form (name unique, case-insensitive).
+    CreateForm {
+        /// Form name; rejected on duplicates.
+        name: String,
+    },
+    /// Deletes a form.
+    DeleteForm {
+        /// Form name (case-insensitive).
+        name: String,
+    },
 }

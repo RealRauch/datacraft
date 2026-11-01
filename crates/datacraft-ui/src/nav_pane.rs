@@ -29,23 +29,49 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         .active_tab
         .and_then(|active| active_object_name(&snapshot.tabs, active));
 
-    let mut intent: Option<String> = None;
+    let mut intent: Option<(datacraft_core::ObjectKind, String)> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
+        ui.weak("Tables");
         for table in &db.tables {
             ui.push_id(&table.ui_test_id, |ui| {
                 let is_active = active_object
                     .as_deref()
                     .is_some_and(|name| name.eq_ignore_ascii_case(&table.name));
                 if ui.selectable_label(is_active, &table.name).clicked() {
-                    intent = Some(table.name.clone());
+                    intent = Some((datacraft_core::ObjectKind::Table, table.name.clone()));
                 }
             });
         }
+        if !db.forms.is_empty() {
+            ui.weak("Forms");
+            for form in &db.forms {
+                ui.push_id(&form.name, |ui| {
+                    let is_active = active_object
+                        .as_deref()
+                        .is_some_and(|name| name.eq_ignore_ascii_case(&form.name));
+                    if ui.selectable_label(is_active, &form.name).clicked() {
+                        intent = Some((datacraft_core::ObjectKind::Form, form.name.clone()));
+                    }
+                });
+            }
+        }
+        if !db.queries.is_empty() {
+            ui.weak("Queries");
+            for query in &db.queries {
+                ui.push_id(&query.ui_test_id, |ui| {
+                    let is_active = active_object
+                        .as_deref()
+                        .is_some_and(|name| name.eq_ignore_ascii_case(&query.name));
+                    if ui.selectable_label(is_active, &query.name).clicked() {
+                        intent = Some((datacraft_core::ObjectKind::Query, query.name.clone()));
+                    }
+                });
+            }
+        }
     });
-    if let Some(name) = intent {
+    if let Some((kind, name)) = intent {
         app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
-            datacraft_core::ObjectKind::Table,
-            name,
+            kind, name,
         )));
     }
 }

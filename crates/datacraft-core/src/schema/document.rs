@@ -29,7 +29,7 @@ type Migration = fn(&mut serde_json::Value);
 const MIGRATIONS: &[Migration] = &[];
 
 /// Versioned document of the DataCraft data model (ADR-1 sidecar format).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SchemaDocument {
     /// Format version, written as [`SCHEMA_VERSION`].
     pub schema_version: u32,
@@ -41,6 +41,9 @@ pub struct SchemaDocument {
     /// an empty list via the serde default).
     #[serde(default)]
     pub queries: Vec<QueryDef>,
+    /// Form design documents (additive v1 field, ADR-1).
+    #[serde(default)]
+    pub forms: Vec<crate::form::FormDef>,
 }
 
 impl SchemaDocument {
@@ -51,6 +54,7 @@ impl SchemaDocument {
             database_name: database_name.into(),
             tables: Vec::new(),
             queries: Vec::new(),
+            forms: Vec::new(),
         }
     }
 

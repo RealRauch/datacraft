@@ -14,7 +14,7 @@ use crate::port::DatabaseFormat;
 use crate::state::AppState;
 
 /// Snapshot of everything the UI shows.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UiStateSnapshot {
     /// The open database, if any.
     pub database: Option<DatabaseSnapshot>,
@@ -29,7 +29,7 @@ pub struct UiStateSnapshot {
 }
 
 /// Snapshot of the open database.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseSnapshot {
     /// Database name (file stem).
     pub name: String,
@@ -43,6 +43,8 @@ pub struct DatabaseSnapshot {
     pub relationships: Vec<crate::port::Relationship>,
     /// Query definitions in creation order.
     pub queries: Vec<QueryEntrySnapshot>,
+    /// Form design documents in creation order.
+    pub forms: Vec<crate::form::FormDef>,
 }
 
 /// One query in the snapshot.
@@ -102,6 +104,7 @@ impl UiStateSnapshot {
                 path: db.path.clone(),
                 format: db.format,
                 relationships: db.relationships.clone(),
+                forms: db.forms.clone(),
                 queries: db
                     .queries
                     .iter()

@@ -40,14 +40,32 @@ fn snap_rect_snaps_origin_and_size() {
         },
         8.0,
     );
-    assert_eq!(rect, Rect { x: 40.0, y: 8.0, width: 64.0, height: 16.0 });
+    assert_eq!(
+        rect,
+        Rect {
+            x: 40.0,
+            y: 8.0,
+            width: 64.0,
+            height: 16.0
+        }
+    );
 }
 
 #[test]
 fn hit_test_finds_the_topmost_rect() {
     let rects = vec![
-        Rect { x: 0.0, y: 0.0, width: 100.0, height: 50.0 },
-        Rect { x: 10.0, y: 10.0, width: 20.0, height: 20.0 },
+        Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 100.0,
+            height: 50.0,
+        },
+        Rect {
+            x: 10.0,
+            y: 10.0,
+            width: 20.0,
+            height: 20.0,
+        },
     ];
     assert_eq!(hit_test(&rects, 15.0, 15.0), Some(1), "later rects win");
     assert_eq!(hit_test(&rects, 5.0, 5.0), Some(0));
@@ -101,7 +119,9 @@ proptest! {
 
 fn opened_core() -> Core {
     let mut core = Core::new(Box::new(MockPort::new()));
-    core.dispatch(Command::OpenDatabase { path: PathBuf::from("shop.mdb") });
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+    });
     core
 }
 
@@ -109,8 +129,12 @@ fn opened_core() -> Core {
 fn create_form_is_observable_and_lands_in_the_snapshot() {
     let mut core = opened_core();
     assert_eq!(
-        core.dispatch(Command::CreateForm { name: "Customer Card".into() }),
-        vec![Event::FormCreated { name: "Customer Card".into() }]
+        core.dispatch(Command::CreateForm {
+            name: "Customer Card".into()
+        }),
+        vec![Event::FormCreated {
+            name: "Customer Card".into()
+        }]
     );
     let db = core.inspect().database.expect("open");
     assert_eq!(db.forms.len(), 1);
@@ -122,8 +146,15 @@ fn create_form_is_observable_and_lands_in_the_snapshot() {
 #[test]
 fn duplicate_form_names_are_rejected() {
     let mut core = opened_core();
-    core.dispatch(Command::CreateForm { name: "Card".into() });
-    let reason = match core.dispatch(Command::CreateForm { name: "card".into() }).as_slice() {
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
+    let reason = match core
+        .dispatch(Command::CreateForm {
+            name: "card".into(),
+        })
+        .as_slice()
+    {
         [Event::Failed { reason }] => reason.clone(),
         other => panic!("expected Failed, got {other:?}"),
     };
@@ -133,10 +164,16 @@ fn duplicate_form_names_are_rejected() {
 #[test]
 fn delete_form_is_observable() {
     let mut core = opened_core();
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     assert_eq!(
-        core.dispatch(Command::DeleteForm { name: "Card".into() }),
-        vec![Event::FormDropped { name: "Card".into() }]
+        core.dispatch(Command::DeleteForm {
+            name: "Card".into()
+        }),
+        vec![Event::FormDropped {
+            name: "Card".into()
+        }]
     );
     assert!(core.inspect().database.unwrap().forms.is_empty());
 }
@@ -144,7 +181,9 @@ fn delete_form_is_observable() {
 #[test]
 fn forms_need_an_open_database() {
     let reason = match Core::new(Box::new(MockPort::new()))
-        .dispatch(Command::CreateForm { name: "Card".into() })
+        .dispatch(Command::CreateForm {
+            name: "Card".into(),
+        })
         .as_slice()
     {
         [Event::Failed { reason }] => reason.clone(),
@@ -165,7 +204,12 @@ fn the_sidecar_persists_forms() {
         kind: datacraft_core::form::ControlKind::Label {
             text: "Customers".into(),
         },
-        rect: Rect { x: 16.0, y: 16.0, width: 120.0, height: 24.0 },
+        rect: Rect {
+            x: 16.0,
+            y: 16.0,
+            width: 120.0,
+            height: 24.0,
+        },
     });
 
     let mut doc = SchemaDocument::new("shop");

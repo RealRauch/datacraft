@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::ObjectId;
+use crate::form::FormDef;
 use crate::ids::TabId;
 use crate::port::{DatabaseFormat, Relationship};
 use crate::qbe::QueryDef;
@@ -67,6 +68,8 @@ pub struct DatabaseState {
     pub relationships: Vec<Relationship>,
     /// Query definitions in creation order.
     pub queries: Vec<QueryDef>,
+    /// Form design documents in creation order.
+    pub forms: Vec<FormDef>,
 }
 
 /// State of one open document tab.

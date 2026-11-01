@@ -75,6 +75,9 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
             .active_tab
             .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id).cloned());
         match active {
+            Some(tab) if tab.object_kind == "form" => {
+                crate::form_design::form_design_ui(app, &tab, ui)
+            }
             Some(tab) if tab.object_kind == "query" => match app.tab_mode(tab.id) {
                 TabMode::Datasheet => crate::datasheet::query_results_ui(app, &tab, ui),
                 TabMode::Design => crate::qbe::qbe_ui(app, &tab, ui),

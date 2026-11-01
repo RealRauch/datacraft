@@ -5,9 +5,11 @@
 //! maps to one command, every observable outcome is queryable as serializable
 //! state. See `docs/ARCHITECTURE.md` §5.
 
+pub mod canvas;
 pub mod command;
 pub mod core;
 pub mod event;
+pub mod form;
 pub mod grid;
 pub mod ids;
 pub mod port;
