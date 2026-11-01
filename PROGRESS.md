@@ -129,7 +129,7 @@
 | 11.5 | QBE: Run + Criteria-Clear | ✅ |
 | 11.6 | Designer-Paletten + Quellen-Wahl | ✅ |
 | 11.7 | Datasheet: Neue-Zeile | ✅ |
-| 11.8 | Sidecar-UI + Aufräumen + access_gate-Beispiel | ⬜ |
+| 11.8 | Sidecar-UI + Aufräumen + access_gate-Beispiel | ✅ |
 | 11.9 | Phase 11 Quality Gate Review | ⬜ |
 | 12.1 | Theme-Modul: ArtCraft-Palette + egui Visuals | ✅ |
 | 12.2 | Ribbon: Access-Struktur (Tab-Zeile, Gruppen-Captions, Trenner) | ✅ |
