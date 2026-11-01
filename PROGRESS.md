@@ -171,7 +171,7 @@
 | 21.2 | Quick Access Toolbar (U6) | ✅ |
 | 21.3 | File backstage page (U7) | ✅ |
 | 21.4 | Datasheet UX: column resize, header sort, row shading (U8) | ✅ |
-| 21.5 | Nav pane: category dropdown, context menu, group sort (U9) | 🔄 |
+| 21.5 | Nav pane: category dropdown, context menu, group sort (U9) | ✅ |
 | 21.6 | Tabs: middle-click close, context menu (U10) | ⬜ |
 | 21.7 | Window title & status-bar conventions (U11) | ⬜ |
 | 21.8 | Keyboard: shortcuts & ribbon key tips (U12) | ⬜ |

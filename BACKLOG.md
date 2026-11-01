@@ -48,11 +48,6 @@
 - **Approach:** store the decode result and its error in `DatabaseState`/`UiStateSnapshot` (`native_queries_error`), exactly like `macros_error`/`vba_error`; keep the open succeeding with an empty list; render the reason in the navigation pane's Queries group and expose it to inspect/MCP. Add a fixture-backed test on `northwind2007.accdb` pinning attribute 12.
 - **Acceptance:** opening the Northwind fixture yields `native_queries` empty plus a visible `native_queries_error` containing "attribute code 12"; `inspect()` carries it; a database with decodable queries has no error; canonical verification set green.
 
-### [ ] U9 — Nav pane: category dropdown, context menu, group sort — 🟡
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs`; pure ordering helpers in core; behaviour model: Access. WordCraft `crates/ui-egui/src/panes.rs` @ `fd7f662` supplies only task-pane chrome (collapse/indent) — it has no categories, context menu or group sort, so it is not the behaviour model here.
-- **Approach:** the "All Access Objects" label becomes a (single-entry) category dropdown per the Access convention; objects are opened/deleted via a context menu (Open/Design/Delete), replacing the always-visible ✕ button; group headers gain a sort menu (name/type) implemented as a pure ordering function over the snapshot-derived list.
-- **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
-
 ### [ ] U14 — Command history for Undo/Redo — 🟡
 - **Location:** `crates/datacraft-core/src/state.rs`, `command.rs`, dispatch modules; `crates/datacraft-ui/src/ribbon.rs` (QAT enablement)
 - **Problem:** The Quick Access Toolbar declares Undo/Redo (step 21.2, item U6) but renders them disabled: the command bus keeps no history, so there is nothing to undo.
@@ -190,3 +185,4 @@
 - U6 — Quick Access Toolbar — done (done in `0050cf2` (RED `5900968`) — QAT strip from core `quick_access` entries above the ribbon; Save dispatches through the shared `command_for` mapping, Undo/Redo stay disabled with a tooltip naming follow-up U14; undo/redo icons and German labels added; UI parity scanner now walks submodules)
 - U7 — File backstage page — done (done in `9041874` (RED `3e12e06`) — full-page backstage with Home/Open/Save/Info/Options; open/close/new-table/sidecar flows dispatch their existing commands, the path fields left the ribbon, and the language/appearance switchers moved to Options; Recent Databases deferred to follow-up U15)
 - U8 — Datasheet UX: column resize, header sort, row shading — done (done in `78e496b` (RED `165539c`) — drag-resizable columns with core hit-test/min-width/padding math, header-click and context-menu sorting through one SetQbeCell per action, alternating row shading plus the accent cursor marker; widths are per-session App state shared by the new-record row and the SQL window)
+- U9 — Nav pane: category dropdown, context menu, group sort — done (done in `05dd600` (RED `6371c93`) — localized single-entry category dropdown, Open/Design/Delete context menu replacing the always-visible ✕, and name/type group sorting via the pure `nav::sort_entries`; Design opens in one command (`OpenObjectInMode`) with wire coverage)

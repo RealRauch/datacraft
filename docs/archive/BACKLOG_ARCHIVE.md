@@ -625,3 +625,11 @@
 - **Approach:** draggable column separators (per-session widths as presentation state in the App; hit-test/min-width math as pure functions in core `grid.rs` per the §8 principle), header click/right-click sort asc/desc mapped onto the query sort model — one command per action —, Access-style alternating row shading plus an edit marker on the selected/edited row.
 - **Acceptance:** columns resize by drag; header sort dispatches one command per action; grid math unit-tested in core; canonical verification set green.
 - **Done:** done in `78e496b` (RED `165539c`) — drag-resizable columns with core hit-test/min-width/padding math, header-click and context-menu sorting through one SetQbeCell per action, alternating row shading plus the accent cursor marker; widths are per-session App state shared by the new-record row and the SQL window
+
+---
+
+### [x] U9 — Nav pane: category dropdown, context menu, group sort — 🟡
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs`; pure ordering helpers in core; behaviour model: Access. WordCraft `crates/ui-egui/src/panes.rs` @ `fd7f662` supplies only task-pane chrome (collapse/indent) — it has no categories, context menu or group sort, so it is not the behaviour model here.
+- **Approach:** the "All Access Objects" label becomes a (single-entry) category dropdown per the Access convention; objects are opened/deleted via a context menu (Open/Design/Delete), replacing the always-visible ✕ button; group headers gain a sort menu (name/type) implemented as a pure ordering function over the snapshot-derived list.
+- **Acceptance:** delete is reachable via context menu only; the dropdown renders localized (rides on I2); the sort menu reorders deterministically; test ids for menu items; canonical verification set green.
+- **Done:** done in `05dd600` (RED `6371c93`) — localized single-entry category dropdown, Open/Design/Delete context menu replacing the always-visible ✕, and name/type group sorting via the pure `nav::sort_entries`; Design opens in one command (`OpenObjectInMode`) with wire coverage
