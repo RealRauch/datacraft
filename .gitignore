@@ -9,3 +9,6 @@ Thumbs.db
 
 # Scratch/branding workspace (not project files)
 .tmp-brand/
+
+# Local session artifacts (plans, notes — never project files)
+.zcode/
