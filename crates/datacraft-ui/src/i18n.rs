@@ -10,6 +10,8 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 mod de;
 #[cfg(test)]
+mod layout;
+#[cfg(test)]
 mod parity;
 
 /// UI display language (never leaves this crate).
