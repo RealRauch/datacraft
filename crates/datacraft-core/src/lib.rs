@@ -8,6 +8,7 @@
 pub mod command;
 pub mod core;
 pub mod event;
+pub mod grid;
 pub mod ids;
 pub mod port;
 pub mod present;

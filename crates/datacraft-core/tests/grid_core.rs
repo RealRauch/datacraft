@@ -4,7 +4,9 @@
 //! (6.2) and the design grid (6.3) share it so virtual scrolling behaves
 //! identically in both views. No window needed to test any of this.
 
-use datacraft_core::grid::{GridMetrics, clamp_scroll, column_at_x, column_span_x, visible_row_range};
+use datacraft_core::grid::{
+    GridMetrics, clamp_scroll, column_at_x, column_span_x, visible_row_range,
+};
 use proptest::prelude::*;
 
 #[test]
