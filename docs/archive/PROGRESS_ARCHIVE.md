@@ -114,3 +114,15 @@
 - **8.3 Form Runtime & Data Binding**
 - **8.4 Phase 8 Quality Gate Review**
 **Verification:** Gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 27 sections ok, llvm-cov --fail-under-lines 95 exit 0, file-size gate OK (core.rs/forms.rs split during 8.2), zero debt markers. Work sequential on main — no merge needed. Scope decision: the report canvas is deferred to BACKLOG H31 (canvas math, palette and sidecar persistence are shared and proven; print layout + grouped/aggregate printing wait for the expression service M1). H28-H30 archived. (checkpoint: 7a189b8)
+
+---
+
+### Phase 9 — MCP Endpoint & Automation
+
+**Scope (Steps):**
+
+- **9.1 MCP/JSON-RPC Server Endpoint**
+- **9.2 Headless E2E Test Harness**
+- **9.3 Final Documentation & Release Prep**
+- **9.4 CLI Client (Headless Transport)**
+**Verification:** Final gate review passed locally (exit codes measured): fmt 0, clippy -D warnings 0, cargo test --workspace 34 sections ok, llvm-cov --fail-under-lines 95 exit 0, file-size gate OK (max file 475 lines), zero debt markers. README/architecture updated for the four-client architecture; roadmap table closed. H34 archived with the step. The Phase 1-9 plan is complete. (checkpoint: efa8b71)
