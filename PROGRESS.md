@@ -174,7 +174,7 @@
 | 21.5 | Nav pane: category dropdown, context menu, group sort (U9) | ✅ |
 | 21.6 | Tabs: middle-click close, context menu (U10) | ✅ |
 | 21.7 | Window title & status-bar conventions (U11) | ✅ |
-| 21.8 | Keyboard: shortcuts & ribbon key tips (U12) | ⬜ |
+| 21.8 | Keyboard: shortcuts & ribbon key tips (U12) | 🔄 |
 | 21.9 | Phase 21 Quality Gate Review | ⬜ |
 | 22.1 | Atomic ui.json save (temp + rename) | ✅ |
 | 22.2 | Window position, maximized state and off-screen rescue | ✅ |

@@ -21,6 +21,8 @@ mod form_design;
 mod form_runtime;
 mod i18n;
 mod icons;
+#[cfg(test)]
+mod keys_tests;
 mod labels;
 mod macro_viewer;
 mod nav_pane;
