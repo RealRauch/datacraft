@@ -8,6 +8,7 @@ pub mod error;
 pub mod jet;
 pub mod mock;
 pub mod port_adapter;
+pub(crate) mod port_native;
 pub mod port_write;
 pub mod sqlite;
 pub mod types;

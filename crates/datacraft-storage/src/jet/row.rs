@@ -332,16 +332,24 @@ fn decode_long_value(
     }
     let length_and_flags = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
     let data: Vec<u8> = if length_and_flags & 0xC000_0000 == 0x8000_0000 {
-        // Inline: payload follows the length dword directly.
+        // Inline: [dword len|0x80000000][payload]. Access 2000+ prepends
+        // an 8-byte zero header that the length does not count (fixture
+        // evidence, queryTestV2000.mdb); our own writer omits it. The
+        // slot length decides which form is present.
         let len = (length_and_flags & 0x3FFF_FFFF) as usize;
+        let start = if bytes.len() >= 12 + len && bytes[4..12].iter().all(|b| *b == 0) {
+            12
+        } else {
+            4
+        };
         bytes
-            .get(4..4 + len)
+            .get(start..start + len)
             .ok_or_else(|| StorageError::Corrupt {
                 context: "row".into(),
                 detail: format!(
                     "inline memo {} declares {len} bytes but holds {}",
                     col.name,
-                    bytes.len() - 4
+                    bytes.len() - start
                 ),
             })?
             .to_vec()
@@ -356,7 +364,10 @@ fn decode_long_value(
         lval::resolve(file, page_size, length_and_flags, pointer)?
     };
     Ok(match col.data_type {
-        JetType::Memo => StorageValue::Text(decode_text_bytes(&data, col, jet3)),
+        // Memos are always compressed unicode on Jet4 (FORMAT-JET.md,
+        // "Memo"); plain text columns follow the column's flag.
+        JetType::Memo if !jet3 => StorageValue::Text(decode_compressed_text(&data)),
+        JetType::Memo => StorageValue::Text(crate::jet::jet3::cp1252(&data)),
         _ => StorageValue::Binary(data),
     })
 }
@@ -429,37 +440,35 @@ fn decode_text_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> String {
     }
 }
 
-/// Compressed unicode: optional `FF FE` marker, then single-byte characters
-/// until a `0x00` switches to UCS-2 pairs; a pair with high byte `0` reads
-/// back as its low byte (identical to the compressed reading).
+/// Compressed unicode (Jet4). Two evidence-backed shapes:
+///
+/// - Without the `FF FE` header (compressed text columns): single-byte
+///   characters until a `0x00` switches to UCS-2 pairs for the remainder;
+///   a pair with high byte `0` reads back as its low byte (identical to
+///   the compressed reading).
+/// - With the `FF FE` header (Access memos, and values that mix ASCII and
+///   non-ASCII): the same mode-switch reading applies after the header —
+///   the header announces that compression is in use, not the first byte.
 fn decode_compressed_text(bytes: &[u8]) -> String {
-    let body = if bytes.starts_with(&[0xFF, 0xFE]) {
-        &bytes[2..]
-    } else {
-        bytes
-    };
-    let mut units: Vec<u16> = Vec::new();
-    let mut compressed = bytes.starts_with(&[0xFF, 0xFE]);
+    let body = bytes.strip_prefix(&[0xFF, 0xFE][..]).unwrap_or(bytes);
+    let mut text = String::new();
     let mut at = 0usize;
     while at < body.len() {
-        if compressed {
-            let b = body[at];
-            at += 1;
-            if b == 0x00 {
-                compressed = false;
-            } else {
-                units.push(u16::from(b));
-            }
-        } else if at + 2 <= body.len() {
-            let lo = body[at];
-            let hi = body[at + 1];
-            at += 2;
-            units.push((u16::from(hi) << 8) | u16::from(lo));
-        } else {
-            break;
+        let b = body[at];
+        at += 1;
+        if b == 0x00 {
+            let units: Vec<u16> = body[at..]
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|pair| u16::from_le_bytes(*pair))
+                .collect();
+            text.push_str(&String::from_utf16_lossy(&units));
+            return text;
         }
+        text.push(char::from(b));
     }
-    String::from_utf16_lossy(&units)
+    text
 }
 
 #[cfg(test)]

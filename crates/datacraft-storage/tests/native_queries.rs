@@ -50,8 +50,14 @@ fn tables_and_expressions_read_back_verbatim() {
         .iter()
         .find(|query| query.name == "MakeTableQuery")
         .expect("MakeTableQuery present");
-    assert!(make_table.tables.contains(&"Table1".to_owned()), "{make_table:?}");
-    assert!(make_table.tables.contains(&"Table2".to_owned()), "{make_table:?}");
+    assert!(
+        make_table.tables.contains(&"Table1".to_owned()),
+        "{make_table:?}"
+    );
+    assert!(
+        make_table.tables.contains(&"Table2".to_owned()),
+        "{make_table:?}"
+    );
     // The join expression is a memo payload: 8-byte zero header + FF FE
     // compression header + 1-byte text.
     let joined = queries
@@ -64,8 +70,9 @@ fn tables_and_expressions_read_back_verbatim() {
                 .is_some_and(|expression| expression.contains("Table1"))
         })
         .expect("a join/criterion expression mentioning Table1");
+    let expression = joined.expression.as_deref().expect("checked");
     assert!(
-        !joined.expression.expect("checked").contains('\u{feff}'),
+        !expression.contains('\u{feff}'),
         "the compression header must be stripped: {joined:?}"
     );
 }

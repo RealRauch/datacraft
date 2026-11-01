@@ -110,6 +110,100 @@ pub struct OpenedDatabase {
     pub format: DatabaseFormat,
 }
 
+/// Query flavor of a native saved query (step 15.3, M3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeQueryKind {
+    /// Select query (object flags 0x00).
+    Select,
+    /// Crosstab query (0x10).
+    Crosstab,
+    /// Delete query (0x20).
+    Delete,
+    /// Update query (0x30).
+    Update,
+    /// Append query (0x40).
+    Append,
+    /// Make-table query (0x50).
+    MakeTable,
+    /// Data-definition query (0x60).
+    DataDefinition,
+    /// Pass-through query (0x70).
+    Passthrough,
+    /// Union query (0x80).
+    Union,
+}
+
+/// One column of a native saved query (M3).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeQueryColumn {
+    /// Source table, when the column names one.
+    pub table: Option<String>,
+    /// Source field or output alias.
+    pub field: Option<String>,
+    /// Column expression, when the column is computed.
+    pub expression: Option<String>,
+    /// Whether the column sorts descending.
+    pub descending: bool,
+}
+
+/// One native saved query as stored in the Jet/ACE file (M3, read-only).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeQuery {
+    /// Query name from MSysObjects.
+    pub name: String,
+    /// Query flavor from the object flags.
+    pub kind: NativeQueryKind,
+    /// FROM tables in attribute order.
+    pub tables: Vec<String>,
+    /// Selected columns.
+    pub columns: Vec<NativeQueryColumn>,
+    /// WHERE/GROUP BY/HAVING expressions verbatim.
+    pub criteria: Vec<String>,
+    /// JOIN expressions verbatim.
+    pub joins: Vec<String>,
+    /// ORDER BY fields.
+    pub order_by: Vec<String>,
+}
+
+impl NativeQuery {
+    /// Maps the decodable subset onto a QBE query definition: select
+    /// queries over exactly one table, plain field columns, no criteria,
+    /// grouping, joins or computed columns. Everything else stays a
+    /// documented rest and answers `None`.
+    pub fn query_def(&self) -> Option<crate::qbe::QueryDef> {
+        if self.kind != NativeQueryKind::Select
+            || self.tables.len() != 1
+            || !self.criteria.is_empty()
+            || !self.joins.is_empty()
+        {
+            return None;
+        }
+        let mut fields = Vec::with_capacity(self.columns.len());
+        for column in &self.columns {
+            if column.expression.is_some() {
+                return None;
+            }
+            let field = column.field.as_ref()?;
+            fields.push(crate::qbe::QbeField {
+                name: field.clone(),
+                shown: true,
+                sort: if column.descending {
+                    crate::qbe::SortOrder::Descending
+                } else {
+                    crate::qbe::SortOrder::Ascending
+                },
+                criteria: Vec::new(),
+            });
+        }
+        Some(crate::qbe::QueryDef {
+            name: self.name.clone(),
+            table: self.tables[0].clone(),
+            fields,
+        })
+    }
+}
+
 /// The storage seam of the command core. Implementors must be deterministic
 /// and must not block indefinitely.
 pub trait StoragePort {
@@ -156,6 +250,11 @@ pub trait StoragePort {
     }
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
+    /// Native saved queries of the open database (step 15.3, M3).
+    /// Backends without native queries return an empty list.
+    fn native_queries(&self) -> Result<Vec<NativeQuery>, PortError> {
+        Ok(Vec::new())
+    }
 }
 
 /// One row operation of a batch write (the journal's port vocabulary).

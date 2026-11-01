@@ -202,6 +202,11 @@ impl App {
     }
 
     /// Rendered snapshot (read-only; the panels never mutate it).
+    /// A native saved query by name (step 15.3, M3; read-only).
+    pub fn native_query(&self, name: &str) -> Option<&datacraft_core::port::NativeQuery> {
+        self.core.native_query(name)
+    }
+
     pub fn snapshot(&self) -> &UiStateSnapshot {
         &self.snapshot
     }

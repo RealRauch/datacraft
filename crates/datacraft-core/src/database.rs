@@ -33,6 +33,7 @@ impl crate::core::Core {
                     queries: Vec::new(),
                     forms: Vec::new(),
                     reports: Vec::new(),
+                    native_queries: self.port.native_queries().unwrap_or_default(),
                 });
                 vec![Event::DatabaseOpened { name, format }]
             }

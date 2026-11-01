@@ -129,6 +129,14 @@ impl StoragePort for DetectingPort {
             None => Ok(Vec::new()),
         }
     }
+
+    fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {
+        match &self.backend {
+            Some(Backend::Jet(port)) => port.native_queries(),
+            Some(Backend::Sqlite(port)) => port.native_queries(),
+            None => Ok(Vec::new()),
+        }
+    }
 }
 
 /// The two recognized header families.

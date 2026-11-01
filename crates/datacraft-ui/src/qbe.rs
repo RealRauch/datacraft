@@ -13,8 +13,13 @@ use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
 
-/// Renders the QBE grid of one query tab.
+/// Renders the QBE grid of one query tab (native saved queries render
+/// read-only — step 15.3, M3).
 pub fn qbe_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
+    if app.native_query(&tab.object_name).is_some() {
+        native_query_ui(app, tab, ui);
+        return;
+    }
     let Some(query) = app
         .snapshot()
         .database
@@ -173,5 +178,70 @@ fn sort_label(order: SortOrder) -> &'static str {
         SortOrder::None => "(not sorted)",
         SortOrder::Ascending => "ascending",
         SortOrder::Descending => "descending",
+    }
+}
+
+/// Read-only view of a native saved query (M3): flavor, tables, columns
+/// and the decoded expressions; `Run` executes the mappable subset.
+fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
+    let Some(native) = app.native_query(&tab.object_name) else {
+        ui.label("Query no longer exists");
+        return;
+    };
+    let name = native.name.clone();
+    let kind = format!("{:?}", native.kind);
+    let tables = native.tables.join(", ");
+    let columns: Vec<String> = native
+        .columns
+        .iter()
+        .map(
+            |column| match (&column.table, &column.field, &column.expression) {
+                (_, _, Some(expression)) => expression.clone(),
+                (Some(table), Some(field), None) => format!("{table}.{field}"),
+                (None, Some(field), None) => field.clone(),
+                _ => "<column>".to_owned(),
+            },
+        )
+        .collect();
+    let criteria = native.criteria.join(" AND ");
+    let joins = native.joins.join("; ");
+    let order_by = native.order_by.join(", ");
+
+    ui.heading(egui::RichText::new(format!("Native query: {name}")));
+    ui.label(
+        egui::RichText::new(format!("{kind} — read-only (MSysQueries)"))
+            .small()
+            .weak(),
+    );
+    ui.separator();
+    ui.weak(format!(
+        "Tables: {}",
+        if tables.is_empty() { "<none>" } else { &tables }
+    ));
+    for column in &columns {
+        ui.label(column.clone());
+    }
+    if !criteria.is_empty() {
+        ui.weak(format!("Criteria: {criteria}"));
+    }
+    if !joins.is_empty() {
+        ui.weak(format!("Joins: {joins}"));
+    }
+    if !order_by.is_empty() {
+        ui.weak(format!("Order by: {order_by}"));
+    }
+    ui.separator();
+    if ui.button("Run").clicked() {
+        let events = app.dispatch(Command::RunQuery {
+            query: name.clone(),
+        });
+        let ran = events.iter().find_map(|event| match event {
+            datacraft_core::event::Event::QueryRan { rows, .. } => Some(*rows),
+            _ => None,
+        });
+        ui.weak(match ran {
+            Some(rows) => format!("Ran — {rows} rows"),
+            None => "Run failed — see the status line".to_owned(),
+        });
     }
 }

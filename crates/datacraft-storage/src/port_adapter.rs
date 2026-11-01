@@ -103,6 +103,15 @@ impl StoragePort for Jet4Port {
         })
     }
 
+    fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {
+        let Some(reader) = self.reader.as_ref() else {
+            return Ok(Vec::new());
+        };
+        Ok(crate::port_native::to_core(
+            reader.native_queries().map_err(map_open)?,
+        ))
+    }
+
     fn relationships(&self) -> Result<Vec<datacraft_core::port::Relationship>, PortError> {
         let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
             reason: "no database is open".to_owned(),

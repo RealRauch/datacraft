@@ -124,6 +124,15 @@ impl UiStateSnapshot {
                         )),
                         fields: q.fields.clone(),
                     })
+                    .chain(db.native_queries.iter().map(|query| QueryEntrySnapshot {
+                        name: query.name.clone(),
+                        table: query.tables.first().cloned().unwrap_or_default(),
+                        ui_test_id: state.nav_pane_test_id(&crate::ObjectId::new(
+                            crate::ObjectKind::Query,
+                            &query.name,
+                        )),
+                        fields: query.query_def().map(|def| def.fields).unwrap_or_default(),
+                    }))
                     .collect(),
                 tables: db
                     .tables

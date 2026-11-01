@@ -480,3 +480,60 @@ the mdb-tools oracle **cannot** cross-check it ("unsupported data type 17" —
 impossible by construction), so `tests/oracle.rs` skips that one table with
 this documented reason. HACKING's type table remains incomplete (as already
 noted for this byte); no format-doc update is needed beyond this record.
+
+## Memo/OLE values (step 15.3 evidence, `fixtures/queryTestV2000.mdb`)
+
+A row's memo/OLE slot holds a 4-byte header, then either a pointer or
+inline data:
+
+| Bits `0xC0000000` | Form |
+|---|---|
+| `0x80000000` | Inline; `len = header & 0x3FFFFFFF` |
+| `0x40000000` | Single LVAL record; next dword = `page << 8 | record` |
+| `0x00000000` | LVAL chain; next dword = first `[next][data]` record |
+
+**Inline memos** written by Access 2000+ prepend an **8-byte zero header
+that the length does not count** (slot total = `4 + 8 + len`, verified on
+nine `MSysQueries` expression values); DataCraft's own writer omits it
+(slot total = `4 + len`). The slot length decides which form is present.
+
+**Text decoding** (Jet4): text with the `FF FE` header starts compressed
+(one byte per character) and a `0x00` byte switches to UCS-2 pairs for
+the remainder — headers announce compression (memos always carry it);
+values without the header follow the column's compressed-unicode flag
+(flag: single-byte + switch, no flag: UCS-2 throughout).
+
+## MSysQueries — native saved queries (step 15.3, item M3)
+
+`MSysObjects` rows with `Type = 5` name the queries; `Flags & 0xF0` is the
+flavor: `0x00` select, `0x10` crosstab, `0x20` delete, `0x30` update,
+`0x40` append, `0x50` make-table, `0x60` data-definition, `0x70`
+pass-through, `0x80` union.
+
+The definition lives in `MSysQueries` (one row per attribute, grouped by
+`ObjectId`, ordered by `Order`):
+
+| `Attribute` | Meaning | Columns |
+|---:|---|---|
+| 0 | start | — |
+| 1 | select-type bits | `Flag` (`0x01` star, `0x02` distinct, `0x08` distinct row, `0x10` top, `0x20` percent) |
+| 2 | parameter | `Name1`, `LvExtra` (type code) |
+| 3 | flags | `Flag` |
+| 4 | remote database | `Expression` |
+| 5 | table | `Name1` |
+| 6 | column | `Name1` table, `Name2` field/alias, `Expression`, `Flag` |
+| 7 | join | `Name1`/`Name2` tables, `Expression`, `Flag` (1 inner, 2 left, 3 right) |
+| 8 | WHERE | `Expression` |
+| 9 | GROUP BY | `Expression` |
+| 10 | HAVING | `Expression` |
+| 11 | ORDER BY | `Name1`, `Flag` (descending) |
+| 255 | end | — |
+
+Unknown attribute codes and query flavors answer a precise `Unsupported`.
+Parameters, criteria, joins and grouping stay decoded-but-unmapped rests
+(M3): the QBE consumer only maps select queries over a single table with
+plain columns.
+
+Parameter types (`PARAM_TYPE_MAP`, jackcess): 0 value, 1 boolean, 10 text
+(Jet `TEXT`), 2 byte, 3 integer, 4 long, 5 currency, 6 single, 7 double,
+8 date/time, 9 binary, 11 OLE, 15 GUID (`DataType` values).

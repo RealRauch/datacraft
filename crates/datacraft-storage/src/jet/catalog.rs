@@ -17,6 +17,8 @@ pub const OBJECT_TYPE_TABLE: i64 = 1;
 /// One catalog entry.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CatalogEntry {
+    /// Object id (`MSysObjects.Id`; queries reference it from MSysQueries).
+    pub id: i64,
     /// Object name (table/query/form/...).
     pub name: String,
     /// MSysObjects `Type` value (1 = table).
@@ -79,6 +81,7 @@ impl Jet4TableReader {
                 None
             };
             entries.push(CatalogEntry {
+                id,
                 name,
                 object_type,
                 flags,

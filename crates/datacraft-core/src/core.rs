@@ -49,8 +49,36 @@ impl Core {
             .queries
             .iter()
             .find(|q| q.name.eq_ignore_ascii_case(name))
+            .cloned()
         else {
-            return Err(format!("query {name:?} not found"));
+            let native = db
+                .native_queries
+                .iter()
+                .find(|query| query.name.eq_ignore_ascii_case(name))
+                .ok_or_else(|| format!("query {name:?} not found"))?;
+            let Some(def) = native.query_def() else {
+                return Err(format!(
+                    "native query {name:?} carries constructs outside the decoded subset                      (criteria, joins, grouping or computed columns) — BACKLOG M3 rest"
+                ));
+            };
+            let Some(source) = db
+                .tables
+                .iter()
+                .find(|t| t.name.eq_ignore_ascii_case(&def.table))
+            else {
+                return Err(format!("source table {:?} not found", def.table));
+            };
+            let rows = self
+                .port
+                .read_rows(
+                    &source.name,
+                    crate::port::RowRange {
+                        start: 0,
+                        len: usize::MAX,
+                    },
+                )
+                .map_err(|e| e.to_string())?;
+            return crate::query_engine::run_query(&def, source, &rows).map_err(|e| e.to_string());
         };
         let Some(source) = db
             .tables
@@ -69,7 +97,18 @@ impl Core {
                 },
             )
             .map_err(|e| e.to_string())?;
-        crate::query_engine::run_query(def, source, &rows).map_err(|e| e.to_string())
+        crate::query_engine::run_query(&def, source, &rows).map_err(|e| e.to_string())
+    }
+
+    /// A native saved query by name (step 15.3, M3) — the read-only
+    /// consumer seam (bus/MCP/UI) for queries the sidecar does not own.
+    pub fn native_query(&self, name: &str) -> Option<&crate::port::NativeQuery> {
+        self.state
+            .database
+            .as_ref()?
+            .native_queries
+            .iter()
+            .find(|query| query.name.eq_ignore_ascii_case(name))
     }
 
     /// Runs one gated SQL statement over the loaded tables in a throwaway
@@ -229,10 +268,15 @@ impl Core {
                 .tables
                 .iter()
                 .any(|t| t.name.to_lowercase() == object.name.to_lowercase()),
-            ObjectKind::Query => db
-                .queries
-                .iter()
-                .any(|q| q.name.to_lowercase() == object.name.to_lowercase()),
+            ObjectKind::Query => {
+                db.queries
+                    .iter()
+                    .any(|q| q.name.to_lowercase() == object.name.to_lowercase())
+                    || db
+                        .native_queries
+                        .iter()
+                        .any(|q| q.name.to_lowercase() == object.name.to_lowercase())
+            }
             ObjectKind::Form => db
                 .forms
                 .iter()
