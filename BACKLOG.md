@@ -24,12 +24,6 @@
 
 > No open items.
 
-### [ ] M9 — Design-time schema editing (ALTER TABLE) in the table design view — 🟡
-- **Location:** `crates/datacraft-core/src/command.rs`, `database.rs`; `crates/datacraft-storage/src/jet/writer_tables.rs`, `src/port_adapter.rs`; `crates/datacraft-ui/src/design.rs`
-- **Problem:** The table design grid is read-only; step 6.3 deferred editing to the writer workstream (H9), but no alter path exists yet.
-- **Approach:** `AddField`/`DropField`/`RenameField`/`SetFieldProperties` commands through the port, rewriting the TDEF while preserving row data; the design grid becomes editable with save/cancel and dispatches exactly one command per edit; shapes the writer cannot alter answer a precise `Unsupported`.
-- **Acceptance:** Design-view edits persist across a reopen with row data preserved; oracle check on the changed file; UI edits dispatch one command each; failures leave the file and state untouched.
-
 ### [ ] U14 — Command history for Undo/Redo — 🟡
 - **Location:** `crates/datacraft-core/src/state.rs`, `command.rs`, dispatch modules; `crates/datacraft-ui/src/ribbon.rs` (QAT enablement)
 - **Problem:** The Quick Access Toolbar declares Undo/Redo (step 21.2, item U6) but renders them disabled: the command bus keeps no history, so there is nothing to undo.
@@ -150,3 +144,4 @@
 - M10 — Native-query decode errors are dropped at open — done (done in `3c7b1fb` (RED `5fb6f96`) — native-query decode errors are stored as `native_queries_error` in the snapshot instead of silently yielding an empty list; the Northwind attribute-12 error is pinned at the port and rendered at the Queries group)
 - M8 — Jet AutoNumber counter maintenance on insert — done (done in `af07979` (RED `39e95ad`) — Jet4 writer assigns LongInteger AutoNumbers (Null = engine-assigned), persists the TDEF `+12` counter across reopen and rejects user values; GUID flavor stays Unsupported; mdb-export oracle test added)
 - M7 — Jet table drops through the writer (DropTable on .mdb/.accdb) — done (done in `24f5033` (RED `e3c4601`) — writer/drop path deletes the catalog row, frees used-map + TDEF-chain + unreferenced usage pages into the global free map and 0xFF-fills freed pages; port tests cover reopen visibility, neighbour survival and failure atomicity)
+- M9 — Design-time schema editing (ALTER TABLE) in the table design view — done (done in `6780b3c` (RED `588fe4f`) — AddField/DropField/RenameField/SetFieldProperties via one `alter_table` port method; TDEF rewrite on a scratch writer with row re-encoding (dense column ids on drop), design-grid edit controls dispatch one command each)

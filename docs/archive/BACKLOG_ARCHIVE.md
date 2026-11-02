@@ -711,3 +711,12 @@
 - **Approach:** Remove the table's TDEF/TDAT pages and its catalog row, return every freed page to the global free map and keep the per-table usage maps consistent; deterministic page selection (LESSONS #6). Verify with `mdb-export` and a reopen; the SQLite drop path stays unchanged.
 - **Acceptance:** Drop on a private fixture copy; reopen and the catalog no longer lists the table; free-map and usage-map consistency checked; the oracle reads the file without errors; failure leaves the file untouched.
 - **Done:** done in `24f5033` (RED `e3c4601`) — writer/drop path deletes the catalog row, frees used-map + TDEF-chain + unreferenced usage pages into the global free map and 0xFF-fills freed pages; port tests cover reopen visibility, neighbour survival and failure atomicity
+
+---
+
+### [x] M9 — Design-time schema editing (ALTER TABLE) in the table design view — 🟡
+- **Location:** `crates/datacraft-core/src/command.rs`, `database.rs`; `crates/datacraft-storage/src/jet/writer_tables.rs`, `src/port_adapter.rs`; `crates/datacraft-ui/src/design.rs`
+- **Problem:** The table design grid is read-only; step 6.3 deferred editing to the writer workstream (H9), but no alter path exists yet.
+- **Approach:** `AddField`/`DropField`/`RenameField`/`SetFieldProperties` commands through the port, rewriting the TDEF while preserving row data; the design grid becomes editable with save/cancel and dispatches exactly one command per edit; shapes the writer cannot alter answer a precise `Unsupported`.
+- **Acceptance:** Design-view edits persist across a reopen with row data preserved; oracle check on the changed file; UI edits dispatch one command each; failures leave the file and state untouched.
+- **Done:** done in `6780b3c` (RED `588fe4f`) — AddField/DropField/RenameField/SetFieldProperties via one `alter_table` port method; TDEF rewrite on a scratch writer with row re-encoding (dense column ids on drop), design-grid edit controls dispatch one command each
