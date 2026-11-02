@@ -7,7 +7,7 @@
 
 use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
-use datacraft_core::port::MockPort;
+use datacraft_core::port::{MockPort, NativeQuery, NativeQueryColumn, NativeQueryKind};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use eframe::egui;
@@ -322,5 +322,66 @@ fn capability_restricted_sources_disable_the_matching_affordances() {
     assert!(
         !dump.contains("Button|Table| disabled"),
         "a capable source keeps the Table action enabled:\n{dump}"
+    );
+}
+
+#[test]
+fn native_query_run_executes_through_the_ui() {
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_row_data(
+        "Customers",
+        vec![vec![
+            datacraft_core::schema::FieldValue::Integer(1),
+            datacraft_core::schema::FieldValue::Text("alpha".to_owned()),
+        ]],
+    );
+    port.with_native_queries(vec![NativeQuery {
+        name: "CustomerList".to_owned(),
+        kind: NativeQueryKind::Select,
+        tables: vec!["Customers".to_owned()],
+        columns: vec![
+            NativeQueryColumn {
+                table: Some("Customers".to_owned()),
+                field: Some("name".to_owned()),
+                expression: None,
+                descending: false,
+            },
+            NativeQueryColumn {
+                table: Some("Customers".to_owned()),
+                field: Some("id".to_owned()),
+                expression: None,
+                descending: false,
+            },
+        ],
+        criteria: vec!["Customers.id > 0".to_owned()],
+        group_by: Vec::new(),
+        having: Vec::new(),
+        joins: Vec::new(),
+        order_by: Vec::new(),
+        select_flags: 0,
+        parameters: Vec::new(),
+    }]);
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Query,
+        "CustomerList",
+    )));
+    let mut harness = themed(app, |ui, app| {
+        let Some(tab) = app.snapshot().tabs.first().cloned() else {
+            return;
+        };
+        datacraft_ui::qbe::qbe_ui(app, &tab, ui);
+    });
+    harness.run();
+    harness.get_by_label("Run").click();
+    harness.step();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("Ran — 1 row"),
+        "the native query executed through the bus:\n{dump}"
     );
 }

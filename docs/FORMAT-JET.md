@@ -647,9 +647,33 @@ The definition lives in `MSysQueries` (one row per attribute, grouped by
 | 255 | end | — |
 
 Unknown attribute codes and query flavors answer a precise `Unsupported`.
-Parameters, criteria, joins and grouping stay decoded-but-unmapped rests
-(M3): the QBE consumer only maps select queries over a single table with
-plain columns.
+The decoder separates the attributes by role (`criteria` = WHERE,
+`group_by`, `having`, typed `joins` with the flag flavor and typed
+`order_by` entries with the descending bit); `select_flags` carries
+attribute 1 and `parameters` the attribute-2 names.
+
+**Execution subset (step 27.1, M12).** `Select` queries execute through
+`datacraft-core::native_exec` against materialized port rows:
+
+- one or more FROM tables with **equality** joins only; attribute-7 flag
+  `1` = inner, `2` = left (preserves the left operand), `3` = right
+  (preserves the right operand). Outer joins must bind a new table — a
+  second outer predicate over already bound tables is refused.
+- WHERE expressions use the phase-15 Access expression grammar verbatim
+  (`And`/`Or`/`Not`, `In`, `Is [Not] Null`, `Like`, `Between`, brackets,
+  double-quoted text); identifiers are whitelisted against the schema and
+  ambiguous bare names are refused.
+- projection accepts plain field references and `Table.*` / `*`
+  wildcards; ORDER BY accepts field references with their descending bit.
+- `GROUP BY`/`HAVING`, parameters, select modifiers
+  (`DISTINCT`/`TOP`/`PERCENT`), computed columns, self-joins/duplicate FROM
+  tables and non-equality joins answer a precise `Unsupported`. A
+  deterministic row cap (1,000,000 joined rows) protects crafted
+  cartesian joins.
+
+Control-flow flavors (crosstab/delete/update/append/make-table/DDL/
+pass-through/union) stay decoded-but-not-executed — they are not selects
+and would mutate or restructure the source.
 
 Parameter types (`PARAM_TYPE_MAP`, jackcess): 0 value, 1 boolean, 10 text
 (Jet `TEXT`), 2 byte, 3 integer, 4 long, 5 currency, 6 single, 7 double,

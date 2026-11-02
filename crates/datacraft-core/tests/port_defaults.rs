@@ -172,8 +172,12 @@ fn every_disqualifier_answers_none() {
         tables: Vec::new(),
         columns: Vec::new(),
         criteria: Vec::new(),
+        group_by: Vec::new(),
+        having: Vec::new(),
         joins: Vec::new(),
         order_by: Vec::new(),
+        select_flags: 0,
+        parameters: Vec::new(),
     };
     assert!(no_tables.query_def().is_none());
 }

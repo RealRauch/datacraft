@@ -183,3 +183,34 @@ Ordering notes:
   §4 stage-2 gate opens.
 - This roadmap does not renumber `PROGRESS.md`; when a milestone becomes
   active, its steps are planned there and in `BACKLOG.md` as usual.
+
+## 6. Deferred scope decisions (2026-11-02, Phase 27/28/32 releases)
+
+Three deliberate boundaries were decided while releasing Phases 27, 28, 32
+and 33. They are scope decisions, not open defects; each one names the
+follow-up that would lift it.
+
+- **Field properties: sidecar authority (H45).** DataCraft persists the
+  full `FieldProperties` set in the `.datacraft` sidecar's `tables` list
+  and treats that as its own authority. The Jet/ACE catalog keeps `NULL`
+  `LvProp` (the file stays Access-readable, and Access does not display
+  DataCraft-set defaults/captions/validation). A future item may encode the
+  `MR2` property pack into `LvProp` and decode it back; that is a
+  High-class storage-format change (clean-room format verification first)
+  and is intentionally not part of Phase 32.
+- **Undo/Redo scope: row writes only (U14).** The history covers row
+  inserts/updates/deletes and applied journal batches. Schema edits
+  (`CreateTable`/`DropTable`/`AddField`/`DropField`/`RenameField`/
+  `SetFieldProperties`), QBE/form/report design edits and file-level
+  commands are not undoable and answer a precise reason. A schema-history
+  follow-up needs reverse operations that restore dropped table data; it
+  is a separate design (and must not weaken the current honest boundary).
+- **Jet index fidelity: metadata plus uniqueness (M15/M16).** The writer
+  emits TDEF index descriptors and enforces `IndexMode::NoDuplicates` on
+  writes; SQLite gets the matching `CREATE INDEX`/`FOREIGN KEY` DDL and
+  relationships land as `MSysRelationships` rows. Physical Jet index
+  B-tree pages (leaf/intermediate pages and their maintenance on
+  insert/update/delete) are not written yet — Access may rebuild them when
+  it opens the file (documented manual gate). A follow-up item covers the
+  index-page format research and maintenance; it is the largest remaining
+  writer-fidelity risk.

@@ -56,29 +56,35 @@ impl Core {
                 .iter()
                 .find(|query| query.name.eq_ignore_ascii_case(name))
                 .ok_or_else(|| format!("query {name:?} not found"))?;
-            let Some(def) = native.query_def() else {
-                return Err(format!(
-                    "native query {name:?} carries constructs outside the decoded subset                      (criteria, joins, grouping or computed columns) — BACKLOG M3 rest"
-                ));
-            };
-            let Some(source) = db
-                .tables
-                .iter()
-                .find(|t| t.name.eq_ignore_ascii_case(&def.table))
-            else {
-                return Err(format!("source table {:?} not found", def.table));
-            };
-            let rows = self
-                .port
-                .read_rows(
-                    &source.name,
-                    crate::port::RowRange {
-                        start: 0,
-                        len: usize::MAX,
-                    },
-                )
-                .map_err(|e| e.to_string())?;
-            return crate::query_engine::run_query(&def, source, &rows).map_err(|e| e.to_string());
+            // Native queries execute through the qualified dialect
+            // (step 27.1, M12): the decoded expression dialect runs on the
+            // phase-15 expression service; anything outside it answers a
+            // precise `Unsupported`.
+            let mut sources = Vec::with_capacity(native.tables.len());
+            for table in &native.tables {
+                let Some(source) = db
+                    .tables
+                    .iter()
+                    .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
+                else {
+                    return Err(format!(
+                        "native query {:?}: table {table:?} not found",
+                        native.name
+                    ));
+                };
+                let rows = self
+                    .port
+                    .read_rows(
+                        &source.name,
+                        crate::port::RowRange {
+                            start: 0,
+                            len: usize::MAX,
+                        },
+                    )
+                    .map_err(|e| e.to_string())?;
+                sources.push((source, rows));
+            }
+            return crate::native_exec::run(native, &sources).map_err(|e| e.to_string());
         };
         let Some(source) = db
             .tables

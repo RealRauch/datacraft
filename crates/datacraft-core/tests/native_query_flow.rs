@@ -92,18 +92,24 @@ fn mappable_native_queries_run_and_open() {
 }
 
 #[test]
-fn queries_outside_the_subset_answer_a_precise_error() {
-    let mut port = MockPort::with_tables(vec![TableDef::new("Customers", vec![])]);
+fn criteria_run_and_unknown_queries_stay_precise() {
+    let mut port = MockPort::with_tables(vec![TableDef::new(
+        "Customers",
+        vec![
+            FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
+            FieldDef::new("name", FieldKind::Text { max_len: 20 }),
+        ],
+    )]);
     port.with_native_queries(vec![query("Filtered", vec!["id > 1".to_owned()])]);
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
     });
-    let reason = core
+    let result = core
         .run_query("Filtered")
-        .expect_err("criteria are outside the mapped subset");
-    assert!(reason.contains("outside the decoded subset"), "{reason}");
+        .expect("the criteria execute through the expression service");
+    assert!(result.rows.is_empty(), "the mock table carries no rows");
     let reason = core.run_query("Missing").expect_err("unknown query");
     assert!(reason.contains("not found"), "{reason}");
 }

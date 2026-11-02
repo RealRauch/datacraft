@@ -20,6 +20,7 @@ pub mod ids;
 pub mod journal;
 pub mod keys;
 pub mod macro_def;
+pub mod native_exec;
 pub mod nav;
 pub mod palette;
 pub mod port;
