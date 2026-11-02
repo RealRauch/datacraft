@@ -62,13 +62,23 @@ fn unknown_templates_name_the_available_set() {
 fn the_snapshot_lists_the_shipped_templates() {
     let core = Core::new(Box::new(MockPort::new()));
     let templates = &core.inspect().templates;
-    assert!(!templates.is_empty(), "the standard set ships");
+    let names: Vec<&str> = templates.iter().map(|t| t.name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["blank", "contacts", "inventory", "bike_shop"],
+        "the standard set ships in backstage order"
+    );
     let blank = templates
         .iter()
         .find(|t| t.name == "blank")
         .expect("blank ships");
     assert_eq!(blank.format, DatabaseFormat::Jet4);
     assert_eq!(blank.tables, 0, "blank carries no tables");
+    let bike_shop = templates
+        .iter()
+        .find(|t| t.name == "bike_shop")
+        .expect("the demo ships");
+    assert_eq!(bike_shop.tables, 3, "the demo carries its three tables");
 }
 
 #[test]
