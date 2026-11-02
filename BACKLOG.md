@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-02T01:29
+# BACKLOG.md — Open items (As of: 2026-11-02T21:54
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -62,6 +62,24 @@
 - **Problem:** Relationships are read-only on both backends. Generated samples cannot populate the relationship mapper, and a template cannot express referential integrity.
 - **Approach:** Add a create/delete relationship path through the port and a matching bus command. Jet writes `MSysRelationships` plus the required primary/foreign indexes; SQLite emits `FOREIGN KEY` constraints. Reads must round-trip through the existing `relationships()` API.
 - **Acceptance:** Created relationships survive reopen and appear in the mapper; Access shows them; SQLite enforces the constraint; tests cover create/delete, duplicates and unsupported shapes; canonical gates green.
+
+### [ ] M17 — Driver model: declarative capabilities, registry and core-computed affordances (Phase 30) — 🟡
+- **Location:** `crates/datacraft-core/src/port.rs` (driver id, capabilities), `state.rs`, `snapshot.rs`, `database.rs` (open path), `core.rs` (early rejection, availability map), `crates/datacraft-storage/src/detecting.rs`, `port_adapter.rs`, `sqlite/mod.rs`; UI: `shell.rs`, `present.rs`, ribbon/nav-pane rendering
+- **Problem:** Capability gaps are implicit today — trait defaults answer `Unsupported { reason: String }` at call time, `DetectingPort` hardcodes SQLite answers, and several sites exhaustively match the closed `DatabaseFormat` enum. A new driver must touch core/UI/wire; agents and the UI cannot ask what a source supports; the non-atomic SQLite batch is invisible.
+- **Approach:** `DriverId` + per-session `DriverCapabilities` on `StoragePort` (ADR-7); registry-based detection; core consults capabilities before dispatch (same `Unsupported` event shape); snapshot gains additive `driver`/`capabilities` fields; core-computed availability map (enabled + disabled reason) rendered by the UI as disabled controls with localized reasons; invariant contract: every capability reported `No` answers `Unsupported` on the matching port call.
+- **Acceptance:** Jet and SQLite report complete, behavior-consistent capability sets (invariant tests); read-only files disable the write capabilities; the registry accepts a driver without core/UI edits; the UI greys out disabled commands with localized reasons (kittest snapshots assert on the semantic tree); canonical verification set green.
+
+### [ ] M18 — CSV directory driver as the out-of-tree proof (Phase 30) — 🟡
+- **Location:** `crates/datacraft-csv/` (new crate, depends only on `datacraft-core`), root `Cargo.toml` (workspace member — Medium gate), new `csv` dependency (Medium gate, per-occurrence release)
+- **Problem:** The driver interface is only proven by backends living inside `datacraft-storage`; there is no evidence that a capability-poor driver can dock from a separate crate without touching core, UI or wire.
+- **Approach:** a directory of `*.csv` files opens as one database (tables = files, header row = column names, all columns Short Text — deterministic, no type inference); `write_rows` collects in memory and writes via temp file + rename so `atomic_batch` is an honest `Yes`; `alter_table`, `native_queries`, `macros`, `vba`, `passwords` and `autonumber` report `No`; `DatabaseFormat` gains a `Csv` variant rendered by the data-driven display path.
+- **Acceptance:** a CSV directory opens, reads and writes through GUI, CLI and MCP; capability invariants hold; registry detection handles directories; wire E2E block green; existing Jet/SQLite behavior unchanged.
+
+### [ ] M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — 🟡
+- **Location:** `crates/datacraft-storage/` (split into `datacraft-jet` + `datacraft-sqlite`), `crates/datacraft-mcp/` (new binary crate), workspace `Cargo.toml`, packaging documentation
+- **Problem:** The engine (`datacraft-core`) and all drivers share one workspace with lockstep versions; external consumers and contributors cannot depend on stable published crates, and the pure-Rust Jet story is diluted by the C-backed `rusqlite` dependency in the same crate.
+- **Approach:** split the storage crate into per-driver crates (Jet stays pure Rust with its oracle suite; SQLite moves its dependency into its own crate), extract `datacraft-mcp` as its own binary crate, then publish in dependency order (engine → jet → sqlite → csv → mcp) with a Semver/MSRV/changelog policy. Details are packaged when Phase 31 starts (ADR-7 records the decision).
+- **Acceptance:** each crate builds and publishes independently; the workspace still builds as one unit; the publishing checklist and versioning policy are documented; no behavior change.
 
 ---
 

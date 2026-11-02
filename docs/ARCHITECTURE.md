@@ -186,6 +186,11 @@ families. `InsertRow`/`SqlRan` are port-level writes and the shadow-SQL
 engine reads every source through the port (see `docs/FORMAT-JET.md`
 §"SQLite backend").
 
+The `StorageEngine` snippet above is the historical Phase-2 record; the living
+boundary is the core-owned `StoragePort` trait. Since Phase 30 the driver
+model — declarative capabilities, registry detection, out-of-tree driver
+crates — is governed by ADR-7 (§16).
+
 **Format milestones:** JET4 (`.mdb`) read → ACE (`.accdb`) read → JET4 write →
 ACE write. Each milestone: spec → decoder/encoder → proptest round-trip →
 golden files → oracle comparison. Landed so far: Jet4 read, Jet3 (Access 97)
@@ -445,3 +450,59 @@ parser) makes System follow the OS live. Phase-gate screenshots
 (before/after light, after dark) live in `docs/phase-20/`. One defect found
 by the gate was fixed inline: the empty workspace now paints the canvas token
 instead of showing the window clear colour (BACKLOG F3).
+
+## 16. Driver model & engine packaging — decision record
+
+**Decision record (ADR-7, 2026-11-02): data sources are pluggable drivers that
+report their capabilities; the engine layer is the product, the clients are
+applications.** Approved with the Phase 30 plan release.
+
+**Decision:**
+
+1. **One driver interface.** Every data source implements the core-owned
+   `StoragePort` trait. There is no second, format-specific seam: Jet3/Jet4/ACE,
+   SQLite and future sources differ only in their driver implementation and
+   their reported capabilities.
+2. **Declarative capabilities.** Every driver reports a stable `DriverId` and a
+   `DriverCapabilities` value per *opened session* — capabilities depend on
+   runtime state (a read-only file disables the write capabilities; an
+   Office-encrypted ACE file opens read-only). The vocabulary covers the port
+   surface (`read_tables`, `write_rows`, `create_table`, `drop_table`,
+   `create_database`, `alter_table`, `atomic_batch`, `passwords`, `autonumber`,
+   plus `Support { No, ReadOnly, Yes }` for `relationships`, `native_queries`,
+   `macros` and `vba`) and reserves `triggers`/`stored_procedures` (all current
+   drivers report `No`). Growing the vocabulary is an additive, versioned
+   change. A capability reported `No` is a contract: the matching port call
+   answers a precise `Unsupported`.
+3. **Registry instead of dispatch.** Format detection is an ordered registry of
+   drivers with a `sniff(path, header) -> bool` probe; the composite answering
+   port stays the composition-root default. Adding a driver must not require
+   edits in core, the UI or the wire vocabulary.
+4. **Engine as product, apps as consumers.** `datacraft-core` (command bus,
+   port trait, state, snapshots, JSON-RPC transport) is the standalone headless
+   engine. The GUI (`datacraft`), `datacraft-cli` and `datacraft-mcp` are
+   applications that compose the engine with a driver set at their composition
+   roots. Out-of-tree driver crates depend only on `datacraft-core`;
+   `datacraft-storage` keeps the clean-room Jet/ACE implementation and its
+   oracle. The target packaging (driver-per-crate split, standalone
+   `datacraft-mcp` binary crate, Semver/MSRV policy) is Phase 31 (BACKLOG M19)
+   and does not change this decision.
+5. **UI affordances are core-computed.** Core derives, per open source, an
+   availability map (enabled + disabled reason) for command affordances into
+   the snapshot; the UI only renders disabled controls with localized reasons
+   (`t()`). UI code never matches on formats and never duplicates capability
+   logic. Defense in depth: the dispatch consults the capabilities and answers
+   the same `Unsupported` events if a stale client still dispatches.
+
+**Consequences:** the snapshot gains additive `driver`/`capabilities` fields
+(wire-compatible); batch atomicity becomes a declared property — the SQLite
+default loop is visible instead of silent; `DatabaseFormat` grows one variant
+per driver family (CSV in Phase 30); server-hosted sources (`postgres://…`)
+are a documented future path that requires a `SourceSpec` extension of the
+open commands — deliberately out of scope here.
+
+**Alternatives considered:** (a) runtime `Unsupported` only, no declarative
+model — rejected: agents and the UI cannot adapt, and silently non-atomic
+batches stay invisible; (b) an out-of-process plugin protocol — rejected for
+now: it adds ABI/IPC surface against the no-async, pure-Rust constraints;
+in-process out-of-tree crates give the same extension point without it.
