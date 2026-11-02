@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "database_name": "bike_shop",
+  "tables": [],
+  "queries": [
+    {
+      "name": "Expensive bikes",
+      "table": "Bikes",
+      "fields": [
+        {
+          "name": "Model",
+          "shown": true,
+          "sort": "ascending",
+          "criteria": []
+        },
+        {
+          "name": "Price",
+          "shown": true,
+          "sort": "none",
+          "criteria": [
+            ">300000000"
+          ]
+        }
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "name": "Bike Finder",
+      "source": "Bikes",
+      "grid": 8.0,
+      "size": {
+        "width": 640.0,
+        "height": 400.0
+      },
+      "controls": [
+        {
+          "name": "TitleLabel",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Bike Finder"
+            }
+          },
+          "rect": {
+            "x": 16.0,
+            "y": 16.0,
+            "width": 120.0,
+            "height": 24.0
+          }
+        },
+        {
+          "name": "ModelBox",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "Model"
+            }
+          },
+          "rect": {
+            "x": 16.0,
+            "y": 48.0,
+            "width": 200.0,
+            "height": 24.0
+          }
+        },
+        {
+          "name": "InStockBox",
+          "kind": {
+            "type": "check_box",
+            "value": {
+              "bound_field": "InStock"
+            }
+          },
+          "rect": {
+            "x": 16.0,
+            "y": 80.0,
+            "width": 24.0,
+            "height": 24.0
+          }
+        }
+      ]
+    }
+  ],
+  "reports": []
+}

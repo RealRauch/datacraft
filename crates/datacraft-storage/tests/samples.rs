@@ -8,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
-use datacraft_core::port::{DatabaseFormat, StoragePort, RowRange};
+use datacraft_core::port::{DatabaseFormat, RowRange, StoragePort};
 use datacraft_storage::detecting::DetectingPort;
 use datacraft_storage::samples;
 
@@ -43,13 +43,20 @@ fn check_detects_a_tampered_sample() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// One expected sample: file, format and its `(table, row count)` pairs.
+type SampleExpectation = (
+    &'static str,
+    DatabaseFormat,
+    &'static [(&'static str, usize)],
+);
+
 #[test]
 fn every_generated_sample_opens_with_its_expected_tables() {
     let dir = scratch_dir("open");
     let _ = std::fs::remove_dir_all(&dir);
     samples::generate_all(&dir).expect("generate");
 
-    let expected: [(&str, DatabaseFormat, &[(&str, usize)]); 5] = [
+    let expected: [SampleExpectation; 5] = [
         ("blank.mdb", DatabaseFormat::Jet4, &[]),
         ("contacts.mdb", DatabaseFormat::Jet4, &[("Contacts", 4)]),
         (
@@ -89,8 +96,11 @@ fn every_generated_sample_opens_with_its_expected_tables() {
     }
 
     // The demo sidecar ships next to its database and names the demo form.
-    let sidecar = std::fs::read_to_string(dir.join("bike_shop.datacraft"))
-        .expect("the demo sidecar ships");
-    assert!(sidecar.contains("Bike Finder"), "the demo form ships: {sidecar}");
+    let sidecar =
+        std::fs::read_to_string(dir.join("bike_shop.datacraft")).expect("the demo sidecar ships");
+    assert!(
+        sidecar.contains("Bike Finder"),
+        "the demo form ships: {sidecar}"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }

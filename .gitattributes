@@ -6,4 +6,5 @@
 *.jpg binary
 *.mdb binary
 *.accdb binary
+*.sqlite binary
 *.ttf binary

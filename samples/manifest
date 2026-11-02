@@ -1,0 +1,12 @@
+# samples/manifest - pinned sample hashes (phase 29 / H44).
+# The samples are deterministic output of
+#   cargo run -p datacraft-storage --example make_samples
+# `make_samples --check` and the storage samples test regenerate and
+# byte-compare them on every run.
+# Format: sha256sum-compatible (verify: sha256sum -c manifest).
+2ea1e2f9365c7fb3fc8d427c22502794651a31d04b9882c2b51628a642806e2f  bike_shop.datacraft
+8891d11063b15b67227ec1d4f619e44101df3d441b86ec95b36c21af8c45db7c  bike_shop.mdb
+c7b587dbb96e1bd7dfa0417bab4a61c5aee2020786c048e2c48cd2376b6aded8  bike_shop.sqlite
+eaed8b483ea185d9f48175a11f91a5db24fbe6a365b1785fba567275ff3a4103  blank.mdb
+accb6f02c9c3ac21976caba9cc527b5bd9859a27b2f4b927aa31d4e577644910  contacts.mdb
+e50284d39930b581ed7b9702569b78b1f35192a2dfeada9ed3886735c614ca7b  inventory.mdb
