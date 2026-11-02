@@ -763,3 +763,28 @@
 - **Approach:** a directory of `*.csv` files opens as one database (tables = files, header row = column names, all columns Short Text — deterministic, no type inference); `write_rows` collects in memory and writes via temp file + rename so `atomic_batch` is an honest `Yes`; `alter_table`, `native_queries`, `macros`, `vba`, `passwords` and `autonumber` report `No`; `DatabaseFormat` gains a `Csv` variant rendered by the data-driven display path.
 - **Acceptance:** a CSV directory opens, reads and writes through GUI, CLI and MCP; capability invariants hold; registry detection handles directories; wire E2E block green; existing Jet/SQLite behavior unchanged.
 - **Done:** done in `5cee066` (RED `0a86718`; gates ① workspace member ② csv dependency released by the human 2026-11-02) — crates/datacraft-csv depends only on datacraft-core: directory = database, *.csv = tables, one atomic rewrite per write (temp + rename); DatabaseFormat::Csv with its single Display arm; composed at the UI/MCP/CLI roots via DetectingPort::with_fallback; server_e2e_csv pins the full stack over the wire
+
+---
+
+### [x] M12 — Native Query-Execution (MSysQueries ausführen, begrenzter Dialekt) — 🟡
+- **Location:** `crates/datacraft-core/src/` (QueryDef aus nativen Queries → Engine-Ausführung), `crates/datacraft-storage/src/port_native.rs` (falls Attribut-Erweiterung), UI: QBE-Ausführung nativer Queries
+- **Ansatz:** Native Saved Queries sind lesbar (M10) — jetzt **ausführbar** über die eigene Engine: QueryDef (Tabellen/Spalten/Sort/Criteria, Joins im begrenzten Umfang) wird in die In-Memory-Engine überführt und über den Bus ausgeführt (`RunQuery`-Pfad); Konstrukte außerhalb des qualifizierten Dialekts (Ausdrücke, Parameter, Unterabfragen) → präziser `Unsupported` mit Grund statt stiller Fehler.
+- **Acceptance:** Fixture-Queries aus `queryTestV2000.mdb` laufen durch die Engine (Ergebnisse = QBE-Äquivalent); `Unsupported`-Grundfälle getestet; UI führt native Queries aus; MCP/CLI erben über den Bus.
+- **Done:** done in `3fd07a9` (RED `02b091a`; coverage `d668c7b`/`bf872eb`) — native selects execute the qualified Access dialect: equality joins (inner/left/right), WHERE expressions via the phase-15 service, Table.* projection and ORDER BY; fixture SelectQuery runs over the real port, UI Run is kittest-pinned, everything else answers a precise Unsupported
+
+---
+
+### [x] M14 — Encrypted Save-As + Passwortwechsel (verschlüsselte Kopien) — 🟡
+- **Location:** `crates/datacraft-storage/src/port_adapter.rs` (`with_writer` already re-encrypts on save — step 16.2), `crates/datacraft-core/src/command.rs` (new: Save-As/password change), UI backstage, CLI/MCP flags
+- **Approach:** The write path re-encrypts correctly on save (M11). Remaining: **Save-As** — a copy under a new path (optionally with a different/new password: unencrypted → encrypted, password change) as a command over the bus; all four clients serve it; precise errors on a wrong old password. Post-Phase-30 (ADR-7): the Save-As affordances gate on the driver's `passwords` capability — sources reporting `passwords: false` (SQLite, CSV) render the backstage entry disabled with the localized reason, and the dispatch rejects with the same `Unsupported` shape as the other capability gates.
+- **Acceptance:** Save-As to an unencrypted/encrypted copy tested (reopen with/without password); password-change tests; UI/CLI/MCP flow; the original stays untouched; the capability gating is pinned like the other affordances (kittest + dispatch rejection).
+- **Done:** done in `8b2dccc` (RED `9614c5a`; coverage `bf872eb`) — SaveDatabaseAs writes unencrypted/protected Jet4 copies with a deterministic page key while the source stays untouched; ChangePassword rewrites in place atomically; ACE keeps its Office-encryption boundary and Jet3 stays read-only; backstage/CLI/JSON-RPC flows and capability gating are pinned
+
+---
+
+### [x] U14 — Command history for Undo/Redo — 🟡
+- **Location:** `crates/datacraft-core/src/state.rs`, `command.rs`, dispatch modules; `crates/datacraft-ui/src/ribbon.rs` (QAT enablement)
+- **Problem:** The Quick Access Toolbar declares Undo/Redo (step 21.2, item U6) but renders them disabled: the command bus keeps no history, so there is nothing to undo.
+- **Approach:** A bounded per-database history stack of applied commands with deterministic inverse operations (the M2 journal already produces inverse write ops); `Undo`/`Redo` are ordinary bus commands that pop and push through the same reducer, so GUI, CLI and MCP share them; the snapshot exposes the history depth and the QAT entries enable from it. Post-Phase-30 (ADR-7): batch entries consult the driver's `atomic_batch` capability — on non-atomic drivers (SQLite reports `false`) multi-op journals either stay single-op or record the degraded mode (see M20); undo must behave identically on every registered driver, pinned by the capability invariants.
+- **Acceptance:** Undo after a row insert/update/delete restores the previous row data (verified by reopening the file); Redo re-applies it; each action is exactly one command over the wire; QAT entries enable/disable from the snapshot; undo/redo verified on Jet, SQLite and CSV; canonical verification set green.
+- **Done:** done in `a4ca640` (RED `926cbca`) — bounded per-database row-write history; Undo/Redo bus commands address rows by value image, restore_row preserves AutoNumber identities, journal/schema/file lifecycle are barriers, QAT enables from snapshot depths; Jet4 delete/restore verified across reopen, SQLite restore pinned
