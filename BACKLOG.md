@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-02T21:54
+# BACKLOG.md — Open items (As of: 2026-11-02T23:12
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -21,7 +21,7 @@
 ### [ ] H45 — Persist field properties (defaults, validation, captions, formats, input masks, index flags) — 🟠
 - **Location:** `crates/datacraft-storage/src/jet/writer_tables.rs`, `crates/datacraft-storage/src/port_write.rs`, `crates/datacraft-storage/src/port_schema.rs`, `crates/datacraft-core/src/forms.rs` (sidecar tables)
 - **Problem:** `create_table` writes `NULL` into `MSysObjects.LvProp`, and `port_schema.rs` reconstructs only the column type plus `required`. Defaults, validation rules, captions, formats, input masks and `Indexed` are lost on every reopen. The sidecar saves `tables: Vec::new()` and ignores `document.tables` on load, so it cannot carry them either. Templates therefore ship as structure + data only.
-- **Approach:** Decide the authority (ADR): Jet `LvProp` property blocks so Access sees the properties, or the sidecar's table list as DataCraft's own metadata. Implement write + read round-trip for every modeled `FieldProperties` entry, keep the file Access-readable, and reject unsupported property encodings precisely.
+- **Approach:** Decide the authority (short ADR addendum, consistent with ADR-1): Jet `LvProp` property blocks so Access sees the properties, or the sidecar's table list as DataCraft's own metadata. Implement write + read round-trip for every modeled `FieldProperties` entry, keep the file Access-readable, and reject unsupported property encodings precisely. Post-Phase-30 (ADR-7): the property surface already flows through `alter_table`/`SetFieldProperties`, so capability gating of the design-grid edits comes for free; property persistence stays a per-driver concern (Jet/ACE formats can carry it, the CSV driver stays text-only by design).
 - **Acceptance:** Every modeled property survives a Jet4 reopen (and/or sidecar load); Access displays defaults/validation/captions; tests pin each property and the rejection cases; no silent loss remains.
 
 ---
@@ -33,8 +33,8 @@
 ### [ ] U14 — Command history for Undo/Redo — 🟡
 - **Location:** `crates/datacraft-core/src/state.rs`, `command.rs`, dispatch modules; `crates/datacraft-ui/src/ribbon.rs` (QAT enablement)
 - **Problem:** The Quick Access Toolbar declares Undo/Redo (step 21.2, item U6) but renders them disabled: the command bus keeps no history, so there is nothing to undo.
-- **Approach:** a bounded per-database history stack of applied commands with deterministic inverse operations (the M2 journal already produces inverse write ops); `Undo`/`Redo` are ordinary bus commands that pop and push through the same reducer, so GUI, CLI and MCP share them; the snapshot exposes the history depth and the QAT entries enable from it.
-- **Acceptance:** Undo after a row insert/update/delete restores the previous row data (verified by reopening the file); Redo re-applies it; each action is exactly one command over the wire; QAT entries enable/disable from the snapshot; canonical verification set green.
+- **Approach:** A bounded per-database history stack of applied commands with deterministic inverse operations (the M2 journal already produces inverse write ops); `Undo`/`Redo` are ordinary bus commands that pop and push through the same reducer, so GUI, CLI and MCP share them; the snapshot exposes the history depth and the QAT entries enable from it. Post-Phase-30 (ADR-7): batch entries consult the driver's `atomic_batch` capability — on non-atomic drivers (SQLite reports `false`) multi-op journals either stay single-op or record the degraded mode (see M20); undo must behave identically on every registered driver, pinned by the capability invariants.
+- **Acceptance:** Undo after a row insert/update/delete restores the previous row data (verified by reopening the file); Redo re-applies it; each action is exactly one command over the wire; QAT entries enable/disable from the snapshot; undo/redo verified on Jet, SQLite and CSV; canonical verification set green.
 
 ### [ ] M12 — Native Query-Execution (MSysQueries ausführen, begrenzter Dialekt) — 🟡
 - **Location:** `crates/datacraft-core/src/` (QueryDef aus nativen Queries → Engine-Ausführung), `crates/datacraft-storage/src/port_native.rs` (falls Attribut-Erweiterung), UI: QBE-Ausführung nativer Queries
@@ -42,14 +42,14 @@
 - **Acceptance:** Fixture-Queries aus `queryTestV2000.mdb` laufen durch die Engine (Ergebnisse = QBE-Äquivalent); `Unsupported`-Grundfälle getestet; UI führt native Queries aus; MCP/CLI erben über den Bus.
 
 ### [ ] M13 — Release-Engineering (Tags, release.yml, Checksums, Smoke) — 🟡
-- **Location:** `.github/workflows/release.yml` (neu), `Cargo.toml` (Versions-Politik), `docs/PLAYBOOK.md` (Release-Abschnitt), Third-Party-Notices
-- **Ansatz:** Tag-getriggerter Release-Workflow (Mirror der CI-Gates): Build von `datacraft`, `datacraft-cli`, `datacraft-mcp` für Windows/macOS/Linux (statisch gebundeltes rusqlite über `bundled`), Archive mit sha256-Checksums + Third-Party-Notices; Smoke je Artefakt (CLI öffnet ein Fixture headless, `--version`); erste Tags `v0.1.x` nach Gate.
-- **Acceptance:** Workflow-Datei lintet (YAML/Actions-Konventionen wie ci.yml); lokaler Release-Smoke (Release-Build des CLI öffnet `testV2000.mdb` headless); Tag-Politik dokumentiert; kein Binary im Repo.
+- **Location:** `.github/workflows/release.yml` (new), `Cargo.toml` (version policy), `docs/PLAYBOOK.md` (release section), Third-Party-Notices
+- **Approach:** Tag-triggered release workflow (mirror of the CI gates): build `datacraft`, `datacraft-cli` and `datacraft-mcp` for Windows/macOS/Linux (rusqlite statically bundled), archives with sha256 checksums + third-party notices. Post-Phase-30 additions (ADR-7): the composed binaries bundle the CSV driver through the composite fallback, so the per-artifact smoke also opens a throwaway CSV directory headlessly (the driver set is proven inside the artifact), and the notices name the `csv` crate.
+- **Acceptance:** The workflow file lints (YAML/Actions conventions like ci.yml); the local release smoke opens `testV2000.mdb` headless *and* a CSV directory; the tag policy is documented; no binary lives in the repo.
 
 ### [ ] M14 — Encrypted Save-As + Passwortwechsel (verschlüsselte Kopien) — 🟡
-- **Location:** `crates/datacraft-storage/src/port_adapter.rs` (`with_writer` speichert bereits verschlüsselt zurück — Schritt 16.2), `crates/datacraft-core/src/command.rs` (neu: Save-As/Passwortwechsel), UI Backstage, CLI/MCP-Flags
-- **Ansatz:** Der Write-Pfad re-encryptet beim Speichern bereits korrekt (M11). Rest: **Save-as** — Kopie unter neuem Pfad (optional mit anderem/gesetztem Passwort: unverschlüsselt → verschlüsselt, Passwortwechsel) als Command über den Bus; alle vier Clients bedienen es; präzise Fehler bei falschem Altpasswort.
-- **Acceptance:** Save-as auf unverschlüsselte/verschlüsselte Kopie getestet (Reopen mit/ohne Passwort); Passwortwechsel-Tests; UI/CLI/MCP-Fluss; Original bleibt unangetastet.
+- **Location:** `crates/datacraft-storage/src/port_adapter.rs` (`with_writer` already re-encrypts on save — step 16.2), `crates/datacraft-core/src/command.rs` (new: Save-As/password change), UI backstage, CLI/MCP flags
+- **Approach:** The write path re-encrypts correctly on save (M11). Remaining: **Save-As** — a copy under a new path (optionally with a different/new password: unencrypted → encrypted, password change) as a command over the bus; all four clients serve it; precise errors on a wrong old password. Post-Phase-30 (ADR-7): the Save-As affordances gate on the driver's `passwords` capability — sources reporting `passwords: false` (SQLite, CSV) render the backstage entry disabled with the localized reason, and the dispatch rejects with the same `Unsupported` shape as the other capability gates.
+- **Acceptance:** Save-As to an unencrypted/encrypted copy tested (reopen with/without password); password-change tests; UI/CLI/MCP flow; the original stays untouched; the capability gating is pinned like the other affordances (kittest + dispatch rejection).
 
 ### [ ] M15 — Index creation in the Jet writer — 🟡
 - **Location:** `crates/datacraft-storage/src/jet/encode.rs` (`num_idx`/`num_real_idx`), `crates/datacraft-storage/src/jet/writer_tables.rs`, `crates/datacraft-storage/src/port_write.rs`, `crates/datacraft-storage/src/sqlite/mapping.rs`
@@ -60,14 +60,26 @@
 ### [ ] M16 — Relationship and foreign-key creation — 🟡
 - **Location:** Jet writer (`MSysRelationships` rows and the required indexes), `crates/datacraft-storage/src/sqlite/mapping.rs` (foreign-key DDL), `crates/datacraft-core/src/port.rs` (create/delete relationship surface)
 - **Problem:** Relationships are read-only on both backends. Generated samples cannot populate the relationship mapper, and a template cannot express referential integrity.
-- **Approach:** Add a create/delete relationship path through the port and a matching bus command. Jet writes `MSysRelationships` plus the required primary/foreign indexes; SQLite emits `FOREIGN KEY` constraints. Reads must round-trip through the existing `relationships()` API.
-- **Acceptance:** Created relationships survive reopen and appear in the mapper; Access shows them; SQLite enforces the constraint; tests cover create/delete, duplicates and unsupported shapes; canonical gates green.
+- **Approach:** Add a create/delete relationship path through the port and a matching bus command. Jet writes `MSysRelationships` plus the required primary/foreign indexes; SQLite emits `FOREIGN KEY` constraints. Reads must round-trip through the existing `relationships()` API. Post-Phase-30 (ADR-7): landing this flips the jet and sqlite drivers' `relationships` capability from `ReadOnly` to `Yes` — the availability map (the disabled Relationships affordance on CSV stays) and the mapper affordances update automatically; the flip is pinned in the driver capability invariants.
+- **Acceptance:** Created relationships survive reopen and appear in the mapper; Access shows them; SQLite enforces the constraint; the capability flip is pinned (`ReadOnly` → `Yes` for jet/sqlite, CSV stays `No`); tests cover create/delete, duplicates and unsupported shapes; canonical gates green.
 
 ### [ ] M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — 🟡
 - **Location:** `crates/datacraft-storage/` (split into `datacraft-jet` + `datacraft-sqlite`), `crates/datacraft-mcp/` (new binary crate), workspace `Cargo.toml`, packaging documentation
 - **Problem:** The engine (`datacraft-core`) and all drivers share one workspace with lockstep versions; external consumers and contributors cannot depend on stable published crates, and the pure-Rust Jet story is diluted by the C-backed `rusqlite` dependency in the same crate.
 - **Approach:** split the storage crate into per-driver crates (Jet stays pure Rust with its oracle suite; SQLite moves its dependency into its own crate), extract `datacraft-mcp` as its own binary crate, then publish in dependency order (engine → jet → sqlite → csv → mcp) with a Semver/MSRV/changelog policy. Details are packaged when Phase 31 starts (ADR-7 records the decision).
 - **Acceptance:** each crate builds and publishes independently; the workspace still builds as one unit; the publishing checklist and versioning policy are documented; no behavior change.
+
+### [ ] M20 — Journal batches gate on the declared atomic_batch capability (Phase 30 follow-up) — 🟡
+- **Location:** `crates/datacraft-core/src/journal.rs`, `crates/datacraft-core/src/database.rs` (dispatch gates), `crates/datacraft-storage/src/sqlite/mod.rs`
+- **Problem:** The M2 journal documents batch atomicity as a backend property; since Phase 30 the driver *declares* it (`DriverCapabilities::atomic_batch`). SQLite reports `false` (the trait default applies ops one by one), yet `PreviewWrite`/`ApplyWrite` still accept multi-op batches there — a mid-batch failure leaves a partial application with only best-effort inverse ops.
+- **Approach:** Consult the capability in `preview_write`: drivers with `atomic_batch: false` either accept single-op batches only (precise `Unsupported` reason for more) or record the degraded mode in the pending journal and in the snapshot; the UI surfaces it through the established availability/reason pattern (ADR-7). Jet behavior is unchanged (`atomic_batch: true`).
+- **Acceptance:** A multi-op preview on a non-atomic driver answers the precise reason (or carries the degradation visibly in snapshot and UI); Jet batches unchanged; the driver capability invariants cover the gate; canonical verification set green.
+
+### [ ] M21 — Retire the vestigial StorageEngine trait (ADR-7 single seam) — 🟡
+- **Location:** `crates/datacraft-storage/src/engine.rs`, `crates/datacraft-storage/src/mock.rs` (`InMemoryEngine`), `crates/datacraft-storage/tests/engine_boundary.rs`; `docs/ARCHITECTURE.md` §6 (already annotated as the historical record)
+- **Problem:** ADR-7 made the core-owned `StoragePort` the single driver seam; the Phase-2 `StorageEngine` trait survives with one mock implementor and pins an outdated contract (Jet3-unaware, no capabilities, no create/drop/alter surface) right next to the real one — two seams confuse contributors and the public library story (M19).
+- **Approach:** Port the still-valuable contract assertions of `engine_boundary.rs` onto the port layer (they fold into the existing driver-capability invariants), then remove the trait, the mock and the boundary suite. NOTE: deleting an existing test suite is a **High-class gate** (PLAYBOOK §0.5) — package with an explicit human release; coverage must not drop (the ported assertions keep the lines covered).
+- **Acceptance:** One seam only (`StoragePort`); the boundary contract lives in port-level invariants; coverage ≥ 95 % holds; ARCHITECTURE §6 cites the removal; canonical verification set green.
 
 ---
 
@@ -76,10 +88,10 @@
 > No open items.
 
 ### [ ] I6 — Failure-reason localization (post-V1) — 🟢
-- **Location:** `crates/datacraft-core/src/core.rs` + Dispatch-Module (erst stabile Failure-Codes), `crates/datacraft-ui/src/i18n/` (UI-seitige Zuordnung); ADR-4
-- **Problem:** `Event::Failed.reason` strings are English on the wire (~120 sites); localizing them inside core would put language into core (ADR-4 violation), so V1 keeps them English — agents key on data, not prose.
-- **Approach:** two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
-- **Acceptance:** every dispatch failure carries a stable code; the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs) switch to code assertions.
+- **Location:** `crates/datacraft-core/src/core.rs` + dispatch modules (stable failure codes first), `crates/datacraft-ui/src/i18n/` (UI-side mapping); ADR-4
+- **Problem:** `Event::Failed.reason` strings are English on the wire (~120 sites plus the Phase-30 capability rejections, e.g. `unsupported: the {driver} driver cannot write rows for this source`); localizing them inside core would put language into core (ADR-4 violation), so V1 keeps them English — agents key on data, not prose.
+- **Approach:** Two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; the capability-rejection reasons map onto the `DisabledReason` vocabulary where they overlap; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
+- **Acceptance:** Every dispatch failure carries a stable code (including the capability gates); the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs, driver_caps.rs) switch to code assertions.
 
 ### [ ] U15 — Recent databases in the backstage — 🟢
 - **Location:** `crates/datacraft-ui/src/settings.rs` (persisted list), `crates/datacraft-ui/src/backstage.rs` (Recent page)
@@ -92,6 +104,24 @@
 - **Problem:** The backstage Samples page resolves `samples/` from `DATACRAFT_SAMPLES_DIR`, the executable directory, or the dev workspace. Installed builds have no installer step that places the folder next to the binary, so the page falls back to a path that does not exist.
 - **Approach:** Copy `samples/` into every release archive next to `datacraft`/`datacraft-cli`/`datacraft-mcp`, document the resolution order, and add a smoke check that an extracted archive finds and opens the demo.
 - **Acceptance:** Release archives contain `samples/`; the backstage page resolves them without repo paths; a packaged smoke test opens the demo; no binary or sample is committed into the repo twice.
+
+### [ ] L7 — CSV type inference beyond Short Text — 🟢
+- **Location:** `crates/datacraft-csv/src/lib.rs` (`collect_tables`)
+- **Problem:** Every CSV column is Short Text (255) — deterministic and honest, but numeric/date columns read and sort as text, and the datasheet parses accordingly.
+- **Approach:** Conservative, deterministic inference per column over a full scan (integer → LongInteger, float → Double, ISO date → DateTime; anything else stays Short Text), decided at open and stable across opens; quoted values stay text (CSV semantics — quoting is the user's escape hatch); the rule is documented in the driver docs and pinned by tests; ambiguous columns never guess.
+- **Acceptance:** Inference is deterministic and documented; quoted numbers remain text; tests pin each inferred kind and the Short-Text fallback; canonical verification set green.
+
+### [ ] L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — 🟢
+- **Location:** `crates/datacraft-core/src/command.rs` (`OpenDatabase`/`CreateDatabase`), `state.rs`/`snapshot.rs` (path → source), UI backstage, sidecar path derivation (ADR-1)
+- **Problem:** The driver model is ready for server drivers (Postgres/SQL Server per ADR-7's documented future path), but the wire and the UI assume a filesystem path (`path: PathBuf`, file-stem names, a sidecar next to the file).
+- **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
+- **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
+
+### [ ] L9 — Composite fallback keeps the unknown-file format hint — 🟢
+- **Location:** `crates/datacraft-storage/src/detecting.rs` (`open`), `crates/datacraft-csv/src/lib.rs` (`open`)
+- **Problem:** With a registered fallback (the composed binaries), an unrecognized *file* now answers the fallback's "not a CSV directory — this driver opens directories of *.csv tables" instead of the sniff's precise "expected a Jet/ACE header (01 00 00 00) or a SQLite header" reason. The hint regressed exactly for the most common user mistake — opening a random file (LESSONS #4).
+- **Approach:** Chain the reasons: the composite attaches the sniff hint when the fallback rejects (or the CSV driver's rejection text names the expected families) — one precise, user-renderable message either way, pinned by a composed-port test.
+- **Acceptance:** An unknown file through a fallback-composed port names both the path and the expected source families; unknown paths without a fallback behave unchanged; a test pins the message; canonical verification set green.
 
 ---
 
