@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-02T23:12
+# BACKLOG.md — Open items (As of: 2026-11-02T23:21
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -80,6 +80,18 @@
 - **Problem:** ADR-7 made the core-owned `StoragePort` the single driver seam; the Phase-2 `StorageEngine` trait survives with one mock implementor and pins an outdated contract (Jet3-unaware, no capabilities, no create/drop/alter surface) right next to the real one — two seams confuse contributors and the public library story (M19).
 - **Approach:** Port the still-valuable contract assertions of `engine_boundary.rs` onto the port layer (they fold into the existing driver-capability invariants), then remove the trait, the mock and the boundary suite. NOTE: deleting an existing test suite is a **High-class gate** (PLAYBOOK §0.5) — package with an explicit human release; coverage must not drop (the ported assertions keep the lines covered).
 - **Acceptance:** One seam only (`StoragePort`); the boundary contract lives in port-level invariants; coverage ≥ 95 % holds; ARCHITECTURE §6 cites the removal; canonical verification set green.
+
+### [ ] R1 — Cross-cutting code review round (Phase 34) — 🟡
+- **Location:** whole workspace (review only — findings become BACKLOG items; fixes only via the inline-fix lane or packaged follow-ups)
+- **Problem:** Thirty-plus phases of feature work have never had a deliberate cross-cutting review pass; the per-phase gates verify the canonical set, but nobody has walked the LESSONS checklist across module boundaries since the driver model, the capability vocabulary and the CSV driver landed.
+- **Approach:** One review phase before publishing (Phase 34), ordered per `docs/LESSONS.md`: (1) storage & drivers — security self-review (LESSONS #7: crafted `.mdb`/`.accdb`/`.csv` against the parsers), error precision and locatability (LESSONS #4), clean-room spot check (LESSONS #12); (2) core — dispatch/journal/capability-gate consistency, event/snapshot shape stability; (3) UI — paint-code discipline (no logic in paint), i18n parity, affordance coverage; (4) public API surface audit for Phase 31 (every `pub` item that would be published: needed, documented, semver-sane). Findings are triaged in-phase: Low-class ≤10-liners via the inline-fix lane (with F-retrospectives), everything else packaged.
+- **Acceptance:** Every LESSONS checklist item walked with a written verdict; findings triaged (fixed inline or BACKLOG items with locations + acceptance criteria); no HIGH finding left unassigned; canonical verification set green.
+
+### [ ] R2 — Documentation sweep before the release (Phase 35) — 🟡
+- **Location:** `AGENTS.md` (§1 workspace list + dependency diagram lack `datacraft-csv`), `README.md` (architecture table + diagram), `docs/ARCHITECTURE.md` (§5 command-enum preview is the Phase-4 target shape, §6 "remaining write-path work" still lists M7/M8/ACE-write although done, §13 phase-mapping table ends at Phase 9), `docs/FORMAT-JET.md` (no CSV-driver note), `docs/TESTING.md` (taxonomy vs. capability-invariant/kittest suites)
+- **Problem:** The documentation has drifted across phases 10-30: the entry points an agent or contributor reads first (AGENTS.md, README architecture) describe a four-crate workspace, ARCHITECTURE carries stale milestone and mapping sections, and the driver model (ADR-7) is documented in the ADR but not in the navigation docs. A release must not ship with entry-point docs that contradict the repository.
+- **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
+- **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
 
 ---
 

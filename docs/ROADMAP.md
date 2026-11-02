@@ -143,14 +143,18 @@ any code embedded in database files without explicit user consent/permissions.
 Ordering notes:
 
 - Planned sequence (2026-11-02, latest; human decision): all feature work
-  first, release engineering last — Phase 27 (native query execution +
-  encrypted save-as) → Phase 28 (undo/redo + recent databases) → Phase 33
-  (journal batch integrity, M20) → Phase 32 (writer catalog fidelity: H45
-  field properties, M15 indexes, M16 relationships) → Phase 31 (engine
+  first, review and documentation before the release, release engineering
+  last — Phase 27 (native query execution + encrypted save-as) → Phase 28
+  (undo/redo + recent databases) → Phase 33 (journal batch integrity, M20)
+  → Phase 32 (writer catalog fidelity: H45 field properties, M15 indexes,
+  M16 relationships) → Phase 34 (cross-cutting code review, R1 — before
+  publishing so findings feed the crate split) → Phase 31 (engine
   publishing: M21 vestige retirement as the prep step, crate split,
-  standalone MCP binary, Semver policy) → Phase 26 (release engineering +
+  standalone MCP binary, Semver policy) → Phase 35 (documentation sweep,
+  R2 — after the crate structure freezes) → Phase 26 (release engineering +
   first tags, M13). Supersedes the earlier plan that placed Phase 26 right
-  after Phase 30; the first tag should carry the complete write surface.
+  after Phase 30; the first tag should carry the complete write surface,
+  a walked review checklist and contradiction-free entry-point docs.
   Phase numbers stay fixed.
 - Executed order (2026-11-02): Phase 30 (driver model — ADR-7: declarative
   per-session capabilities, registry detection, CSV directory driver as the
