@@ -130,3 +130,55 @@ fn window_title_is_localized_in_both_languages() {
         "shop : Database (Jet4)"
     );
 }
+
+#[test]
+fn opening_a_database_records_it_as_recent_and_persists() {
+    use crate::settings::Settings;
+
+    let dir = std::env::temp_dir().join(format!("datacraft-recent-record-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    let path = dir.join("ui.json");
+    let database = dir.join("shop.mdb");
+    std::fs::write(&database, b"x").expect("seed the database path");
+
+    let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+    app.set_settings_path(Some(path.clone()));
+    app.apply_settings(Settings::default());
+    app.dispatch(datacraft_core::command::Command::OpenDatabase {
+        path: database.clone(),
+        password: None,
+    });
+    assert_eq!(app.recent_databases(), &[database.clone()]);
+    assert_eq!(
+        Settings::load(&path).recent,
+        vec![database],
+        "the recent list is persisted"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn startup_reports_pruned_recent_paths() {
+    use crate::settings::Settings;
+
+    let _guard = crate::i18n::lang_lock();
+    crate::i18n::set_lang(crate::i18n::Lang::English);
+    let dir = std::env::temp_dir().join(format!("datacraft-recent-prune-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    let path = dir.join("ui.json");
+    let missing = dir.join("gone.mdb");
+    let mut settings = Settings::default();
+    settings.recent = vec![missing.clone()];
+    settings.save(&path).expect("save");
+
+    let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+    app.apply_settings(Settings::load(&path));
+    let notice = app.last_notice.as_deref().unwrap_or_default();
+    assert!(
+        notice.contains("gone.mdb"),
+        "the pruned path is named precisely: {notice:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

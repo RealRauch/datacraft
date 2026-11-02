@@ -25,6 +25,7 @@ fn settings_round_trip_preserves_language_and_window() {
             y: Some(60.0),
             maximized: true,
         }),
+        ..Settings::default()
     };
     settings.save(&path).expect("save");
     assert_eq!(Settings::load(&path), settings);
@@ -237,4 +238,55 @@ fn a_stale_temp_file_is_replaced_on_the_next_save() {
     again.save(&path).expect("save over stale temp");
     assert_eq!(Settings::load(&path), again);
     assert!(!temp_path(&path).exists(), "temp file must be renamed away");
+}
+
+#[test]
+fn recent_databases_are_bounded_deduplicated_and_newest_first() {
+    let dir = temp_dir("recents");
+    let path = dir.join("ui.json");
+    let mut settings = Settings::default();
+    for index in 0..(MAX_RECENT_DATABASES + 2) {
+        settings.record_recent(&dir.join(format!("db{index}.mdb")));
+    }
+    assert_eq!(settings.recent.len(), MAX_RECENT_DATABASES);
+    assert_eq!(
+        settings.recent[0],
+        dir.join(format!("db{}.mdb", MAX_RECENT_DATABASES + 1))
+    );
+
+    settings.record_recent(&dir.join("db5.mdb"));
+    assert_eq!(settings.recent[0], dir.join("db5.mdb"));
+    assert_eq!(
+        settings
+            .recent
+            .iter()
+            .filter(|candidate| **candidate == dir.join("db5.mdb"))
+            .count(),
+        1,
+        "a reopened path moves to the front instead of repeating"
+    );
+
+    settings.save(&path).expect("save");
+    let loaded = Settings::load(&path);
+    assert_eq!(loaded.recent, settings.recent, "the list survives restarts");
+}
+
+#[test]
+fn missing_recent_paths_are_pruned_with_a_report() {
+    let dir = temp_dir("prune");
+    let path = dir.join("ui.json");
+    let existing = dir.join("exists.mdb");
+    std::fs::write(&existing, b"x").expect("seed the existing path");
+    let missing = dir.join("missing.mdb");
+    let mut settings = Settings::default();
+    settings.recent = vec![existing.clone(), missing.clone()];
+    settings.save(&path).expect("save");
+
+    let loaded = Settings::load(&path);
+    assert_eq!(loaded.recent, vec![existing], "stale paths are pruned");
+    assert_eq!(
+        loaded.pruned_recent,
+        vec![missing],
+        "the pruned path stays visible for the notice"
+    );
 }

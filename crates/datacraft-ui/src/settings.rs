@@ -14,7 +14,11 @@ use crate::appearance::Appearance;
 use crate::i18n::Lang;
 use crate::window::WindowGeometry;
 
-/// Persisted UI preferences: language, appearance and window geometry.
+/// Maximum number of recent database paths kept in `ui.json` (item U15).
+pub const MAX_RECENT_DATABASES: usize = 10;
+
+/// Persisted UI preferences: language, appearance, window geometry and the
+/// bounded recent-database list (item U15).
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Settings {
     /// Language choice; `Auto` follows environment and system detection.
@@ -23,6 +27,12 @@ pub struct Settings {
     pub appearance: Appearance,
     /// Last window geometry (sanitized; `None` uses the defaults).
     pub window: Option<WindowGeometry>,
+    /// Recently opened database paths, newest first, bounded by
+    /// [`MAX_RECENT_DATABASES`] and de-duplicated.
+    pub recent: Vec<PathBuf>,
+    /// Paths dropped on load because they no longer exist (not persisted;
+    /// surfaced as a startup notice).
+    pub pruned_recent: Vec<PathBuf>,
 }
 
 /// Language choice stored in `ui.json`.
@@ -97,6 +107,11 @@ impl Settings {
             language: Some(self.language.as_value().to_owned()),
             appearance: Some(self.appearance.as_value().to_owned()),
             window: self.window,
+            recent: self
+                .recent
+                .iter()
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect(),
         };
         let json = serde_json::to_string_pretty(&file).map_err(std::io::Error::other)?;
         if let Some(parent) = path.parent() {
@@ -131,7 +146,25 @@ impl Settings {
             language: LanguageSetting::from_value(file.language.as_deref()),
             appearance: Appearance::from_value(file.appearance.as_deref()),
             window: file.window.and_then(WindowGeometry::sane),
+            recent: file
+                .recent
+                .into_iter()
+                .filter(|path| !path.is_empty())
+                .map(PathBuf::from)
+                .collect(),
+            pruned_recent: Vec::new(),
         }
+    }
+
+    /// Records a successfully opened database (item U15): newest first,
+    /// de-duplicated case-insensitively on Windows, bounded.
+    pub fn record_recent(&mut self, path: &Path) {
+        let _ = path;
+    }
+
+    /// The recent-database paths, newest first.
+    pub fn recent(&self) -> &[PathBuf] {
+        &self.recent
     }
 }
 
@@ -150,6 +183,8 @@ struct SettingsFile {
     language: Option<String>,
     appearance: Option<String>,
     window: Option<WindowGeometry>,
+    #[serde(default)]
+    recent: Vec<String>,
 }
 
 /// Platform conventions for the config directory (resolved without a new
@@ -206,6 +241,11 @@ impl crate::app::App {
     pub fn apply_settings(&mut self, settings: Settings) {
         self.settings = settings;
         crate::i18n::init_language(self.language_setting().lang());
+    }
+
+    /// Recent database paths, newest first (item U15).
+    pub fn recent_databases(&self) -> &[PathBuf] {
+        self.settings.recent()
     }
 
     /// Current language choice.
