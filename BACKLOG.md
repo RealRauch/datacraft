@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-02T01:21
+# BACKLOG.md — Open items (As of: 2026-11-02T01:29
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -28,6 +28,18 @@
 - **Ansatz:** Port-Write-Through an `.accdb`: tmp-Kopie von `testV2010.accdb` → über `Jet4Port` create/insert/update/delete/drop/alter → Reopen verifiziert Persistenz; `DatabaseFormat::Ace` bleibt über alle Operationen stabil; Bus-Verträge (MCP/CLI) öffnen und schreiben dieselbe Datei über die identische Vokabel.falls Gates existieren (Format-Guards), werden sie bewusst geöffnet — kein stummer Durchgriff.
 - **Acceptance:** Port- + E2E-Tests an ACE grün; Reopen zeigt alle Operationen; `Unsupported`-Fälle präzise getestet; Format-Anzeige bleibt „ACE“.
 
+### [ ] H44 — Ship sample databases and templates (Phase 29) — 🟠
+- **Location:** `samples/` (new), `crates/datacraft-core/src/command.rs`, `crates/datacraft-storage/src/jet/create.rs` (new), `crates/datacraft-storage/examples/make_samples.rs` (new), `crates/datacraft-ui/src/backstage/` (new pages)
+- **Problem:** No user-facing sample files exist. `fixtures/` is immutable test evidence and includes unlicensed material (Northwind); there is no way to create a new database file at all, so templates cannot be authored reproducibly.
+- **Approach:** Own Jet4 file builder (header, free map, catalog, usage page) behind `Command::CreateDatabase`; `CreateDatabaseFromTemplate` for shipped templates; standard set (blank, contacts, inventory, Bike Shop demo as Jet4 + SQLite twin + `.datacraft`); deterministic generator (`make_samples --check`); `samples/manifest`; backstage Samples/New Database pages.
+- **Acceptance:** Jet4 and SQLite databases can be created from scratch and reopened; every shipped sample opens with the expected tables/rows; the demo sidecar auto-loads; `make_samples --check` and `sha256sum -c` are green; manual Access repair gate clean; canonical verification set green.
+
+### [ ] H45 — Persist field properties (defaults, validation, captions, formats, input masks, index flags) — 🟠
+- **Location:** `crates/datacraft-storage/src/jet/writer_tables.rs`, `crates/datacraft-storage/src/port_write.rs`, `crates/datacraft-storage/src/port_schema.rs`, `crates/datacraft-core/src/forms.rs` (sidecar tables)
+- **Problem:** `create_table` writes `NULL` into `MSysObjects.LvProp`, and `port_schema.rs` reconstructs only the column type plus `required`. Defaults, validation rules, captions, formats, input masks and `Indexed` are lost on every reopen. The sidecar saves `tables: Vec::new()` and ignores `document.tables` on load, so it cannot carry them either. Templates therefore ship as structure + data only.
+- **Approach:** Decide the authority (ADR): Jet `LvProp` property blocks so Access sees the properties, or the sidecar's table list as DataCraft's own metadata. Implement write + read round-trip for every modeled `FieldProperties` entry, keep the file Access-readable, and reject unsupported property encodings precisely.
+- **Acceptance:** Every modeled property survives a Jet4 reopen (and/or sidecar load); Access displays defaults/validation/captions; tests pin each property and the rejection cases; no silent loss remains.
+
 ---
 
 ## 🟡 MEDIUM
@@ -55,6 +67,18 @@
 - **Ansatz:** Der Write-Pfad re-encryptet beim Speichern bereits korrekt (M11). Rest: **Save-as** — Kopie unter neuem Pfad (optional mit anderem/gesetztem Passwort: unverschlüsselt → verschlüsselt, Passwortwechsel) als Command über den Bus; alle vier Clients bedienen es; präzise Fehler bei falschem Altpasswort.
 - **Acceptance:** Save-as auf unverschlüsselte/verschlüsselte Kopie getestet (Reopen mit/ohne Passwort); Passwortwechsel-Tests; UI/CLI/MCP-Fluss; Original bleibt unangetastet.
 
+### [ ] M15 — Index creation in the Jet writer — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/encode.rs` (`num_idx`/`num_real_idx`), `crates/datacraft-storage/src/jet/writer_tables.rs`, `crates/datacraft-storage/src/port_write.rs`, `crates/datacraft-storage/src/sqlite/mapping.rs`
+- **Problem:** `encode_tdef` writes zero index blocks; `FieldProperties.indexed` is serialization/UI metadata only. Generated tables and samples cannot demonstrate indexed lookups or uniqueness, and a template's `Indexed` flag does nothing.
+- **Approach:** Encode TDEF index descriptors and index pages for `IndexMode::{DuplicatesOk, NoDuplicates}`, maintain them on insert/update/delete, and emit `CREATE INDEX`/`UNIQUE` for SQLite. Keep existing index blocks readable and untouched on unrelated writes.
+- **Acceptance:** Indexes survive reopen and are visible in Access; uniqueness is enforced with a precise error; SQLite emits the matching DDL; tests cover create/insert/update/delete and the unsupported shapes.
+
+### [ ] M16 — Relationship and foreign-key creation — 🟡
+- **Location:** Jet writer (`MSysRelationships` rows and the required indexes), `crates/datacraft-storage/src/sqlite/mapping.rs` (foreign-key DDL), `crates/datacraft-core/src/port.rs` (create/delete relationship surface)
+- **Problem:** Relationships are read-only on both backends. Generated samples cannot populate the relationship mapper, and a template cannot express referential integrity.
+- **Approach:** Add a create/delete relationship path through the port and a matching bus command. Jet writes `MSysRelationships` plus the required primary/foreign indexes; SQLite emits `FOREIGN KEY` constraints. Reads must round-trip through the existing `relationships()` API.
+- **Acceptance:** Created relationships survive reopen and appear in the mapper; Access shows them; SQLite enforces the constraint; tests cover create/delete, duplicates and unsupported shapes; canonical gates green.
+
 ---
 
 ## 🟢 LOW
@@ -72,6 +96,12 @@
 - **Problem:** The File backstage (step 21.3, U7) has no Recent Databases entry: `ui.json` (I4) persists language, appearance and window geometry, but no opened-file history. U7's scope named Recent "once I4 lands"; I4 shipped without the list, so the page is deliberately absent.
 - **Approach:** persist a bounded, de-duplicated recent-paths list on successful `DatabaseOpened` (atomic save via U13's helper), render it on the backstage Home/Open page, and dispatch one `OpenDatabase` per click; missing files are pruned on load with a precise notice instead of disappearing silently.
 - **Acceptance:** opening a database adds it to the recent list; the list survives restarts; clicking an entry dispatches exactly one open command; stale paths are pruned visibly; canonical verification set green.
+
+### [ ] L6 — Ship samples next to the binary and in release archives — 🟢
+- **Location:** release packaging (Phase 26, M13), `crates/datacraft-ui/src/samples.rs` (runtime resolution)
+- **Problem:** The backstage Samples page resolves `samples/` from `DATACRAFT_SAMPLES_DIR`, the executable directory, or the dev workspace. Installed builds have no installer step that places the folder next to the binary, so the page falls back to a path that does not exist.
+- **Approach:** Copy `samples/` into every release archive next to `datacraft`/`datacraft-cli`/`datacraft-mcp`, document the resolution order, and add a smoke check that an extracted archive finds and opens the demo.
+- **Acceptance:** Release archives contain `samples/`; the backstage page resolves them without repo paths; a packaged smoke test opens the demo; no binary or sample is committed into the repo twice.
 
 ---
 
