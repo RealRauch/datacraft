@@ -390,3 +390,13 @@
 - **28.2 Recent Databases im Backstage (U15)**
 - **28.3 Phase 28 Quality Gate Review**
 **Verification:** Phase 28 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.05% lines vs the 94.00% pre-phase baseline (CI ubuntu remains binding); docs_validate has no Phase-28 finding; no debt markers.
+
+---
+
+### Phase 33 — Journal Batch Integrity
+
+**Scope (Steps):**
+
+- **33.1 Journal batches gate on the atomic_batch capability (M20)**
+- **33.2 Phase 33 Quality Gate Review**
+**Verification:** Phase 33 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.04% lines (above the 94.00% baseline; CI ubuntu binding); docs_validate has no Phase-33 finding; no debt markers.

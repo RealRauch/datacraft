@@ -24,12 +24,6 @@
 - **32.2 Index creation in the Jet writer (M15)**
 - **32.3 Relationship and foreign-key creation (M16)**
 - **32.4 Phase 32 Quality Gate Review**
-### Phase 33 — Journal Batch Integrity
-
-**Scope (Steps):**
-
-- **33.1 Journal batches gate on the atomic_batch capability (M20)**
-- **33.2 Phase 33 Quality Gate Review**
 ### Phase 31 — Engine Publishing
 
 **Scope (Steps):**
@@ -250,8 +244,8 @@
 | 32.2 | Index creation in the Jet writer (M15) | ⬜ |
 | 32.3 | Relationship and foreign-key creation (M16) | ⬜ |
 | 32.4 | Phase 32 Quality Gate Review | ⬜ |
-| 33.1 | Journal batches gate on the atomic_batch capability (M20) | 🔄 |
-| 33.2 | Phase 33 Quality Gate Review | ⬜ |
+| 33.1 | Journal batches gate on the atomic_batch capability (M20) | ✅ |
+| 33.2 | Phase 33 Quality Gate Review | ✅ |
 | 31.1 | Retire the vestigial StorageEngine trait (M21, High gate: test suite ported) | ⬜ |
 | 31.2 | Crate split: datacraft-jet + datacraft-sqlite (M19) | ⬜ |
 | 31.3 | Standalone datacraft-mcp binary crate (M19) | ⬜ |
