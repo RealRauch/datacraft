@@ -38,6 +38,7 @@ impl std::fmt::Display for DatabaseFormat {
             Self::Jet4 => write!(f, "Jet4"),
             Self::Ace => write!(f, "ACE"),
             Self::Sqlite => write!(f, "SQLite"),
+            Self::Csv => write!(f, "CSV"),
         }
     }
 }

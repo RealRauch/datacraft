@@ -26,6 +26,8 @@ pub enum DatabaseFormat {
     Ace,
     /// SQLite 3 (`.sqlite`, `.db`) — the non-Jet source family (H35).
     Sqlite,
+    /// A directory of `*.csv` files (phase 30, M18; ADR-7 driver proof).
+    Csv,
 }
 
 /// Errors a storage backend reports through the port.

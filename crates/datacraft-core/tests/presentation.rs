@@ -221,4 +221,5 @@ fn every_format_renders_through_the_single_display_path() {
     assert_eq!(DatabaseFormat::Jet4.to_string(), "Jet4");
     assert_eq!(DatabaseFormat::Ace.to_string(), "ACE");
     assert_eq!(DatabaseFormat::Sqlite.to_string(), "SQLite");
+    assert_eq!(DatabaseFormat::Csv.to_string(), "CSV");
 }
