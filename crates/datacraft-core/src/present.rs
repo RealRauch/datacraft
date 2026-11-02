@@ -28,6 +28,10 @@ pub fn status_line(snapshot: &UiStateSnapshot, active: Option<(&str, &str)>) -> 
 }
 
 impl std::fmt::Display for DatabaseFormat {
+    /// The single rendering point for format families: the window title,
+    /// the status bar and `status_line` all render through this path, so
+    /// a new variant adds exactly one arm here (phase 30, item M17;
+    /// ADR-7 data-driven rendering).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Jet3 => write!(f, "Jet3"),

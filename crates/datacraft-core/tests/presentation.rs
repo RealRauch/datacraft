@@ -209,3 +209,16 @@ fn the_status_line_names_the_ace_format() {
     let snapshot = datacraft_core::snapshot::UiStateSnapshot::of(&state);
     assert_eq!(status_line(&snapshot, None), "shop (ACE) — 0 tables");
 }
+
+/// Every format family renders through the single `Display` impl in
+/// `present.rs` — the window title, the status bar and `status_line` all
+/// consume it, so a new variant adds exactly one arm there and nothing
+/// else (phase 30, item M17; ADR-7 data-driven rendering).
+#[test]
+fn every_format_renders_through_the_single_display_path() {
+    use datacraft_core::port::DatabaseFormat;
+    assert_eq!(DatabaseFormat::Jet3.to_string(), "Jet3");
+    assert_eq!(DatabaseFormat::Jet4.to_string(), "Jet4");
+    assert_eq!(DatabaseFormat::Ace.to_string(), "ACE");
+    assert_eq!(DatabaseFormat::Sqlite.to_string(), "SQLite");
+}
