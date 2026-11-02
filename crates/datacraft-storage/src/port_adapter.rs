@@ -21,7 +21,10 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use datacraft_core::port::{DatabaseFormat, OpenedDatabase, PortError, RowRange, StoragePort};
+use datacraft_core::port::{
+    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, RowRange, StoragePort,
+    Support,
+};
 use datacraft_core::schema::{FieldValue, TableDef};
 
 use crate::error::StorageError;
@@ -59,9 +62,38 @@ impl Jet4Port {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// The physical format of the open database, if any.
+    fn opened_format(&self) -> Option<FormatVersion> {
+        self.reader.as_ref().map(|reader| reader.header().format)
+    }
 }
 
 impl StoragePort for Jet4Port {
+    fn driver_id(&self) -> DriverId {
+        DriverId::new("jet")
+    }
+
+    /// Per-session capabilities (phase 30, M17; ADR-7): Jet4/ACE are the
+    /// read/write reference; an open Jet3 (Access 97) session is
+    /// read-only — no writer exists for it. File creation is
+    /// session-independent (Jet4 only, routed in `create_database`).
+    fn capabilities(&self) -> DriverCapabilities {
+        let mut caps = DriverCapabilities::full();
+        caps.atomic_batch = true; // batches apply in one writer session
+        caps.passwords = true;
+        caps.autonumber = Support::Yes; // LongInteger; ReplicationId answers Unsupported
+        if self.opened_format() == Some(FormatVersion::Jet3) {
+            caps.write_rows = false;
+            caps.create_table = false;
+            caps.drop_table = false;
+            caps.alter_table = false;
+            caps.atomic_batch = false;
+            caps.autonumber = Support::No;
+        }
+        caps
+    }
+
     fn open(&mut self, path: &Path, password: Option<&str>) -> Result<OpenedDatabase, PortError> {
         let bytes = std::fs::read(path).map_err(|e| PortError::OpenFailed {
             detail: format!("{}: {e}", path.display()),
