@@ -437,3 +437,46 @@ fn creates_a_jet4_database_over_the_wire() {
     );
     let _ = std::fs::remove_file(&path);
 }
+
+/// CreateDatabaseFromTemplate over the wire (phase 29, step 29.2, item
+/// H44): the template materializes in one command, the snapshot lists the
+/// shipped templates, and the new file opens with the template's tables.
+#[test]
+fn creates_a_database_from_template_over_the_wire() {
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-e2e-{}-template.mdb",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"inspect"}),
+            json!({"jsonrpc":"2.0","id":2,"method":"dispatch",
+                   "params":{"CreateDatabaseFromTemplate":{
+                       "path": path.to_string_lossy(), "template":"blank"}}}),
+            json!({"jsonrpc":"2.0","id":3,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": path.to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":4,"method":"inspect"}),
+        ],
+    );
+    let templates = result_of(&responses[0])["templates"]
+        .as_array()
+        .expect("the snapshot lists templates");
+    assert!(
+        templates.iter().any(|t| t["name"] == "blank"),
+        "{templates:?}"
+    );
+    let created = &result_of(&responses[1])["events"][0]["DatabaseCreated"];
+    assert_eq!(created["format"], "jet4", "{responses:?}");
+    assert_eq!(
+        result_of(&responses[2])["events"][0]["DatabaseOpened"]["format"],
+        "jet4",
+        "{responses:?}"
+    );
+    let snapshot = &result_of(&responses[3])["database"];
+    assert_eq!(snapshot["format"], "jet4", "{snapshot}");
+    let _ = std::fs::remove_file(&path);
+}
