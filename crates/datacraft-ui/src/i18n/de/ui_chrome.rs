@@ -143,4 +143,12 @@ pub static TABLE: &[(&str, &str)] = &[
         "{path} is password-protected.",
         "{path} ist kennwortgeschützt.",
     ),
+    ("New", "Neu"),
+    ("Samples", "Beispiele"),
+    ("Choose a template", "Vorlage wählen"),
+    ("tables", "Tabellen"),
+    ("path for the new database", "Pfad für die neue Datenbank"),
+    ("Create Database", "Datenbank erstellen"),
+    ("No samples found", "Keine Beispiele gefunden"),
+    ("Samples folder", "Beispiel-Ordner"),
 ];

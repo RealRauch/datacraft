@@ -63,6 +63,9 @@ pub struct DatabaseSnapshot {
     pub vba: Option<VbaProjectSnapshot>,
     /// Why the VBA extraction failed, if it did.
     pub vba_error: Option<String>,
+    /// Why the sibling `.datacraft` sidecar did not auto-load (phase 29,
+    /// step 29.4); absent for a missing sidecar.
+    pub sidecar_error: Option<String>,
 }
 
 /// Snapshot of the extracted VBA project (module tree only — source is
@@ -196,6 +199,7 @@ impl UiStateSnapshot {
                         .collect(),
                 }),
                 vba_error: db.vba_error.clone(),
+                sidecar_error: db.sidecar_error.clone(),
                 queries: db
                     .queries
                     .iter()

@@ -70,6 +70,10 @@ pub struct App {
     pub(crate) last_error: Option<String>,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
     pub sidecar_path: String,
+    /// Path buffer of the backstage New Database page (phase 29, H44).
+    pub new_database_path: String,
+    /// Registry name of the template selected on the New Database page.
+    pub new_database_template: Option<String>,
     /// Success notice of the last command (status bar), cleared by
     /// failures (step 11.8).
     pub(crate) last_notice: Option<String>,
@@ -126,6 +130,8 @@ impl App {
             last_error: None,
             last_notice: None,
             sidecar_path: String::new(),
+            new_database_path: String::new(),
+            new_database_template: None,
             new_row: HashMap::new(),
             column_widths: HashMap::new(),
             sql_column_widths: Vec::new(),

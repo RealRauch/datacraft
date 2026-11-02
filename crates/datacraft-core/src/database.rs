@@ -50,6 +50,17 @@ impl crate::core::Core {
                     // snapshot carries the precise reason (step 23.3, M10).
                     Err(error) => (Vec::new(), Some(error.to_string())),
                 };
+                // The sibling sidecar belongs to this database (ADR-1): it
+                // auto-loads with the open. A missing sidecar is not
+                // special; a broken or foreign one surfaces as
+                // `sidecar_error` without blocking the open (phase 29,
+                // step 29.4).
+                let (sidecar, sidecar_error) = match read_sidecar(&path, &name) {
+                    Ok(Some(document)) => (Some(document), None),
+                    Ok(None) => (None, None),
+                    Err(reason) => (None, Some(reason)),
+                };
+                let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
                 self.state.database = Some(DatabaseState {
@@ -58,17 +69,36 @@ impl crate::core::Core {
                     format,
                     tables: self.port.tables(),
                     relationships,
-                    queries: Vec::new(),
-                    forms: Vec::new(),
-                    reports: Vec::new(),
+                    queries: sidecar
+                        .as_ref()
+                        .map(|document| document.queries.clone())
+                        .unwrap_or_default(),
+                    forms: sidecar
+                        .as_ref()
+                        .map(|document| document.forms.clone())
+                        .unwrap_or_default(),
+                    reports: sidecar
+                        .as_ref()
+                        .map(|document| document.reports.clone())
+                        .unwrap_or_default(),
                     native_queries,
                     native_queries_error,
                     macros,
                     macros_error,
                     vba_project,
                     vba_error,
+                    sidecar_error,
                 });
-                vec![Event::DatabaseOpened { name, format }]
+                let mut events = vec![Event::DatabaseOpened { name, format }];
+                if let Some(document) = sidecar {
+                    events.push(Event::DesignDocumentLoaded {
+                        path: sidecar_path,
+                        forms: document.forms.len(),
+                        queries: document.queries.len(),
+                        reports: document.reports.len(),
+                    });
+                }
+                events
             }
         }
     }
@@ -415,4 +445,29 @@ fn field_index(definition: &TableDef, field: &str) -> Result<usize, String> {
         .iter()
         .position(|candidate| candidate.name.eq_ignore_ascii_case(field))
         .ok_or_else(|| format!("field {field:?} not found in {:?}", definition.name))
+}
+
+/// Reads the sibling `.datacraft` sidecar (ADR-1) for the database at
+/// `path`. A missing sidecar is `Ok(None)` — it is not an error; a broken
+/// document or a foreign database name is `Err(reason)`, surfaced as
+/// `sidecar_error` (phase 29, step 29.4).
+fn read_sidecar(
+    path: &std::path::Path,
+    expected_name: &str,
+) -> Result<Option<crate::schema::SchemaDocument>, String> {
+    let sidecar = path.with_extension("datacraft");
+    let json = match std::fs::read_to_string(&sidecar) {
+        Ok(json) => json,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("sidecar read failed: {e}")),
+    };
+    let document = crate::schema::SchemaDocument::from_json(&json)
+        .map_err(|e| format!("sidecar decode failed: {e}"))?;
+    if document.database_name != expected_name {
+        return Err(format!(
+            "the sidecar belongs to {:?}, not to {:?}",
+            document.database_name, expected_name
+        ));
+    }
+    Ok(Some(document))
 }

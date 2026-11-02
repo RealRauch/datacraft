@@ -6,7 +6,9 @@ Button|← Back|
 Label||File
 TextRun||File
 Button|Home|
+Button|New|
 Button|Open|
+Button|Samples|
 Button|Save|
 Button|Info|
 Button|Options|

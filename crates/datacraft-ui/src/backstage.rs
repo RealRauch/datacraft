@@ -16,15 +16,19 @@ use crate::i18n::t;
 use crate::settings::LanguageSetting;
 use crate::theme::{fonts, tokens};
 
-/// Backstage pages — a deliberate subset of the Access set (Home, Open,
-/// Save, Info, Options); Recent Databases is follow-up U15.
+/// Backstage pages — a deliberate subset of the Access set (Home, New,
+/// Open, Samples, Save, Info, Options); Recent Databases is follow-up U15.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BackstagePage {
     /// Quick entry points and the open-database context.
     #[default]
     Home,
+    /// Create a database from a shipped template (phase 29, H44).
+    New,
     /// Open a database by path.
     Open,
+    /// Open one of the shipped sample databases (phase 29, H44).
+    Samples,
     /// Save/load the `.datacraft` design sidecar.
     Save,
     /// Database facts (name, path, format, table count).
@@ -35,9 +39,11 @@ pub enum BackstagePage {
 
 impl BackstagePage {
     /// Pages in navigation order.
-    pub const ALL: [BackstagePage; 5] = [
+    pub const ALL: [BackstagePage; 7] = [
         BackstagePage::Home,
+        BackstagePage::New,
         BackstagePage::Open,
+        BackstagePage::Samples,
         BackstagePage::Save,
         BackstagePage::Info,
         BackstagePage::Options,
@@ -47,7 +53,9 @@ impl BackstagePage {
     pub fn label(self) -> &'static str {
         match self {
             BackstagePage::Home => "Home",
+            BackstagePage::New => "New",
             BackstagePage::Open => "Open",
+            BackstagePage::Samples => "Samples",
             BackstagePage::Save => "Save",
             BackstagePage::Info => "Info",
             BackstagePage::Options => "Options",
@@ -58,7 +66,9 @@ impl BackstagePage {
     pub fn slug(self) -> &'static str {
         match self {
             BackstagePage::Home => "home",
+            BackstagePage::New => "new",
             BackstagePage::Open => "open",
+            BackstagePage::Samples => "samples",
             BackstagePage::Save => "save",
             BackstagePage::Info => "info",
             BackstagePage::Options => "options",
@@ -115,15 +125,17 @@ fn page_body(app: &mut App, ui: &mut egui::Ui) {
     ui.add_space(8.0);
     ui.heading(t(app.backstage_page.label()));
     ui.add_space(6.0);
-    let mut intent: Option<Command> = None;
+    let mut intents: Vec<Command> = Vec::new();
     match app.backstage_page {
         BackstagePage::Home => home_page(app, ui),
-        BackstagePage::Open => open_page(app, ui, &mut intent),
-        BackstagePage::Save => save_page(app, ui, &mut intent),
+        BackstagePage::New => new_database_page(app, ui, &mut intents),
+        BackstagePage::Open => open_page(app, ui, &mut intents),
+        BackstagePage::Samples => samples_page(app, ui, &mut intents),
+        BackstagePage::Save => save_page(app, ui, &mut intents),
         BackstagePage::Info => info_page(app, ui),
         BackstagePage::Options => options_page(app, ui),
     }
-    if let Some(command) = intent {
+    for command in intents {
         app.dispatch(command);
     }
 }
@@ -183,8 +195,57 @@ fn home_page(app: &mut App, ui: &mut egui::Ui) {
     status_line(app, ui);
 }
 
+/// New Database: pick a shipped template and a target path; one click
+/// dispatches create + open (phase 29, H44).
+fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
+    let templates = app.snapshot().templates.clone();
+    ui.label(t("Choose a template"));
+    for template in &templates {
+        let selected = app.new_database_template.as_deref() == Some(template.name.as_str());
+        let label = format!("{} — {} {}", template.title, template.tables, t("tables"));
+        if ui
+            .push_id(format!("backstage.new.{}", template.name), |ui| {
+                ui.selectable_label(selected, label)
+            })
+            .inner
+            .clicked()
+        {
+            app.new_database_template = Some(template.name.clone());
+        }
+    }
+    ui.add_space(8.0);
+    ui.label(t("path for the new database"));
+    ui.add(
+        egui::TextEdit::singleline(&mut app.new_database_path)
+            .desired_width(360.0)
+            .hint_text(t("path for the new database")),
+    );
+    ui.add_space(8.0);
+    let enabled = !app.new_database_path.trim().is_empty() && app.new_database_template.is_some();
+    if ui
+        .push_id("backstage.new.create", |ui| {
+            ui.add_enabled(enabled, egui::Button::new(t("Create Database")))
+        })
+        .inner
+        .clicked()
+    {
+        let path = app.new_database_path.clone();
+        if let Some(template) = app.new_database_template.clone() {
+            intents.push(Command::CreateDatabaseFromTemplate {
+                path: path.clone().into(),
+                template,
+            });
+            intents.push(Command::OpenDatabase {
+                path: path.into(),
+                password: None,
+            });
+        }
+    }
+    status_line(app, ui);
+}
+
 /// Open: the path buffer and the single open command.
-fn open_page(app: &mut App, ui: &mut egui::Ui, intent: &mut Option<Command>) {
+fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
     ui.label(t("Database path"));
     ui.add(
         egui::TextEdit::singleline(&mut app.open_path)
@@ -201,7 +262,7 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intent: &mut Option<Command>) {
         .inner
         .clicked()
     {
-        *intent = Some(Command::OpenDatabase {
+        intents.push(Command::OpenDatabase {
             path: app.open_path.clone().into(),
             password: None,
         });
@@ -209,8 +270,80 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intent: &mut Option<Command>) {
     status_line(app, ui);
 }
 
+/// Samples: every database file of the resolved samples folder opens in
+/// one click (phase 29, H44).
+fn samples_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
+    let Some(dir) = samples_dir() else {
+        ui.label(t("No samples found"));
+        status_line(app, ui);
+        return;
+    };
+    ui.label(format!("{}: {}", t("Samples folder"), dir.display()));
+    ui.add_space(6.0);
+    for path in sample_files(&dir) {
+        let name = path
+            .file_name()
+            .map_or_else(|| "?".to_owned(), |n| n.to_string_lossy().into_owned());
+        if ui
+            .push_id(format!("backstage.samples.{}", path.display()), |ui| {
+                ui.selectable_label(false, name)
+            })
+            .inner
+            .clicked()
+        {
+            intents.push(Command::OpenDatabase {
+                path,
+                password: None,
+            });
+        }
+    }
+    status_line(app, ui);
+}
+
+/// Resolution order of the samples folder (L6): `DATACRAFT_SAMPLES_DIR`,
+/// `samples/` next to the executable, the dev workspace.
+fn samples_dir() -> Option<std::path::PathBuf> {
+    if let Ok(dir) = std::env::var("DATACRAFT_SAMPLES_DIR") {
+        let dir = std::path::PathBuf::from(dir);
+        if dir.is_dir() {
+            return Some(dir);
+        }
+    }
+    if let Ok(exe) = std::env::current_exe()
+        && let Some(parent) = exe.parent()
+    {
+        let dir = parent.join("samples");
+        if dir.is_dir() {
+            return Some(dir);
+        }
+    }
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("samples");
+    workspace.is_dir().then_some(workspace)
+}
+
+/// The database files of the samples folder, sorted by name.
+fn sample_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| {
+            matches!(
+                path.extension().and_then(|ext| ext.to_str()),
+                Some("mdb") | Some("accdb") | Some("sqlite")
+            )
+        })
+        .collect();
+    files.sort();
+    files
+}
+
 /// Save: the sidecar path buffer and the save/load commands.
-fn save_page(app: &mut App, ui: &mut egui::Ui, intent: &mut Option<Command>) {
+fn save_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
     ui.label(t("path to .datacraft"));
     ui.add(
         egui::TextEdit::singleline(&mut app.sidecar_path)
@@ -227,7 +360,7 @@ fn save_page(app: &mut App, ui: &mut egui::Ui, intent: &mut Option<Command>) {
             .inner
             .clicked()
         {
-            *intent = Some(Command::SaveDesignDocument {
+            intents.push(Command::SaveDesignDocument {
                 path: app.sidecar_path.clone().into(),
             });
         }
@@ -238,7 +371,7 @@ fn save_page(app: &mut App, ui: &mut egui::Ui, intent: &mut Option<Command>) {
             .inner
             .clicked()
         {
-            *intent = Some(Command::LoadDesignDocument {
+            intents.push(Command::LoadDesignDocument {
                 path: app.sidecar_path.clone().into(),
             });
         }

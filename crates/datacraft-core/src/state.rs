@@ -101,6 +101,10 @@ pub struct DatabaseState {
     pub vba_project: Option<crate::vba::VbaProject>,
     /// Why the VBA extraction failed, if it did — the open still succeeds.
     pub vba_error: Option<String>,
+    /// Why the sibling `.datacraft` sidecar did not auto-load (phase 29,
+    /// step 29.4): broken JSON or a foreign database name. A missing
+    /// sidecar is not an error.
+    pub sidecar_error: Option<String>,
 }
 
 /// View mode of one document tab (step 21.1, item U5) — document state,

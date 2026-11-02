@@ -171,6 +171,57 @@ fn backstage_home_navigates_to_the_open_page() {
     );
 }
 
+/// The New Database page (phase 29, H44): selecting the blank template and
+/// clicking Create dispatches create + open — the new database is open.
+#[test]
+fn backstage_new_page_creates_from_a_template() {
+    let mut app = mock_app();
+    app.dispatch(Command::CloseDatabase);
+    let path =
+        std::env::temp_dir().join(format!("datacraft-kittest-{}-new.mdb", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    app.new_database_path = path.to_string_lossy().into_owned();
+    let mut harness = backstage_harness(app);
+
+    harness.get_by_label("New").click();
+    harness.run();
+    harness.get_by_label("Blank database — 0 tables").click();
+    harness.run();
+    harness.get_by_label("Create Database").click();
+    harness.run();
+
+    let database = harness
+        .state()
+        .snapshot()
+        .database
+        .as_ref()
+        .expect("the created database opens");
+    assert_eq!(database.format.to_string(), "Jet4");
+    let _ = std::fs::remove_file(&path);
+}
+
+/// The Samples page (phase 29, H44): the dev-workspace samples resolve and
+/// one click opens the shipped database.
+#[test]
+fn backstage_samples_page_lists_and_opens_shipped_samples() {
+    let mut app = mock_app();
+    app.dispatch(Command::CloseDatabase);
+    let mut harness = backstage_harness(app);
+
+    harness.get_by_label("Samples").click();
+    harness.run();
+    harness.get_by_label("blank.mdb").click();
+    harness.run();
+
+    let database = harness
+        .state()
+        .snapshot()
+        .database
+        .as_ref()
+        .expect("the sample opens");
+    assert_eq!(database.format.to_string(), "Jet4");
+}
+
 #[test]
 fn ribbon_tree_matches_the_layout_snapshot() {
     let harness = ribbon_harness(mock_app());
