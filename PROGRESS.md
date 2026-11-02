@@ -30,6 +30,32 @@
 - **28.1 Command-Historie: Undo/Redo (U14)**
 - **28.2 Recent Databases im Backstage (U15)**
 - **28.3 Phase 28 Quality Gate Review**
+### Phase 32 — Writer Catalog Fidelity
+
+**Scope (Steps):**
+
+- **32.1 Field properties persistence (H45)**
+- **32.2 Index creation in the Jet writer (M15)**
+- **32.3 Relationship and foreign-key creation (M16)**
+- **32.4 Phase 32 Quality Gate Review**
+### Phase 33 — Journal Batch Integrity
+
+**Scope (Steps):**
+
+- **33.1 Journal batches gate on the atomic_batch capability (M20)**
+- **33.2 Phase 33 Quality Gate Review**
+### Phase 31 — Engine Publishing
+
+**Scope (Steps):**
+
+- **31.1 Retire the vestigial StorageEngine trait (M21, High gate: test suite ported)**
+- **31.2 Crate split: datacraft-jet + datacraft-sqlite (M19)**
+- **31.3 Standalone datacraft-mcp binary crate (M19)**
+- **31.4 Publishing: Semver/MSRV/changelog policy, crates.io order (M19)**
+- **31.5 Phase 31 Quality Gate Review**
+
+
+
 
 
 
@@ -213,3 +239,14 @@
 | 30.9 | CSV directory driver (gated: workspace member + csv dependency) | ✅ |
 | 30.10 | Documentation: README, ARCHITECTURE, ROADMAP, i18n | ✅ |
 | 30.11 | Phase 30 Quality Gate Review | ✅ |
+| 32.1 | Field properties persistence (H45) | ⬜ |
+| 32.2 | Index creation in the Jet writer (M15) | ⬜ |
+| 32.3 | Relationship and foreign-key creation (M16) | ⬜ |
+| 32.4 | Phase 32 Quality Gate Review | ⬜ |
+| 33.1 | Journal batches gate on the atomic_batch capability (M20) | ⬜ |
+| 33.2 | Phase 33 Quality Gate Review | ⬜ |
+| 31.1 | Retire the vestigial StorageEngine trait (M21, High gate: test suite ported) | ⬜ |
+| 31.2 | Crate split: datacraft-jet + datacraft-sqlite (M19) | ⬜ |
+| 31.3 | Standalone datacraft-mcp binary crate (M19) | ⬜ |
+| 31.4 | Publishing: Semver/MSRV/changelog policy, crates.io order (M19) | ⬜ |
+| 31.5 | Phase 31 Quality Gate Review | ⬜ |

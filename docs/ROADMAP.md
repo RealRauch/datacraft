@@ -142,13 +142,20 @@ any code embedded in database files without explicit user consent/permissions.
 
 Ordering notes:
 
-- Planned sequence (2026-11-02, later): Phase 30 (driver model — ADR-7:
-  declarative per-session capabilities, registry detection, CSV directory
-  driver as the out-of-tree proof, core-computed UI affordances) → Phase 26
-  (release engineering) → Phase 27 (native query execution + encrypted
-  save-as) → Phase 28 (undo/redo + recent databases) → Phase 31 (engine/driver
-  publishing: crate split, standalone MCP binary, Semver policy — BACKLOG
-  M19). Phase numbers stay fixed.
+- Planned sequence (2026-11-02, latest; human decision): all feature work
+  first, release engineering last — Phase 27 (native query execution +
+  encrypted save-as) → Phase 28 (undo/redo + recent databases) → Phase 33
+  (journal batch integrity, M20) → Phase 32 (writer catalog fidelity: H45
+  field properties, M15 indexes, M16 relationships) → Phase 31 (engine
+  publishing: M21 vestige retirement as the prep step, crate split,
+  standalone MCP binary, Semver policy) → Phase 26 (release engineering +
+  first tags, M13). Supersedes the earlier plan that placed Phase 26 right
+  after Phase 30; the first tag should carry the complete write surface.
+  Phase numbers stay fixed.
+- Executed order (2026-11-02): Phase 30 (driver model — ADR-7: declarative
+  per-session capabilities, registry detection, CSV directory driver as the
+  out-of-tree proof, core-computed UI affordances), after Phase 25 (ACCDB
+  write) and Phase 29 (sample databases and templates).
 - Executed order (2026-11-02): Phase 25 (ACCDB write) → Phase 29 (sample
   databases and templates, released ahead of the rest). Still planned:
   Phase 26 (release engineering — deferred), Phase 27 (native query
