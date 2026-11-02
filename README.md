@@ -228,7 +228,7 @@ Seventeen delivered phases and the planned UI work:
 | 23 — Hardening & Test Gaps | CLI process E2E (exit codes, stderr), headless kittest UI suite with AccessKit snapshots, native-query decode errors surfaced at open | ✅ |
 | 24 — Jet Writer Remainder | AutoNumber counter maintenance, table drops through the writer, design-time schema editing (add/drop/rename/required) | ✅ |
 | 25 — ACCDB Write | ACE write contracts, port write-through and bus E2E on `.accdb` | ✅ |
-| 26–29 — Release, Queries, UI Rest, Samples | release engineering (26, planned), native query execution + encrypted save-as (27, done), undo/redo + recent databases (28, planned), create-database flow, templates and shipped samples (29) | 26 ⬜ · 27 ✅ · 28 ⬜ · 29 ✅ |
+| 26–29 — Release, Queries, UI Rest, Samples | release engineering (26, planned), native query execution + encrypted save-as (27, done), undo/redo + recent databases (28, done), create-database flow, templates and shipped samples (29) | 26 ⬜ · 27 ✅ · 28 ✅ · 29 ✅ |
 | 30 — Driver Model | declarative per-session capabilities, registry detection, CSV directory driver as the out-of-tree proof, capability-disabled UI affordances (ADR-7) | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →

@@ -16,13 +16,6 @@
 - **26.1 Release-Workflow: Matrix, Checksums, Notices (M13)**
 - **26.2 Release-Smoke + Tag-Politik (M13)**
 - **26.3 Phase 26 Quality Gate Review**
-### Phase 28 — UI-Reste (Undo & Backstage)
-
-**Scope (Steps):**
-
-- **28.1 Command-Historie: Undo/Redo (U14)**
-- **28.2 Recent Databases im Backstage (U15)**
-- **28.3 Phase 28 Quality Gate Review**
 ### Phase 32 — Writer Catalog Fidelity
 
 **Scope (Steps):**
@@ -235,8 +228,8 @@
 | 27.2 | Encrypted Save-As + Passwortwechsel (M14) | ✅ |
 | 27.3 | Phase 27 Quality Gate Review | ✅ |
 | 28.1 | Command-Historie: Undo/Redo (U14) | ✅ |
-| 28.2 | Recent Databases im Backstage (U15) | 🔄 |
-| 28.3 | Phase 28 Quality Gate Review | ⬜ |
+| 28.2 | Recent Databases im Backstage (U15) | ✅ |
+| 28.3 | Phase 28 Quality Gate Review | ✅ |
 | 29.1 | Create database files (Jet4 + SQLite) | ✅ |
 | 29.2 | Create-from-template flow and determinism | ✅ |
 | 29.3 | Sample content and generator | ✅ |

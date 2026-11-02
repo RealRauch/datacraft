@@ -379,3 +379,14 @@
 - **27.2 Encrypted Save-As + Passwortwechsel (M14)**
 - **27.3 Phase 27 Quality Gate Review**
 **Verification:** Phase 27 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.22% lines vs the 94.00% pre-phase baseline (new code ~98%; CI ubuntu remains the binding gate); docs_validate has no Phase-27 finding (pre-existing PLAN_WITHOUT_WIP for planned phases 26/28/31-35); no debt markers.
+
+---
+
+### Phase 28 — UI-Reste (Undo & Backstage)
+
+**Scope (Steps):**
+
+- **28.1 Command-Historie: Undo/Redo (U14)**
+- **28.2 Recent Databases im Backstage (U15)**
+- **28.3 Phase 28 Quality Gate Review**
+**Verification:** Phase 28 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.05% lines vs the 94.00% pre-phase baseline (CI ubuntu remains binding); docs_validate has no Phase-28 finding; no debt markers.
