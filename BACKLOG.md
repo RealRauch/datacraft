@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-02T23:21
+# BACKLOG.md — Open items (As of: 2026-11-02T23:39
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -71,9 +71,9 @@
 
 ### [ ] M20 — Journal batches gate on the declared atomic_batch capability (Phase 30 follow-up) — 🟡
 - **Location:** `crates/datacraft-core/src/journal.rs`, `crates/datacraft-core/src/database.rs` (dispatch gates), `crates/datacraft-storage/src/sqlite/mod.rs`
-- **Problem:** The M2 journal documents batch atomicity as a backend property; since Phase 30 the driver *declares* it (`DriverCapabilities::atomic_batch`). SQLite reports `false` (the trait default applies ops one by one), yet `PreviewWrite`/`ApplyWrite` still accept multi-op batches there — a mid-batch failure leaves a partial application with only best-effort inverse ops.
-- **Approach:** Consult the capability in `preview_write`: drivers with `atomic_batch: false` either accept single-op batches only (precise `Unsupported` reason for more) or record the degraded mode in the pending journal and in the snapshot; the UI surfaces it through the established availability/reason pattern (ADR-7). Jet behavior is unchanged (`atomic_batch: true`).
-- **Acceptance:** A multi-op preview on a non-atomic driver answers the precise reason (or carries the degradation visibly in snapshot and UI); Jet batches unchanged; the driver capability invariants cover the gate; canonical verification set green.
+- **Problem:** The M2 journal documents batch atomicity as a backend property; since Phase 30 the driver *declares* it (`DriverCapabilities::atomic_batch`). SQLite reports `false` (the trait default applies ops one by one), yet `PreviewWrite`/`ApplyWrite` still accept multi-op batches there — a mid-batch failure leaves a partial application with only best-effort inverse ops. Second gap from the Phase-30 review: the journal commands are not gated on `write_rows` at all — on a read-only source the batch previews fine and fails mid-apply at the port instead of being refused up front.
+- **Approach:** Consult the capability in `preview_write`: drivers with `atomic_batch: false` either accept single-op batches only (precise `Unsupported` reason for more) or record the degraded mode in the pending journal and in the snapshot; the UI surfaces it through the established availability/reason pattern (ADR-7). Gate `PreviewWrite`/`ApplyWrite` on `write_rows` like the other write commands (same `Failed` shape, refused before the port). Jet behavior is unchanged (`atomic_batch: true`).
+- **Acceptance:** A multi-op preview on a non-atomic driver answers the precise reason (or carries the degradation visibly in snapshot and UI); a read-only source refuses the preview up front via the `write_rows` gate; Jet batches unchanged; the driver capability invariants cover both gates; canonical verification set green.
 
 ### [ ] M21 — Retire the vestigial StorageEngine trait (ADR-7 single seam) — 🟡
 - **Location:** `crates/datacraft-storage/src/engine.rs`, `crates/datacraft-storage/src/mock.rs` (`InMemoryEngine`), `crates/datacraft-storage/tests/engine_boundary.rs`; `docs/ARCHITECTURE.md` §6 (already annotated as the historical record)
@@ -92,6 +92,18 @@
 - **Problem:** The documentation has drifted across phases 10-30: the entry points an agent or contributor reads first (AGENTS.md, README architecture) describe a four-crate workspace, ARCHITECTURE carries stale milestone and mapping sections, and the driver model (ADR-7) is documented in the ADR but not in the navigation docs. A release must not ship with entry-point docs that contradict the repository.
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
+
+### [ ] M22 — Publish-ready API vocabulary: non_exhaustive and the capabilities default (Phase 31 prep) — 🟡
+- **Location:** `crates/datacraft-core/src/port.rs` (`PortError`), `crates/datacraft-core/src/port/capabilities.rs` (`Support`, `DriverCapabilities`), `crates/datacraft-core/src/command.rs` (`Command`), semver policy of step 31.4
+- **Problem:** The vocabulary enums are closed: every new `Support`/`PortError`/`Command` variant is a breaking change for third-party drivers compiled against the published engine. Worse, the trait default `DriverCapabilities::full()` makes a driver that forgets the override *lie* — it reports every capability as available and the dispatcher then lets commands through that the port refuses at call time. Both surface only after crates.io publishing (M19), when they become semver pain instead of a cheap pre-split decision.
+- **Approach:** Before the crate split (31.2): mark the wire-facing enums `#[non_exhaustive]` (`Support`, `PortError`; `#[non_exhaustive]` on the `DriverCapabilities` struct for its fields), decide the default question explicitly — conservative default (a forgetful driver declares nothing) versus making `capabilities()` required — pin the decision in ADR-7 and the 31.4 Semver policy, and add a meta-test that every registered shipped driver overrides `driver_id`/`capabilities` explicitly.
+- **Acceptance:** Adding a vocabulary variant does not break a compiled out-of-tree driver (proven by `datacraft-csv` compiling unchanged against the extended core); the default story is decided, documented and meta-tested; canonical verification set green.
+
+### [ ] M23 — Registered drivers visible in the snapshot — 🟡
+- **Location:** `crates/datacraft-core/src/snapshot.rs` (`UiStateSnapshot`), `crates/datacraft-storage/src/detecting.rs` (registry introspection)
+- **Problem:** Agents can discover templates in the snapshot, but not *which* drivers the composed binary can open — they learn a source family only by attempting to open it and reading the failure. The registry exists (built-in probes plus `with_fallback`); only the projection is missing.
+- **Approach:** The composite exposes its driver set — driver id, display format, offline capability summary — for the built-ins and any registered fallbacks; the snapshot carries it additively next to `templates`. No UI surface is mandated; CLI/MCP agents read it over the wire and can pre-flight an open against the reported families.
+- **Acceptance:** `inspect()` on a composed binary lists jet, sqlite and csv with ids and formats; the wire change is additive; the driver capability invariants are unaffected; canonical verification set green.
 
 ---
 
