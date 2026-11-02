@@ -284,3 +284,42 @@ fn the_detecting_composite_forwards_save_as_and_password_change() {
         .expect("the source opens with the changed password");
     let _ = std::fs::remove_file(&target);
 }
+
+#[test]
+fn save_as_and_change_password_need_an_open_database() {
+    let mut port = Jet4Port::new();
+    let error = port
+        .save_as(&scratch_path("no-db", "mdb"), None)
+        .expect_err("no database is open");
+    assert!(error.to_string().contains("no database"), "{error}");
+    let error = port
+        .change_password(Some("secret"))
+        .expect_err("no database is open");
+    assert!(error.to_string().contains("no database"), "{error}");
+}
+
+#[test]
+fn save_as_to_a_missing_directory_is_a_write_failure() {
+    let source = copy_of("passwordV2000-none.mdb", "missing-dir-source");
+    let target = std::env::temp_dir()
+        .join(format!("datacraft-missing-dir-{}", std::process::id()))
+        .join("copy.mdb");
+    let mut port = Jet4Port::new();
+    port.open(&source.0, None).expect("the source opens");
+    let error = port
+        .save_as(&target, None)
+        .expect_err("the parent directory does not exist");
+    assert!(matches!(error, PortError::WriteFailed { .. }), "{error:?}");
+    assert!(!target.exists(), "no partial copy is left behind");
+}
+
+#[test]
+fn jet3_password_changes_are_unsupported() {
+    let source = copy_of("testV1997.mdb", "jet3-change");
+    let mut port = Jet4Port::new();
+    port.open(&source.0, None).expect("the Jet3 source opens");
+    let error = port
+        .change_password(None)
+        .expect_err("Jet3 has no password writer");
+    assert!(error.to_string().contains("Jet3"), "{error}");
+}

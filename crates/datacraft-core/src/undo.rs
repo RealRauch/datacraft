@@ -253,3 +253,6 @@ impl crate::core::Core {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
