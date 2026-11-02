@@ -3,23 +3,19 @@
 //! Drives the FULL stack over the wire: `transport::serve` with a
 //! DetectingPort-composed core against the committed fixture — JSON-RPC lines
 //! in, response JSON out, assertions on events and snapshots, never on
-//! pixels. This is the template agents copy for automation.
+//! pixels. This is the template agents copy for automation. ACE-specific
+//! wire contracts live in `server_e2e_ace.rs`; shared helpers in
+//! `support/mod.rs`.
 
-use std::io::Cursor;
+mod support;
+
 use std::path::{Path, PathBuf};
 
 use datacraft_core::core::Core;
-use datacraft_core::transport::serve;
 use datacraft_storage::detecting::DetectingPort;
-use serde_json::{Value, json};
+use serde_json::json;
 
-fn fixture() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("fixtures")
-        .join("testV2000.mdb")
-}
+use support::{fixture, result_of, session};
 
 /// Generates a throwaway SQLite file (never a committed fixture: the
 /// content is deterministic and the file is removed by the test).
@@ -36,26 +32,6 @@ fn scratch_sqlite(stem: &str) -> PathBuf {
     )
     .expect("populate scratch SQLite file");
     path
-}
-
-/// Runs one serve session; returns the parsed response lines.
-fn session(core: &mut Core, requests: &[Value]) -> Vec<Value> {
-    let mut input = String::new();
-    for request in requests {
-        input.push_str(&request.to_string());
-        input.push('\n');
-    }
-    let mut output: Vec<u8> = Vec::new();
-    serve(&mut Cursor::new(input), &mut output, core);
-    String::from_utf8(output)
-        .expect("responses are utf-8")
-        .lines()
-        .map(|line| serde_json::from_str(line).expect("every response parses"))
-        .collect()
-}
-
-fn result_of(response: &Value) -> &Value {
-    response.get("result").expect("success envelope")
 }
 
 #[test]
@@ -340,32 +316,6 @@ fn run_sql_over_the_wire() {
             .unwrap_or_default()
             .contains("only SELECT"),
         "{failed}"
-    );
-}
-
-#[test]
-fn opens_an_ace_fixture_over_the_wire() {
-    let ace = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("fixtures")
-        .join("testV2007.accdb");
-    let mut core = Core::new(Box::new(DetectingPort::new()));
-    let responses = session(
-        &mut core,
-        &[
-            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
-                   "params":{"OpenDatabase":{"path": ace.to_string_lossy()}}}),
-            json!({"jsonrpc":"2.0","id":2,"method":"inspect"}),
-        ],
-    );
-    let events = &result_of(&responses[0])["events"];
-    assert_eq!(events[0]["DatabaseOpened"]["format"], "ace", "{events}");
-    let snapshot = &result_of(&responses[1]);
-    assert_eq!(snapshot["database"]["format"], "ace", "{snapshot}");
-    assert_eq!(
-        snapshot["database"]["tables"][0]["name"], "Table1",
-        "{snapshot}"
     );
 }
 

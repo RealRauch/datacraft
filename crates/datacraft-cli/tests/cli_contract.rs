@@ -242,3 +242,81 @@ fn ace_databases_open_through_the_cli_vocabulary() {
     assert!(text.contains("\"format\":\"ace\""), "{text}");
     assert!(text.contains("\"name\":\"testV2010\""), "{text}");
 }
+
+/// ACE write-through through the CLI vocabulary (phase 25, step 25.2, item
+/// H43): `exec` creates a table and inserts a row on a private copy of the
+/// pinned ACE 2010 fixture; a fresh core proves the persistence on reopen.
+#[test]
+fn ace_databases_take_writes_through_the_cli_vocabulary() {
+    use datacraft_core::command::Command;
+    use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
+
+    let copy = std::env::temp_dir().join(format!(
+        "datacraft-cli-{}-ace-write.accdb",
+        std::process::id()
+    ));
+    std::fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("fixtures")
+            .join("testV2010.accdb"),
+        &copy,
+    )
+    .expect("copy the fixture");
+
+    let definition = TableDef::new("CliWritten", vec![FieldDef::new("note", FieldKind::Memo)]);
+    let create = serde_json::to_string(&Command::CreateTable { definition }).expect("serialize");
+    let insert = serde_json::to_string(&Command::InsertRow {
+        table: "CliWritten".into(),
+        values: vec![FieldValue::Text("via the cli".into())],
+    })
+    .expect("serialize");
+
+    // One `exec` per core: `--db` opens the copy, and a core with an open
+    // database rejects a second open ("a database is already open").
+    for command in [&create, &insert] {
+        let mut core = Core::new(Box::new(datacraft_storage::detecting::DetectingPort::new()));
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = run(
+            &mut core,
+            &[
+                "exec".to_owned(),
+                command.to_owned(),
+                "--db".to_owned(),
+                copy.to_string_lossy().to_string(),
+                "--json".to_owned(),
+            ],
+            &mut out,
+        );
+        assert_eq!(outcome, Outcome::Ok, "{}", String::from_utf8_lossy(&out));
+    }
+
+    // A fresh core reopens the file: the write persisted, the format is ACE.
+    let mut reopened = Core::new(Box::new(datacraft_storage::detecting::DetectingPort::new()));
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut reopened,
+        &[
+            "open".to_owned(),
+            copy.to_string_lossy().to_string(),
+            "--json".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    assert!(
+        String::from_utf8(out)
+            .unwrap()
+            .contains("\"format\":\"ace\""),
+        "the format stays ACE"
+    );
+    let rows = reopened
+        .read_rows(
+            "CliWritten",
+            datacraft_core::port::RowRange { start: 0, len: 10 },
+        )
+        .expect("the inserted row persisted");
+    assert_eq!(rows, [vec![FieldValue::Text("via the cli".into())]]);
+    let _ = std::fs::remove_file(&copy);
+}
