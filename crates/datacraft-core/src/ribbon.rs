@@ -229,16 +229,12 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
         RibbonAction {
             id: "undo",
             label: "Undo",
-            state: ActionState::DisabledIn {
-                phase: "BACKLOG U14",
-            },
+            state: ActionState::Enabled,
         },
         RibbonAction {
             id: "redo",
             label: "Redo",
-            state: ActionState::DisabledIn {
-                phase: "BACKLOG U14",
-            },
+            state: ActionState::Enabled,
         },
     ],
 });

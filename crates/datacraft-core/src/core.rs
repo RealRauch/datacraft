@@ -296,6 +296,8 @@ impl Core {
             Command::CloseAllTabs => self.close_all_tabs(),
             Command::SetActiveTab { tab_id } => self.set_active_tab(tab_id),
             Command::SetTabMode { tab_id, mode } => self.set_tab_mode(tab_id, mode),
+            Command::Undo => self.undo(),
+            Command::Redo => self.redo(),
         }
     }
 

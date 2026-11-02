@@ -345,6 +345,13 @@ pub trait StoragePort {
     /// Appends one row (positional values, arity must match the table).
     /// `Null` on an AutoNumber field means "engine-assigned".
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError>;
+    /// Appends a row image verbatim, including engine-assigned AutoNumber
+    /// values (step 28.1, item U14 — undo/redo restoration). The default
+    /// delegates to [`StoragePort::insert_row`]; backends that reject
+    /// user-supplied AutoNumbers override it with a validated restore path.
+    fn restore_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        self.insert_row(table, values)
+    }
     /// Replaces the row at `row` (zero-based live-row index) with `values`
     /// (step 11.10, H40). AutoNumber values are preserved by the caller.
     fn update_row(

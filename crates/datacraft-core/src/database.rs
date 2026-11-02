@@ -97,6 +97,8 @@ impl crate::core::Core {
                     vba_project,
                     vba_error,
                     sidecar_error,
+                    undo: Vec::new(),
+                    redo: Vec::new(),
                 });
                 let mut events = vec![Event::DatabaseOpened { name, format }];
                 if let Some(document) = sidecar {

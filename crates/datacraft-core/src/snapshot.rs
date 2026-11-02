@@ -32,6 +32,11 @@ pub struct UiStateSnapshot {
     /// The shipped database templates (phase 29, item H44) — the registry
     /// behind `CreateDatabaseFromTemplate`, visible to every client.
     pub templates: Vec<crate::templates::TemplateSummary>,
+    /// Row-write undo depth of the open database (step 28.1, item U14);
+    /// `0` without a database.
+    pub undo_depth: usize,
+    /// Row-write redo depth of the open database (step 28.1, item U14).
+    pub redo_depth: usize,
 }
 
 /// Snapshot of the open database.
@@ -274,6 +279,8 @@ impl UiStateSnapshot {
             active_tab: state.active_tab,
             relationship_mapper_open: state.relationship_mapper_open,
             sql_window_open: state.sql_window_open,
+            undo_depth: state.database.as_ref().map_or(0, |db| db.undo.len()),
+            redo_depth: state.database.as_ref().map_or(0, |db| db.redo.len()),
         }
     }
 

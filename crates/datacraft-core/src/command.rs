@@ -203,6 +203,10 @@ pub enum Command {
         /// The tab to activate.
         tab_id: TabId,
     },
+    /// Undoes the last row write of the open database (step 28.1, item U14).
+    Undo,
+    /// Re-applies the last undone row write (step 28.1, item U14).
+    Redo,
     /// Switches one tab between its datasheet and design view (step 21.1,
     /// item U5) — the Views split-button's single action.
     SetTabMode {

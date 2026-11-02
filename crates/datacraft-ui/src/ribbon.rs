@@ -266,6 +266,8 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
     match action_id {
         "close_database" => Some(Command::CloseDatabase),
         "toggle_nav_pane" => Some(Command::ToggleNavPane),
+        "undo" => Some(Command::Undo),
+        "redo" => Some(Command::Redo),
         "relationships" => Some(Command::ToggleRelationshipMapper),
         "save_design" => Some(Command::SaveDesignDocument {
             path: app.sidecar_path.clone().into(),

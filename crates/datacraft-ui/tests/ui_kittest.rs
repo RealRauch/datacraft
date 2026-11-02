@@ -441,3 +441,35 @@ fn backstage_password_controls_gate_on_the_capability() {
     assert!(dump.contains("Button|Save Copy| disabled"), "{dump}");
     assert!(dump.contains("Button|Change Password| disabled"), "{dump}");
 }
+
+#[test]
+fn qat_undo_and_redo_follow_the_history_depth() {
+    let mut harness = ribbon_harness(mock_app());
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(dump.contains("Button|Undo| disabled"), "{dump}");
+    assert!(dump.contains("Button|Redo| disabled"), "{dump}");
+    drop(harness);
+
+    let mut app = mock_app();
+    app.dispatch(Command::InsertRow {
+        table: "Customers".to_owned(),
+        values: vec![
+            datacraft_core::schema::FieldValue::Integer(2),
+            datacraft_core::schema::FieldValue::Text("beta".to_owned()),
+        ],
+    });
+    let mut harness = ribbon_harness(app);
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(!dump.contains("Button|Undo| disabled"), "{dump}");
+    assert_eq!(harness.state().snapshot().undo_depth, 1);
+
+    harness.get_by_label("Undo").click();
+    harness.run();
+    assert_eq!(harness.state().snapshot().undo_depth, 0);
+    assert_eq!(harness.state().snapshot().redo_depth, 1);
+    let dump = tree_dump(&harness);
+    assert!(dump.contains("Button|Undo| disabled"), "{dump}");
+    assert!(!dump.contains("Button|Redo| disabled"), "{dump}");
+}

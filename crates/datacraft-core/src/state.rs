@@ -109,6 +109,13 @@ pub struct DatabaseState {
     /// step 29.4): broken JSON or a foreign database name. A missing
     /// sidecar is not an error.
     pub sidecar_error: Option<String>,
+    /// Row-write history, oldest first (step 28.1, item U14). Bounded by
+    /// [`crate::undo::MAX_HISTORY`]; schema and batch writes clear it.
+    #[serde(default)]
+    pub undo: Vec<crate::undo::HistoryEntry>,
+    /// Undone row writes, most recently undone last (step 28.1, U14).
+    #[serde(default)]
+    pub redo: Vec<crate::undo::HistoryEntry>,
 }
 
 /// View mode of one document tab (step 21.1, item U5) — document state,

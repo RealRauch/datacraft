@@ -43,6 +43,7 @@ pub mod sql_engine;
 pub mod state;
 pub mod templates;
 pub mod transport;
+pub mod undo;
 pub mod vba;
 pub mod vba_analysis;
 mod vba_dispatch;

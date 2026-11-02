@@ -85,6 +85,16 @@ pub enum Event {
         /// The grouping field, or `None` when ungrouped.
         group_by: Option<String>,
     },
+    /// The last row write was undone (step 28.1, item U14).
+    Undone {
+        /// Canonical table name.
+        table: String,
+    },
+    /// The last undone row write was re-applied (step 28.1, item U14).
+    Redone {
+        /// Canonical table name.
+        table: String,
+    },
     /// A row was deleted (step 11.10, H40).
     RowDeleted {
         /// Canonical table name.
