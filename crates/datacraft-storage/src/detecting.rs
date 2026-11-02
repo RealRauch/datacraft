@@ -1,35 +1,38 @@
-//! Format-detecting storage port (step 13.1, item H35).
+//! Format-detecting storage port — the driver registry facade (ADR-7).
 //!
-//! Clients compose exactly one backend into the core. This port sniffs the
-//! file magic and hands the file to the matching backend, so the command
-//! vocabulary stays identical for Jet/ACE and SQLite sources.
+//! Clients compose exactly one port into the core. On open, the header
+//! probe builds the driver that claims the file; every trait call then
+//! delegates to that open session, so the session handling is
+//! driver-agnostic (adding a driver is one probe entry, nothing else).
+//! While nothing is open, the composite speaks for itself.
 
 use std::path::Path;
 
 use datacraft_core::port::{
-    DatabaseFormat, OpenedDatabase, PortError, Relationship, RowRange, StoragePort,
+    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship, RowRange,
+    SchemaChange, StoragePort,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
 use crate::port_adapter::Jet4Port;
 use crate::sqlite::SqlitePort;
 
-/// Magic of a Jet/ACE file header (`01 00 00 00` at offset 0).
-const JET_MAGIC: [u8; 4] = [0x00, 0x01, 0x00, 0x00];
-/// Magic of a SQLite 3 file header.
-const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\0";
-
-/// Which backend serves the open file.
-#[derive(Debug)]
-enum Backend {
-    Jet(Jet4Port),
-    Sqlite(SqlitePort),
+/// One port over all supported source families, selected by file magic.
+#[derive(Default)]
+pub struct DetectingPort {
+    /// The open session, whatever driver claimed the file.
+    session: Option<Box<dyn StoragePort>>,
 }
 
-/// One port over all supported source families, selected by file magic.
-#[derive(Debug, Default)]
-pub struct DetectingPort {
-    backend: Option<Backend>,
+impl std::fmt::Debug for DetectingPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DetectingPort")
+            .field(
+                "session",
+                &self.session.as_ref().map(|session| session.driver_id()),
+            )
+            .finish()
+    }
 }
 
 impl DetectingPort {
@@ -40,27 +43,31 @@ impl DetectingPort {
 }
 
 impl StoragePort for DetectingPort {
+    fn driver_id(&self) -> DriverId {
+        self.session
+            .as_ref()
+            .map_or_else(|| DriverId::new("detecting"), |session| session.driver_id())
+    }
+
+    /// The open session's capabilities (ADR-7); while nothing is open the
+    /// optimistic default holds — creation is session-independent.
+    fn capabilities(&self) -> DriverCapabilities {
+        self.session
+            .as_ref()
+            .map_or_else(DriverCapabilities::full, |session| session.capabilities())
+    }
+
     fn open(&mut self, path: &Path, password: Option<&str>) -> Result<OpenedDatabase, PortError> {
-        let magic = sniff(path)?;
-        let opened = match magic {
-            Magic::Jet => {
-                let mut port = Jet4Port::new();
-                let opened = port.open(path, password)?;
-                self.backend = Some(Backend::Jet(port));
-                opened
-            }
-            Magic::Sqlite => {
-                let mut port = SqlitePort::new();
-                let opened = port.open(path, password)?;
-                self.backend = Some(Backend::Sqlite(port));
-                opened
-            }
-        };
+        let mut driver = probe(path)?;
+        let opened = driver.open(path, password)?;
+        self.session = Some(driver);
         Ok(opened)
     }
 
     fn close(&mut self) {
-        self.backend = None;
+        if let Some(mut session) = self.session.take() {
+            session.close();
+        }
     }
 
     fn create_database(&mut self, path: &Path, format: DatabaseFormat) -> Result<(), PortError> {
@@ -77,47 +84,37 @@ impl StoragePort for DetectingPort {
     }
 
     fn tables(&self) -> Vec<TableDef> {
-        match &self.backend {
-            Some(Backend::Jet(port)) => port.tables(),
-            Some(Backend::Sqlite(port)) => port.tables(),
-            None => Vec::new(),
-        }
+        self.session
+            .as_ref()
+            .map_or_else(Vec::new, |session| session.tables())
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
-        match &mut self.backend {
-            Some(Backend::Jet(port)) => port.create_table(definition),
-            Some(Backend::Sqlite(port)) => port.create_table(definition),
-            None => Err(no_database()),
-        }
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .create_table(definition)
     }
 
     fn drop_table(&mut self, name: &str) -> Result<String, PortError> {
-        match &mut self.backend {
-            Some(Backend::Jet(port)) => port.drop_table(name),
-            Some(Backend::Sqlite(port)) => port.drop_table(name),
-            None => Err(no_database()),
-        }
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .drop_table(name)
     }
 
-    fn alter_table(
-        &mut self,
-        table: &str,
-        change: datacraft_core::port::SchemaChange,
-    ) -> Result<(), PortError> {
-        match &mut self.backend {
-            Some(Backend::Jet(port)) => port.alter_table(table, change),
-            Some(Backend::Sqlite(port)) => port.alter_table(table, change),
-            None => Err(no_database()),
-        }
+    fn alter_table(&mut self, table: &str, change: SchemaChange) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .alter_table(table, change)
     }
 
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
-        match &mut self.backend {
-            Some(Backend::Jet(port)) => port.insert_row(table, values),
-            Some(Backend::Sqlite(port)) => port.insert_row(table, values),
-            None => Err(no_database()),
-        }
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .insert_row(table, values)
     }
 
     fn update_row(
@@ -126,72 +123,72 @@ impl StoragePort for DetectingPort {
         row: usize,
         values: &[FieldValue],
     ) -> Result<(), PortError> {
-        match &mut self.backend {
-            Some(Backend::Jet(port)) => port.update_row(table, row, values),
-            Some(Backend::Sqlite(port)) => port.update_row(table, row, values),
-            None => Err(no_database()),
-        }
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .update_row(table, row, values)
     }
 
     fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
-        match &mut self.backend {
-            Some(Backend::Jet(port)) => port.delete_row(table, row),
-            Some(Backend::Sqlite(port)) => port.delete_row(table, row),
-            None => Err(no_database()),
-        }
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .delete_row(table, row)
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
-        match &self.backend {
-            Some(Backend::Jet(port)) => port.read_rows(table, range),
-            Some(Backend::Sqlite(port)) => port.read_rows(table, range),
-            None => Err(no_database()),
-        }
+        self.session
+            .as_ref()
+            .ok_or_else(no_database)?
+            .read_rows(table, range)
     }
 
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
-        match &self.backend {
-            Some(Backend::Jet(port)) => port.relationships(),
-            Some(Backend::Sqlite(port)) => port.relationships(),
-            None => Ok(Vec::new()),
-        }
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.relationships())
     }
 
     fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {
-        match &self.backend {
-            Some(Backend::Jet(port)) => port.native_queries(),
-            Some(Backend::Sqlite(port)) => port.native_queries(),
-            None => Ok(Vec::new()),
-        }
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.native_queries())
     }
 
     fn macros(&self) -> Result<Vec<datacraft_core::macro_def::MacroDef>, PortError> {
-        match &self.backend {
-            Some(Backend::Jet(port)) => port.macros(),
-            // SQLite has no macro concept; the core sees an empty inventory.
-            Some(Backend::Sqlite(_)) | None => Ok(Vec::new()),
-        }
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.macros())
     }
 
     fn vba_project(&self) -> Result<Option<datacraft_core::vba::VbaProject>, PortError> {
-        match &self.backend {
-            Some(Backend::Jet(port)) => port.vba_project(),
-            // SQLite has no VBA project.
-            Some(Backend::Sqlite(_)) | None => Ok(None),
-        }
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(None), |session| session.vba_project())
     }
 }
 
-/// The two recognized header families.
+/// The recognized header families.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Magic {
     Jet,
     Sqlite,
 }
 
+/// Probes the file header and builds the driver that claims it (ADR-7:
+/// one entry per driver — the session handling above never changes).
+fn probe(path: &Path) -> Result<Box<dyn StoragePort>, PortError> {
+    match sniff(path)? {
+        Magic::Jet => Ok(Box::new(Jet4Port::new())),
+        Magic::Sqlite => Ok(Box::new(SqlitePort::new())),
+    }
+}
+
 /// Reads the header and classifies it; unknown content fails with a
 /// precise, user-renderable reason (LESSONS #4).
 fn sniff(path: &Path) -> Result<Magic, PortError> {
+    const JET_MAGIC: [u8; 4] = [0x00, 0x01, 0x00, 0x00];
+    const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\0";
     let mut file = std::fs::File::open(path).map_err(|e| PortError::OpenFailed {
         detail: format!("{}: {e}", path.display()),
     })?;
