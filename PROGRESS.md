@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 24 — Jet Writer Remainder *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **24.1 Jet AutoNumber counter maintenance on insert (M8)**
-- **24.2 Jet table drops through the writer (M7)**
-- **24.3 Design-time schema editing, ALTER TABLE (M9)**
-- **24.4 Phase 24 Quality Gate Review**
 
 
 
@@ -165,4 +157,4 @@
 | 24.1 | Jet AutoNumber counter maintenance on insert (M8) | ✅ |
 | 24.2 | Jet table drops through the writer (M7) | ✅ |
 | 24.3 | Design-time schema editing, ALTER TABLE (M9) | ✅ |
-| 24.4 | Phase 24 Quality Gate Review | ⬜ |
+| 24.4 | Phase 24 Quality Gate Review | ✅ |

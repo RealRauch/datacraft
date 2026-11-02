@@ -313,3 +313,15 @@
 - **23.3 Native-query decode errors surface at open (M10)**
 - **23.4 Phase 23 Quality Gate Review**
 **Verification:** Phase 23 gate: fmt --check, clippy -D warnings, workspace tests (incl. CLI process E2E and kittest) and the file-size gate are green; no banned markers; local Windows llvm-cov 93.67% under the documented platform note (CI ubuntu is binding); README phase table extended; T4/T5/M10 archived, F4 recorded and archived. (checkpoint: c1b28b2)
+
+---
+
+### Phase 24 — Jet Writer Remainder *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **24.1 Jet AutoNumber counter maintenance on insert (M8)**
+- **24.2 Jet table drops through the writer (M7)**
+- **24.3 Design-time schema editing, ALTER TABLE (M9)**
+- **24.4 Phase 24 Quality Gate Review**
+**Verification:** Phase 24 gate: fmt --check, clippy -D warnings, workspace tests (incl. oracle-gated writer tests), file-size gate and marker scan are green; local Windows llvm-cov 93.32% under the documented platform note (CI ubuntu is binding); README phase table extended; M7/M8/M9 archived. (checkpoint: 4fecca9)
