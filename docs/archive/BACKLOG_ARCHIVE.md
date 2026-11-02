@@ -720,3 +720,11 @@
 - **Approach:** `AddField`/`DropField`/`RenameField`/`SetFieldProperties` commands through the port, rewriting the TDEF while preserving row data; the design grid becomes editable with save/cancel and dispatches exactly one command per edit; shapes the writer cannot alter answer a precise `Unsupported`.
 - **Acceptance:** Design-view edits persist across a reopen with row data preserved; oracle check on the changed file; UI edits dispatch one command each; failures leave the file and state untouched.
 - **Done:** done in `6780b3c` (RED `588fe4f`) — AddField/DropField/RenameField/SetFieldProperties via one `alter_table` port method; TDEF rewrite on a scratch writer with row re-encoding (dense column ids on drop), design-grid edit controls dispatch one command each
+
+---
+
+### [x] H42 — ACCDB-Write-Verträge (create/insert/update/delete/drop/alter auf .accdb) — 🟠
+- **Location:** `crates/datacraft-storage/tests/ace_writer.rs` (neu), `crates/datacraft-storage/src/jet/writer*.rs` (nur falls Vertragslücken)
+- **Ansatz:** Die Jet4-Writer-Verträge auf den gepinnten ACE-Fixtures beweisen: Kopie von `testV2007.accdb`/`testV2010.accdb` in tmp → `create_table` + `insert_row`/`update`/`delete`/`drop_table`/`alter_table` → decode zurück; Original-Seiten byte-identisch (nur Appends), Header unangetastet (Magic/Version), Usage-Maps konsistent. Externes Oracle existiert für ACE nicht (mdb-tools liest kein .accdb) — Referenz ist decode∘encode∘decode gegen die pristinen Bytes; der CI-Oracle-Job erweitert sich nicht.
+- **Acceptance:** Verträge grün auf ACE 2007/2010 (und 2016-Datei als Read-only-Referenz); jeder Original-Block byte-erhalten; präziser `Unsupported` bleibt für wirklich Unqualifiziertes.
+- **Done:** done in `7e7f755` (RED `3b4a4fb`) — ACE 2007/2010 write contracts green (insert/update/delete/create/drop/alter with byte preservation and map consistency, 2016 fixture as read-only reference); office-encrypted ACCDB now rejected at the writer boundary

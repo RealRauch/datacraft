@@ -18,11 +18,6 @@
 
 > No open items.
 
-### [ ] H42 — ACCDB-Write-Verträge (create/insert/update/delete/drop/alter auf .accdb) — 🟠
-- **Location:** `crates/datacraft-storage/tests/ace_writer.rs` (neu), `crates/datacraft-storage/src/jet/writer*.rs` (nur falls Vertragslücken)
-- **Ansatz:** Die Jet4-Writer-Verträge auf den gepinnten ACE-Fixtures beweisen: Kopie von `testV2007.accdb`/`testV2010.accdb` in tmp → `create_table` + `insert_row`/`update`/`delete`/`drop_table`/`alter_table` → decode zurück; Original-Seiten byte-identisch (nur Appends), Header unangetastet (Magic/Version), Usage-Maps konsistent. Externes Oracle existiert für ACE nicht (mdb-tools liest kein .accdb) — Referenz ist decode∘encode∘decode gegen die pristinen Bytes; der CI-Oracle-Job erweitert sich nicht.
-- **Acceptance:** Verträge grün auf ACE 2007/2010 (und 2016-Datei als Read-only-Referenz); jeder Original-Block byte-erhalten; präziser `Unsupported` bleibt für wirklich Unqualifiziertes.
-
 ### [ ] H43 — ACCDB-Port-Write-Through + Bus-E2E an .accdb — 🟠
 - **Location:** `crates/datacraft-storage/tests/ace_port_writes.rs` (neu), `crates/datacraft-ui/tests/server_e2e.rs` (ACE-Fall), `src/port_adapter.rs` (nur falls Gates)
 - **Ansatz:** Port-Write-Through an `.accdb`: tmp-Kopie von `testV2010.accdb` → über `Jet4Port` create/insert/update/delete/drop/alter → Reopen verifiziert Persistenz; `DatabaseFormat::Ace` bleibt über alle Operationen stabil; Bus-Verträge (MCP/CLI) öffnen und schreiben dieselbe Datei über die identische Vokabel.falls Gates existieren (Format-Guards), werden sie bewusst geöffnet — kein stummer Durchgriff.
@@ -200,3 +195,4 @@
 - M8 — Jet AutoNumber counter maintenance on insert — done (done in `af07979` (RED `39e95ad`) — Jet4 writer assigns LongInteger AutoNumbers (Null = engine-assigned), persists the TDEF `+12` counter across reopen and rejects user values; GUID flavor stays Unsupported; mdb-export oracle test added)
 - M7 — Jet table drops through the writer (DropTable on .mdb/.accdb) — done (done in `24f5033` (RED `e3c4601`) — writer/drop path deletes the catalog row, frees used-map + TDEF-chain + unreferenced usage pages into the global free map and 0xFF-fills freed pages; port tests cover reopen visibility, neighbour survival and failure atomicity)
 - M9 — Design-time schema editing (ALTER TABLE) in the table design view — done (done in `6780b3c` (RED `588fe4f`) — AddField/DropField/RenameField/SetFieldProperties via one `alter_table` port method; TDEF rewrite on a scratch writer with row re-encoding (dense column ids on drop), design-grid edit controls dispatch one command each)
+- H42 — ACCDB-Write-Verträge (create/insert/update/delete/drop/alter auf .accdb) — done (done in `7e7f755` (RED `3b4a4fb`) — ACE 2007/2010 write contracts green (insert/update/delete/create/drop/alter with byte preservation and map consistency, 2016 fixture as read-only reference); office-encrypted ACCDB now rejected at the writer boundary)
