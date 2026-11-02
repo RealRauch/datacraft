@@ -33,8 +33,12 @@ fn query(name: &str, criteria: Vec<String>) -> NativeQuery {
             },
         ],
         criteria,
+        group_by: Vec::new(),
+        having: Vec::new(),
         joins: Vec::new(),
         order_by: Vec::new(),
+        select_flags: 0,
+        parameters: Vec::new(),
     }
 }
 

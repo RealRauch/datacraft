@@ -2,7 +2,10 @@
 //! `MSysQueries` decoder results onto the core port vocabulary.
 
 use crate::jet::NativeQueryKind as Jet;
-use datacraft_core::port::{NativeQuery, NativeQueryColumn, NativeQueryKind as Core};
+use datacraft_core::port::{
+    NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn,
+    NativeQueryKind as Core,
+};
 
 /// Maps decoded native queries onto the core's read-only vocabulary.
 pub(crate) fn to_core(queries: Vec<crate::jet::NativeQuery>) -> Vec<NativeQuery> {
@@ -33,8 +36,30 @@ pub(crate) fn to_core(queries: Vec<crate::jet::NativeQuery>) -> Vec<NativeQuery>
                 })
                 .collect(),
             criteria: query.criteria,
-            joins: query.joins,
-            order_by: query.order_by,
+            group_by: query.group_by,
+            having: query.having,
+            joins: query
+                .joins
+                .into_iter()
+                .map(|join| NativeJoin {
+                    expression: join.expression,
+                    kind: match join.kind {
+                        crate::jet::NativeJoinKind::Inner => NativeJoinKind::Inner,
+                        crate::jet::NativeJoinKind::Left => NativeJoinKind::Left,
+                        crate::jet::NativeJoinKind::Right => NativeJoinKind::Right,
+                    },
+                })
+                .collect(),
+            order_by: query
+                .order_by
+                .into_iter()
+                .map(|order| NativeOrder {
+                    field: order.field,
+                    descending: order.descending,
+                })
+                .collect(),
+            select_flags: query.select_flags,
+            parameters: query.parameters,
         })
         .collect()
 }

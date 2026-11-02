@@ -7,8 +7,8 @@
 use std::path::Path;
 
 use datacraft_core::port::{
-    NativeQuery, NativeQueryColumn, NativeQueryKind, OpenedDatabase, PortError, Relationship,
-    RowRange, SchemaChange, StoragePort,
+    NativeJoin, NativeJoinKind, NativeQuery, NativeQueryColumn, NativeQueryKind, OpenedDatabase,
+    PortError, Relationship, RowRange, SchemaChange, StoragePort,
 };
 use datacraft_core::qbe::SortOrder;
 use datacraft_core::schema::{FieldValue, TableDef};
@@ -80,8 +80,12 @@ fn query() -> NativeQuery {
         tables: vec!["Customers".to_owned()],
         columns: vec![column("name"), column("id")],
         criteria: Vec::new(),
+        group_by: Vec::new(),
+        having: Vec::new(),
         joins: Vec::new(),
         order_by: Vec::new(),
+        select_flags: 0,
+        parameters: Vec::new(),
     }
 }
 
@@ -130,8 +134,19 @@ fn every_disqualifier_answers_none() {
     assert!(with_criteria.query_def().is_none());
 
     let mut with_join = query();
-    with_join.joins.push("INNER JOIN".to_owned());
+    with_join.joins.push(NativeJoin {
+        expression: "Customers.id = Orders.customer".to_owned(),
+        kind: NativeJoinKind::Inner,
+    });
     assert!(with_join.query_def().is_none());
+
+    let mut grouped = query();
+    grouped.group_by.push("name".to_owned());
+    assert!(grouped.query_def().is_none());
+
+    let mut with_having = query();
+    with_having.having.push("Count(*) > 1".to_owned());
+    assert!(with_having.query_def().is_none());
 
     let mut computed = query();
     computed.columns.push(NativeQueryColumn {

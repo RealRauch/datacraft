@@ -35,7 +35,10 @@ pub use header::{
     SIGNATURE,
 };
 pub use page::{JET3_PAGE_SIZE, PAGE_TYPE_DATA, PAGE_TYPE_TDEF, page_type};
-pub use queries::{NativeQuery, NativeQueryColumn, NativeQueryKind, OBJECT_TYPE_QUERY};
+pub use queries::{
+    NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
+    OBJECT_TYPE_QUERY,
+};
 pub use reader::{Jet4TableReader, JetTableData};
 pub use row::{decode_row, decode_row_jet3};
 pub use tdef::{JetColumn, JetTableDef, JetType};

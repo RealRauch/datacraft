@@ -169,6 +169,36 @@ pub struct NativeQueryColumn {
     pub descending: bool,
 }
 
+/// Join flavor of a native query (MSysQueries attribute 7 flag).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeJoinKind {
+    /// Inner join (flag 1).
+    Inner,
+    /// Left outer join (flag 2): the left operand's rows are preserved.
+    Left,
+    /// Right outer join (flag 3): the right operand's rows are preserved.
+    Right,
+}
+
+/// One JOIN expression of a native query.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeJoin {
+    /// Equality expression verbatim (e.g. `Table1.col1 = Table3.col1`).
+    pub expression: String,
+    /// Outer/inner flavor.
+    pub kind: NativeJoinKind,
+}
+
+/// One ORDER BY entry of a native query (MSysQueries attribute 11).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeOrder {
+    /// Field reference verbatim (qualified or bare).
+    pub field: String,
+    /// Whether the entry sorts descending.
+    pub descending: bool,
+}
+
 /// One native saved query as stored in the Jet/ACE file (M3, read-only).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NativeQuery {
@@ -180,23 +210,40 @@ pub struct NativeQuery {
     pub tables: Vec<String>,
     /// Selected columns.
     pub columns: Vec<NativeQueryColumn>,
-    /// WHERE/GROUP BY/HAVING expressions verbatim.
+    /// WHERE expressions verbatim (attribute 8).
     pub criteria: Vec<String>,
-    /// JOIN expressions verbatim.
-    pub joins: Vec<String>,
-    /// ORDER BY fields.
-    pub order_by: Vec<String>,
+    /// GROUP BY expressions verbatim (attribute 9) — a documented rest
+    /// for execution (step 27.1, M12).
+    #[serde(default)]
+    pub group_by: Vec<String>,
+    /// HAVING expressions verbatim (attribute 10) — a documented rest.
+    #[serde(default)]
+    pub having: Vec<String>,
+    /// JOIN expressions with their flavors (attribute 7).
+    pub joins: Vec<NativeJoin>,
+    /// ORDER BY entries (attribute 11).
+    pub order_by: Vec<NativeOrder>,
+    /// Select-type bits of attribute 1 (`0x01` star, `0x02` distinct,
+    /// `0x08` distinct row, `0x10` top, `0x20` percent).
+    #[serde(default)]
+    pub select_flags: i64,
+    /// Parameter names (attribute 2) — parameters stay a documented rest.
+    #[serde(default)]
+    pub parameters: Vec<String>,
 }
 
 impl NativeQuery {
     /// Maps the decodable subset onto a QBE query definition: select
     /// queries over exactly one table, plain field columns, no criteria,
-    /// grouping, joins or computed columns. Everything else stays a
-    /// documented rest and answers `None`.
+    /// grouping, joins or computed columns. This is the read-only design
+    /// grid's projection only; execution goes through
+    /// [`crate::native_exec`] (step 27.1, M12).
     pub fn query_def(&self) -> Option<crate::qbe::QueryDef> {
         if self.kind != NativeQueryKind::Select
             || self.tables.len() != 1
             || !self.criteria.is_empty()
+            || !self.group_by.is_empty()
+            || !self.having.is_empty()
             || !self.joins.is_empty()
         {
             return None;

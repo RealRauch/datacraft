@@ -77,6 +77,35 @@ pub struct NativeQueryColumn {
     pub descending: bool,
 }
 
+/// Join flavor of a native query (`Attribute` 7 flag).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NativeJoinKind {
+    /// Inner join (flag 1).
+    Inner,
+    /// Left outer join (flag 2).
+    Left,
+    /// Right outer join (flag 3).
+    Right,
+}
+
+/// One JOIN expression of a native query.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NativeJoin {
+    /// Equality expression verbatim.
+    pub expression: String,
+    /// Outer/inner flavor.
+    pub kind: NativeJoinKind,
+}
+
+/// One ORDER BY entry of a native query.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NativeOrder {
+    /// Field reference verbatim.
+    pub field: String,
+    /// Whether the entry sorts descending.
+    pub descending: bool,
+}
+
 /// One native saved query resolved from the catalog and MSysQueries.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NativeQuery {
@@ -88,12 +117,20 @@ pub struct NativeQuery {
     pub tables: Vec<String>,
     /// Selected columns.
     pub columns: Vec<NativeQueryColumn>,
-    /// WHERE/GROUP BY/HAVING expressions verbatim.
+    /// WHERE expressions verbatim (attribute 8).
     pub criteria: Vec<String>,
-    /// JOIN expressions verbatim.
-    pub joins: Vec<String>,
-    /// ORDER BY fields.
-    pub order_by: Vec<String>,
+    /// GROUP BY expressions verbatim (attribute 9).
+    pub group_by: Vec<String>,
+    /// HAVING expressions verbatim (attribute 10).
+    pub having: Vec<String>,
+    /// JOIN expressions with their flavors (attribute 7).
+    pub joins: Vec<NativeJoin>,
+    /// ORDER BY entries (attribute 11).
+    pub order_by: Vec<NativeOrder>,
+    /// Select-type bits of attribute 1.
+    pub select_flags: i64,
+    /// Parameter names (attribute 2).
+    pub parameters: Vec<String>,
 }
 
 impl Jet4TableReader {
@@ -120,8 +157,12 @@ impl Jet4TableReader {
                 tables: Vec::new(),
                 columns: Vec::new(),
                 criteria: Vec::new(),
+                group_by: Vec::new(),
+                having: Vec::new(),
                 joins: Vec::new(),
                 order_by: Vec::new(),
+                select_flags: 0,
+                parameters: Vec::new(),
             };
             for row in attribute_rows
                 .iter()
@@ -166,9 +207,18 @@ fn flag(row: &[StorageValue]) -> i64 {
 
 fn apply_attribute(row: &[StorageValue], query: &mut NativeQuery) -> Result<(), StorageError> {
     match attribute(row) {
-        // Start/type bits/flags/remote db/parameters appear as rows but
-        // carry no definition content (parameters are a documented rest).
-        Some(0 | 1 | 2 | 3 | 4 | 255) => Ok(()),
+        // Start/type bits/remote db rows carry no definition content.
+        Some(0 | 3 | 4 | 255) => Ok(()),
+        Some(1) => {
+            query.select_flags = flag(row);
+            Ok(())
+        }
+        Some(2) => {
+            if let Some(name) = text(row, 3) {
+                query.parameters.push(name);
+            }
+            Ok(())
+        }
         Some(5) => {
             if let Some(table) = text(row, 3) {
                 query.tables.push(table);
@@ -185,21 +235,58 @@ fn apply_attribute(row: &[StorageValue], query: &mut NativeQuery) -> Result<(), 
             Ok(())
         }
         Some(7) => {
-            if let Some(join) = text(row, 5).or_else(|| text(row, 3)) {
-                query.joins.push(join);
-            }
+            let expression =
+                text(row, 5)
+                    .or_else(|| text(row, 3))
+                    .ok_or_else(|| StorageError::Unsupported {
+                        reason: format!("query {:?}: join row without an expression", query.name),
+                    })?;
+            let kind = match flag(row) {
+                1 => NativeJoinKind::Inner,
+                2 => NativeJoinKind::Left,
+                3 => NativeJoinKind::Right,
+                other => {
+                    return Err(StorageError::Unsupported {
+                        reason: format!(
+                            "query {:?}: join flag {other} is not a known join flavor (1 inner, \
+                             2 left, 3 right)",
+                            query.name
+                        ),
+                    });
+                }
+            };
+            query.joins.push(NativeJoin { expression, kind });
             Ok(())
         }
-        Some(8..=10) => {
+        Some(8) => {
             if let Some(criterion) = text(row, 5) {
                 query.criteria.push(criterion);
             }
             Ok(())
         }
-        Some(11) => {
-            if let Some(field) = text(row, 3) {
-                query.order_by.push(field);
+        Some(9) => {
+            if let Some(group) = text(row, 5) {
+                query.group_by.push(group);
             }
+            Ok(())
+        }
+        Some(10) => {
+            if let Some(having) = text(row, 5) {
+                query.having.push(having);
+            }
+            Ok(())
+        }
+        Some(11) => {
+            let field =
+                text(row, 5)
+                    .or_else(|| text(row, 3))
+                    .ok_or_else(|| StorageError::Unsupported {
+                        reason: format!("query {:?}: ORDER BY row without a field", query.name),
+                    })?;
+            query.order_by.push(NativeOrder {
+                field,
+                descending: flag(row) == 1,
+            });
             Ok(())
         }
         Some(code) => Err(StorageError::Unsupported {

@@ -213,8 +213,24 @@ fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         )
         .collect();
     let criteria = native.criteria.join(" AND ");
-    let joins = native.joins.join("; ");
-    let order_by = native.order_by.join(", ");
+    let joins = native
+        .joins
+        .iter()
+        .map(|join| join.expression.clone())
+        .collect::<Vec<_>>()
+        .join("; ");
+    let order_by = native
+        .order_by
+        .iter()
+        .map(|order| {
+            if order.descending {
+                format!("{} DESC", order.field)
+            } else {
+                order.field.clone()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
 
     ui.heading(egui::RichText::new(tr(
         "Native query: {name}",
