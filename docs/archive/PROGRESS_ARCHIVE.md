@@ -349,3 +349,22 @@
 - **29.4 Sidecar auto-load and backstage pages**
 - **29.5 Phase 29 Quality Gate Review**
 **Verification:** canonical verification set green (fmt, clippy -D warnings, workspace tests, llvm-cov >= 95% lines, file-size gate, make_samples --check, sha256sum -c samples/manifest); README matrix + ROADMAP carry the verified sample/template claims; manual Access-repair gate documented as follow-up (checkpoint: 7d38ac6)
+
+---
+
+### Phase 30 — Driver Model: Capabilities, Registry, CSV & UI Affordances
+
+**Scope (Steps):**
+
+- **30.1 Packaging: ADR-7, backlog items M17-M19, phase plan**
+- **30.2 Core driver-capability contracts (RED)**
+- **30.3 Core capability plumbing and early dispatch rejection (GREEN)**
+- **30.4 Jet4Port capability reporting + invariant contract**
+- **30.5 SqlitePort capability reporting + invariant contract**
+- **30.6 Driver registry in DetectingPort**
+- **30.7 Data-driven format rendering**
+- **30.8 UI affordances: core availability map + disabled rendering**
+- **30.9 CSV directory driver (gated: workspace member + csv dependency)**
+- **30.10 Documentation: README, ARCHITECTURE, ROADMAP, i18n**
+- **30.11 Phase 30 Quality Gate Review**
+**Verification:** Canonical verification set green at the gate: cargo fmt --check ok, clippy -D warnings exit 0, cargo test --workspace exit 0 (112 suites ok), file-size gate clean (no .rs >= 500 lines), no new technical-debt markers, no new coverage exclusions (TESTING.md registry unchanged). CLI smoke over the real binary: a CSV directory opens with driver "csv" + full capabilities + availability map in the snapshot, InsertRow persists to disk. CI (ubuntu) remains the binding coverage gate on push. Review against LESSONS: seam contracts tested from both sides (core driver_caps/jet/sqlite/registry/csv + wire server_e2e_csv), no silent error swallowing (precise Unsupported/OpenFailed everywhere), real read/write paths exercised against real files, no mass replacements. Two size-gate slips were fixed forward (19f23f8, server_e2e_csv split); one fmt slip fixed forward (abb5869). (checkpoint: 403e273)

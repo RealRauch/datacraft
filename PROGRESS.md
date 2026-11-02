@@ -30,21 +30,6 @@
 - **28.1 Command-Historie: Undo/Redo (U14)**
 - **28.2 Recent Databases im Backstage (U15)**
 - **28.3 Phase 28 Quality Gate Review**
-### Phase 30 — Driver Model: Capabilities, Registry, CSV & UI Affordances
-
-**Scope (Steps):**
-
-- **30.1 Packaging: ADR-7, backlog items M17-M19, phase plan**
-- **30.2 Core driver-capability contracts (RED)**
-- **30.3 Core capability plumbing and early dispatch rejection (GREEN)**
-- **30.4 Jet4Port capability reporting + invariant contract**
-- **30.5 SqlitePort capability reporting + invariant contract**
-- **30.6 Driver registry in DetectingPort**
-- **30.7 Data-driven format rendering**
-- **30.8 UI affordances: core availability map + disabled rendering**
-- **30.9 CSV directory driver (gated: workspace member + csv dependency)**
-- **30.10 Documentation: README, ARCHITECTURE, ROADMAP, i18n**
-- **30.11 Phase 30 Quality Gate Review**
 
 
 
@@ -218,13 +203,13 @@
 | 29.4 | Sidecar auto-load and backstage pages | ✅ |
 | 29.5 | Phase 29 Quality Gate Review | ✅ |
 | 30.1 | Packaging: ADR-7, backlog items M17-M19, phase plan | ✅ |
-| 30.2 | Core driver-capability contracts (RED) | ⬜ |
-| 30.3 | Core capability plumbing and early dispatch rejection (GREEN) | ⬜ |
-| 30.4 | Jet4Port capability reporting + invariant contract | ⬜ |
-| 30.5 | SqlitePort capability reporting + invariant contract | ⬜ |
-| 30.6 | Driver registry in DetectingPort | ⬜ |
-| 30.7 | Data-driven format rendering | ⬜ |
-| 30.8 | UI affordances: core availability map + disabled rendering | ⬜ |
-| 30.9 | CSV directory driver (gated: workspace member + csv dependency) | ⬜ |
-| 30.10 | Documentation: README, ARCHITECTURE, ROADMAP, i18n | ⬜ |
-| 30.11 | Phase 30 Quality Gate Review | ⬜ |
+| 30.2 | Core driver-capability contracts (RED) | ✅ |
+| 30.3 | Core capability plumbing and early dispatch rejection (GREEN) | ✅ |
+| 30.4 | Jet4Port capability reporting + invariant contract | ✅ |
+| 30.5 | SqlitePort capability reporting + invariant contract | ✅ |
+| 30.6 | Driver registry in DetectingPort | ✅ |
+| 30.7 | Data-driven format rendering | ✅ |
+| 30.8 | UI affordances: core availability map + disabled rendering | ✅ |
+| 30.9 | CSV directory driver (gated: workspace member + csv dependency) | ✅ |
+| 30.10 | Documentation: README, ARCHITECTURE, ROADMAP, i18n | ✅ |
+| 30.11 | Phase 30 Quality Gate Review | ✅ |
