@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-02T23:39
+# BACKLOG.md — Open items (As of: 2026-11-03T00:06
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -152,6 +152,17 @@
 ## 🔵 TEST GAPS
 
 > No open items.
+
+### [ ] T6 — Semantic-Conformance-Hinweise fürs Code-Review (Phase 34) — 🔵
+- **Location:** Review-Ziele: `crates/datacraft-core/src/expr/` (coerce/funcs), `query_engine.rs`, `sql_engine.rs` + Shadow-SQLite-Materialisierung; Referenz-Oberflächen: Expression-Service, QBE-Engine, SQL-Fenster
+- **Hinweis 1 — Currency/Präzision:** Shadow-SQLite hält Currency als REAL → `SUM`/`AVG` über Money rundet binär statt auf 4 Dezimalstellen. Spot-Check: SUM über 3 Cent-Beträge, Multiplikation Geld×Zahl.
+- **Hinweis 2 — Kollation:** SQLite `BINARY` ≠ Access kulturabhängig (ä/ö/ü/ß, case-insensitiv) in ORDER BY/WHERE/Vergleichen. Spot-Check: Sortiere [Ärger, Ass, Berg], Filter `Name = 'müller'` case-insensitiv.
+- **Hinweis 3 — Datum:** SQLite hat keinen DATE-Typ → Literale `#…#`, `Datum + 1`, Komponenten-/Format-Funktionen über Text-Realität. Spot-Check: Datum+1, Jahresfilter, Format „Langes Datum".
+- **Hinweis 4 — LIKE-Wildcards:** Access `* ? # [..]` vs SQL `% _` im SQL-Fenster — Übersetzung oder dokumentierte Einzäunung. Spot-Check: `LIKE 'B*'` in QBE und im SQL-Fenster.
+- **Hinweis 5 — Promotion/Overflow:** Int-Overflow, Mixed-Type-Promotion-Matrix (Tiefe von `coerce.rs`). Spot-Check: 32767+1, Int×Int, Text+Zahl.
+- **Hinweis 6 — NULL-Kanten:** `NOT IN` mit NULL, `Nz()`-Rückgabetypen, IIf-Zweig-Auswertung. Spot-Check: je ein Fall pro Kante.
+- **Hinweis 7 — Multivalue-Prädikate im SQL-Pfad:** Attachment-/Multivalue-Felder in SQL → mögliche stille Leerergebnisse. Spot-Check: WHERE über Multivalue-Spalte.
+- **Acceptance:** Jeder Cluster mit 3–5 Vektoren gegen alle drei Oberflächen gespielt; Divergenzen werden Findings (→ 34.5 Triage) oder bewusst eingezäunt/dokumentiert; Ergebnis landet als Folge-Items bzw. in TESTING/FORMAT-JET-Doku.
 
 ---
 

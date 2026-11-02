@@ -63,6 +63,7 @@
 - **34.4 Public API surface audit for Phase 31 (R1)**
 - **34.5 Finding triage + fix window (R1)**
 - **34.6 Phase 34 Quality Gate Review**
+- **34.7 Semantic-Conformance-Spot-Checks (T6)**
 ### Phase 35 — Documentation Sweep
 
 **Scope (Steps):**
@@ -239,7 +240,7 @@
 | 26.3 | Phase 26 Quality Gate Review | ⬜ |
 | 27.1 | Native Query Execution (M12) | ✅ |
 | 27.2 | Encrypted Save-As + Passwortwechsel (M14) | ✅ |
-| 27.3 | Phase 27 Quality Gate Review | ⬜ |
+| 27.3 | Phase 27 Quality Gate Review | 🔄 |
 | 28.1 | Command-Historie: Undo/Redo (U14) | ⬜ |
 | 28.2 | Recent Databases im Backstage (U15) | ⬜ |
 | 28.3 | Phase 28 Quality Gate Review | ⬜ |
@@ -280,3 +281,4 @@
 | 35.2 | ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2) | ⬜ |
 | 35.3 | FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2) | ⬜ |
 | 35.4 | Phase 35 Quality Gate Review | ⬜ |
+| 34.7 | Semantic-Conformance-Spot-Checks (T6) | ⬜ |
