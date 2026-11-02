@@ -22,18 +22,17 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{DatabaseFormat, OpenedDatabase, PortError, RowRange, StoragePort};
-use datacraft_core::schema::{
-    AutoKind, BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
+use datacraft_core::schema::{FieldValue, TableDef};
 
 use crate::error::StorageError;
-use crate::jet::complex::{self, ComplexCatalog, ComplexColumn, FlatRows};
+use crate::jet::OBJECT_TYPE_TABLE;
+use crate::jet::complex::{self, ComplexCatalog, FlatRows};
 use crate::jet::reader::Jet4TableReader;
-use crate::jet::tdef::{JetColumn, JetTableDef, flags};
+use crate::jet::tdef::JetTableDef;
 use crate::jet::writer::Jet4Writer;
-use crate::jet::{JetType, OBJECT_TYPE_TABLE};
 use crate::mapping::to_field_value;
 use crate::port_errors::{map_open, map_open_with_path, map_write, no_database};
+use crate::port_schema::table_def;
 use crate::port_write;
 use crate::types::FormatVersion;
 
@@ -137,6 +136,26 @@ impl StoragePort for Jet4Port {
         };
         self.with_writer(|writer| writer.drop_table(page))?;
         Ok(canonical)
+    }
+
+    fn alter_table(
+        &mut self,
+        table: &str,
+        change: datacraft_core::port::SchemaChange,
+    ) -> Result<(), PortError> {
+        if self.reader.is_none() {
+            return Err(no_database());
+        }
+        let Some(page) = self
+            .pages
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(table))
+            .map(|(_, page)| *page)
+        else {
+            return Err(PortError::TableNotFound(table.to_owned()));
+        };
+        self.with_writer(|writer| writer.alter_table(page, &change))?;
+        Ok(())
     }
 
     fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {
@@ -429,68 +448,6 @@ fn collect_tables(
         ));
     }
     Ok(tables)
-}
-
-/// Maps one table's descriptors onto a validated domain definition.
-fn table_def(
-    name: &str,
-    tdef_page: u32,
-    def: &JetTableDef,
-    reader: &Jet4TableReader,
-    complex: &ComplexCatalog,
-) -> Result<TableDef, PortError> {
-    let mut fields = Vec::with_capacity(def.columns.len());
-    for column in &def.columns {
-        let mapping = complex.column(tdef_page, &column.name);
-        fields.push(field_def(column, mapping, complex, reader)?);
-    }
-    Ok(TableDef::new(name, fields))
-}
-
-/// Maps one column descriptor onto a field definition.
-fn field_def(
-    column: &JetColumn,
-    mapping: Option<&ComplexColumn>,
-    complex: &ComplexCatalog,
-    reader: &Jet4TableReader,
-) -> Result<FieldDef, PortError> {
-    let nullable = column.flags & flags::NULLABLE != 0;
-    let autonumber = column.flags & flags::AUTONUMBER != 0;
-    let kind = match column.data_type {
-        JetType::Bool => FieldKind::Boolean {
-            tri_state: nullable,
-        },
-        JetType::Byte => FieldKind::Number(NumericKind::Byte),
-        JetType::Int => FieldKind::Number(NumericKind::Integer),
-        JetType::LongInt if autonumber => FieldKind::AutoNumber(AutoKind::LongInteger),
-        JetType::LongInt => FieldKind::Number(NumericKind::LongInteger),
-        JetType::Currency => FieldKind::Currency,
-        JetType::Float => FieldKind::Number(NumericKind::Single),
-        JetType::Double => FieldKind::Number(NumericKind::Double),
-        JetType::Numeric => FieldKind::Number(NumericKind::Decimal {
-            precision: 28,
-            scale: column.scale,
-        }),
-        JetType::DateTime => FieldKind::DateTime,
-        JetType::Binary | JetType::Ole | JetType::LongBinary => {
-            FieldKind::Binary(BinaryKind::OleObject)
-        }
-        JetType::Text => FieldKind::Text {
-            max_len: column.text_max_len(),
-        },
-        JetType::Memo => FieldKind::Memo,
-        JetType::Guid if autonumber => FieldKind::AutoNumber(AutoKind::ReplicationId),
-        JetType::Guid => FieldKind::Guid,
-        // Without a mapping the column stays the documented binary fallback
-        // (a file whose MSysComplexColumns is absent still reads).
-        JetType::Complex => match mapping {
-            Some(mapping) => complex.field_kind(reader, mapping).map_err(map_open)?,
-            None => FieldKind::Binary(BinaryKind::Attachment),
-        },
-    };
-    let mut field = FieldDef::new(&column.name, kind);
-    field.properties.required = !nullable;
-    Ok(field)
 }
 
 #[cfg(test)]

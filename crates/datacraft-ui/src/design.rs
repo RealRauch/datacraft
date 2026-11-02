@@ -1,13 +1,14 @@
-//! Table design view (step 6.3, item H24) — read-only.
+//! Table design view (step 6.3, item H24; editing in step 24.3, item M9).
 //!
-//! Renders the design grid (Field Name / Data Type / Caption) and the
-//! selected field's property sheet from the snapshot. Design-time schema
-//! editing is a separate workstream (BACKLOG M9); the view says so instead
-//! of pretending.
+//! Renders the design grid (Field Name / Data Type / Caption), the selected
+//! field's property sheet and the design-time edit controls: add a field,
+//! rename/drop the selected field and toggle its required property. Every
+//! edit is exactly one command through the bus.
 
 use eframe::egui;
 
-use datacraft_core::schema::FieldProperties;
+use datacraft_core::command::Command;
+use datacraft_core::schema::{FieldDef, FieldKind, FieldProperties};
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
@@ -106,12 +107,59 @@ pub fn design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         property_grid(ui, &field.properties);
     }
     ui.separator();
-    ui.label(
-        egui::RichText::new(t(
-            "Read-only view — design-time schema editing is not implemented yet (BACKLOG M9).",
-        ))
-        .small(),
-    );
+
+    // Design-time edits (step 24.3, M9): one command per action.
+    let mut intent: Option<Command> = None;
+    ui.horizontal(|ui| {
+        ui.label(t("New field"));
+        let mut new_name = app.design_new_field(tab.id);
+        if ui.text_edit_singleline(&mut new_name).changed() {
+            app.set_design_new_field(tab.id, new_name.clone());
+        }
+        if ui.button(t("Add Field")).clicked() && !new_name.trim().is_empty() {
+            intent = Some(Command::AddField {
+                table: tab.object_name.clone(),
+                field: FieldDef::new(new_name.trim(), FieldKind::Text { max_len: 50 }),
+            });
+            app.set_design_new_field(tab.id, String::new());
+        }
+    });
+    if let Some(field) = fields.get(selected) {
+        ui.horizontal(|ui| {
+            let mut rename = app.design_rename(tab.id);
+            if ui.text_edit_singleline(&mut rename).changed() {
+                app.set_design_rename(tab.id, rename.clone());
+            }
+            if ui.button(t("Rename")).clicked() && !rename.trim().is_empty() {
+                intent = Some(Command::RenameField {
+                    table: tab.object_name.clone(),
+                    field: field.name.clone(),
+                    new_name: rename.trim().to_owned(),
+                });
+                app.set_design_rename(tab.id, String::new());
+            }
+            if ui.button(t("Delete")).clicked() {
+                intent = Some(Command::DropField {
+                    table: tab.object_name.clone(),
+                    field: field.name.clone(),
+                });
+            }
+            let mut required = field.properties.required;
+            if ui.checkbox(&mut required, t("Required")).changed() {
+                intent = Some(Command::SetFieldProperties {
+                    table: tab.object_name.clone(),
+                    field: field.name.clone(),
+                    properties: FieldProperties {
+                        required,
+                        ..field.properties.clone()
+                    },
+                });
+            }
+        });
+    }
+    if let Some(command) = intent {
+        app.dispatch(command);
+    }
 }
 
 /// Two-column property sheet (name / value).

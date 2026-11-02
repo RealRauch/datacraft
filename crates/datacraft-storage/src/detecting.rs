@@ -85,6 +85,18 @@ impl StoragePort for DetectingPort {
         }
     }
 
+    fn alter_table(
+        &mut self,
+        table: &str,
+        change: datacraft_core::port::SchemaChange,
+    ) -> Result<(), PortError> {
+        match &mut self.backend {
+            Some(Backend::Jet(port)) => port.alter_table(table, change),
+            Some(Backend::Sqlite(port)) => port.alter_table(table, change),
+            None => Err(no_database()),
+        }
+    }
+
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
         match &mut self.backend {
             Some(Backend::Jet(port)) => port.insert_row(table, values),

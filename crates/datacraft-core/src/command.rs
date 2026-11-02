@@ -51,6 +51,41 @@ pub enum Command {
         /// Table name as shown in the navigation pane.
         table: String,
     },
+    /// Appends a field to a table (step 24.3, item M9). Existing rows get
+    /// Null in the new column; the field must be nullable (or carry no
+    /// engine-evaluable default).
+    AddField {
+        /// Target table (case-insensitive).
+        table: String,
+        /// Full definition of the new field.
+        field: crate::schema::FieldDef,
+    },
+    /// Removes a field from a table (step 24.3, item M9).
+    DropField {
+        /// Target table (case-insensitive).
+        table: String,
+        /// Field name (case-insensitive).
+        field: String,
+    },
+    /// Renames a field (step 24.3, item M9); row data is untouched.
+    RenameField {
+        /// Target table (case-insensitive).
+        table: String,
+        /// Current field name (case-insensitive).
+        field: String,
+        /// New field name.
+        new_name: String,
+    },
+    /// Replaces a field's properties (step 24.3, item M9); the storage
+    /// shape (type, size, kind) must not change.
+    SetFieldProperties {
+        /// Target table (case-insensitive).
+        table: String,
+        /// Field name (case-insensitive).
+        field: String,
+        /// The new property set.
+        properties: crate::schema::FieldProperties,
+    },
     /// Appends one row to a table (step 13.2, H36). Values are positional
     /// and validated against the table schema; `Null` on an AutoNumber
     /// field means "engine-assigned".

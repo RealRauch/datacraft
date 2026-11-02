@@ -31,6 +31,13 @@ pub enum Event {
         /// Canonical table name.
         table: String,
     },
+    /// A table's schema changed (step 24.3, item M9).
+    TableAltered {
+        /// Canonical table name.
+        table: String,
+        /// The affected field (canonical name after the change).
+        field: String,
+    },
     /// A row was appended to a table (step 13.2, H36).
     RowInserted {
         /// Canonical table name.

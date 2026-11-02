@@ -181,8 +181,10 @@ fn rejected_changes_leave_the_file_untouched() {
         .alter_table("AlterMe", SchemaChange::AddField { field: required })
         .expect_err("required fields need a default for existing rows");
     assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
-    let mut captioned = FieldProperties::default();
-    captioned.caption = Some("Note".to_owned());
+    let captioned = FieldProperties {
+        caption: Some("Note".to_owned()),
+        ..Default::default()
+    };
     let error = port
         .alter_table(
             "AlterMe",

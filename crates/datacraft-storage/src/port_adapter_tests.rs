@@ -2,7 +2,11 @@
 //! contracts live in `tests/port_adapter.rs`).
 
 use super::*;
+use crate::jet::JetType;
+use crate::jet::tdef::{JetColumn, flags};
+use crate::port_schema::field_def;
 use crate::types::StorageValue;
+use datacraft_core::schema::{BinaryKind, FieldKind};
 
 /// The physical -> domain mapping is 1:1 and total over the value
 /// vocabulary (fixture rows do not exercise every family).

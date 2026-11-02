@@ -269,6 +269,14 @@ pub trait StoragePort {
         }
         Ok(())
     }
+    /// Alters one table's schema (step 24.3, item M9). Backends that cannot
+    /// rewrite their catalog answer a precise `Unsupported`.
+    fn alter_table(&mut self, table: &str, change: SchemaChange) -> Result<(), PortError> {
+        let _ = (table, change);
+        Err(PortError::Unsupported {
+            reason: "schema alteration is not supported by this backend".to_owned(),
+        })
+    }
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
     /// Native saved queries of the open database (step 15.3, M3).
@@ -287,6 +295,35 @@ pub trait StoragePort {
     fn vba_project(&self) -> Result<Option<crate::vba::VbaProject>, PortError> {
         Ok(None)
     }
+}
+
+/// One schema change of an `alter_table` call (step 24.3, item M9).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum SchemaChange {
+    /// Appends one field (the new last column).
+    AddField {
+        /// Full definition of the new field.
+        field: crate::schema::FieldDef,
+    },
+    /// Removes one field (name matched case-insensitively).
+    DropField {
+        /// Field name.
+        field: String,
+    },
+    /// Renames one field; row data is untouched.
+    RenameField {
+        /// Current field name (case-insensitive).
+        field: String,
+        /// New name.
+        new_name: String,
+    },
+    /// Replaces one field's properties (storage shape must not change).
+    SetFieldProperties {
+        /// Field name (case-insensitive).
+        field: String,
+        /// The new property set.
+        properties: crate::schema::FieldProperties,
+    },
 }
 
 /// One row operation of a batch write (the journal's port vocabulary).

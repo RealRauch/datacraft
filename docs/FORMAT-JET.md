@@ -319,6 +319,14 @@ column mapping (with its lossiness) is documented in `src/port_write.rs`:
   page is freed when no other table references it, and all freed pages are
   overwritten with the `0xFF` pattern Access leaves behind. Failures leave
   the file untouched.
+- **Design-time alter (M9, step 24.3):** the TDEF block is re-encoded in
+  place (the change must fit the page). Appending a field adds a `Null` slot
+  to every row; dropping a field removes the value and renumbers the
+  remaining column ids densely (rows store a prefix of the column-id
+  space); renaming and toggling `required` touch only the TDEF. Every change
+  runs on a scratch writer first, so a rejected change leaves the file
+  untouched. Storage-shape changes (type/size), required additions with
+  existing rows and non-TDEF properties answer a precise `Unsupported`.
 - **`Unsupported` today:** complex-value columns (attachments, multi-value,
   version history — read-only since M4).
 - `update_row`/`delete_row` address rows by their zero-based live-row

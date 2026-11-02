@@ -50,6 +50,10 @@ pub struct App {
     form_record: HashMap<TabId, usize>,
     /// Selected design-grid field index per tab.
     design_selection: HashMap<TabId, usize>,
+    /// Buffered new-field name per design tab (step 24.3, M9).
+    design_new_field: HashMap<TabId, String>,
+    /// Buffered rename text per design tab (step 24.3, M9).
+    design_rename: HashMap<TabId, String>,
     /// Current record cursor per table/query tab (the status bar's
     /// record-navigation box and the datasheet row selector).
     record_cursor: HashMap<TabId, usize>,
@@ -115,6 +119,8 @@ impl App {
             drags: HashMap::new(),
             form_record: HashMap::new(),
             design_selection: HashMap::new(),
+            design_new_field: HashMap::new(),
+            design_rename: HashMap::new(),
             sql_text: "SELECT 1 AS one;".to_owned(),
             sql_error: None,
             last_error: None,
@@ -355,6 +361,8 @@ impl App {
             self.previews.remove(&tab_id);
             self.record_cursor.remove(&tab_id);
             self.design_selection.remove(&tab_id);
+            self.design_new_field.remove(&tab_id);
+            self.design_rename.remove(&tab_id);
             self.form_selection.remove(&tab_id);
             self.form_record.remove(&tab_id);
             self.preview_page.remove(&tab_id);

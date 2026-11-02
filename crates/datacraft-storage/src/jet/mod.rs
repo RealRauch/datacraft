@@ -23,6 +23,7 @@ pub mod vba;
 pub mod writer;
 pub mod writer_drop;
 pub mod writer_rows;
+pub mod writer_schema;
 pub mod writer_tables;
 
 pub use access::{AccessStorage, AccessStorageEntry, OBJECT_TYPE_MACRO, StoredMacro};

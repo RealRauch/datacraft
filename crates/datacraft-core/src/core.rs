@@ -248,6 +248,28 @@ impl Core {
             Command::CloseDatabase => self.close_database(),
             Command::CreateTable { definition } => self.create_table(definition),
             Command::DropTable { table } => self.drop_table(&table),
+            Command::AddField { table, field } => {
+                self.alter_table(&table, crate::port::SchemaChange::AddField { field })
+            }
+            Command::DropField { table, field } => {
+                self.alter_table(&table, crate::port::SchemaChange::DropField { field })
+            }
+            Command::RenameField {
+                table,
+                field,
+                new_name,
+            } => self.alter_table(
+                &table,
+                crate::port::SchemaChange::RenameField { field, new_name },
+            ),
+            Command::SetFieldProperties {
+                table,
+                field,
+                properties,
+            } => self.alter_table(
+                &table,
+                crate::port::SchemaChange::SetFieldProperties { field, properties },
+            ),
             Command::InsertRow { table, values } => self.insert_row(&table, &values),
             Command::UpdateRow { table, row, values } => self.update_row(&table, row, &values),
             Command::DeleteRow { table, row } => self.delete_row(&table, row),

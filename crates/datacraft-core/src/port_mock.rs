@@ -32,6 +32,8 @@ pub struct MockPort {
     pub close_calls: usize,
 }
 
+mod alter;
+
 impl MockPort {
     /// Creates an empty mock that opens as `"mock"` (Jet4).
     pub fn new() -> Self {
@@ -212,6 +214,14 @@ impl StoragePort for MockPort {
             .position(|t| t.name.to_lowercase() == name.to_lowercase())
             .ok_or_else(|| PortError::TableNotFound(name.to_owned()))?;
         Ok(self.tables.remove(pos).name)
+    }
+
+    fn alter_table(
+        &mut self,
+        table: &str,
+        change: crate::port::SchemaChange,
+    ) -> Result<(), PortError> {
+        alter::alter(self, table, change)
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {

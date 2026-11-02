@@ -12,6 +12,7 @@ pub mod port_adapter;
 pub(crate) mod port_errors;
 pub(crate) mod port_native;
 pub(crate) mod port_objects;
+pub(crate) mod port_schema;
 pub mod port_write;
 pub mod sqlite;
 pub mod types;

@@ -85,10 +85,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Read-only view — bound-field edits land with the Jet update path (step 11.10, BACKLOG H40).",
         "Schreibgeschützte Ansicht — das Bearbeiten gebundener Felder kommt mit dem Jet-Update-Pfad (Schritt 11.10, BACKLOG H40).",
     ),
-    (
-        "Read-only view — design-time schema editing is not implemented yet (BACKLOG M9).",
-        "Schreibgeschützte Ansicht — das Bearbeiten des Schemas zur Entwurfszeit ist noch nicht implementiert (BACKLOG M9).",
-    ),
+    ("Add Field", "Feld hinzufügen"),
+    ("Delete", "Löschen"),
+    ("New field", "Neues Feld"),
+    ("Rename", "Umbenennen"),
     (
         "Record {current} of {total}",
         "Datensatz {current} von {total}",

@@ -74,4 +74,27 @@ impl App {
     pub fn set_sql_column_widths(&mut self, widths: Vec<f32>) {
         self.sql_column_widths = widths;
     }
+
+    /// Buffered new-field name of a design tab (step 24.3, M9).
+    pub fn design_new_field(&self, tab_id: TabId) -> String {
+        self.design_new_field
+            .get(&tab_id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// Stores the buffered new-field name of a design tab.
+    pub fn set_design_new_field(&mut self, tab_id: TabId, name: String) {
+        self.design_new_field.insert(tab_id, name);
+    }
+
+    /// Buffered rename text of a design tab (step 24.3, M9).
+    pub fn design_rename(&self, tab_id: TabId) -> String {
+        self.design_rename.get(&tab_id).cloned().unwrap_or_default()
+    }
+
+    /// Stores the buffered rename text of a design tab.
+    pub fn set_design_rename(&mut self, tab_id: TabId, name: String) {
+        self.design_rename.insert(tab_id, name);
+    }
 }

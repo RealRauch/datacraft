@@ -7,7 +7,7 @@ use crate::ObjectKind;
 use crate::core::failed;
 use crate::event::Event;
 use crate::ids::TabId;
-use crate::port::PortError;
+use crate::port::{PortError, SchemaChange};
 use crate::schema::{FieldValue, TableDef};
 use crate::state::DatabaseState;
 
@@ -250,4 +250,95 @@ impl crate::core::Core {
         events.push(Event::TableDropped { table: canonical });
         events
     }
+
+    /// Applies one design-time schema change (step 24.3, item M9): validate
+    /// against a cloned definition first, then let the port rewrite the
+    /// catalog; the in-memory definition is refreshed from the backend.
+    pub(crate) fn alter_table(&mut self, table: &str, change: SchemaChange) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        let Some(def) = db
+            .tables
+            .iter()
+            .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
+            .cloned()
+        else {
+            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+        };
+        let mut trial = def.clone();
+        let field = match apply_schema_change(&mut trial, &change) {
+            Ok(field) => field,
+            Err(reason) => return failed(reason),
+        };
+        if let Err(error) = trial.validate() {
+            return failed(format!("invalid schema change: {error}"));
+        }
+        let canonical = def.name.clone();
+        if let Err(error) = self.port.alter_table(&canonical, change) {
+            return failed(error.to_string());
+        }
+        let tables = self.port.tables();
+        if let Some(db) = self.state.database.as_mut() {
+            db.tables = tables;
+        }
+        vec![Event::TableAltered {
+            table: canonical,
+            field,
+        }]
+    }
+}
+
+/// Structural application of one schema change (the port repeats the same
+/// rules on the physical side). Returns the canonical field name.
+fn apply_schema_change(definition: &mut TableDef, change: &SchemaChange) -> Result<String, String> {
+    match change {
+        SchemaChange::AddField { field } => {
+            if definition
+                .fields
+                .iter()
+                .any(|existing| existing.name.eq_ignore_ascii_case(&field.name))
+            {
+                return Err(format!("duplicate field {:?}", field.name));
+            }
+            definition.fields.push(field.clone());
+            Ok(field.name.clone())
+        }
+        SchemaChange::DropField { field } => {
+            let index = field_index(definition, field)?;
+            definition.fields.remove(index);
+            Ok(definition
+                .fields
+                .get(index.saturating_sub(1))
+                .or_else(|| definition.fields.first())
+                .map_or_else(|| field.clone(), |remaining| remaining.name.clone()))
+        }
+        SchemaChange::RenameField { field, new_name } => {
+            let index = field_index(definition, field)?;
+            if definition
+                .fields
+                .iter()
+                .enumerate()
+                .any(|(i, existing)| i != index && existing.name.eq_ignore_ascii_case(new_name))
+            {
+                return Err(format!("duplicate field {new_name:?}"));
+            }
+            definition.fields[index].name = new_name.clone();
+            Ok(new_name.clone())
+        }
+        SchemaChange::SetFieldProperties { field, properties } => {
+            let index = field_index(definition, field)?;
+            definition.fields[index].properties = properties.clone();
+            Ok(definition.fields[index].name.clone())
+        }
+    }
+}
+
+/// Case-insensitive field index, with a precise reason.
+fn field_index(definition: &TableDef, field: &str) -> Result<usize, String> {
+    definition
+        .fields
+        .iter()
+        .position(|candidate| candidate.name.eq_ignore_ascii_case(field))
+        .ok_or_else(|| format!("field {field:?} not found in {:?}", definition.name))
 }
