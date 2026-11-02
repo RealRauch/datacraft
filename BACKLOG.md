@@ -18,12 +18,6 @@
 
 > No open items.
 
-### [ ] H44 — Ship sample databases and templates (Phase 29) — 🟠
-- **Location:** `samples/` (new), `crates/datacraft-core/src/command.rs`, `crates/datacraft-storage/src/jet/create.rs` (new), `crates/datacraft-storage/examples/make_samples.rs` (new), `crates/datacraft-ui/src/backstage/` (new pages)
-- **Problem:** No user-facing sample files exist. `fixtures/` is immutable test evidence and includes unlicensed material (Northwind); there is no way to create a new database file at all, so templates cannot be authored reproducibly.
-- **Approach:** Own Jet4 file builder (header, free map, catalog, usage page) behind `Command::CreateDatabase`; `CreateDatabaseFromTemplate` for shipped templates; standard set (blank, contacts, inventory, Bike Shop demo as Jet4 + SQLite twin + `.datacraft`); deterministic generator (`make_samples --check`); `samples/manifest`; backstage Samples/New Database pages.
-- **Acceptance:** Jet4 and SQLite databases can be created from scratch and reopened; every shipped sample opens with the expected tables/rows; the demo sidecar auto-loads; `make_samples --check` and `sha256sum -c` are green; manual Access repair gate clean; canonical verification set green.
-
 ### [ ] H45 — Persist field properties (defaults, validation, captions, formats, input masks, index flags) — 🟠
 - **Location:** `crates/datacraft-storage/src/jet/writer_tables.rs`, `crates/datacraft-storage/src/port_write.rs`, `crates/datacraft-storage/src/port_schema.rs`, `crates/datacraft-core/src/forms.rs` (sidecar tables)
 - **Problem:** `create_table` writes `NULL` into `MSysObjects.LvProp`, and `port_schema.rs` reconstructs only the column type plus `required`. Defaults, validation rules, captions, formats, input masks and `Indexed` are lost on every reopen. The sidecar saves `tables: Vec::new()` and ignores `document.tables` on load, so it cannot carry them either. Templates therefore ship as structure + data only.
@@ -192,3 +186,4 @@
 - M9 — Design-time schema editing (ALTER TABLE) in the table design view — done (done in `6780b3c` (RED `588fe4f`) — AddField/DropField/RenameField/SetFieldProperties via one `alter_table` port method; TDEF rewrite on a scratch writer with row re-encoding (dense column ids on drop), design-grid edit controls dispatch one command each)
 - H42 — ACCDB-Write-Verträge (create/insert/update/delete/drop/alter auf .accdb) — done (done in `7e7f755` (RED `3b4a4fb`) — ACE 2007/2010 write contracts green (insert/update/delete/create/drop/alter with byte preservation and map consistency, 2016 fixture as read-only reference); office-encrypted ACCDB now rejected at the writer boundary)
 - H43 — ACCDB-Port-Write-Through + Bus-E2E an .accdb — done (done in `d53c054` — ACE write-through proven at the port (create/insert/update/delete/alter/drop on testV2010 copies, reopen persistence, format stays Ace), over the JSON-RPC wire (server_e2e_ace.rs) and through the CLI vocabulary; no format gate existed to open (pinned fact))
+- H44 — Ship sample databases and templates (Phase 29) — done (done in `34dbba7` (create `35b2895`, templates `c09d192`, samples `ea98127`, auto-load/backstage `34dbba7`) — CreateDatabase (Jet4 + SQLite), CreateDatabaseFromTemplate over the deterministic core registry, six shipped samples with byte-compare generator check and manifest, sidecar auto-load with sidecar_error, backstage New/Samples pages; the manual Access-repair gate of the shipped samples is a documented follow-up (README matrix))

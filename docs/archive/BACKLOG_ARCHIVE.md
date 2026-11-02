@@ -736,3 +736,12 @@
 - **Ansatz:** Port-Write-Through an `.accdb`: tmp-Kopie von `testV2010.accdb` → über `Jet4Port` create/insert/update/delete/drop/alter → Reopen verifiziert Persistenz; `DatabaseFormat::Ace` bleibt über alle Operationen stabil; Bus-Verträge (MCP/CLI) öffnen und schreiben dieselbe Datei über die identische Vokabel.falls Gates existieren (Format-Guards), werden sie bewusst geöffnet — kein stummer Durchgriff.
 - **Acceptance:** Port- + E2E-Tests an ACE grün; Reopen zeigt alle Operationen; `Unsupported`-Fälle präzise getestet; Format-Anzeige bleibt „ACE“.
 - **Done:** done in `d53c054` — ACE write-through proven at the port (create/insert/update/delete/alter/drop on testV2010 copies, reopen persistence, format stays Ace), over the JSON-RPC wire (server_e2e_ace.rs) and through the CLI vocabulary; no format gate existed to open (pinned fact)
+
+---
+
+### [x] H44 — Ship sample databases and templates (Phase 29) — 🟠
+- **Location:** `samples/` (new), `crates/datacraft-core/src/command.rs`, `crates/datacraft-storage/src/jet/create.rs` (new), `crates/datacraft-storage/examples/make_samples.rs` (new), `crates/datacraft-ui/src/backstage/` (new pages)
+- **Problem:** No user-facing sample files exist. `fixtures/` is immutable test evidence and includes unlicensed material (Northwind); there is no way to create a new database file at all, so templates cannot be authored reproducibly.
+- **Approach:** Own Jet4 file builder (header, free map, catalog, usage page) behind `Command::CreateDatabase`; `CreateDatabaseFromTemplate` for shipped templates; standard set (blank, contacts, inventory, Bike Shop demo as Jet4 + SQLite twin + `.datacraft`); deterministic generator (`make_samples --check`); `samples/manifest`; backstage Samples/New Database pages.
+- **Acceptance:** Jet4 and SQLite databases can be created from scratch and reopened; every shipped sample opens with the expected tables/rows; the demo sidecar auto-loads; `make_samples --check` and `sha256sum -c` are green; manual Access repair gate clean; canonical verification set green.
+- **Done:** done in `34dbba7` (create `35b2895`, templates `c09d192`, samples `ea98127`, auto-load/backstage `34dbba7`) — CreateDatabase (Jet4 + SQLite), CreateDatabaseFromTemplate over the deterministic core registry, six shipped samples with byte-compare generator check and manifest, sidecar auto-load with sidecar_error, backstage New/Samples pages; the manual Access-repair gate of the shipped samples is a documented follow-up (README matrix)

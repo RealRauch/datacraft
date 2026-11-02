@@ -142,6 +142,10 @@ any code embedded in database files without explicit user consent/permissions.
 
 Ordering notes:
 
+- Executed order (2026-11-02): Phase 25 (ACCDB write) → Phase 29 (sample
+  databases and templates, released ahead of the rest). Still planned:
+  Phase 26 (release engineering — deferred), Phase 27 (native query
+  execution + encrypted save-as), Phase 28 (undo/redo + recent databases).
 - Planned sequence (2026-11-02): Phase 25 (ACCDB write) → Phase 26 (release
   engineering) → Phase 27 (native query execution + encrypted save-as) →
   Phase 28 (undo/redo + recent databases). Phase numbers stay fixed.
