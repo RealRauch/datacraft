@@ -16,13 +16,6 @@
 - **26.1 Release-Workflow: Matrix, Checksums, Notices (M13)**
 - **26.2 Release-Smoke + Tag-Politik (M13)**
 - **26.3 Phase 26 Quality Gate Review**
-### Phase 27 — Native Queries & Encrypted Save-As
-
-**Scope (Steps):**
-
-- **27.1 Native Query Execution (M12)**
-- **27.2 Encrypted Save-As + Passwortwechsel (M14)**
-- **27.3 Phase 27 Quality Gate Review**
 ### Phase 28 — UI-Reste (Undo & Backstage)
 
 **Scope (Steps):**
@@ -240,7 +233,7 @@
 | 26.3 | Phase 26 Quality Gate Review | ⬜ |
 | 27.1 | Native Query Execution (M12) | ✅ |
 | 27.2 | Encrypted Save-As + Passwortwechsel (M14) | ✅ |
-| 27.3 | Phase 27 Quality Gate Review | 🔄 |
+| 27.3 | Phase 27 Quality Gate Review | ✅ |
 | 28.1 | Command-Historie: Undo/Redo (U14) | ⬜ |
 | 28.2 | Recent Databases im Backstage (U15) | ⬜ |
 | 28.3 | Phase 28 Quality Gate Review | ⬜ |

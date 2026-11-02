@@ -368,3 +368,14 @@
 - **30.10 Documentation: README, ARCHITECTURE, ROADMAP, i18n**
 - **30.11 Phase 30 Quality Gate Review**
 **Verification:** Canonical verification set green at the gate: cargo fmt --check ok, clippy -D warnings exit 0, cargo test --workspace exit 0 (112 suites ok), file-size gate clean (no .rs >= 500 lines), no new technical-debt markers, no new coverage exclusions (TESTING.md registry unchanged). CLI smoke over the real binary: a CSV directory opens with driver "csv" + full capabilities + availability map in the snapshot, InsertRow persists to disk. CI (ubuntu) remains the binding coverage gate on push. Review against LESSONS: seam contracts tested from both sides (core driver_caps/jet/sqlite/registry/csv + wire server_e2e_csv), no silent error swallowing (precise Unsupported/OpenFailed everywhere), real read/write paths exercised against real files, no mass replacements. Two size-gate slips were fixed forward (19f23f8, server_e2e_csv split); one fmt slip fixed forward (abb5869). (checkpoint: 403e273)
+
+---
+
+### Phase 27 — Native Queries & Encrypted Save-As
+
+**Scope (Steps):**
+
+- **27.1 Native Query Execution (M12)**
+- **27.2 Encrypted Save-As + Passwortwechsel (M14)**
+- **27.3 Phase 27 Quality Gate Review**
+**Verification:** Phase 27 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.22% lines vs the 94.00% pre-phase baseline (new code ~98%; CI ubuntu remains the binding gate); docs_validate has no Phase-27 finding (pre-existing PLAN_WITHOUT_WIP for planned phases 26/28/31-35); no debt markers.
