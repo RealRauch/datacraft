@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use datacraft_core::port::{DatabaseFormat, PortError, RowRange, StoragePort};
+use datacraft_core::port::{DatabaseFormat, PortError, RowRange, SchemaChange, StoragePort};
 use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, TableDef};
 use datacraft_storage::detecting::DetectingPort;
 
@@ -226,4 +226,56 @@ fn a_failed_open_keeps_the_previous_database() {
     );
     port.read_rows("Table1", RowRange { start: 0, len: 1 })
         .expect("the previous database remains usable");
+}
+
+#[test]
+fn alter_delegates_to_the_jet_writer_on_a_copy() {
+    let path = scratch_path("jet-alter.mdb");
+    std::fs::copy(fixture(), &path).expect("copy the fixture");
+    let _scratch = Scratch(path.clone());
+
+    let mut port = DetectingPort::new();
+    port.open(&path, None).expect("open Jet4");
+    port.create_table(&TableDef::new(
+        "Altered",
+        vec![FieldDef::new("y", FieldKind::Memo)],
+    ))
+    .expect("create");
+    port.alter_table(
+        "Altered",
+        SchemaChange::AddField {
+            field: FieldDef::new("z", FieldKind::Memo),
+        },
+    )
+    .expect("add field");
+    let definition = port
+        .tables()
+        .into_iter()
+        .find(|table| table.name == "Altered")
+        .expect("table survives");
+    assert_eq!(definition.fields.len(), 2);
+
+    port.insert_row(
+        "Altered",
+        &[FieldValue::Text("one".to_owned()), FieldValue::Null],
+    )
+    .expect("insert delegates");
+    port.update_row(
+        "Altered",
+        0,
+        &[FieldValue::Text("two".to_owned()), FieldValue::Null],
+    )
+    .expect("update delegates");
+    port.delete_row("Altered", 0).expect("delete delegates");
+    port.close();
+}
+
+#[test]
+fn missing_paths_are_rejected_by_sniffing() {
+    let mut port = DetectingPort::new();
+    let error = port
+        .open(&scratch_path("missing.mdb"), None)
+        .expect_err("missing paths fail before detection");
+    assert!(matches!(error, PortError::OpenFailed { .. }), "{error:?}");
+    assert!(port.tables().is_empty());
 }

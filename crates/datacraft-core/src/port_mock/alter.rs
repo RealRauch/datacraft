@@ -100,3 +100,121 @@ fn field_position(definition: &TableDef, field: &str) -> Result<usize, PortError
             detail: format!("field {field:?} not found in {:?}", definition.name),
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::schema::{FieldDef, FieldKind, FieldProperties, NumericKind};
+
+    fn mock_port() -> MockPort {
+        let mut port = MockPort::with_tables(vec![TableDef::new(
+            "T",
+            vec![FieldDef::new(
+                "id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
+        )]);
+        port.rows
+            .insert("T".to_owned(), vec![vec![FieldValue::Integer(1)]]);
+        port
+    }
+
+    #[test]
+    fn write_failures_and_unknown_tables_are_precise() {
+        let mut port = mock_port();
+        port.write_fail = Some("disk full".to_owned());
+        let error = alter(
+            &mut port,
+            "T",
+            SchemaChange::DropField {
+                field: "id".to_owned(),
+            },
+        )
+        .expect_err("write failure");
+        assert!(error.to_string().contains("disk full"), "{error}");
+
+        let mut port = mock_port();
+        let error = alter(
+            &mut port,
+            "missing",
+            SchemaChange::DropField {
+                field: "id".to_owned(),
+            },
+        )
+        .expect_err("unknown table");
+        assert!(matches!(error, PortError::TableNotFound(_)), "{error:?}");
+    }
+
+    #[test]
+    fn duplicate_and_unknown_fields_are_rejected() {
+        let mut port = mock_port();
+        let error = alter(
+            &mut port,
+            "T",
+            SchemaChange::AddField {
+                field: FieldDef::new("ID", FieldKind::Text { max_len: 2 }),
+            },
+        )
+        .expect_err("duplicate add");
+        assert!(error.to_string().contains("duplicate"), "{error}");
+
+        let error = alter(
+            &mut port,
+            "T",
+            SchemaChange::DropField {
+                field: "missing".to_owned(),
+            },
+        )
+        .expect_err("unknown field");
+        assert!(error.to_string().contains("not found"), "{error}");
+    }
+
+    #[test]
+    fn rename_and_properties_round_trip_without_touching_rows() {
+        let mut port = mock_port();
+        alter(
+            &mut port,
+            "T",
+            SchemaChange::RenameField {
+                field: "id".to_owned(),
+                new_name: "key".to_owned(),
+            },
+        )
+        .expect("rename");
+        assert_eq!(port.tables[0].fields[0].name, "key");
+        alter(
+            &mut port,
+            "T",
+            SchemaChange::SetFieldProperties {
+                field: "key".to_owned(),
+                properties: FieldProperties {
+                    required: true,
+                    ..Default::default()
+                },
+            },
+        )
+        .expect("properties");
+        assert!(port.tables[0].fields[0].properties.required);
+        assert_eq!(port.rows["T"], [vec![FieldValue::Integer(1)]]);
+    }
+
+    #[test]
+    fn adding_to_a_table_without_row_storage_still_works() {
+        let mut port = MockPort::with_tables(vec![TableDef::new(
+            "Empty",
+            vec![FieldDef::new(
+                "id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
+        )]);
+        alter(
+            &mut port,
+            "Empty",
+            SchemaChange::AddField {
+                field: FieldDef::new("note", FieldKind::Text { max_len: 3 }),
+            },
+        )
+        .expect("add on empty storage");
+        assert_eq!(port.tables[0].fields.len(), 2);
+    }
+}

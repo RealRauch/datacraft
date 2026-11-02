@@ -360,4 +360,19 @@ mod tests {
         assert_eq!(SortOrder::Ascending.toggled(), SortOrder::Descending);
         assert_eq!(SortOrder::Descending.toggled(), SortOrder::Ascending);
     }
+
+    /// Display covers every sort state; wrong cell types stay precise.
+    #[test]
+    fn sort_display_and_wrong_cell_types_are_precise() {
+        assert_eq!(SortOrder::None.to_string(), "");
+        assert_eq!(SortOrder::Ascending.to_string(), "ascending");
+        assert_eq!(SortOrder::Descending.to_string(), "descending");
+        let mut def = QueryDef::new("q", "t");
+        def.fields.push(field("a"));
+        assert!(
+            def.set_cell(QbeRow::Show, 0, QbeValue::Text("x".into()))
+                .is_err()
+        );
+        assert!(def.set_cell(QbeRow::Sort, 0, QbeValue::Bool(true)).is_err());
+    }
 }

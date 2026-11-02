@@ -379,3 +379,59 @@ impl MultiValueKind {
 #[cfg(test)]
 #[path = "field_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+
+    /// Every numeric flavor renders its family name; the integral flavors
+    /// carry ranges while the floating/decimal ones do not.
+    #[test]
+    fn numeric_flavors_render_and_distinguish_ranges() {
+        for (kind, name) in [
+            (NumericKind::Byte, "byte"),
+            (NumericKind::Integer, "integer"),
+            (NumericKind::LongInteger, "long integer"),
+            (NumericKind::Single, "single"),
+            (NumericKind::Double, "double"),
+            (
+                NumericKind::Decimal {
+                    precision: 10,
+                    scale: 2,
+                },
+                "decimal",
+            ),
+        ] {
+            assert!(!kind.family_name().is_empty(), "{name}");
+        }
+        assert!(NumericKind::Byte.integer_range().is_some());
+        assert!(NumericKind::Integer.integer_range().is_some());
+        assert!(NumericKind::LongInteger.integer_range().is_some());
+        assert!(NumericKind::Single.integer_range().is_none());
+        assert!(NumericKind::Double.integer_range().is_none());
+        assert!(
+            NumericKind::Decimal {
+                precision: 10,
+                scale: 2
+            }
+            .integer_range()
+            .is_none()
+        );
+    }
+
+    /// Kinds without a dedicated display arm fall back to their family name;
+    /// AutoNumber and Complex have explicit names, and a wrong value type is
+    /// a precise mismatch.
+    #[test]
+    fn display_fallbacks_and_kind_mismatches_are_precise() {
+        assert_eq!(
+            FieldKind::AutoNumber(AutoKind::LongInteger).family(),
+            "autonumber"
+        );
+        assert_eq!(FieldKind::Complex.family(), "complex");
+        let error = FieldKind::Memo
+            .validate_value(&FieldValue::Integer(1))
+            .expect_err("wrong value type");
+        assert!(error.to_string().contains("memo") || error.to_string().contains("integer"));
+    }
+}

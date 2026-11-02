@@ -200,3 +200,125 @@ fn rejected_changes_leave_the_file_untouched() {
     assert_eq!(before, after, "rejected changes leave the file untouched");
     let _ = std::fs::remove_file(&path);
 }
+
+#[test]
+fn duplicate_and_unknown_fields_are_rejected_precisely() {
+    let (mut port, path) = opened("duplicate");
+    let duplicate = port
+        .alter_table(
+            "AlterMe",
+            SchemaChange::AddField {
+                field: FieldDef::new("NOTE", FieldKind::Text { max_len: 5 }),
+            },
+        )
+        .expect_err("duplicate names are rejected");
+    assert!(duplicate.to_string().contains("duplicate"), "{duplicate}");
+    let unknown = port
+        .alter_table(
+            "AlterMe",
+            SchemaChange::RenameField {
+                field: "missing".to_owned(),
+                new_name: "x".to_owned(),
+            },
+        )
+        .expect_err("unknown fields are rejected");
+    assert!(unknown.to_string().contains("not found"), "{unknown}");
+    port.close();
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn unsupported_shapes_and_last_fields_are_rejected() {
+    let (mut port, path) = opened("shapes");
+    let error = port
+        .alter_table(
+            "AlterMe",
+            SchemaChange::AddField {
+                field: FieldDef::new(
+                    "blob",
+                    FieldKind::Binary(datacraft_core::schema::BinaryKind::Attachment),
+                ),
+            },
+        )
+        .expect_err("complex columns are read-only");
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+
+    port.alter_table(
+        "AlterMe",
+        SchemaChange::DropField {
+            field: "id".to_owned(),
+        },
+    )
+    .expect("first drop");
+    let error = port
+        .alter_table(
+            "AlterMe",
+            SchemaChange::DropField {
+                field: "note".to_owned(),
+            },
+        )
+        .expect_err("the last field cannot be dropped");
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+    port.close();
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn duplicate_renames_and_property_clears_are_handled() {
+    let (mut port, path) = opened("renames");
+    let error = port
+        .alter_table(
+            "AlterMe",
+            SchemaChange::RenameField {
+                field: "note".to_owned(),
+                new_name: "ID".to_owned(),
+            },
+        )
+        .expect_err("duplicate rename");
+    assert!(error.to_string().contains("duplicate"), "{error}");
+    port.alter_table(
+        "AlterMe",
+        SchemaChange::SetFieldProperties {
+            field: "note".to_owned(),
+            properties: FieldProperties {
+                required: true,
+                ..Default::default()
+            },
+        },
+    )
+    .expect("set required");
+    port.alter_table(
+        "AlterMe",
+        SchemaChange::SetFieldProperties {
+            field: "note".to_owned(),
+            properties: FieldProperties::default(),
+        },
+    )
+    .expect("clear required");
+    port.close();
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn a_change_that_does_not_fit_the_tdef_page_is_rejected() {
+    let (mut port, path) = opened("overflow");
+    let mut rejected = false;
+    for index in 0..80 {
+        let field = FieldDef::new(
+            format!("field_{index:03}_{}", "x".repeat(60)),
+            FieldKind::Text { max_len: 60 },
+        );
+        match port.alter_table("AlterMe", SchemaChange::AddField { field }) {
+            Ok(()) => {}
+            Err(error) => {
+                assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+                assert!(error.to_string().contains("does not fit"), "{error}");
+                rejected = true;
+                break;
+            }
+        }
+    }
+    assert!(rejected, "the TDEF page must eventually overflow");
+    port.close();
+    let _ = std::fs::remove_file(&path);
+}

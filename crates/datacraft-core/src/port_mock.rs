@@ -20,6 +20,8 @@ pub struct MockPort {
     vba_error: Option<String>,
     /// When set, `native_queries` fails with this reason (M10 tests).
     native_queries_error: Option<String>,
+    /// Native query inventory (M3 surface; set by tests).
+    native_queries: Vec<crate::port::NativeQuery>,
     opened: Option<OpenedDatabase>,
     open_fail: Option<String>,
     write_fail: Option<String>,
@@ -86,6 +88,12 @@ impl MockPort {
     /// Builder: makes the native-query decode fail with `reason` (M10).
     pub fn with_native_queries_error(&mut self, reason: impl Into<String>) -> &mut Self {
         self.native_queries_error = Some(reason.into());
+        self
+    }
+
+    /// Builder: attaches a native query inventory (M3).
+    pub fn with_native_queries(&mut self, queries: Vec<crate::port::NativeQuery>) -> &mut Self {
+        self.native_queries = queries;
         self
     }
 
@@ -349,7 +357,7 @@ impl StoragePort for MockPort {
                 reason: reason.clone(),
             });
         }
-        Ok(Vec::new())
+        Ok(self.native_queries.clone())
     }
 
     fn vba_project(&self) -> Result<Option<crate::vba::VbaProject>, PortError> {
