@@ -10,7 +10,9 @@
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
-use datacraft_core::port::{DatabaseFormat, DriverCapabilities, DriverId, MockPort, Support};
+use datacraft_core::port::{
+    DatabaseFormat, DriverCapabilities, DriverId, MockPort, StoragePort, Support,
+};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 
 fn one_field_table() -> TableDef {
@@ -81,10 +83,7 @@ fn the_snapshot_carries_driver_and_capabilities() {
     caps.write_rows = false;
     caps.atomic_batch = false;
     let core = core_with(caps);
-    let db = core
-        .inspect()
-        .database
-        .expect("the database is open");
+    let db = core.inspect().database.expect("the database is open");
     assert_eq!(db.driver, DriverId::new("mock"));
     assert!(!db.capabilities.write_rows);
     assert!(!db.capabilities.atomic_batch);
@@ -100,7 +99,7 @@ fn capabilities_serialize_deterministically_over_the_wire() {
     let mut caps = DriverCapabilities::full();
     caps.relationships = Support::ReadOnly;
     caps.triggers = Support::No;
-    let json = serde_json::to_value(&caps).expect("capabilities serialize");
+    let json = serde_json::to_value(caps).expect("capabilities serialize");
     assert_eq!(json["write_rows"], serde_json::json!(true));
     assert_eq!(json["relationships"], serde_json::json!("read_only"));
     assert_eq!(json["triggers"], serde_json::json!("no"));
@@ -108,7 +107,7 @@ fn capabilities_serialize_deterministically_over_the_wire() {
     assert_eq!(round, caps);
 
     let core = core_with(DriverCapabilities::full());
-    let snapshot = serde_json::to_value(&core.inspect()).expect("snapshot serializes");
+    let snapshot = serde_json::to_value(core.inspect()).expect("snapshot serializes");
     assert_eq!(snapshot["database"]["driver"], serde_json::json!("mock"));
     assert_eq!(
         snapshot["database"]["capabilities"]["create_table"],
@@ -136,12 +135,18 @@ fn dispatch_rejects_row_writes_the_driver_declared_impossible() {
         row: 0,
         values: vec![FieldValue::Integer(2)],
     });
-    assert!(matches!(events.as_slice(), [Event::Failed { .. }]), "{events:?}");
+    assert!(
+        matches!(events.as_slice(), [Event::Failed { .. }]),
+        "{events:?}"
+    );
     let events = core.dispatch(Command::DeleteRow {
         table: "Customers".to_owned(),
         row: 0,
     });
-    assert!(matches!(events.as_slice(), [Event::Failed { .. }]), "{events:?}");
+    assert!(
+        matches!(events.as_slice(), [Event::Failed { .. }]),
+        "{events:?}"
+    );
 }
 
 /// Schema and table writes are refused per their own capabilities.

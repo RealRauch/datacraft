@@ -42,6 +42,11 @@ pub struct DatabaseSnapshot {
     pub path: PathBuf,
     /// Binary format family.
     pub format: DatabaseFormat,
+    /// Identity of the driver serving this source (phase 30, M17;
+    /// ADR-7) — GUI, CLI and MCP agents see the same value.
+    pub driver: crate::port::DriverId,
+    /// The driver's per-session capabilities (phase 30, M17; ADR-7).
+    pub capabilities: crate::port::DriverCapabilities,
     /// Tables in catalog order, with their navigation-pane test IDs.
     pub tables: Vec<TableEntrySnapshot>,
     /// Referential relationships (mapper pane and agents).
@@ -165,6 +170,8 @@ impl UiStateSnapshot {
                 name: db.name.clone(),
                 path: db.path.clone(),
                 format: db.format,
+                driver: db.driver.clone(),
+                capabilities: db.capabilities,
                 relationships: db.relationships.clone(),
                 forms: db.forms.clone(),
                 reports: db.reports.clone(),

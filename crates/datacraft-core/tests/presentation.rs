@@ -191,6 +191,8 @@ fn the_status_line_names_the_ace_format() {
         path: "shop.accdb".into(),
         name: "shop".into(),
         format: datacraft_core::port::DatabaseFormat::Ace,
+        driver: datacraft_core::port::DriverId::new("jet"),
+        capabilities: datacraft_core::port::DriverCapabilities::full(),
         tables: Vec::new(),
         relationships: Vec::new(),
         queries: Vec::new(),

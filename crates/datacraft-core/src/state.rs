@@ -77,6 +77,10 @@ pub struct DatabaseState {
     pub name: String,
     /// Binary format family.
     pub format: DatabaseFormat,
+    /// Identity of the driver serving this source (phase 30, M17; ADR-7).
+    pub driver: crate::port::DriverId,
+    /// The driver's per-session capabilities (phase 30, M17; ADR-7).
+    pub capabilities: crate::port::DriverCapabilities,
     /// Table definitions in catalog order.
     pub tables: Vec<TableDef>,
     /// Referential relationships, as reported by the backend.

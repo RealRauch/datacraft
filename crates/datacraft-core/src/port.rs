@@ -9,6 +9,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::schema::{FieldValue, TableDef};
 
+mod capabilities;
+
+pub use capabilities::{DriverCapabilities, DriverId, Support};
+
 /// Binary format family of an opened database (domain vocabulary; the
 /// backends map their physical version detection onto it).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -223,6 +227,19 @@ impl NativeQuery {
 /// The storage seam of the command core. Implementors must be deterministic
 /// and must not block indefinitely.
 pub trait StoragePort {
+    /// Stable identity of this driver (phase 30, item M17; ADR-7). The
+    /// default serves ports predating the capability model; every
+    /// shipped driver names itself.
+    fn driver_id(&self) -> DriverId {
+        DriverId::new("generic")
+    }
+    /// Declarative capabilities of the open data source (phase 30, item
+    /// M17; ADR-7) — per opened session, because they depend on runtime
+    /// state. The optimistic default keeps call-time behaviour unchanged
+    /// for ports that do not override the reporting.
+    fn capabilities(&self) -> DriverCapabilities {
+        DriverCapabilities::full()
+    }
     /// Opens the database at `path`; `password` is `None` for unprotected
     /// files (step 16.2, M5). Backends without passwords ignore it.
     fn open(

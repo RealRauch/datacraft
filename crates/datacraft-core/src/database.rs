@@ -7,9 +7,11 @@ use crate::ObjectKind;
 use crate::core::failed;
 use crate::event::Event;
 use crate::ids::TabId;
-use crate::port::{PortError, SchemaChange};
+use crate::port::{DriverCapabilities, PortError, SchemaChange};
 use crate::schema::{FieldValue, TableDef};
 use crate::state::DatabaseState;
+
+mod alter;
 
 impl crate::core::Core {
     pub(crate) fn open_database(
@@ -33,6 +35,10 @@ impl crate::core::Core {
             Ok(opened) => {
                 let name = opened.name.clone();
                 let format = opened.format;
+                // Driver identity and per-session capabilities (phase 30,
+                // M17; ADR-7) ride the open into state and snapshot.
+                let driver = self.port.driver_id();
+                let capabilities = self.port.capabilities();
                 let relationships = self.port.relationships().unwrap_or_default();
                 let (macros, macros_error) = match self.port.macros() {
                     Ok(macros) => (macros, None),
@@ -67,6 +73,8 @@ impl crate::core::Core {
                     path,
                     name: name.clone(),
                     format,
+                    driver: driver.clone(),
+                    capabilities,
                     tables: self.port.tables(),
                     relationships,
                     queries: sidecar
@@ -133,6 +141,14 @@ impl crate::core::Core {
         path: std::path::PathBuf,
         format: crate::port::DatabaseFormat,
     ) -> Vec<Event> {
+        // Capability gate (phase 30, M17): the driver declared creation
+        // impossible — refuse before the port, same Failed shape.
+        if !self.port.capabilities().create_database {
+            return failed(DriverCapabilities::unsupported(
+                &self.port.driver_id(),
+                "create database files",
+            ));
+        }
         match self.port.create_database(&path, format) {
             Ok(()) => vec![Event::DatabaseCreated { path, format }],
             Err(e) => failed(e.to_string()),
@@ -202,6 +218,13 @@ impl crate::core::Core {
         let Some(db) = self.state.database.as_mut() else {
             return failed("no database is open — open a database first");
         };
+        // Capability gate (phase 30, M17; ADR-7).
+        if !db.capabilities.create_table {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "create tables for this source",
+            ));
+        }
         if let Err(e) = definition.validate() {
             return failed(e.to_string());
         }
@@ -233,6 +256,14 @@ impl crate::core::Core {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
+        // Capability gate (phase 30, M17; ADR-7): a source the driver
+        // declared read-only never reaches the port.
+        if !db.capabilities.write_rows {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "write rows for this source",
+            ));
+        }
         let Some(def) = db
             .tables
             .iter()
@@ -263,6 +294,13 @@ impl crate::core::Core {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
+        // Capability gate (phase 30, M17; ADR-7).
+        if !db.capabilities.write_rows {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "write rows for this source",
+            ));
+        }
         let Some(def) = db
             .tables
             .iter()
@@ -306,6 +344,13 @@ impl crate::core::Core {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
+        // Capability gate (phase 30, M17; ADR-7).
+        if !db.capabilities.write_rows {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "write rows for this source",
+            ));
+        }
         let Some(def) = db
             .tables
             .iter()
@@ -324,8 +369,15 @@ impl crate::core::Core {
     }
 
     pub(crate) fn drop_table(&mut self, table: &str) -> Vec<Event> {
-        if self.state.database.is_none() {
+        let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
+        };
+        // Capability gate (phase 30, M17; ADR-7).
+        if !db.capabilities.drop_table {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "drop tables for this source",
+            ));
         }
         let canonical = match self.port.drop_table(table) {
             Err(e) => return failed(e.to_string()),
@@ -362,6 +414,13 @@ impl crate::core::Core {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
+        // Capability gate (phase 30, M17; ADR-7).
+        if !db.capabilities.alter_table {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "alter the schema for this source",
+            ));
+        }
         let Some(def) = db
             .tables
             .iter()
@@ -371,7 +430,7 @@ impl crate::core::Core {
             return failed(PortError::TableNotFound(table.to_owned()).to_string());
         };
         let mut trial = def.clone();
-        let field = match apply_schema_change(&mut trial, &change) {
+        let field = match alter::apply_schema_change(&mut trial, &change) {
             Ok(field) => field,
             Err(reason) => return failed(reason),
         };
@@ -391,60 +450,6 @@ impl crate::core::Core {
             field,
         }]
     }
-}
-
-/// Structural application of one schema change (the port repeats the same
-/// rules on the physical side). Returns the canonical field name.
-fn apply_schema_change(definition: &mut TableDef, change: &SchemaChange) -> Result<String, String> {
-    match change {
-        SchemaChange::AddField { field } => {
-            if definition
-                .fields
-                .iter()
-                .any(|existing| existing.name.eq_ignore_ascii_case(&field.name))
-            {
-                return Err(format!("duplicate field {:?}", field.name));
-            }
-            definition.fields.push(field.clone());
-            Ok(field.name.clone())
-        }
-        SchemaChange::DropField { field } => {
-            let index = field_index(definition, field)?;
-            definition.fields.remove(index);
-            Ok(definition
-                .fields
-                .get(index.saturating_sub(1))
-                .or_else(|| definition.fields.first())
-                .map_or_else(|| field.clone(), |remaining| remaining.name.clone()))
-        }
-        SchemaChange::RenameField { field, new_name } => {
-            let index = field_index(definition, field)?;
-            if definition
-                .fields
-                .iter()
-                .enumerate()
-                .any(|(i, existing)| i != index && existing.name.eq_ignore_ascii_case(new_name))
-            {
-                return Err(format!("duplicate field {new_name:?}"));
-            }
-            definition.fields[index].name = new_name.clone();
-            Ok(new_name.clone())
-        }
-        SchemaChange::SetFieldProperties { field, properties } => {
-            let index = field_index(definition, field)?;
-            definition.fields[index].properties = properties.clone();
-            Ok(definition.fields[index].name.clone())
-        }
-    }
-}
-
-/// Case-insensitive field index, with a precise reason.
-fn field_index(definition: &TableDef, field: &str) -> Result<usize, String> {
-    definition
-        .fields
-        .iter()
-        .position(|candidate| candidate.name.eq_ignore_ascii_case(field))
-        .ok_or_else(|| format!("field {field:?} not found in {:?}", definition.name))
 }
 
 /// Reads the sibling `.datacraft` sidecar (ADR-1) for the database at
