@@ -30,15 +30,6 @@
 - **28.1 Command-Historie: Undo/Redo (U14)**
 - **28.2 Recent Databases im Backstage (U15)**
 - **28.3 Phase 28 Quality Gate Review**
-### Phase 29 — Sample Databases & Templates
-
-**Scope (Steps):**
-
-- **29.1 Create database files (Jet4 + SQLite)**
-- **29.2 Create-from-template flow and determinism**
-- **29.3 Sample content and generator**
-- **29.4 Sidecar auto-load and backstage pages**
-- **29.5 Phase 29 Quality Gate Review**
 
 
 
@@ -208,5 +199,5 @@
 | 29.1 | Create database files (Jet4 + SQLite) | ✅ |
 | 29.2 | Create-from-template flow and determinism | ✅ |
 | 29.3 | Sample content and generator | ✅ |
-| 29.4 | Sidecar auto-load and backstage pages | 🔄 |
-| 29.5 | Phase 29 Quality Gate Review | ⬜ |
+| 29.4 | Sidecar auto-load and backstage pages | ✅ |
+| 29.5 | Phase 29 Quality Gate Review | ✅ |

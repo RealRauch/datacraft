@@ -336,3 +336,16 @@
 - **25.2 ACCDB-Port-Write-Through + Bus-E2E (H43)**
 - **25.3 Phase 25 Quality Gate Review**
 **Verification:** canonical verification set green (fmt, clippy -D warnings, workspace tests, llvm-cov >= 95% lines, file-size gate); README matrix + ROADMAP + FORMAT-JET now carry the verified ACE write claims (checkpoint: b7afaef)
+
+---
+
+### Phase 29 — Sample Databases & Templates
+
+**Scope (Steps):**
+
+- **29.1 Create database files (Jet4 + SQLite)**
+- **29.2 Create-from-template flow and determinism**
+- **29.3 Sample content and generator**
+- **29.4 Sidecar auto-load and backstage pages**
+- **29.5 Phase 29 Quality Gate Review**
+**Verification:** canonical verification set green (fmt, clippy -D warnings, workspace tests, llvm-cov >= 95% lines, file-size gate, make_samples --check, sha256sum -c samples/manifest); README matrix + ROADMAP carry the verified sample/template claims; manual Access-repair gate documented as follow-up (checkpoint: 7d38ac6)
