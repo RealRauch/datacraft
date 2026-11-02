@@ -10,7 +10,7 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::journal::{ChangeKind, WriteOp, write_profile};
-use datacraft_core::port::{MockPort, RowRange};
+use datacraft_core::port::{DriverCapabilities, MockPort, RowRange};
 use datacraft_core::schema::{
     AutoKind, BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
 };
@@ -45,6 +45,14 @@ fn seeded_rows() -> Vec<Vec<FieldValue>> {
 fn core_with_rows() -> Core {
     let mut port = MockPort::with_tables(vec![customers()]);
     port.with_row_data("Customers", seeded_rows());
+    port.with_capabilities(DriverCapabilities {
+        atomic_batch: true,
+        ..DriverCapabilities::full()
+    });
+    port.with_capabilities(DriverCapabilities {
+        atomic_batch: true,
+        ..DriverCapabilities::full()
+    });
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
@@ -487,4 +495,38 @@ fn apply_and_discard_error_paths_are_precise() {
         core.dispatch(Command::RollbackWrite { token })[0],
         Event::WriteRolledBack { .. }
     ));
+}
+
+#[test]
+fn multi_op_previews_require_an_atomic_driver() {
+    // The honest mock default reports atomic_batch = false (like SQLite).
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_row_data("Customers", seeded_rows());
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "memory.mock".into(),
+        password: None,
+    });
+
+    let reason = failure(&core.dispatch(Command::PreviewWrite {
+        table: "Customers".to_owned(),
+        ops: batch(),
+    }));
+    assert!(
+        reason.contains("atomic") && reason.contains("one operation"),
+        "{reason}"
+    );
+
+    let token = preview_token(&core.dispatch(Command::PreviewWrite {
+        table: "Customers".to_owned(),
+        ops: vec![WriteOp::Update {
+            row: 0,
+            values: vec![
+                FieldValue::Null,
+                FieldValue::Text("single".into()),
+                FieldValue::Float(0.5),
+            ],
+        }],
+    }));
+    assert!(token > 0, "a single-operation batch stays available");
 }
