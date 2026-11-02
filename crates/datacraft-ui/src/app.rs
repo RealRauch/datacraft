@@ -176,9 +176,12 @@ impl App {
             && let Some(db) = self.snapshot.database.as_ref()
         {
             // ADR-1: the design layer lives next to the database file.
-            self.sidecar_path = datacraft_core::schema::SchemaDocument::sidecar_path(&db.path)
+            let path = db.path.clone();
+            self.sidecar_path = datacraft_core::schema::SchemaDocument::sidecar_path(&path)
                 .to_string_lossy()
                 .into_owned();
+            // Item U15: a successful open feeds the bounded recent list.
+            self.record_recent_database(&path);
         }
         if events
             .iter()

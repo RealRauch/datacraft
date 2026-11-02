@@ -246,7 +246,9 @@ fn recent_databases_are_bounded_deduplicated_and_newest_first() {
     let path = dir.join("ui.json");
     let mut settings = Settings::default();
     for index in 0..(MAX_RECENT_DATABASES + 2) {
-        settings.record_recent(&dir.join(format!("db{index}.mdb")));
+        let candidate = dir.join(format!("db{index}.mdb"));
+        std::fs::write(&candidate, b"x").expect("seed the recent path");
+        settings.record_recent(&candidate);
     }
     assert_eq!(settings.recent.len(), MAX_RECENT_DATABASES);
     assert_eq!(
@@ -254,6 +256,7 @@ fn recent_databases_are_bounded_deduplicated_and_newest_first() {
         dir.join(format!("db{}.mdb", MAX_RECENT_DATABASES + 1))
     );
 
+    std::fs::write(dir.join("db5.mdb"), b"x").expect("seed the reopened path");
     settings.record_recent(&dir.join("db5.mdb"));
     assert_eq!(settings.recent[0], dir.join("db5.mdb"));
     assert_eq!(
@@ -278,8 +281,10 @@ fn missing_recent_paths_are_pruned_with_a_report() {
     let existing = dir.join("exists.mdb");
     std::fs::write(&existing, b"x").expect("seed the existing path");
     let missing = dir.join("missing.mdb");
-    let mut settings = Settings::default();
-    settings.recent = vec![existing.clone(), missing.clone()];
+    let settings = Settings {
+        recent: vec![existing.clone(), missing.clone()],
+        ..Settings::default()
+    };
     settings.save(&path).expect("save");
 
     let loaded = Settings::load(&path);

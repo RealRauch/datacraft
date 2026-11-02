@@ -24,3 +24,6 @@ Button|Open Database|
 Button|Close Database|
 Button|New Table|
 Button|Save Design|
+Label||Recent Databases
+TextRun||Recent Databases
+Button|shop.mdb — shop.mdb|

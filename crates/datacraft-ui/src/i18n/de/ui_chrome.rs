@@ -75,6 +75,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Queries", "Abfragen"),
     ("Query Design", "Abfrageentwurf"),
     ("Query Tools", "Abfragetools"),
+    ("Recent Databases", "Zuletzt verwendete Datenbanken"),
     ("Record Source", "Datensatzquelle"),
     ("Redo", "Wiederholen"),
     ("Relationships", "Beziehungen"),
@@ -143,6 +144,14 @@ pub static TABLE: &[(&str, &str)] = &[
     (
         "the open source has no relationships",
         "Die geöffnete Datenquelle hat keine Beziehungen",
+    ),
+    (
+        "A recent database was removed because it no longer exists: {path}",
+        "Eine zuletzt verwendete Datenbank wurde entfernt, weil sie nicht mehr existiert: {path}",
+    ),
+    (
+        "{count} recent databases were removed because they no longer exist: {paths}",
+        "{count} zuletzt verwendete Datenbanken wurden entfernt, weil sie nicht mehr existieren: {paths}",
     ),
     (
         "the open source has no database passwords",

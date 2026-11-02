@@ -129,7 +129,7 @@ fn page_body(app: &mut App, ui: &mut egui::Ui) {
     ui.add_space(6.0);
     let mut intents: Vec<Command> = Vec::new();
     match app.backstage_page {
-        BackstagePage::Home => home_page(app, ui),
+        BackstagePage::Home => home_page(app, ui, &mut intents),
         BackstagePage::New => new_database_page(app, ui, &mut intents),
         BackstagePage::Open => open_page(app, ui, &mut intents),
         BackstagePage::Samples => samples_page(app, ui, &mut intents),
@@ -143,7 +143,7 @@ fn page_body(app: &mut App, ui: &mut egui::Ui) {
 }
 
 /// Home: the open database's context plus the main flows.
-fn home_page(app: &mut App, ui: &mut egui::Ui) {
+fn home_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
     let database = app.snapshot().database.as_ref().map(|db| {
         (
             db.name.clone(),
@@ -194,6 +194,7 @@ fn home_page(app: &mut App, ui: &mut egui::Ui) {
     backstage_button(app, ui, "save_page", t("Save Design"), true, |app| {
         app.backstage_page = BackstagePage::Save;
     });
+    recent_databases_ui(app, ui, intents);
     status_line(app, ui);
 }
 
@@ -269,7 +270,37 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
             password: None,
         });
     }
+    recent_databases_ui(app, ui, intents);
     status_line(app, ui);
+}
+
+/// Bounded recent-database list (step 28.2, item U15): one `OpenDatabase`
+/// per click; missing paths were pruned on load with a startup notice.
+fn recent_databases_ui(app: &App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
+    let recent = app.recent_databases();
+    if recent.is_empty() {
+        return;
+    }
+    ui.add_space(10.0);
+    ui.heading(t("Recent Databases"));
+    for path in recent {
+        let label = match path.file_name() {
+            Some(name) => format!("{} — {}", name.to_string_lossy(), path.display()),
+            None => path.display().to_string(),
+        };
+        if ui
+            .push_id(format!("backstage.recent.{}", path.display()), |ui| {
+                ui.selectable_label(false, label)
+            })
+            .inner
+            .clicked()
+        {
+            intents.push(Command::OpenDatabase {
+                path: path.clone(),
+                password: None,
+            });
+        }
+    }
 }
 
 /// Samples: every database file of the resolved samples folder opens in

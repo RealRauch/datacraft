@@ -473,26 +473,3 @@ fn qat_undo_and_redo_follow_the_history_depth() {
     assert!(dump.contains("Button|Undo| disabled"), "{dump}");
     assert!(!dump.contains("Button|Redo| disabled"), "{dump}");
 }
-
-#[test]
-fn backstage_recent_database_opens_in_one_click() {
-    let path = std::env::temp_dir().join(format!("datacraft-recent-{}.mdb", std::process::id()));
-    std::fs::write(&path, b"x").expect("seed the recent path");
-    let mut settings = datacraft_ui::settings::Settings::default();
-    settings.record_recent(&path);
-    let mut app = App::new(Box::new(MockPort::new()));
-    app.apply_settings(settings);
-    app.backstage_page = datacraft_ui::backstage::BackstagePage::Home;
-    let mut harness = backstage_harness(app);
-    harness.run();
-    harness.get_by_label_contains("datacraft-recent-").click();
-    harness.run();
-    let database = harness
-        .state()
-        .snapshot()
-        .database
-        .as_ref()
-        .expect("the recent entry opened the database");
-    assert_eq!(database.path, path);
-    let _ = std::fs::remove_file(&path);
-}

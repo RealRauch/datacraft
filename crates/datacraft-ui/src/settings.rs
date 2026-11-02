@@ -95,7 +95,18 @@ impl Settings {
         let Ok(file) = serde_json::from_str::<SettingsFile>(&text) else {
             return Self::default();
         };
-        Self::from_file(file)
+        let mut settings = Self::from_file(file);
+        let mut pruned = Vec::new();
+        settings.recent.retain(|path| {
+            if path.exists() {
+                true
+            } else {
+                pruned.push(path.clone());
+                false
+            }
+        });
+        settings.pruned_recent = pruned;
+        settings
     }
 
     /// Writes the settings, creating the config directory as needed. The
@@ -159,13 +170,44 @@ impl Settings {
     /// Records a successfully opened database (item U15): newest first,
     /// de-duplicated case-insensitively on Windows, bounded.
     pub fn record_recent(&mut self, path: &Path) {
-        let _ = path;
+        self.recent.retain(|candidate| !same_path(candidate, path));
+        self.recent.insert(0, path.to_path_buf());
+        self.recent.truncate(MAX_RECENT_DATABASES);
     }
 
     /// The recent-database paths, newest first.
     pub fn recent(&self) -> &[PathBuf] {
         &self.recent
     }
+}
+
+/// Path equality: Windows compares case-insensitively.
+fn same_path(left: &Path, right: &Path) -> bool {
+    if cfg!(windows) {
+        left.to_string_lossy()
+            .eq_ignore_ascii_case(&right.to_string_lossy())
+    } else {
+        left == right
+    }
+}
+
+/// Localized startup notice for recent paths that no longer exist.
+pub fn prune_notice(pruned: &[PathBuf]) -> String {
+    if let [path] = pruned {
+        return crate::i18n::tr(
+            "A recent database was removed because it no longer exists: {path}",
+            &[("path", &path.display().to_string())],
+        );
+    }
+    let paths = pruned
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    crate::i18n::tr(
+        "{count} recent databases were removed because they no longer exist: {paths}",
+        &[("count", &pruned.len().to_string()), ("paths", &paths)],
+    )
 }
 
 /// Sibling temporary path of `path` (`ui.json` → `ui.json.tmp`).
@@ -239,6 +281,9 @@ impl crate::app::App {
     /// Applies persisted settings at startup: the stored language choice
     /// beats the environment and system detection (ADR-5).
     pub fn apply_settings(&mut self, settings: Settings) {
+        if !settings.pruned_recent.is_empty() {
+            self.last_notice = Some(prune_notice(&settings.pruned_recent));
+        }
         self.settings = settings;
         crate::i18n::init_language(self.language_setting().lang());
     }
@@ -274,6 +319,18 @@ impl crate::app::App {
     pub fn set_language_setting(&mut self, setting: LanguageSetting) {
         self.settings.language = setting;
         crate::i18n::init_language(setting.lang());
+        if let Err(reason) = self.persist_settings() {
+            self.last_error = Some(crate::i18n::tr(
+                "Settings could not be saved: {reason}",
+                &[("reason", &reason.to_string())],
+            ));
+        }
+    }
+
+    /// Records a successful open in the recent list and persists it
+    /// (step 28.2, item U15).
+    pub(crate) fn record_recent_database(&mut self, path: &Path) {
+        self.settings.record_recent(path);
         if let Err(reason) = self.persist_settings() {
             self.last_error = Some(crate::i18n::tr(
                 "Settings could not be saved: {reason}",

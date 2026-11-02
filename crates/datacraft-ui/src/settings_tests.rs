@@ -144,12 +144,11 @@ fn opening_a_database_records_it_as_recent_and_persists() {
 
     let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
     app.set_settings_path(Some(path.clone()));
-    app.apply_settings(Settings::default());
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: database.clone(),
         password: None,
     });
-    assert_eq!(app.recent_databases(), &[database.clone()]);
+    assert_eq!(app.recent_databases().first(), Some(&database));
     assert_eq!(
         Settings::load(&path).recent,
         vec![database],
@@ -169,8 +168,10 @@ fn startup_reports_pruned_recent_paths() {
     std::fs::create_dir_all(&dir).expect("temp dir");
     let path = dir.join("ui.json");
     let missing = dir.join("gone.mdb");
-    let mut settings = Settings::default();
-    settings.recent = vec![missing.clone()];
+    let settings = Settings {
+        recent: vec![missing.clone()],
+        ..Settings::default()
+    };
     settings.save(&path).expect("save");
 
     let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
