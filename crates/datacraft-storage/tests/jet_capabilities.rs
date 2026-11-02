@@ -141,10 +141,7 @@ fn jet3_write_capability_gaps_answer_unsupported() {
 fn jet4_create_database_capability_is_honoured() {
     let mut port = Jet4Port::new();
     assert!(port.capabilities().create_database);
-    let path = std::env::temp_dir().join(format!(
-        "datacraft-jet-caps-{}.mdb",
-        std::process::id()
-    ));
+    let path = std::env::temp_dir().join(format!("datacraft-jet-caps-{}.mdb", std::process::id()));
     let _ = std::fs::remove_file(&path);
     port.create_database(&path, DatabaseFormat::Jet4)
         .expect("create the Jet4 file");

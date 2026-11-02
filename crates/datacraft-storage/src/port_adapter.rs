@@ -18,7 +18,6 @@
 //!   attachments, table drops) answer a precise `Unsupported`
 //!   (BACKLOG M4/M7/M8).
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{
@@ -29,11 +28,10 @@ use datacraft_core::schema::{FieldValue, TableDef};
 
 use crate::error::StorageError;
 use crate::jet::OBJECT_TYPE_TABLE;
-use crate::jet::complex::{self, ComplexCatalog, FlatRows};
+use crate::jet::complex::ComplexCatalog;
 use crate::jet::reader::Jet4TableReader;
 use crate::jet::tdef::JetTableDef;
 use crate::jet::writer::Jet4Writer;
-use crate::mapping::to_field_value;
 use crate::port_errors::{map_open, map_open_with_path, map_write, no_database};
 use crate::port_schema::table_def;
 use crate::port_write;
@@ -280,64 +278,11 @@ impl StoragePort for Jet4Port {
     }
 
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
-        if self.reader.is_none() {
-            return Err(no_database());
-        }
-        let Some(page) = self
-            .pages
-            .iter()
-            .find(|(name, _)| name.eq_ignore_ascii_case(table))
-            .map(|(_, page)| *page)
-        else {
-            return Err(PortError::TableNotFound(table.to_owned()));
-        };
-        let Some(def) = self
-            .tables
-            .iter()
-            .find(|def| def.name.eq_ignore_ascii_case(table))
-        else {
-            return Err(PortError::TableNotFound(table.to_owned()));
-        };
-        let stored = port_write::to_storage_values(&def.fields, values)?;
-        self.with_writer(|writer| writer.insert_row(page, &stored))?;
-        Ok(())
+        rows::insert_row(self, table, values)
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
-        let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
-            reason: "no database is open".to_owned(),
-        })?;
-        let page = self.page_of(table)?;
-        if self.complex.is_flat_page(page) {
-            // Backing tables are an implementation detail, not user tables.
-            return Err(PortError::TableNotFound(table.to_owned()));
-        }
-        let data = reader.open_table(table).map_err(|e| match e {
-            crate::error::StorageError::TableNotFound(name) => PortError::TableNotFound(name),
-            other => map_open(other),
-        })?;
-        let def = JetTableDef::decode(&reader.file, page).map_err(map_open)?;
-        let (start, end) = datacraft_core::port::window_slice(table, range, data.rows.len())?;
-        let mut flats: HashMap<u32, FlatRows> = HashMap::new();
-        let mut rows = Vec::with_capacity(end - start);
-        for row in &data.rows[start..end] {
-            let mut values = Vec::with_capacity(row.len());
-            for (column, value) in def.columns.iter().zip(row) {
-                let Some(mapping) = self.complex.column(page, &column.name) else {
-                    values.push(to_field_value(value));
-                    continue;
-                };
-                if let std::collections::hash_map::Entry::Vacant(entry) =
-                    flats.entry(mapping.flat_tdef)
-                {
-                    entry.insert(FlatRows::read(reader, mapping).map_err(map_open)?);
-                }
-                let flat = flats.get(&mapping.flat_tdef).expect("inserted above");
-                values.push(complex::resolve_cell(value, flat).map_err(map_open)?);
-            }
-            rows.push(values);
-        }
-        Ok(rows)
+        rows::read_rows(self, table, range)
     }
 
     fn update_row(
@@ -346,25 +291,11 @@ impl StoragePort for Jet4Port {
         row: usize,
         values: &[FieldValue],
     ) -> Result<(), PortError> {
-        if self.reader.is_none() {
-            return Err(no_database());
-        }
-        let page = self.page_of(table)?;
-        let stored = {
-            let definition = self.definition_of(table)?.clone();
-            port_write::to_storage_values_for_update(&definition.fields, values)?
-        };
-        self.with_writer(|writer| writer.update_row(page, row, &stored))?;
-        Ok(())
+        rows::update_row(self, table, row, values)
     }
 
     fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
-        if self.reader.is_none() {
-            return Err(no_database());
-        }
-        let page = self.page_of(table)?;
-        self.with_writer(|writer| writer.delete_row(page, row))?;
-        Ok(())
+        rows::delete_row(self, table, row)
     }
 
     fn write_row_ops(
@@ -372,55 +303,11 @@ impl StoragePort for Jet4Port {
         table: &str,
         ops: &[datacraft_core::port::RowWriteOp],
     ) -> Result<(), PortError> {
-        if self.reader.is_none() {
-            return Err(no_database());
-        }
-        let page = self.page_of(table)?;
-        let definition = self.definition_of(table)?.clone();
-        // Validate and map every operation before a single byte is written.
-        let mut prepared = Vec::with_capacity(ops.len());
-        for op in ops {
-            prepared.push(match op {
-                datacraft_core::port::RowWriteOp::Insert(values) => {
-                    PreparedOp::Insert(port_write::to_storage_values(&definition.fields, values)?)
-                }
-                datacraft_core::port::RowWriteOp::Update { row, values } => PreparedOp::Update {
-                    row: *row,
-                    values: port_write::to_storage_values_for_update(&definition.fields, values)?,
-                },
-                datacraft_core::port::RowWriteOp::Delete { row } => {
-                    PreparedOp::Delete { row: *row }
-                }
-            });
-        }
-        // One writer session: the file is persisted only when every
-        // operation succeeded — the batch is atomic on this backend.
-        self.with_writer(|writer| {
-            for op in &prepared {
-                match op {
-                    PreparedOp::Insert(values) => writer.insert_row(page, values)?,
-                    PreparedOp::Update { row, values } => writer.update_row(page, *row, values)?,
-                    PreparedOp::Delete { row } => writer.delete_row(page, *row)?,
-                }
-            }
-            Ok(())
-        })?;
-        Ok(())
+        rows::write_row_ops(self, table, ops)
     }
 }
 
-/// One validated operation of a batch write (domain values mapped to the
-/// storage vocabulary before any byte is written).
-enum PreparedOp {
-    Insert(Vec<crate::types::StorageValue>),
-    Update {
-        row: usize,
-        values: Vec<crate::types::StorageValue>,
-    },
-    Delete {
-        row: usize,
-    },
-}
+mod rows;
 
 impl Jet4Port {
     /// TDEF page of a catalogued table (the writer's identity).

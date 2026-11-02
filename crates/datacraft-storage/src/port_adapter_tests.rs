@@ -4,6 +4,7 @@
 use super::*;
 use crate::jet::JetType;
 use crate::jet::tdef::{JetColumn, flags};
+use crate::mapping::to_field_value;
 use crate::port_schema::field_def;
 use crate::types::StorageValue;
 use datacraft_core::schema::{BinaryKind, FieldKind};
