@@ -238,8 +238,10 @@ fn header_region_len(format: FormatVersion) -> usize {
     }
 }
 
-/// The ACE Office-encryption descriptor length (0 for Jet3/Jet4).
-fn office_descriptor_len(file: &[u8]) -> u16 {
+/// The ACE Office-encryption descriptor length (0 for Jet3/Jet4). The field
+/// sits at 0x299 on page 0, outside the RC4 header region — it reads the
+/// same on raw on-disk bytes and on the decrypted writer handoff.
+pub(crate) fn office_descriptor_len(file: &[u8]) -> u16 {
     file.get(OFFICE_DESCRIPTOR_OFFSET..OFFICE_DESCRIPTOR_OFFSET + 2)
         .map(|bytes| u16::from_le_bytes([bytes[0], bytes[1]]))
         .unwrap_or(0)

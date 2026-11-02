@@ -30,12 +30,27 @@ pub struct Jet4Writer {
 
 impl Jet4Writer {
     /// Takes ownership of the raw file bytes and validates the header.
-    /// Jet3 is rejected (BACKLOG L1), like the reader.
+    /// Jet3 is rejected (BACKLOG L1), like the reader, and office-encrypted
+    /// ACE files are rejected precisely (step 16.2, M5) — the writer must
+    /// never operate on encrypted pages.
     pub fn new(file: Vec<u8>) -> Result<Self, StorageError> {
         let header = FileHeader::decode(&file, file.len() as u64)?;
         if header.format == crate::types::FormatVersion::Jet3 {
             return Err(StorageError::Unsupported {
                 reason: "Jet3 (Access 97) databases are not supported yet (BACKLOG L1)".into(),
+            });
+        }
+        // The descriptor length at 0x299 is outside the RC4 header region,
+        // so this check holds for raw on-disk bytes and for the decrypted
+        // writer handoff alike; db-key/password forms cannot reach here —
+        // the reader boundary validates them at open.
+        if header.format == crate::types::FormatVersion::Ace
+            && crate::jet::crypto::office_descriptor_len(&file) != 0
+        {
+            return Err(StorageError::Unsupported {
+                reason: "ACE Office encryption (RC4 CryptoAPI/AES) is not supported — \
+                         DataCraft reads Jet3/Jet4 RC4 databases only"
+                    .to_owned(),
             });
         }
         Ok(Self { header, file })
