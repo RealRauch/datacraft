@@ -237,19 +237,19 @@ fn run_with_limit(
     let mut orders = Vec::with_capacity(query.order_by.len());
     for order in &query.order_by {
         let expression = parse_expression(&order.field, &from_tables)?;
-        if !matches!(expression, crate::expr::Expression::Field { .. }) {
+        let Some((position, column)) = project::resolve_field(&expression, &from_tables) else {
             return unsupported(format!(
                 "ORDER BY {:?} is computed — only field references sort",
                 order.field
             ));
-        }
+        };
         orders.push(OrderKey {
-            source: order.field.clone(),
-            expression,
+            position,
+            column,
             descending: order.descending,
         });
     }
-    project::sort_rows(&mut rows, &orders, &from_tables, &unique_bare)?;
+    project::sort_rows(&mut rows, &orders);
 
     let mut projections: Vec<Projection> = Vec::new();
     for column in &query.columns {
@@ -258,7 +258,7 @@ fn run_with_limit(
     if projections.is_empty() {
         return unsupported(format!("native query {:?} projects no columns", query.name));
     }
-    project::project(&rows, &projections, &from_tables, &unique_bare)
+    Ok(project::project(&rows, &projections))
 }
 
 fn validate_query(query: &NativeQuery) -> Result<(), NativeExecError> {

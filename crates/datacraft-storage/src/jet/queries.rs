@@ -301,3 +301,6 @@ fn apply_attribute(row: &[StorageValue], query: &mut NativeQuery) -> Result<(), 
         }),
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -173,3 +173,26 @@ fn event_reason(events: &[Event]) -> String {
         })
         .unwrap_or_else(|| panic!("expected a Failed event: {events:?}"))
 }
+
+#[test]
+fn port_failures_surface_as_failed_events() {
+    let mut port = MockPort::failing_writes("disk full");
+    port.with_capabilities(DriverCapabilities::full());
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+        password: None,
+    });
+    for command in [
+        Command::SaveDatabaseAs {
+            path: PathBuf::from("copy.mdb"),
+            password: None,
+        },
+        Command::ChangePassword {
+            new_password: Some("secret".to_owned()),
+        },
+    ] {
+        let reason = event_reason(&core.dispatch(command));
+        assert!(reason.contains("disk full"), "{reason}");
+    }
+}

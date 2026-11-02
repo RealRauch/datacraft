@@ -7,8 +7,8 @@
 use std::path::Path;
 
 use datacraft_core::port::{
-    NativeJoin, NativeJoinKind, NativeQuery, NativeQueryColumn, NativeQueryKind, OpenedDatabase,
-    PortError, Relationship, RowRange, SchemaChange, StoragePort,
+    DatabaseFormat, DriverCapabilities, NativeJoin, NativeJoinKind, NativeQuery, NativeQueryColumn,
+    NativeQueryKind, OpenedDatabase, PortError, Relationship, RowRange, SchemaChange, StoragePort,
 };
 use datacraft_core::qbe::SortOrder;
 use datacraft_core::schema::{FieldValue, TableDef};
@@ -180,4 +180,45 @@ fn every_disqualifier_answers_none() {
         parameters: Vec::new(),
     };
     assert!(no_tables.query_def().is_none());
+}
+
+#[test]
+fn minimal_ports_keep_the_identity_and_password_defaults() {
+    let mut port = MinimalPort;
+    assert_eq!(port.driver_id().as_str(), "generic");
+    assert_eq!(port.capabilities(), DriverCapabilities::full());
+
+    let error = port
+        .save_as(Path::new("copy.mdb"), None)
+        .expect_err("default");
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+    assert!(
+        error.to_string().contains("saving database copies"),
+        "{error}"
+    );
+    let error = port.change_password(Some("secret")).expect_err("default");
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+    assert!(
+        error.to_string().contains("changing database passwords"),
+        "{error}"
+    );
+    let error = port
+        .create_database(Path::new("new.mdb"), DatabaseFormat::Jet4)
+        .expect_err("default");
+    assert!(
+        error.to_string().contains("creating database files"),
+        "{error}"
+    );
+
+    let required = PortError::PasswordRequired {
+        path: "db.mdb".to_owned(),
+    };
+    assert!(
+        required.to_string().contains("password-protected"),
+        "{required}"
+    );
+    let wrong = PortError::WrongPassword {
+        path: "db.mdb".to_owned(),
+    };
+    assert!(wrong.to_string().contains("password is wrong"), "{wrong}");
 }

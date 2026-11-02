@@ -401,6 +401,7 @@ fn join_parse_errors_are_locatable() {
         ("A.id =", "expression"),
         ("A.id + 1 = B.id", "plain field references"),
         ("Ghost.id = B.id", "Ghost"),
+        ("A.id = Ghost.id", "Ghost"),
         ("A.ghost = B.id", "ghost"),
     ] {
         let mut native = query(&["A", "B"], vec![column("A.id")]);
@@ -414,4 +415,20 @@ fn join_parse_errors_are_locatable() {
             "{expression}: {error}"
         );
     }
+}
+
+#[test]
+fn a_join_that_exceeds_the_cap_is_precise() {
+    let (a, b) = two_tables();
+    let sources = vec![(&a, rows(&[1, 2, 3])), (&b, rows(&[1, 2, 3]))];
+    let mut native = query(&["A", "B"], vec![column("A.id")]);
+    native.joins.push(NativeJoin {
+        expression: "A.id = B.id".to_owned(),
+        kind: NativeJoinKind::Inner,
+    });
+    let error = run_with_limit(&native, &sources, 2).expect_err("three matches exceed two");
+    assert!(
+        matches!(error, NativeExecError::TooManyRows { rows: 3, limit: 2 }),
+        "{error}"
+    );
 }

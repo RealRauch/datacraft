@@ -19,12 +19,12 @@ use super::join::PartialRow;
 /// One output column of the execution.
 #[derive(Debug, Clone)]
 pub(crate) enum Projection {
-    /// A plain field reference.
+    /// A plain field reference resolved to its table position and column.
     Field {
-        /// Stored expression source (for precise errors).
-        source: String,
-        /// Parsed reference.
-        expression: Expression,
+        /// FROM position.
+        position: usize,
+        /// Column index in that table.
+        column: usize,
         /// Output column name.
         output: String,
     },
@@ -46,34 +46,25 @@ impl Projection {
         }
     }
 
-    pub(crate) fn evaluate(
-        &self,
-        row: &PartialRow,
-        scope: &Scope,
-    ) -> Result<FieldValue, NativeExecError> {
+    fn value(&self, row: &PartialRow) -> FieldValue {
         match self {
             Self::Field {
-                source, expression, ..
-            } => expression
-                .evaluate(scope)
-                .map_err(|error| NativeExecError::BadExpression {
-                    source: source.clone(),
-                    detail: error.to_string(),
-                }),
-            Self::Star {
                 position, column, ..
-            } => Ok(row.value(*position, *column)),
+            }
+            | Self::Star {
+                position, column, ..
+            } => row.value(*position, *column),
         }
     }
 }
 
-/// One parsed ORDER BY key.
+/// One parsed ORDER BY key, resolved to its table position and column.
 #[derive(Debug, Clone)]
 pub(crate) struct OrderKey {
-    /// Stored field source (for precise errors).
-    pub(crate) source: String,
-    /// Parsed field reference.
-    pub(crate) expression: Expression,
+    /// FROM position.
+    pub(crate) position: usize,
+    /// Column index in that table.
+    pub(crate) column: usize,
     /// Descending flag.
     pub(crate) descending: bool,
 }
@@ -222,33 +213,17 @@ pub(crate) fn filter_rows(
 }
 
 /// Sorts the joined rows by every ORDER BY key (stable, leftmost first).
-pub(crate) fn sort_rows(
-    rows: &mut Vec<PartialRow>,
-    orders: &[OrderKey],
-    from_tables: &[&TableDef],
-    unique_bare: &BTreeSet<String>,
-) -> Result<(), NativeExecError> {
+pub(crate) fn sort_rows(rows: &mut [PartialRow], orders: &[OrderKey]) {
     if orders.is_empty() {
-        return Ok(());
+        return;
     }
-    let mut keyed = Vec::with_capacity(rows.len());
-    for row in rows.drain(..) {
-        let scope = scope_for(&row, from_tables, unique_bare);
-        let mut keys = Vec::with_capacity(orders.len());
+    rows.sort_by(|left, right| {
         for order in orders {
-            keys.push(order.expression.evaluate(&scope).map_err(|error| {
-                NativeExecError::BadExpression {
-                    source: order.source.clone(),
-                    detail: error.to_string(),
-                }
-            })?);
-        }
-        keyed.push((keys, row));
-    }
-    keyed.sort_by(|(left, _), (right, _)| {
-        for (index, order) in orders.iter().enumerate() {
-            let ordering = crate::query_criteria::compare(&left[index], &right[index])
-                .unwrap_or(std::cmp::Ordering::Equal);
+            let ordering = crate::query_criteria::compare(
+                &left.value(order.position, order.column),
+                &right.value(order.position, order.column),
+            )
+            .unwrap_or(std::cmp::Ordering::Equal);
             let ordering = if order.descending {
                 ordering.reverse()
             } else {
@@ -260,8 +235,6 @@ pub(crate) fn sort_rows(
         }
         std::cmp::Ordering::Equal
     });
-    *rows = keyed.into_iter().map(|(_, row)| row).collect();
-    Ok(())
 }
 
 /// Expands one decoded column into projections.
@@ -282,13 +255,16 @@ pub(crate) fn parse_column(
              execute"
         ));
     };
+    let Some((position, column_index)) = resolve_field(&expression, from_tables) else {
+        return super::unsupported(format!("column {source:?} does not resolve to one field"));
+    };
     let output = match &column.field {
         Some(field) if !field.contains('.') && !field.starts_with('[') => field.clone(),
         _ => name.clone(),
     };
     Ok(vec![Projection::Field {
-        source: source.to_owned(),
-        expression,
+        position,
+        column: column_index,
         output,
     }])
 }
@@ -359,27 +335,50 @@ fn field_position(table: &TableDef, name: &str) -> Option<usize> {
 }
 
 /// Projects the joined rows into the result grid.
-pub(crate) fn project(
-    rows: &[PartialRow],
-    projections: &[Projection],
-    from_tables: &[&TableDef],
-    unique_bare: &BTreeSet<String>,
-) -> Result<QueryResult, NativeExecError> {
+pub(crate) fn project(rows: &[PartialRow], projections: &[Projection]) -> QueryResult {
     let columns: Vec<String> = projections
         .iter()
         .map(|projection| projection.output().to_owned())
         .collect();
-    let mut result_rows = Vec::with_capacity(rows.len());
-    for row in rows {
-        let scope = scope_for(row, from_tables, unique_bare);
-        let mut values = Vec::with_capacity(projections.len());
-        for projection in projections {
-            values.push(projection.evaluate(row, &scope)?);
+    let rows = rows
+        .iter()
+        .map(|row| {
+            projections
+                .iter()
+                .map(|projection| projection.value(row))
+                .collect()
+        })
+        .collect();
+    QueryResult { columns, rows }
+}
+
+/// Resolves a field reference to (FROM position, column); ambiguous bare
+/// names and non-field expressions return `None`.
+pub(crate) fn resolve_field(
+    expression: &Expression,
+    from_tables: &[&TableDef],
+) -> Option<(usize, usize)> {
+    match expression {
+        Expression::Field {
+            table: Some(table),
+            name,
+        } => {
+            let position = from_position(from_tables, table)?;
+            let column = field_position(from_tables[position], name)?;
+            Some((position, column))
         }
-        result_rows.push(values);
+        Expression::Field { table: None, name } => {
+            let mut found = None;
+            for (position, table) in from_tables.iter().enumerate() {
+                if let Some(column) = field_position(table, name) {
+                    if found.is_some() {
+                        return None;
+                    }
+                    found = Some((position, column));
+                }
+            }
+            found
+        }
+        _ => None,
     }
-    Ok(QueryResult {
-        columns,
-        rows: result_rows,
-    })
 }

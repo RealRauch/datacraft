@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{PortError, RowRange, StoragePort};
 use datacraft_core::schema::FieldValue;
+use datacraft_storage::detecting::DetectingPort;
 use datacraft_storage::jet::FileHeader;
 use datacraft_storage::jet::crypto::{self, HEADER_RC4_KEY, PageEncryption};
 use datacraft_storage::port_adapter::Jet4Port;
@@ -260,4 +261,26 @@ fn jet3_sources_are_read_only_for_save_as() {
     let error = port.save_as(&target, None).expect_err("Jet3 has no writer");
     assert!(error.to_string().contains("Jet3"), "{error}");
     assert!(!target.exists(), "no partial copy is left behind");
+}
+
+#[test]
+fn the_detecting_composite_forwards_save_as_and_password_change() {
+    let source = copy_of("passwordV2000-none.mdb", "detecting-source");
+    let target = scratch_path("detecting-target", "mdb");
+    let mut port = DetectingPort::new();
+    port.open(&source.0, None).expect("the source opens");
+    port.save_as(&target, Some("via-detect"))
+        .expect("save-as is forwarded");
+    port.change_password(Some("changed"))
+        .expect("password change is forwarded");
+    port.close();
+
+    let mut copy = Jet4Port::new();
+    copy.open(&target, Some("via-detect"))
+        .expect("the copy opens with the new password");
+    let mut changed = Jet4Port::new();
+    changed
+        .open(&source.0, Some("changed"))
+        .expect("the source opens with the changed password");
+    let _ = std::fs::remove_file(&target);
 }
