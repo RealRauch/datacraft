@@ -170,16 +170,12 @@ pub(crate) fn cross(
     rows: Vec<PartialRow>,
     position: usize,
     new_rows: &[Vec<FieldValue>],
-    width: usize,
     limit: usize,
 ) -> Result<Vec<PartialRow>, NativeExecError> {
     let mut out = Vec::new();
     for row in &rows {
         for candidate in new_rows {
             let mut next = row.clone();
-            if next.cells.len() < width {
-                next.cells.resize(width, None);
-            }
             next.cells[position] = Some(candidate.clone());
             out.push(next);
             check_limit(out.len(), limit)?;

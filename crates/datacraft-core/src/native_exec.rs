@@ -223,13 +223,7 @@ fn run_with_limit(
     }
     for position in 0..from_tables.len() {
         if !bound[position] {
-            rows = join::cross(
-                rows,
-                position,
-                from_rows[position],
-                from_tables.len(),
-                limit,
-            )?;
+            rows = join::cross(rows, position, from_rows[position], limit)?;
         }
     }
 
