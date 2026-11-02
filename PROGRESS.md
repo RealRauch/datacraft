@@ -201,7 +201,7 @@
 | 24.3 | Design-time schema editing, ALTER TABLE (M9) | ✅ |
 | 24.4 | Phase 24 Quality Gate Review | ✅ |
 | 25.1 | ACCDB-Write-Verträge (H42) | ✅ |
-| 25.2 | ACCDB-Port-Write-Through + Bus-E2E (H43) | ⬜ |
+| 25.2 | ACCDB-Port-Write-Through + Bus-E2E (H43) | ✅ |
 | 25.3 | Phase 25 Quality Gate Review | ⬜ |
 | 26.1 | Release-Workflow: Matrix, Checksums, Notices (M13) | ⬜ |
 | 26.2 | Release-Smoke + Tag-Politik (M13) | ⬜ |

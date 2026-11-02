@@ -728,3 +728,11 @@
 - **Ansatz:** Die Jet4-Writer-Verträge auf den gepinnten ACE-Fixtures beweisen: Kopie von `testV2007.accdb`/`testV2010.accdb` in tmp → `create_table` + `insert_row`/`update`/`delete`/`drop_table`/`alter_table` → decode zurück; Original-Seiten byte-identisch (nur Appends), Header unangetastet (Magic/Version), Usage-Maps konsistent. Externes Oracle existiert für ACE nicht (mdb-tools liest kein .accdb) — Referenz ist decode∘encode∘decode gegen die pristinen Bytes; der CI-Oracle-Job erweitert sich nicht.
 - **Acceptance:** Verträge grün auf ACE 2007/2010 (und 2016-Datei als Read-only-Referenz); jeder Original-Block byte-erhalten; präziser `Unsupported` bleibt für wirklich Unqualifiziertes.
 - **Done:** done in `7e7f755` (RED `3b4a4fb`) — ACE 2007/2010 write contracts green (insert/update/delete/create/drop/alter with byte preservation and map consistency, 2016 fixture as read-only reference); office-encrypted ACCDB now rejected at the writer boundary
+
+---
+
+### [x] H43 — ACCDB-Port-Write-Through + Bus-E2E an .accdb — 🟠
+- **Location:** `crates/datacraft-storage/tests/ace_port_writes.rs` (neu), `crates/datacraft-ui/tests/server_e2e.rs` (ACE-Fall), `src/port_adapter.rs` (nur falls Gates)
+- **Ansatz:** Port-Write-Through an `.accdb`: tmp-Kopie von `testV2010.accdb` → über `Jet4Port` create/insert/update/delete/drop/alter → Reopen verifiziert Persistenz; `DatabaseFormat::Ace` bleibt über alle Operationen stabil; Bus-Verträge (MCP/CLI) öffnen und schreiben dieselbe Datei über die identische Vokabel.falls Gates existieren (Format-Guards), werden sie bewusst geöffnet — kein stummer Durchgriff.
+- **Acceptance:** Port- + E2E-Tests an ACE grün; Reopen zeigt alle Operationen; `Unsupported`-Fälle präzise getestet; Format-Anzeige bleibt „ACE“.
+- **Done:** done in `d53c054` — ACE write-through proven at the port (create/insert/update/delete/alter/drop on testV2010 copies, reopen persistence, format stays Ace), over the JSON-RPC wire (server_e2e_ace.rs) and through the CLI vocabulary; no format gate existed to open (pinned fact)

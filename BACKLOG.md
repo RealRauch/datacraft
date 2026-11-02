@@ -18,11 +18,6 @@
 
 > No open items.
 
-### [ ] H43 — ACCDB-Port-Write-Through + Bus-E2E an .accdb — 🟠
-- **Location:** `crates/datacraft-storage/tests/ace_port_writes.rs` (neu), `crates/datacraft-ui/tests/server_e2e.rs` (ACE-Fall), `src/port_adapter.rs` (nur falls Gates)
-- **Ansatz:** Port-Write-Through an `.accdb`: tmp-Kopie von `testV2010.accdb` → über `Jet4Port` create/insert/update/delete/drop/alter → Reopen verifiziert Persistenz; `DatabaseFormat::Ace` bleibt über alle Operationen stabil; Bus-Verträge (MCP/CLI) öffnen und schreiben dieselbe Datei über die identische Vokabel.falls Gates existieren (Format-Guards), werden sie bewusst geöffnet — kein stummer Durchgriff.
-- **Acceptance:** Port- + E2E-Tests an ACE grün; Reopen zeigt alle Operationen; `Unsupported`-Fälle präzise getestet; Format-Anzeige bleibt „ACE“.
-
 ### [ ] H44 — Ship sample databases and templates (Phase 29) — 🟠
 - **Location:** `samples/` (new), `crates/datacraft-core/src/command.rs`, `crates/datacraft-storage/src/jet/create.rs` (new), `crates/datacraft-storage/examples/make_samples.rs` (new), `crates/datacraft-ui/src/backstage/` (new pages)
 - **Problem:** No user-facing sample files exist. `fixtures/` is immutable test evidence and includes unlicensed material (Northwind); there is no way to create a new database file at all, so templates cannot be authored reproducibly.
@@ -196,3 +191,4 @@
 - M7 — Jet table drops through the writer (DropTable on .mdb/.accdb) — done (done in `24f5033` (RED `e3c4601`) — writer/drop path deletes the catalog row, frees used-map + TDEF-chain + unreferenced usage pages into the global free map and 0xFF-fills freed pages; port tests cover reopen visibility, neighbour survival and failure atomicity)
 - M9 — Design-time schema editing (ALTER TABLE) in the table design view — done (done in `6780b3c` (RED `588fe4f`) — AddField/DropField/RenameField/SetFieldProperties via one `alter_table` port method; TDEF rewrite on a scratch writer with row re-encoding (dense column ids on drop), design-grid edit controls dispatch one command each)
 - H42 — ACCDB-Write-Verträge (create/insert/update/delete/drop/alter auf .accdb) — done (done in `7e7f755` (RED `3b4a4fb`) — ACE 2007/2010 write contracts green (insert/update/delete/create/drop/alter with byte preservation and map consistency, 2016 fixture as read-only reference); office-encrypted ACCDB now rejected at the writer boundary)
+- H43 — ACCDB-Port-Write-Through + Bus-E2E an .accdb — done (done in `d53c054` — ACE write-through proven at the port (create/insert/update/delete/alter/drop on testV2010 copies, reopen persistence, format stays Ace), over the JSON-RPC wire (server_e2e_ace.rs) and through the CLI vocabulary; no format gate existed to open (pinned fact))
