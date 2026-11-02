@@ -169,47 +169,13 @@ impl StoragePort for Jet4Port {
         }
     }
 
-    /// Writes a copy of the open database (step 27.2, item M14). The copy
-    /// is derived from the decrypted writer handoff: the header region is
-    /// rewritten with the requested password state and page-encrypted
-    /// accordingly. The source file is never touched.
     fn save_as(&mut self, path: &Path, password: Option<&str>) -> Result<(), PortError> {
-        let reader = self.reader.as_ref().ok_or_else(no_database)?;
-        if reader.header.format == FormatVersion::Jet3 {
-            return Err(PortError::Unsupported {
-                reason: "Jet3 (Access 97) sources are read-only — save-as needs a writable \
-                         format"
-                    .to_owned(),
-            });
-        }
-        let header = reader.header.clone();
-        let mut copy = reader.file.clone();
-        let encryption =
-            crate::jet::crypto::set_password(&mut copy, &header, password).map_err(map_write)?;
-        crate::jet::crypto::encrypt_file(&mut copy, &header, encryption.as_ref())
-            .map_err(map_write)?;
-        write_new_file(path, &copy)
+        password::save_as(self, path, password)
     }
 
     /// Rewrites the open file with a new password (step 27.2, item M14).
-    /// The reader swaps to the newly encrypted state, so subsequent writes
-    /// re-encrypt with the new key.
     fn change_password(&mut self, new_password: Option<&str>) -> Result<(), PortError> {
-        let path = self.path.clone().ok_or_else(no_database)?;
-        let (header, decrypted) = {
-            let reader = self.reader.as_ref().ok_or_else(no_database)?;
-            (reader.header.clone(), reader.file.clone())
-        };
-        let mut decrypted = decrypted;
-        let encryption = crate::jet::crypto::set_password(&mut decrypted, &header, new_password)
-            .map_err(map_write)?;
-        let mut disk = decrypted.clone();
-        crate::jet::crypto::encrypt_file(&mut disk, &header, encryption.as_ref())
-            .map_err(map_write)?;
-        write_replacing(&path, &disk)?;
-        let reader = Jet4TableReader::from_decrypted(decrypted, encryption).map_err(map_open)?;
-        self.reader = Some(reader);
-        Ok(())
+        password::change_password(self, new_password)
     }
 
     fn tables(&self) -> Vec<TableDef> {
@@ -328,6 +294,18 @@ impl StoragePort for Jet4Port {
         rows::insert_row(self, table, values)
     }
 
+    /// Restores a previously read row image, including its engine-assigned
+    /// AutoNumber (step 28.1, item U14). The writer accepts the explicit
+    /// value; the table's counter stays untouched, so later inserts cannot
+    /// collide with the restored identity.
+    fn restore_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        let page = self.page_of(table)?;
+        let definition = self.definition_of(table)?.clone();
+        let values = port_write::to_storage_values_for_restore(&definition.fields, values)?;
+        self.with_writer(|writer| writer.insert_row(page, &values))?;
+        Ok(())
+    }
+
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
         rows::read_rows(self, table, range)
     }
@@ -354,6 +332,7 @@ impl StoragePort for Jet4Port {
     }
 }
 
+mod password;
 mod rows;
 
 impl Jet4Port {
@@ -411,59 +390,6 @@ impl Jet4Port {
         self.reader = Some(reader);
         Ok(out)
     }
-}
-
-/// Writes a new file, refusing an existing target; a failed write removes
-/// the partial file so no half-copy survives (step 27.2, M14).
-fn write_new_file(path: &Path, bytes: &[u8]) -> Result<(), PortError> {
-    use std::io::Write;
-    let mut file = match std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)
-    {
-        Ok(file) => file,
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            return Err(PortError::WriteFailed {
-                detail: format!("{}: the target file already exists", path.display()),
-            });
-        }
-        Err(e) => {
-            return Err(PortError::WriteFailed {
-                detail: format!("{}: {e}", path.display()),
-            });
-        }
-    };
-    if let Err(e) = file.write_all(bytes) {
-        drop(file);
-        let _ = std::fs::remove_file(path);
-        return Err(PortError::WriteFailed {
-            detail: format!("{}: {e}", path.display()),
-        });
-    }
-    Ok(())
-}
-
-/// Atomically replaces `path` through a sibling temp file (the settings
-/// pattern from step 22.1): an interrupted write can never truncate the
-/// existing database.
-fn write_replacing(path: &Path, bytes: &[u8]) -> Result<(), PortError> {
-    let mut name = path.as_os_str().to_os_string();
-    name.push(".tmp");
-    let temp = PathBuf::from(name);
-    if let Err(e) = std::fs::write(&temp, bytes) {
-        let _ = std::fs::remove_file(&temp);
-        return Err(PortError::WriteFailed {
-            detail: format!("{}: {e}", path.display()),
-        });
-    }
-    if let Err(e) = std::fs::rename(&temp, path) {
-        let _ = std::fs::remove_file(&temp);
-        return Err(PortError::WriteFailed {
-            detail: format!("{}: {e}", path.display()),
-        });
-    }
-    Ok(())
 }
 
 /// Enumerates user tables through the catalog with their TDEF pages.

@@ -111,12 +111,36 @@ fn undo_restores_an_autonumber_row_across_reopen() {
         after.contains(&before[0]),
         "the restored row keeps its AutoNumber: {after:?} vs {before:?}"
     );
+    drop(scratch);
+}
 
-    core = reopened;
+#[test]
+fn redo_removes_the_restored_row() {
+    let path = scratch_path("redo");
+    let scratch = Scratch(path.clone());
+    let mut core = Core::new(Box::new(Jet4Port::new()));
+    assert!(!failed(&core.dispatch(Command::CreateDatabase {
+        path: path.clone(),
+        format: DatabaseFormat::Jet4,
+    })));
+    core = open(&path);
+    assert!(!failed(&core.dispatch(Command::CreateTable {
+        definition: table(),
+    })));
+    assert!(!failed(&core.dispatch(Command::InsertRow {
+        table: "Notes".to_owned(),
+        values: vec![FieldValue::Null, FieldValue::Text("alpha".to_owned()),],
+    })));
+    assert!(!failed(&core.dispatch(Command::DeleteRow {
+        table: "Notes".to_owned(),
+        row: 0,
+    })));
+    assert!(!failed(&core.dispatch(Command::Undo)));
+    assert_eq!(rows(&core).len(), 1);
     assert!(!failed(&core.dispatch(Command::Redo)));
-    assert_eq!(rows(&core).len(), 1, "redo removes the restored row");
+    assert_eq!(rows(&core).len(), 0, "redo removes the restored row");
     core.dispatch(Command::CloseDatabase);
     let again = open(&path);
-    assert_eq!(rows(&again).len(), 1);
+    assert_eq!(rows(&again).len(), 0);
     drop(scratch);
 }

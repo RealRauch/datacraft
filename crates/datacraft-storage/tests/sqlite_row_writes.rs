@@ -184,3 +184,71 @@ fn update_arity_and_autonumber_only_tables() {
         .expect_err("bounds");
     assert!(matches!(err, PortError::OutOfRange { .. }), "{err:?}");
 }
+
+#[test]
+fn restore_row_reproduces_the_autonumber_identity() {
+    let scratch = empty_database("restore");
+    let mut port = SqlitePort::new();
+    port.open(&scratch.0, None).expect("open");
+    port.create_table(&people()).expect("create");
+    port.insert_row(
+        "people",
+        &[
+            FieldValue::Null,
+            FieldValue::Text("Ada".into()),
+            FieldValue::Float(1.5),
+        ],
+    )
+    .expect("insert");
+    let before = port
+        .read_rows(
+            "people",
+            RowRange {
+                start: 0,
+                len: usize::MAX,
+            },
+        )
+        .expect("read")[0]
+        .clone();
+    assert!(matches!(before[0], FieldValue::Integer(_)));
+    port.delete_row("people", 0).expect("delete");
+    port.restore_row("people", &before).expect("restore");
+    let rows = port
+        .read_rows(
+            "people",
+            RowRange {
+                start: 0,
+                len: usize::MAX,
+            },
+        )
+        .expect("read restored");
+    assert_eq!(rows, vec![before]);
+    port.close();
+
+    let mut reopened = SqlitePort::new();
+    reopened.open(&scratch.0, None).expect("reopen");
+    assert_eq!(
+        reopened
+            .read_rows(
+                "people",
+                RowRange {
+                    start: 0,
+                    len: usize::MAX,
+                },
+            )
+            .expect("read after reopen"),
+        rows
+    );
+
+    let error = reopened
+        .restore_row(
+            "people",
+            &[
+                FieldValue::Null,
+                FieldValue::Text("engine".into()),
+                FieldValue::Float(0.0),
+            ],
+        )
+        .expect_err("a restore needs the identity");
+    assert!(error.to_string().contains("AutoNumber"), "{error}");
+}

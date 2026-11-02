@@ -193,23 +193,14 @@ fn quick_access_entries_are_declared_in_order() {
 }
 
 #[test]
-fn quick_access_save_is_enabled_and_history_entries_name_their_follow_up() {
+fn every_quick_access_entry_is_declared_enabled() {
     let quick_access = &ribbon_spec().quick_access;
-    assert!(
-        matches!(quick_access[0].state, ActionState::Enabled),
-        "Save is dispatchable today"
-    );
-    for entry in &quick_access[1..] {
-        match &entry.state {
-            ActionState::DisabledIn { phase } => {
-                assert!(
-                    phase.contains("U14"),
-                    "{} names its follow-up item: {phase}",
-                    entry.id
-                );
-            }
-            ActionState::Enabled => panic!("{} must stay disabled until U14", entry.id),
-        }
+    for entry in quick_access {
+        assert!(
+            matches!(entry.state, ActionState::Enabled),
+            "{} is dispatchable today — the QAT gates Undo/Redo from the snapshot depth",
+            entry.id
+        );
     }
 }
 

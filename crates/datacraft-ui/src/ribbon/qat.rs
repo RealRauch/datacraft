@@ -23,7 +23,16 @@ pub(super) fn quick_access_ui(app: &App, ui: &mut egui::Ui) -> Option<Command> {
         for entry in &ribbon_spec().quick_access {
             ui.push_id(format!("qat.{}", entry.id), |ui| match &entry.state {
                 ActionState::Enabled => {
-                    if qat_button(ui, t(entry.label), entry.id, true).clicked()
+                    // Undo/Redo enable from the snapshot's history depth
+                    // (step 28.1, item U14); every other entry stays on.
+                    let enabled = match entry.id {
+                        "undo" => app.snapshot().undo_depth > 0,
+                        "redo" => app.snapshot().redo_depth > 0,
+                        _ => true,
+                    };
+                    let clicked = qat_button(ui, t(entry.label), entry.id, enabled).clicked();
+                    if clicked
+                        && enabled
                         && let Some(command) = super::command_for(entry.id, app)
                     {
                         intent = Some(command);

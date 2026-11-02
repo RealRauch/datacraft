@@ -317,6 +317,12 @@ column mapping (with its lossiness) is documented in `src/port_write.rs`:
   fills the counter value and advances `+12` (persisted across reopen); a
   user-supplied value is rejected. GUID AutoNumbers (`ReplicationId`) stay a
   precise `Unsupported` (step 24.1, M8).
+- **Row-image restore (step 28.1, U14):** `StoragePort::restore_row` is the
+  deliberate exception to the AutoNumber rule — the undo history writes a
+  previously read image verbatim (fixed `LongInt`), leaving the TDEF `+12`
+  counter untouched. Future inserts therefore get fresh identities and
+  cannot collide with the restored one; every other field is validated
+  like an insert.
 - **Table drop (M7, step 24.2):** the `MSysObjects` row is deleted (the
   `0x8000` slot flag, `num_rows` decremented), every page from the table's
   used map plus its TDEF chain returns to the global free map, the usage

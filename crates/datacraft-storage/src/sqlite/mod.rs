@@ -36,6 +36,81 @@ impl SqlitePort {
     }
 }
 
+impl SqlitePort {
+    /// Shared insert path (step 28.1, item U14): `allow_autonumber` is the
+    /// restore exception, where the image already carries the identity.
+    fn insert_values(
+        &mut self,
+        table: &str,
+        values: &[FieldValue],
+        allow_autonumber: bool,
+    ) -> Result<(), PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
+        let def = self
+            .tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(table))
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?
+            .clone();
+        if values.len() != def.fields.len() {
+            return Err(PortError::WriteFailed {
+                detail: format!(
+                    "insert into {:?}: expected {} values, found {}",
+                    def.name,
+                    def.fields.len(),
+                    values.len()
+                ),
+            });
+        }
+        let mut columns = Vec::new();
+        let mut params = Vec::new();
+        for (field, value) in def.fields.iter().zip(values) {
+            if matches!(field.kind, FieldKind::AutoNumber(_)) {
+                if matches!(value, FieldValue::Null) {
+                    if allow_autonumber {
+                        return Err(PortError::WriteFailed {
+                            detail: format!(
+                                "restoring a row needs the original AutoNumber value of field {:?}",
+                                field.name
+                            ),
+                        });
+                    }
+                    continue;
+                }
+                if !allow_autonumber {
+                    return Err(PortError::WriteFailed {
+                        detail: format!(
+                            "autonumber field {:?} is engine-assigned; user-provided values are rejected",
+                            field.name
+                        ),
+                    });
+                }
+            }
+            params.push(sql_value(&field.kind, value));
+            columns.push(quote_ident(&field.name));
+        }
+        let sql = if columns.is_empty() {
+            format!("INSERT INTO {} DEFAULT VALUES", quote_ident(&def.name))
+        } else {
+            let placeholders: Vec<String> = (1..=columns.len()).map(|n| format!("?{n}")).collect();
+            format!(
+                "INSERT INTO {} ({}) VALUES ({})",
+                quote_ident(&def.name),
+                columns.join(", "),
+                placeholders.join(", ")
+            )
+        };
+        conn.execute(&sql, rusqlite::params_from_iter(params))
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("insert into {:?} failed: {e}", def.name),
+            })?;
+        Ok(())
+    }
+}
+
 impl StoragePort for SqlitePort {
     fn driver_id(&self) -> DriverId {
         DriverId::new("sqlite")
@@ -157,59 +232,13 @@ impl StoragePort for SqlitePort {
     }
 
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
-        let conn = self.conn.as_ref().ok_or_else(no_database)?;
-        if !self.writable {
-            return Err(read_only());
-        }
-        let def = self
-            .tables
-            .iter()
-            .find(|t| t.name.eq_ignore_ascii_case(table))
-            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?
-            .clone();
-        if values.len() != def.fields.len() {
-            return Err(PortError::WriteFailed {
-                detail: format!(
-                    "insert into {:?}: expected {} values, found {}",
-                    def.name,
-                    def.fields.len(),
-                    values.len()
-                ),
-            });
-        }
-        let mut columns = Vec::new();
-        let mut params = Vec::new();
-        for (field, value) in def.fields.iter().zip(values) {
-            if matches!(field.kind, FieldKind::AutoNumber(_)) {
-                if matches!(value, FieldValue::Null) {
-                    continue;
-                }
-                return Err(PortError::WriteFailed {
-                    detail: format!(
-                        "autonumber field {:?} is engine-assigned; user-provided values are rejected",
-                        field.name
-                    ),
-                });
-            }
-            params.push(sql_value(&field.kind, value));
-            columns.push(quote_ident(&field.name));
-        }
-        let sql = if columns.is_empty() {
-            format!("INSERT INTO {} DEFAULT VALUES", quote_ident(&def.name))
-        } else {
-            let placeholders: Vec<String> = (1..=columns.len()).map(|n| format!("?{n}")).collect();
-            format!(
-                "INSERT INTO {} ({}) VALUES ({})",
-                quote_ident(&def.name),
-                columns.join(", "),
-                placeholders.join(", ")
-            )
-        };
-        conn.execute(&sql, rusqlite::params_from_iter(params))
-            .map_err(|e| PortError::WriteFailed {
-                detail: format!("insert into {:?} failed: {e}", def.name),
-            })?;
-        Ok(())
+        self.insert_values(table, values, false)
+    }
+
+    /// Restores a row image verbatim, including its AutoNumber identity
+    /// (step 28.1, item U14).
+    fn restore_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        self.insert_values(table, values, true)
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {

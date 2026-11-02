@@ -143,6 +143,51 @@ pub(crate) fn to_storage_values(
     Ok(out)
 }
 
+/// Maps a **restored** row image (step 28.1, item U14): unlike an insert,
+/// engine-assigned AutoNumber values are written verbatim, because the
+/// image already carries the identity the undo history must reproduce.
+/// Every other field is validated like an insert.
+pub(crate) fn to_storage_values_for_restore(
+    fields: &[FieldDef],
+    values: &[FieldValue],
+) -> Result<Vec<StorageValue>, PortError> {
+    if values.len() != fields.len() {
+        return Err(PortError::WriteFailed {
+            detail: format!(
+                "row holds {} values but the table defines {} fields",
+                values.len(),
+                fields.len()
+            ),
+        });
+    }
+    let mut out = Vec::with_capacity(values.len());
+    for (field, value) in fields.iter().zip(values) {
+        if let FieldKind::AutoNumber(kind) = field.kind {
+            let valid = match kind {
+                AutoKind::LongInteger => matches!(value, FieldValue::Integer(_)),
+                AutoKind::ReplicationId => matches!(value, FieldValue::Guid(_)),
+            };
+            if !valid {
+                return Err(PortError::WriteFailed {
+                    detail: format!(
+                        "field {:?}: a restored AutoNumber needs its original engine-assigned                          value",
+                        field.name
+                    ),
+                });
+            }
+            out.push(to_storage_value(value)?);
+            continue;
+        }
+        field
+            .validate_value(value)
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("field {:?}: {e}", field.name),
+            })?;
+        out.push(to_storage_value(value)?);
+    }
+    Ok(out)
+}
+
 /// Maps domain values onto the physical storage vocabulary for an update:
 /// AutoNumber columns keep their engine-assigned value, so they are written
 /// as-is (the bus guarantees the value is unchanged); everything else is

@@ -281,7 +281,10 @@ impl crate::core::Core {
         };
         match self.port.insert_row(&canonical, &prepared) {
             Err(e) => failed(e.to_string()),
-            Ok(()) => vec![Event::RowInserted { table: canonical }],
+            Ok(()) => {
+                self.record_insert(&canonical);
+                vec![Event::RowInserted { table: canonical }]
+            }
         }
     }
 
@@ -335,10 +338,13 @@ impl crate::core::Core {
         };
         match self.port.update_row(&canonical, row, &prepared) {
             Err(e) => failed(e.to_string()),
-            Ok(()) => vec![Event::RowUpdated {
-                table: canonical,
-                row,
-            }],
+            Ok(()) => {
+                self.record_update(&canonical, &current, &prepared);
+                vec![Event::RowUpdated {
+                    table: canonical,
+                    row,
+                }]
+            }
         }
     }
 
@@ -362,12 +368,23 @@ impl crate::core::Core {
             return failed(PortError::TableNotFound(table.to_owned()).to_string());
         };
         let canonical = def.name.clone();
+        let current = match self
+            .port
+            .read_rows(&canonical, crate::port::RowRange { start: row, len: 1 })
+        {
+            Ok(rows) if rows.len() == 1 => rows.into_iter().next().expect("length checked"),
+            Ok(_) => return failed(format!("row {row} of {canonical:?} is out of range")),
+            Err(e) => return failed(e.to_string()),
+        };
         match self.port.delete_row(&canonical, row) {
             Err(e) => failed(e.to_string()),
-            Ok(()) => vec![Event::RowDeleted {
-                table: canonical,
-                row,
-            }],
+            Ok(()) => {
+                self.record_delete(&canonical, &current);
+                vec![Event::RowDeleted {
+                    table: canonical,
+                    row,
+                }]
+            }
         }
     }
 

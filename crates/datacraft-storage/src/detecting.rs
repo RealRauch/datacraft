@@ -162,6 +162,13 @@ impl StoragePort for DetectingPort {
             .insert_row(table, values)
     }
 
+    fn restore_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .restore_row(table, values)
+    }
+
     fn update_row(
         &mut self,
         table: &str,
