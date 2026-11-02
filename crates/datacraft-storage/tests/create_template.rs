@@ -11,17 +11,12 @@ use std::path::PathBuf;
 use std::process::id;
 
 use datacraft_core::port::StoragePort;
-use datacraft_core::schema::{
-    AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_storage::jet::create::materialize_jet4_template;
 use datacraft_storage::port_adapter::Jet4Port;
 
 fn scratch(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!(
-        "datacraft-storage-template-{}-{name}",
-        id()
-    ))
+    std::env::temp_dir().join(format!("datacraft-storage-template-{}-{name}", id()))
 }
 
 /// A template with an autonumbered table and a plain table.
@@ -72,9 +67,14 @@ fn materialization_is_deterministic_and_reopens_with_every_row() {
     assert_eq!(a, b, "same template and date, byte-identical file");
 
     let mut port = Jet4Port::new();
-    port.open(&first, None).expect("the materialized file opens");
+    port.open(&first, None)
+        .expect("the materialized file opens");
     let names: Vec<String> = port.tables().into_iter().map(|t| t.name).collect();
-    assert_eq!(names, ["Items", "Customers"], "catalog order is template order");
+    assert_eq!(
+        names,
+        ["Items", "Customers"],
+        "catalog order is template order"
+    );
 
     let items = port
         .read_rows(
@@ -83,7 +83,11 @@ fn materialization_is_deterministic_and_reopens_with_every_row() {
         )
         .expect("items read");
     assert_eq!(items.len(), 2);
-    assert_eq!(items[0][0], FieldValue::Integer(1), "autonumbers start at 1");
+    assert_eq!(
+        items[0][0],
+        FieldValue::Integer(1),
+        "autonumbers start at 1"
+    );
     assert_eq!(items[1][0], FieldValue::Integer(2));
     assert_eq!(items[0][1], FieldValue::Text("Road frame".into()));
 

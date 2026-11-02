@@ -28,6 +28,9 @@ pub struct UiStateSnapshot {
     pub relationship_mapper_open: bool,
     /// Whether the SQL window is open (step 13.3, H37).
     pub sql_window_open: bool,
+    /// The shipped database templates (phase 29, item H44) — the registry
+    /// behind `CreateDatabaseFromTemplate`, visible to every client.
+    pub templates: Vec<crate::templates::TemplateSummary>,
 }
 
 /// Snapshot of the open database.
@@ -154,6 +157,7 @@ impl UiStateSnapshot {
     /// Projects the application state.
     pub fn of(state: &AppState) -> Self {
         Self {
+            templates: crate::templates::summaries(),
             database: state.database.as_ref().map(|db| DatabaseSnapshot {
                 name: db.name.clone(),
                 path: db.path.clone(),

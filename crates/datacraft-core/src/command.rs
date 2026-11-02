@@ -49,6 +49,16 @@ pub enum Command {
         /// Target format family (`Jet4` or `Sqlite`).
         format: crate::port::DatabaseFormat,
     },
+    /// Materializes a shipped template into a brand-new file (phase 29,
+    /// item H44). The template's tables and rows are written through the
+    /// port; the new database is not opened. Registry names are listed in
+    /// the snapshot's `templates`.
+    CreateDatabaseFromTemplate {
+        /// Filesystem path of the new file.
+        path: PathBuf,
+        /// Registry name of the template (case-insensitive).
+        template: String,
+    },
     /// Creates a table from a validated definition.
     CreateTable {
         /// Full field-level definition.

@@ -1,4 +1,5 @@
-//! Fresh Jet4 file builder (phase 29, step 29.1, item H44).
+//! Fresh Jet4 file builder and template materializer (phase 29, steps
+//! 29.1/29.2, item H44).
 //!
 //! A brand-new four-page database — header page, global free map, an empty
 //! `MSysObjects` catalog and its usage page — written from nothing. The
@@ -12,13 +13,17 @@
 
 use std::path::Path;
 
+use datacraft_core::schema::{FieldValue, TableDef};
+
 use crate::error::StorageError;
 use crate::jet::crypto::{HEADER_RC4_KEY, JET4_HEADER_REGION};
 use crate::jet::encode::{build_table_def, encode_tdef, pack_map_dword};
 use crate::jet::header::{JET_PRODUCT, JET4_VERSION, SIGNATURE};
 use crate::jet::tdef::JetColumn;
 use crate::jet::usage_map::UsageMap;
+use crate::jet::writer::Jet4Writer;
 use crate::jet::{JetType, PAGE_TYPE_DATA, PAGE_TYPE_TDEF};
+use crate::port_write;
 
 /// Jet4 page size (format-derived).
 const PAGE: usize = 4096;
@@ -147,4 +152,57 @@ fn write_tdef_page(file: &mut [u8], page: usize, block: &[u8]) {
     let len = block.len() as u32;
     file[base + 8..base + 12].copy_from_slice(&len.to_le_bytes());
     file[base + 8..base + 8 + block.len()].copy_from_slice(block);
+}
+
+/// Materializes a template — `(definition, seed rows)` per table, in
+/// creation order — into a brand-new Jet4 file. Every timestamp (header
+/// creation date, catalog rows) is pinned to `created`, so the same
+/// template and date produce byte-identical files (LESSONS #6). A failure
+/// at any stage removes the partial file.
+pub fn materialize_jet4_template(
+    path: &Path,
+    created: f64,
+    tables: &[(TableDef, Vec<Vec<FieldValue>>)],
+) -> Result<(), StorageError> {
+    create_jet4_file(path, created)?;
+    let outcome = materialize_tables(path, created, tables);
+    if outcome.is_err() {
+        let _ = std::fs::remove_file(path);
+    }
+    outcome
+}
+
+/// Writes the template's tables into the freshly created file.
+fn materialize_tables(
+    path: &Path,
+    created: f64,
+    tables: &[(TableDef, Vec<Vec<FieldValue>>)],
+) -> Result<(), StorageError> {
+    let mut writer = Jet4Writer::new(std::fs::read(path).map_err(|e| unsupported(path, &e))?)?;
+    writer.set_catalog_date(created);
+    for (definition, rows) in tables {
+        let columns = port_write::table_to_columns(definition).map_err(|error| {
+            StorageError::Unsupported {
+                reason: error.to_string(),
+            }
+        })?;
+        let page = writer.create_table(&definition.name, &columns)?;
+        for row in rows {
+            let stored =
+                port_write::to_storage_values(&definition.fields, row).map_err(|error| {
+                    StorageError::Unsupported {
+                        reason: error.to_string(),
+                    }
+                })?;
+            writer.insert_row(page, &stored)?;
+        }
+    }
+    std::fs::write(path, writer.into_file()).map_err(|e| unsupported(path, &e))
+}
+
+/// Uniform storage error for filesystem failures on a fresh file.
+fn unsupported(path: &Path, error: &std::io::Error) -> StorageError {
+    StorageError::Unsupported {
+        reason: format!("{}: {error}", path.display()),
+    }
 }

@@ -26,6 +26,10 @@ const TDEF_USED_PAGES_AT: usize = 47;
 pub struct Jet4Writer {
     pub(crate) header: FileHeader,
     pub(crate) file: Vec<u8>,
+    /// Timestamp for new catalog rows (`DateCreate`/`DateUpdate`). Defaults
+    /// to the construction time; the deterministic template materializer
+    /// pins it (phase 29, step 29.2 — LESSONS #6).
+    pub(crate) catalog_date: f64,
 }
 
 impl Jet4Writer {
@@ -53,7 +57,17 @@ impl Jet4Writer {
                     .to_owned(),
             });
         }
-        Ok(Self { header, file })
+        Ok(Self {
+            header,
+            file,
+            catalog_date: crate::jet::encode::now_as_ole_date(),
+        })
+    }
+
+    /// Pins the timestamp new catalog rows carry (deterministic
+    /// materialization, phase 29 step 29.2 — LESSONS #6).
+    pub fn set_catalog_date(&mut self, date: f64) {
+        self.catalog_date = date;
     }
 
     /// The decoded file header (`page_count` tracks file growth).

@@ -443,10 +443,8 @@ fn creates_a_jet4_database_over_the_wire() {
 /// shipped templates, and the new file opens with the template's tables.
 #[test]
 fn creates_a_database_from_template_over_the_wire() {
-    let path = std::env::temp_dir().join(format!(
-        "datacraft-e2e-{}-template.mdb",
-        std::process::id()
-    ));
+    let path =
+        std::env::temp_dir().join(format!("datacraft-e2e-{}-template.mdb", std::process::id()));
     let _ = std::fs::remove_file(&path);
 
     let mut core = Core::new(Box::new(DetectingPort::new()));

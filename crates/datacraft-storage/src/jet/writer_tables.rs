@@ -14,9 +14,7 @@
 
 use crate::error::StorageError;
 use crate::jet::data_page::DataPage;
-use crate::jet::encode::{
-    build_table_def, encode_row, encode_tdef, now_as_ole_date, pack_map_dword,
-};
+use crate::jet::encode::{build_table_def, encode_row, encode_tdef, pack_map_dword};
 use crate::jet::page::{PAGE_TYPE_DATA, PAGE_TYPE_TDEF};
 use crate::jet::tdef::JetTableDef;
 use crate::jet::usage_map::UsageMap;
@@ -79,10 +77,11 @@ impl Jet4Writer {
         );
         self.write_fresh_tdef_page(tdef_page, &encode_tdef(&def))?;
 
-        // 3. Catalog row (append into MSysObjects).
-        let now = now_as_ole_date();
+        // 3. Catalog row (append into MSysObjects). The timestamp is the
+        // writer's catalog date — construction time by default, pinned by
+        // the deterministic template materializer (phase 29, step 29.2).
         let catalog_def = JetTableDef::decode(&self.file, CATALOG_TDEF)?;
-        let values = Self::catalog_row(&catalog_def, tdef_page, name, now);
+        let values = Self::catalog_row(&catalog_def, tdef_page, name, self.catalog_date);
         self.insert_row(CATALOG_TDEF, &values)?;
         Ok(tdef_page)
     }

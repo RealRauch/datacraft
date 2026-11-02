@@ -49,7 +49,10 @@ fn unknown_templates_name_the_available_set() {
     match events.first() {
         Some(Event::Failed { reason }) => {
             assert!(reason.contains("nope"), "{reason}");
-            assert!(reason.contains("blank"), "names the available set: {reason}");
+            assert!(
+                reason.contains("blank"),
+                "names the available set: {reason}"
+            );
         }
         other => panic!("expected a Failed event, got {other:?}"),
     }
@@ -60,7 +63,10 @@ fn the_snapshot_lists_the_shipped_templates() {
     let core = Core::new(Box::new(MockPort::new()));
     let templates = &core.inspect().templates;
     assert!(!templates.is_empty(), "the standard set ships");
-    let blank = templates.iter().find(|t| t.name == "blank").expect("blank ships");
+    let blank = templates
+        .iter()
+        .find(|t| t.name == "blank")
+        .expect("blank ships");
     assert_eq!(blank.format, DatabaseFormat::Jet4);
     assert_eq!(blank.tables, 0, "blank carries no tables");
 }

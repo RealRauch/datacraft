@@ -39,6 +39,7 @@ pub mod schema;
 pub mod snapshot;
 pub mod sql_engine;
 pub mod state;
+pub mod templates;
 pub mod transport;
 pub mod vba;
 pub mod vba_analysis;

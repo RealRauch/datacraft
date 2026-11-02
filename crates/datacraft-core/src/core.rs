@@ -247,6 +247,9 @@ impl Core {
             Command::OpenDatabase { path, password } => self.open_database(path, password),
             Command::CloseDatabase => self.close_database(),
             Command::CreateDatabase { path, format } => self.create_database(path, format),
+            Command::CreateDatabaseFromTemplate { path, template } => {
+                self.create_database_from_template(path, template)
+            }
             Command::CreateTable { definition } => self.create_table(definition),
             Command::DropTable { table } => self.drop_table(&table),
             Command::AddField { table, field } => {
