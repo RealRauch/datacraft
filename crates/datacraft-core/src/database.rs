@@ -94,6 +94,21 @@ impl crate::core::Core {
         events
     }
 
+    /// Creates a new database file (phase 29, step 29.1, item H44).
+    /// Independent of the open database: creation touches neither the open
+    /// state nor its tabs, and the new file stays closed until an
+    /// `OpenDatabase` command.
+    pub(crate) fn create_database(
+        &mut self,
+        path: std::path::PathBuf,
+        format: crate::port::DatabaseFormat,
+    ) -> Vec<Event> {
+        match self.port.create_database(&path, format) {
+            Ok(()) => vec![Event::DatabaseCreated { path, format }],
+            Err(e) => failed(e.to_string()),
+        }
+    }
+
     pub(crate) fn create_table(&mut self, definition: TableDef) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
             return failed("no database is open — open a database first");

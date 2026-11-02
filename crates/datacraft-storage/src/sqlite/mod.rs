@@ -62,6 +62,32 @@ impl StoragePort for SqlitePort {
         self.writable = false;
     }
 
+    fn create_database(&mut self, path: &Path, format: DatabaseFormat) -> Result<(), PortError> {
+        if format != DatabaseFormat::Sqlite {
+            return Err(PortError::Unsupported {
+                reason: "the SQLite backend creates SQLite databases only — use the Jet \
+                         backend for Jet4 files"
+                    .to_owned(),
+            });
+        }
+        if path.exists() {
+            return Err(PortError::WriteFailed {
+                detail: format!(
+                    "{}: file already exists — creating would overwrite it",
+                    path.display()
+                ),
+            });
+        }
+        // `Connection::open` creates a zero-byte file; VACUUM materializes
+        // the real database header so format detection sniffs the fresh
+        // file. A failed create leaves no debris behind.
+        let outcome = initialize_sqlite_file(path);
+        if outcome.is_err() {
+            let _ = std::fs::remove_file(path);
+        }
+        outcome
+    }
+
     fn tables(&self) -> Vec<TableDef> {
         self.tables.clone()
     }
@@ -309,4 +335,16 @@ fn out_of_range(table: &str, row: usize, row_count: usize) -> PortError {
         len: 1,
         row_count,
     }
+}
+
+/// Creates and initializes a brand-new SQLite database file.
+fn initialize_sqlite_file(path: &Path) -> Result<(), PortError> {
+    let failed = |stage: &str, e: rusqlite::Error| PortError::WriteFailed {
+        detail: format!("{}: {stage}: {e}", path.display()),
+    };
+    let conn = Connection::open(path).map_err(|e| failed("opening", e))?;
+    conn.execute_batch("VACUUM")
+        .map_err(|e| failed("initializing", e))?;
+    conn.close().map_err(|(_, e)| failed("closing", e))?;
+    Ok(())
 }

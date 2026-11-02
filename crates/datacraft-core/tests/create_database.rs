@@ -62,7 +62,10 @@ fn creation_is_independent_of_an_open_database() {
         path: "memory.mock".into(),
         password: None,
     });
-    assert!(matches!(events[0], Event::DatabaseOpened { .. }), "{events:?}");
+    assert!(
+        matches!(events[0], Event::DatabaseOpened { .. }),
+        "{events:?}"
+    );
 
     let path = scratch("while-open.mdb");
     let events = core.dispatch(Command::CreateDatabase {

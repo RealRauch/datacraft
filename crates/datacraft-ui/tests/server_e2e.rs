@@ -403,10 +403,8 @@ fn vba_static_analysis_crosses_the_wire() {
 /// is created but NOT opened — the client dispatches `OpenDatabase` next.
 #[test]
 fn creates_a_jet4_database_over_the_wire() {
-    let path = std::env::temp_dir().join(format!(
-        "datacraft-e2e-{}-create.mdb",
-        std::process::id()
-    ));
+    let path =
+        std::env::temp_dir().join(format!("datacraft-e2e-{}-create.mdb", std::process::id()));
     let _ = std::fs::remove_file(&path);
 
     let mut core = Core::new(Box::new(DetectingPort::new()));

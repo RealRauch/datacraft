@@ -40,6 +40,15 @@ pub enum Command {
     },
     /// Closes the open database and all of its tabs.
     CloseDatabase,
+    /// Creates a brand-new, empty database file (phase 29, item H44). The
+    /// file must not exist; the new database is not opened — dispatch
+    /// `OpenDatabase` afterwards.
+    CreateDatabase {
+        /// Filesystem path of the new file.
+        path: PathBuf,
+        /// Target format family (`Jet4` or `Sqlite`).
+        format: crate::port::DatabaseFormat,
+    },
     /// Creates a table from a validated definition.
     CreateTable {
         /// Full field-level definition.

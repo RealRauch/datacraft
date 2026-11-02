@@ -21,6 +21,14 @@ pub enum Event {
     },
     /// The open database was closed (all tabs closed first).
     DatabaseClosed,
+    /// A new database file was created (phase 29, item H44); it is not
+    /// opened — an `OpenDatabase` command follows.
+    DatabaseCreated {
+        /// Filesystem path of the new file.
+        path: std::path::PathBuf,
+        /// Format family of the created file.
+        format: DatabaseFormat,
+    },
     /// A table was created.
     TableCreated {
         /// Canonical table name.

@@ -111,6 +111,30 @@ impl StoragePort for Jet4Port {
         self.path = None;
     }
 
+    fn create_database(&mut self, path: &Path, format: DatabaseFormat) -> Result<(), PortError> {
+        match format {
+            DatabaseFormat::Jet4 => {
+                let created = crate::jet::encode::now_as_ole_date();
+                crate::jet::create::create_jet4_file(path, created).map_err(|error| {
+                    PortError::WriteFailed {
+                        detail: format!("{}: {error}", path.display()),
+                    }
+                })
+            }
+            DatabaseFormat::Jet3 => Err(PortError::Unsupported {
+                reason: "Jet3 (Access 97) files are never created — create a Jet4 database"
+                    .to_owned(),
+            }),
+            DatabaseFormat::Ace => Err(PortError::Unsupported {
+                reason: "ACE 2007+ files cannot be created yet — create a Jet4 database".to_owned(),
+            }),
+            DatabaseFormat::Sqlite => Err(PortError::Unsupported {
+                reason: "SQLite files are created by the SQLite backend, not the Jet backend"
+                    .to_owned(),
+            }),
+        }
+    }
+
     fn tables(&self) -> Vec<TableDef> {
         self.tables.clone()
     }

@@ -232,6 +232,21 @@ pub trait StoragePort {
     ) -> Result<OpenedDatabase, PortError>;
     /// Closes the open database (idempotent).
     fn close(&mut self);
+    /// Creates a new, empty database file at `path` (phase 29, item H44).
+    /// The file must not exist yet; creating never opens the database —
+    /// the caller dispatches [`StoragePort::open`] afterwards. Backends
+    /// that cannot create files answer a precise `Unsupported` (the
+    /// default).
+    fn create_database(
+        &mut self,
+        path: &std::path::Path,
+        format: DatabaseFormat,
+    ) -> Result<(), PortError> {
+        let _ = (path, format);
+        Err(PortError::Unsupported {
+            reason: "creating database files is not supported by this backend".to_owned(),
+        })
+    }
     /// Catalog of table definitions in storage order.
     fn tables(&self) -> Vec<TableDef>;
     /// Creates a table; errors on duplicate names.

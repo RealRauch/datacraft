@@ -196,6 +196,20 @@ impl StoragePort for MockPort {
         self.opened = None;
     }
 
+    fn create_database(
+        &mut self,
+        path: &std::path::Path,
+        format: DatabaseFormat,
+    ) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        let _ = (path, format);
+        Ok(())
+    }
+
     fn tables(&self) -> Vec<TableDef> {
         self.tables.clone()
     }

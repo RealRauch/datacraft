@@ -6,6 +6,7 @@
 pub mod access;
 pub mod catalog;
 pub mod complex;
+pub mod create;
 pub mod crypto;
 pub mod data_page;
 pub mod encode;

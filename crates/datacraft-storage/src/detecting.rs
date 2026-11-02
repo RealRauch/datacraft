@@ -6,7 +6,9 @@
 
 use std::path::Path;
 
-use datacraft_core::port::{OpenedDatabase, PortError, Relationship, RowRange, StoragePort};
+use datacraft_core::port::{
+    DatabaseFormat, OpenedDatabase, PortError, Relationship, RowRange, StoragePort,
+};
 use datacraft_core::schema::{FieldValue, TableDef};
 
 use crate::port_adapter::Jet4Port;
@@ -59,6 +61,19 @@ impl StoragePort for DetectingPort {
 
     fn close(&mut self) {
         self.backend = None;
+    }
+
+    fn create_database(&mut self, path: &Path, format: DatabaseFormat) -> Result<(), PortError> {
+        match format {
+            DatabaseFormat::Jet4 => Jet4Port::new().create_database(path, format),
+            DatabaseFormat::Sqlite => SqlitePort::new().create_database(path, format),
+            other => Err(PortError::Unsupported {
+                reason: format!(
+                    "creating a {other:?} database file is not supported — create a \
+                     Jet4 or SQLite database"
+                ),
+            }),
+        }
     }
 
     fn tables(&self) -> Vec<TableDef> {
