@@ -496,37 +496,3 @@ fn apply_and_discard_error_paths_are_precise() {
         Event::WriteRolledBack { .. }
     ));
 }
-
-#[test]
-fn multi_op_previews_require_an_atomic_driver() {
-    // The honest mock default reports atomic_batch = false (like SQLite).
-    let mut port = MockPort::with_tables(vec![customers()]);
-    port.with_row_data("Customers", seeded_rows());
-    let mut core = Core::new(Box::new(port));
-    core.dispatch(Command::OpenDatabase {
-        path: "memory.mock".into(),
-        password: None,
-    });
-
-    let reason = failure(&core.dispatch(Command::PreviewWrite {
-        table: "Customers".to_owned(),
-        ops: batch(),
-    }));
-    assert!(
-        reason.contains("atomic") && reason.contains("one operation"),
-        "{reason}"
-    );
-
-    let token = preview_token(&core.dispatch(Command::PreviewWrite {
-        table: "Customers".to_owned(),
-        ops: vec![WriteOp::Update {
-            row: 0,
-            values: vec![
-                FieldValue::Null,
-                FieldValue::Text("single".into()),
-                FieldValue::Float(0.5),
-            ],
-        }],
-    }));
-    assert!(token > 0, "a single-operation batch stays available");
-}

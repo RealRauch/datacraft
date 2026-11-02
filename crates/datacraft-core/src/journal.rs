@@ -229,6 +229,17 @@ pub fn to_row_write_ops(ops: &[WriteOp]) -> Vec<RowWriteOp> {
         .collect()
 }
 
+/// One sentence for a batch the driver cannot apply atomically (step 33.1,
+/// item M20): non-atomic drivers accept single-operation batches only.
+fn atomic_batch_reason(db: &crate::state::DatabaseState, ops: usize) -> Option<String> {
+    (!db.capabilities.atomic_batch && ops > 1).then(|| {
+        format!(
+            "unsupported: the {} driver applies journal batches one operation at a time — a              multi-op batch would not be atomic (split it into single-operation batches)",
+            db.driver
+        )
+    })
+}
+
 fn out_of_range(table: &TableDef, row: usize, count: usize) -> String {
     format!(
         "row {row} of {:?} is out of range ({count} rows)",
@@ -242,6 +253,9 @@ impl crate::core::Core {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
+        if let Some(reason) = atomic_batch_reason(db, ops.len()) {
+            return failed(reason);
+        }
         let Some(def) = db
             .tables
             .iter()
@@ -289,6 +303,11 @@ impl crate::core::Core {
                 "stale write token {token} (pending journal is {})",
                 pending.token
             ));
+        }
+        if let Some(db) = self.state.database.as_ref()
+            && let Some(reason) = atomic_batch_reason(db, pending.ops.len())
+        {
+            return failed(reason);
         }
         let Some(def) = self
             .state
