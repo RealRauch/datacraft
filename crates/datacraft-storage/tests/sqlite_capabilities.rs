@@ -5,7 +5,7 @@
 //! `SqlitePort` does not override the capability reporting yet — it
 //! answers the optimistic trait defaults.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{DriverId, PortError, RowRange, SchemaChange, StoragePort, Support};
@@ -90,7 +90,10 @@ fn a_read_only_sqlite_file_reports_read_only_capabilities() {
 
     // The declared read-only state is a contract on the calls, too.
     let error = port
-        .insert_row("notes", &[FieldValue::Null, FieldValue::Text("x".to_owned())])
+        .insert_row(
+            "notes",
+            &[FieldValue::Null, FieldValue::Text("x".to_owned())],
+        )
         .expect_err("insert is refused on a read-only file");
     assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
     let error = port
@@ -101,6 +104,9 @@ fn a_read_only_sqlite_file_reports_read_only_capabilities() {
     let mut perms = std::fs::metadata(&scratch.0)
         .expect("metadata")
         .permissions();
+    // Scratch cleanup needs a deletable file; restoring writability on a
+    // throwaway temp file is exactly the intended effect here.
+    #[allow(clippy::permissions_set_readonly_false)]
     perms.set_readonly(false);
     std::fs::set_permissions(&scratch.0, perms).expect("restore writable for cleanup");
 }
