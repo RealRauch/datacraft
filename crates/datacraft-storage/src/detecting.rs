@@ -9,8 +9,8 @@
 use std::path::Path;
 
 use datacraft_core::port::{
-    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship, RowRange,
-    SchemaChange, StoragePort,
+    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
+    RowRange, SchemaChange, StoragePort,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
