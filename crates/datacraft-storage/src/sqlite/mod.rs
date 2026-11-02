@@ -8,7 +8,8 @@
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{
-    DatabaseFormat, OpenedDatabase, PortError, Relationship, RowRange, StoragePort,
+    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
+    RowRange, StoragePort, Support,
 };
 use datacraft_core::schema::{FieldKind, FieldValue, TableDef};
 use rusqlite::Connection;
@@ -36,6 +37,31 @@ impl SqlitePort {
 }
 
 impl StoragePort for SqlitePort {
+    fn driver_id(&self) -> DriverId {
+        DriverId::new("sqlite")
+    }
+
+    /// Per-session capabilities (phase 30, M17; ADR-7): no schema
+    /// alteration path yet, batches apply one by one (no transaction
+    /// wrapper), passwords do not exist, and the inventories Jet exposes
+    /// (native queries, macros, VBA) have no SQLite counterpart. A
+    /// read-only file disables the write capabilities; file creation is
+    /// session-independent.
+    fn capabilities(&self) -> DriverCapabilities {
+        let mut caps = DriverCapabilities::full();
+        caps.write_rows = self.writable;
+        caps.create_table = self.writable;
+        caps.drop_table = self.writable;
+        caps.alter_table = false;
+        caps.atomic_batch = false;
+        caps.passwords = false;
+        caps.autonumber = Support::Yes; // single AutoNumber via AUTOINCREMENT
+        caps.native_queries = Support::No;
+        caps.macros = Support::No;
+        caps.vba = Support::No;
+        caps
+    }
+
     fn open(&mut self, path: &Path, _password: Option<&str>) -> Result<OpenedDatabase, PortError> {
         // SQLite has no database password; the flag is ignored.
         read_magic(path)?;
