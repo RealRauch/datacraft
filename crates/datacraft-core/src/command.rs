@@ -59,6 +59,24 @@ pub enum Command {
         /// Registry name of the template (case-insensitive).
         template: String,
     },
+    /// Writes a copy of the open database under `path` (step 27.2, item
+    /// M14). `password` protects the copy (`None` writes an unencrypted
+    /// copy); the original stays untouched and open. Gated on the driver's
+    /// `passwords` capability.
+    SaveDatabaseAs {
+        /// Filesystem path of the copy; it must not exist yet.
+        path: PathBuf,
+        /// New password, or `None` for an unencrypted copy.
+        #[serde(default)]
+        password: Option<String>,
+    },
+    /// Replaces the open database's password in place (step 27.2, item
+    /// M14); the old password is the one the session was opened with.
+    ChangePassword {
+        /// New password, or `None` to remove the protection.
+        #[serde(default)]
+        new_password: Option<String>,
+    },
     /// Creates a table from a validated definition.
     CreateTable {
         /// Full field-level definition.

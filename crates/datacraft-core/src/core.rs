@@ -256,6 +256,8 @@ impl Core {
             Command::CreateDatabaseFromTemplate { path, template } => {
                 self.create_database_from_template(path, template)
             }
+            Command::SaveDatabaseAs { path, password } => self.save_database_as(path, password),
+            Command::ChangePassword { new_password } => self.change_password(new_password),
             Command::CreateTable { definition } => self.create_table(definition),
             Command::DropTable { table } => self.drop_table(&table),
             Command::AddField { table, field } => {

@@ -47,6 +47,7 @@ fn restricted_capabilities_disable_the_matching_affordances() {
     caps.drop_table = false;
     caps.write_rows = false;
     caps.relationships = Support::No;
+    caps.passwords = false;
     let core = core_with(caps);
     let db = core.inspect().database.expect("database open");
     assert_eq!(
@@ -67,6 +68,14 @@ fn restricted_capabilities_disable_the_matching_affordances() {
             (
                 "relationships".to_owned(),
                 datacraft_core::availability::DisabledReason::NoRelationships,
+            ),
+            (
+                "backstage.save_as".to_owned(),
+                datacraft_core::availability::DisabledReason::NoPasswords,
+            ),
+            (
+                "backstage.change_password".to_owned(),
+                datacraft_core::availability::DisabledReason::NoPasswords,
             ),
         ])
     );
@@ -101,5 +110,9 @@ fn disabled_reasons_serialize_stable_on_the_wire() {
     assert_eq!(
         serde_json::to_value(DisabledReason::NoRelationships).expect("serialize"),
         serde_json::json!("no_relationships")
+    );
+    assert_eq!(
+        serde_json::to_value(DisabledReason::NoPasswords).expect("serialize"),
+        serde_json::json!("no_passwords")
     );
 }

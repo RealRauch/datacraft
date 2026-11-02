@@ -313,6 +313,25 @@ pub trait StoragePort {
             reason: "creating database files is not supported by this backend".to_owned(),
         })
     }
+    /// Writes a copy of the open database to `path` (step 27.2, item
+    /// M14). `password` protects the copy; `None` writes an unencrypted
+    /// copy. The original stays untouched. Backends without a password
+    /// surface answer a precise `Unsupported` (the default).
+    fn save_as(&mut self, path: &std::path::Path, password: Option<&str>) -> Result<(), PortError> {
+        let _ = (path, password);
+        Err(PortError::Unsupported {
+            reason: "saving database copies is not supported by this backend".to_owned(),
+        })
+    }
+    /// Replaces the open database's password in place (step 27.2, item
+    /// M14); `None` removes the protection. Backends without a password
+    /// surface answer a precise `Unsupported` (the default).
+    fn change_password(&mut self, new_password: Option<&str>) -> Result<(), PortError> {
+        let _ = new_password;
+        Err(PortError::Unsupported {
+            reason: "changing database passwords is not supported by this backend".to_owned(),
+        })
+    }
     /// Catalog of table definitions in storage order.
     fn tables(&self) -> Vec<TableDef>;
     /// Creates a table; errors on duplicate names.

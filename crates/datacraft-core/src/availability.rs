@@ -25,6 +25,9 @@ pub enum DisabledReason {
     WriteRows,
     /// The source exposes no relationships.
     NoRelationships,
+    /// The source has no database-password surface (save-as / password
+    /// change are unavailable).
+    NoPasswords,
 }
 
 /// Stable affordance ids shared by the ribbon spec, the navigation
@@ -38,6 +41,10 @@ pub mod ids {
     pub const NAV_DELETE: &str = "nav.delete";
     /// Datasheet new-record row.
     pub const NEW_RECORD: &str = "datasheet.new_record";
+    /// Backstage Save ▸ Save a copy (step 27.2, M14).
+    pub const SAVE_AS: &str = "backstage.save_as";
+    /// Backstage Save ▸ Change password (step 27.2, M14).
+    pub const CHANGE_PASSWORD: &str = "backstage.change_password";
 }
 
 /// The availability map for one open source: disabled affordance id →
@@ -58,6 +65,10 @@ pub fn affordances(caps: &DriverCapabilities) -> BTreeMap<String, DisabledReason
             ids::RELATIONSHIPS.to_owned(),
             DisabledReason::NoRelationships,
         );
+    }
+    if !caps.passwords {
+        map.insert(ids::SAVE_AS.to_owned(), DisabledReason::NoPasswords);
+        map.insert(ids::CHANGE_PASSWORD.to_owned(), DisabledReason::NoPasswords);
     }
     map
 }

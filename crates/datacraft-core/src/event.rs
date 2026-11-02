@@ -21,6 +21,20 @@ pub enum Event {
     },
     /// The open database was closed (all tabs closed first).
     DatabaseClosed,
+    /// A copy of the open database was written under a new path
+    /// (step 27.2, item M14). The original stays untouched and open.
+    DatabaseSavedAs {
+        /// Filesystem path of the copy.
+        path: std::path::PathBuf,
+        /// Whether the copy is password-protected.
+        encrypted: bool,
+    },
+    /// The open database's password was replaced in place (step 27.2,
+    /// item M14).
+    PasswordChanged {
+        /// Whether the database is now password-protected.
+        encrypted: bool,
+    },
     /// A new database file was created (phase 29, item H44); it is not
     /// opened — an `OpenDatabase` command follows.
     DatabaseCreated {
