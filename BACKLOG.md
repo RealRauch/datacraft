@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-01T23:05
+# BACKLOG.md — Open items (As of: 2026-11-02T01:21
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -18,6 +18,16 @@
 
 > No open items.
 
+### [ ] H42 — ACCDB-Write-Verträge (create/insert/update/delete/drop/alter auf .accdb) — 🟠
+- **Location:** `crates/datacraft-storage/tests/ace_writer.rs` (neu), `crates/datacraft-storage/src/jet/writer*.rs` (nur falls Vertragslücken)
+- **Ansatz:** Die Jet4-Writer-Verträge auf den gepinnten ACE-Fixtures beweisen: Kopie von `testV2007.accdb`/`testV2010.accdb` in tmp → `create_table` + `insert_row`/`update`/`delete`/`drop_table`/`alter_table` → decode zurück; Original-Seiten byte-identisch (nur Appends), Header unangetastet (Magic/Version), Usage-Maps konsistent. Externes Oracle existiert für ACE nicht (mdb-tools liest kein .accdb) — Referenz ist decode∘encode∘decode gegen die pristinen Bytes; der CI-Oracle-Job erweitert sich nicht.
+- **Acceptance:** Verträge grün auf ACE 2007/2010 (und 2016-Datei als Read-only-Referenz); jeder Original-Block byte-erhalten; präziser `Unsupported` bleibt für wirklich Unqualifiziertes.
+
+### [ ] H43 — ACCDB-Port-Write-Through + Bus-E2E an .accdb — 🟠
+- **Location:** `crates/datacraft-storage/tests/ace_port_writes.rs` (neu), `crates/datacraft-ui/tests/server_e2e.rs` (ACE-Fall), `src/port_adapter.rs` (nur falls Gates)
+- **Ansatz:** Port-Write-Through an `.accdb`: tmp-Kopie von `testV2010.accdb` → über `Jet4Port` create/insert/update/delete/drop/alter → Reopen verifiziert Persistenz; `DatabaseFormat::Ace` bleibt über alle Operationen stabil; Bus-Verträge (MCP/CLI) öffnen und schreiben dieselbe Datei über die identische Vokabel.falls Gates existieren (Format-Guards), werden sie bewusst geöffnet — kein stummer Durchgriff.
+- **Acceptance:** Port- + E2E-Tests an ACE grün; Reopen zeigt alle Operationen; `Unsupported`-Fälle präzise getestet; Format-Anzeige bleibt „ACE“.
+
 ---
 
 ## 🟡 MEDIUM
@@ -29,6 +39,21 @@
 - **Problem:** The Quick Access Toolbar declares Undo/Redo (step 21.2, item U6) but renders them disabled: the command bus keeps no history, so there is nothing to undo.
 - **Approach:** a bounded per-database history stack of applied commands with deterministic inverse operations (the M2 journal already produces inverse write ops); `Undo`/`Redo` are ordinary bus commands that pop and push through the same reducer, so GUI, CLI and MCP share them; the snapshot exposes the history depth and the QAT entries enable from it.
 - **Acceptance:** Undo after a row insert/update/delete restores the previous row data (verified by reopening the file); Redo re-applies it; each action is exactly one command over the wire; QAT entries enable/disable from the snapshot; canonical verification set green.
+
+### [ ] M12 — Native Query-Execution (MSysQueries ausführen, begrenzter Dialekt) — 🟡
+- **Location:** `crates/datacraft-core/src/` (QueryDef aus nativen Queries → Engine-Ausführung), `crates/datacraft-storage/src/port_native.rs` (falls Attribut-Erweiterung), UI: QBE-Ausführung nativer Queries
+- **Ansatz:** Native Saved Queries sind lesbar (M10) — jetzt **ausführbar** über die eigene Engine: QueryDef (Tabellen/Spalten/Sort/Criteria, Joins im begrenzten Umfang) wird in die In-Memory-Engine überführt und über den Bus ausgeführt (`RunQuery`-Pfad); Konstrukte außerhalb des qualifizierten Dialekts (Ausdrücke, Parameter, Unterabfragen) → präziser `Unsupported` mit Grund statt stiller Fehler.
+- **Acceptance:** Fixture-Queries aus `queryTestV2000.mdb` laufen durch die Engine (Ergebnisse = QBE-Äquivalent); `Unsupported`-Grundfälle getestet; UI führt native Queries aus; MCP/CLI erben über den Bus.
+
+### [ ] M13 — Release-Engineering (Tags, release.yml, Checksums, Smoke) — 🟡
+- **Location:** `.github/workflows/release.yml` (neu), `Cargo.toml` (Versions-Politik), `docs/PLAYBOOK.md` (Release-Abschnitt), Third-Party-Notices
+- **Ansatz:** Tag-getriggerter Release-Workflow (Mirror der CI-Gates): Build von `datacraft`, `datacraft-cli`, `datacraft-mcp` für Windows/macOS/Linux (statisch gebundeltes rusqlite über `bundled`), Archive mit sha256-Checksums + Third-Party-Notices; Smoke je Artefakt (CLI öffnet ein Fixture headless, `--version`); erste Tags `v0.1.x` nach Gate.
+- **Acceptance:** Workflow-Datei lintet (YAML/Actions-Konventionen wie ci.yml); lokaler Release-Smoke (Release-Build des CLI öffnet `testV2000.mdb` headless); Tag-Politik dokumentiert; kein Binary im Repo.
+
+### [ ] M14 — Encrypted Save-As + Passwortwechsel (verschlüsselte Kopien) — 🟡
+- **Location:** `crates/datacraft-storage/src/port_adapter.rs` (`with_writer` speichert bereits verschlüsselt zurück — Schritt 16.2), `crates/datacraft-core/src/command.rs` (neu: Save-As/Passwortwechsel), UI Backstage, CLI/MCP-Flags
+- **Ansatz:** Der Write-Pfad re-encryptet beim Speichern bereits korrekt (M11). Rest: **Save-as** — Kopie unter neuem Pfad (optional mit anderem/gesetztem Passwort: unverschlüsselt → verschlüsselt, Passwortwechsel) als Command über den Bus; alle vier Clients bedienen es; präzise Fehler bei falschem Altpasswort.
+- **Acceptance:** Save-as auf unverschlüsselte/verschlüsselte Kopie getestet (Reopen mit/ohne Passwort); Passwortwechsel-Tests; UI/CLI/MCP-Fluss; Original bleibt unangetastet.
 
 ---
 
