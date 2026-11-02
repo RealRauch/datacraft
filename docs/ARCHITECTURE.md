@@ -63,7 +63,8 @@ headlessly (Principle 4) and the tool agent-operable (Principle 3).
 ```text
 crates/
 ├── datacraft-core/      domain model, command bus, app state, test IDs
-├── datacraft-storage/   StorageEngine trait + Jet/ACE backends (Ph. 2+)
+├── datacraft-storage/   StoragePort + Jet/ACE and SQLite backends (Ph. 2+)
+├── datacraft-csv/       CSV directory driver — ADR-7 out-of-tree proof (Ph. 30)
 └── datacraft-ui/        eframe/egui desktop shell (lib + bin `datacraft`)
 ```
 
@@ -76,9 +77,15 @@ Dependency direction rules (review-enforced, never cyclic):
 
 ```text
 datacraft-ui      ──► datacraft-core
+datacraft-cli     ──► datacraft-core
 datacraft-storage ──► datacraft-core
+datacraft-csv     ──► datacraft-core   (out-of-tree driver, ADR-7)
 datacraft-core    ──► (nothing internal)
 ```
+
+Out-of-tree drivers depend only on `datacraft-core` and are composed at
+the binary composition roots via `DetectingPort::with_fallback` (ADR-7,
+§16) — the storage crate never names them.
 
 - The UI never touches `datacraft-storage` directly; storage access happens
   exclusively through core commands.
