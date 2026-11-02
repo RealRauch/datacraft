@@ -206,7 +206,11 @@ Evidence (hex study on both fixture variants, hashes per
 - **Writes** run through the clean-room writer (BACKLOG H9, Phase 10):
   create tables, insert, update and delete rows on Jet4/ACE with
   usage-map-consistent allocation — see "Usage maps (writer)" and
-  "Row update and delete (writer)" below.
+  "Row update and delete (writer)" below. ACE write-through is verified
+  against the pinned 2007/2010 fixtures (Phase 25: byte-preserving
+  contracts in `ace_writer.rs`, port/wire/CLI write-through in
+  `ace_port_writes.rs` / `server_e2e_ace.rs`; office-encrypted ACCDB
+  answers `Unsupported` at the reader and writer boundary).
 
 ## Usage maps (writer — verified 2026-11-01, step 10.1)
 

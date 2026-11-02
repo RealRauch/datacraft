@@ -26,7 +26,7 @@ inner rings are still open.
 
 | Ring | Capability | Depends on | Cost / boundedness | Phase mapping |
 |------|------------|-----------|--------------------|---------------|
-| 0 | Storage: Jet4 read → ACE read → Jet4 write → ACE write | — | high; spec + oracle driven | Phase 2, H9 (write), L1 (Jet3) |
+| 0 | Storage: Jet4 read → ACE read → Jet4 write → ACE write | — | high; spec + oracle driven | Phase 2, H9 (write), L1 (Jet3), Phase 25 (ACE write) |
 | 1 | **Expression service** — `=Now()`, `IIf()`, `[Field] & " x"`, `Format()`, default values, validation rules, calculated fields | — | small, well-bounded language | ✅ Phase 15 (steps 15.1–15.2) |
 | 2 | Query engine — Jet SQL + the algebra stored in `MSysQueries` (QBE compiles to it) | R1 | hard but bounded | Phase 7 |
 | 3 | Macros — DoCmd action set (~60 documented actions, declarative) | R1 | bounded, low cost per action | ✅ Phase 17, step 17.1: read-only inventory (DoCmd execution remains out of scope) |
@@ -130,10 +130,10 @@ any code embedded in database files without explicit user consent/permissions.
 
 | # | Milestone | Unlocks | Status |
 |---|-----------|---------|--------|
-| M0 | Storage read milestones (Jet4 → ACE) | everything | ✅ Jet4 (Phase 2), Jet3 (Phase 10), ACE 2007/2010/2016 (Phase 14, oracle-checked); SQLite sources (Phase 13); ACCDB write → Phase 25 (planned) |
+| M0 | Storage read milestones (Jet4 → ACE) | everything | ✅ Jet4 (Phase 2), Jet3 (Phase 10), ACE 2007/2010/2016 (Phase 14, oracle-checked); SQLite sources (Phase 13); ACCDB write (Phase 25) |
 | M1 | Expression service (Ring 1) | queries, macros, forms, validation | ✅ Phase 15 (steps 15.1–15.2, H41 archived; `Now`/`Date` deliberately absent — deterministic) |
 | M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 · native query execution → Phase 27 (planned, M12) |
-| M3 | Write path (Ring 0 write) | editing apps, Access-compatible write goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11); verified claim set in the README matrix |
+| M3 | Write path (Ring 0 write) | editing apps, Access-compatible write goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11); ACCDB write-through landed in Phase 25 (writer contracts + port + wire/CLI, README matrix) |
 | M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview) + Phase 15 (grouped/aggregate bands) |
 | M5 | Macros (Ring 3) | unattended app logic | ✅ Phase 17, step 17.1: read-only inventory (name + coarse arguments); DoCmd execution stays out of scope |
 | M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ✅ Phase 17, steps 17.2–17.3 (extraction, viewer, `AnalyzeVba`; no execution) |

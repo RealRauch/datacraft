@@ -53,7 +53,7 @@ _By the ArtCraft team._
 > maximized; ADR-5). Expect breaking changes. The honest, step-by-step
 > picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
 > the verified compatibility claims are in
-> [Compatibility matrix](#compatibility-matrix-verified-2026-11-01).
+> [Compatibility matrix](#compatibility-matrix-verified-2026-11-02).
 
 ## Why DataCraft
 
@@ -61,8 +61,8 @@ _By the ArtCraft team._
   tabbed documents, datasheet and design views, the QBE grid, form and report
   canvas — rendered in an original, minimal ArtCraft aesthetic.
 - **Your files.** Verified read paths for `.mdb` (Jet3/Jet4) and `.accdb`
-  (ACE), plus a verified Jet4 write path, in pure Rust. The
-  [compatibility matrix](#compatibility-matrix-verified-2026-11-01) names
+  (ACE), plus verified Jet4 and ACE write paths, in pure Rust. The
+  [compatibility matrix](#compatibility-matrix-verified-2026-11-02) names
   every covered and unsupported path — no blanket "bit-for-bit" claim. No
   COM, OLE DB, ADO or winapi anywhere.
 - **Clean-room.** Format knowledge comes only from public specifications and
@@ -86,7 +86,7 @@ _By the ArtCraft team._
 | **Complex values (ACE)** | Attachments, multi-value and version-history columns resolve through `MSysComplexColumns` into ordered sub-records (`FieldValue::Complex`); backing `f_<guid>_*` tables are hidden from the catalog; the datasheet joins the scalar values (`FileName`/`Value`), QBE criteria on multi-value columns use documented EXISTS semantics, and complex writes stay a precise `Unsupported` |
 | **Storage — SQLite sources** | `SqlitePort` behind the same `StoragePort`: magic detection, `sqlite_master` catalog, `PRAGMA table_info` schema mapped onto Access field kinds (documented affinity table), foreign keys as relationships, row windows over rowid order, and writes (table create/drop, parameterized row inserts) — GUI, MCP and CLI open and fill `.sqlite` files through the same command vocabulary |
 | **Storage — Jet3/Jet4 read** | `StorageEngine` trait boundary; Jet page layer and file-header decoder; TDEF/TDAT decoders for Jet4 (unicode/compression) and Jet3 (CP1252, chained TDEFs, >255-byte jump-table rows, overflow/LVAL pages); embedded OLE columns (fixed 0x11 long binary) decode; golden-file tests against sha256-pinned fixtures; Jet4 parses are cross-checked against the libmdb oracle in CI (Jet3 is fixture-tested only) |
-| **Storage — Jet4 write** | clean-room writer core for Jet4 `.mdb` (ACE writes are not verified): usage-map-consistent page allocation (global free map + per-table used/free maps, black-box verified against real Access files), table creation with catalog rows, row insertion with free-map page reuse, row update (in-place for same-length encodings, page repacking otherwise) and row delete (the Access `0x8000` flag), table drops that free the TDEF/TDAT pages and the catalog row — **write-through behind the port** (`CreateTable`/`InsertRow`/`UpdateRow`/`DeleteRow`/`DropTable` persist to the `.mdb` path, verified by reopen and `mdb-export`); LongInteger AutoNumbers are engine-assigned with a persisted TDEF counter |
+| **Storage — Jet4/ACE write** | clean-room writer core for Jet4 `.mdb` and ACE `.accdb` (ACE contracts proven on the pinned 2007/2010 fixtures in phase 25: every original page stays byte-identical except the writer's in-place updates, usage maps stay consistent, the 2016 fixture passes as a read-only reference): usage-map-consistent page allocation (global free map + per-table used/free maps, black-box verified against real Access files), table creation with catalog rows, row insertion with free-map page reuse, row update (in-place for same-length encodings, page repacking otherwise) and row delete (the Access `0x8000` flag), table drops that free the TDEF/TDAT pages and the catalog row — **write-through behind the port** (`CreateTable`/`InsertRow`/`UpdateRow`/`DeleteRow`/`DropTable` persist to the `.mdb`/`.accdb` path, verified by reopen; the `mdb-export` oracle cross-checks Jet4); LongInteger AutoNumbers are engine-assigned with a persisted TDEF counter |
 | **Storage — encryption & passwords** | Jet3/Jet4 RC4: the fixed-key page-0 header region decodes on every open, a non-zero database key decrypts every page after page 0, and database passwords are validated (Jet3 plain text in the encrypted header, Jet4 creation-date mask) — `OpenDatabase` carries the optional password for GUI/CLI/MCP, missing/wrong answers `PasswordRequired`/`PasswordRejected`; writes keep encrypted files encrypted. ACE Office encryption (RC4 CryptoAPI/AES) is detected and rejected with a precise `Unsupported` |
 | **Domain model & schema** | Access field kinds (Short Text … OLE/Attachment, multi-value, complex) with typed properties and validation semantics; versioned `.datacraft` schema document (serde, migration ladder) per ADR-1 |
 | **Headless command bus** | Total reducer (`dispatch` → deterministic events, failures as `Failed` events), serializable `inspect()` snapshots, deterministic test IDs, JSON-RPC 2.0 codec with full error semantics, and journaled writes (`PreviewWrite` diff → token-confirmed `ApplyWrite` with rollback info; the profile refuses unqualified field families precisely) — GUI and agents speak the same language |
@@ -109,7 +109,7 @@ The honest picture, phase by phase, is in
 [docs/ROADMAP.md](docs/ROADMAP.md); the format facts are catalogued in
 [docs/FORMAT-JET.md](docs/FORMAT-JET.md).
 
-## Compatibility matrix (verified 2026-11-01)
+## Compatibility matrix (verified 2026-11-02)
 
 Every compatibility claim below names its evidence; unsupported paths are
 stated in the same row. **Read** means decode through the `StoragePort`;
@@ -121,7 +121,7 @@ byte-identical output to Microsoft Access is **not** claimed.
 | --- | --- | --- | --- | --- |
 | **Jet3 `.mdb`** | ✅ tables, TDEF chains, jump-table rows, overflow/LVAL, embedded OLE, RC4 password | ⬜ | `jet3.rs`, `jet3_remainders.rs`, `jet_encryption.rs` against `testV1997.mdb` / `test2V1997.mdb` | fixture-tested only (no libmdb oracle); no write path; Jet3 VBA/macro definitions stay name-only |
 | **Jet4 `.mdb`** | ✅ tables, catalog, rows, OLE/memo, relationships, native queries, RC4 password | ✅ create table, insert, update, delete, drop table, design-time alter (add/drop/rename/required), journaled batches, LongInteger AutoNumber counter | `jet_table.rs`, `jet_catalog.rs`, `native_queries.rs`, `jet_encryption.rs`; `jet_writer*.rs`, `jet_port_writes.rs`, `jet_row_writes.rs`, `jet_autonumber.rs`, `jet_table_drop.rs`, `jet_alter_table.rs`; oracle + `mdb-export` CI | writer verified on Jet4 `.mdb` only; MSysQueries attribute 12 and unmapped constructs answer `Unsupported` (the open carries `native_queries_error`, surfaced at the Queries group) |
-| **ACE `.accdb`** | ✅ 2007/2010/2016 tables, complex values, named macros, VBA project | ⬜ not verified | `ace_fixtures.rs`, `complex_values.rs`, `macros.rs`, `vba.rs`; oracle on three template fixtures | ACE write path untested; Office encryption (RC4 CryptoAPI/AES) rejected with `Unsupported` |
+| **ACE `.accdb`** | ✅ 2007/2010/2016 tables, complex values, named macros, VBA project | ✅ create table, insert, update, delete, drop table, design-time alter (add/drop/rename/required) on ACE 2007/2010 | `ace_fixtures.rs`, `complex_values.rs`, `macros.rs`, `vba.rs`; oracle on three template fixtures; `ace_writer.rs`, `ace_port_writes.rs`, `server_e2e_ace.rs` (phase 25) | no external ACE oracle (mdb-tools reads no `.accdb`) — the write reference is decode∘op∘decode against the pristine pinned bytes; office-encrypted files answer `Unsupported` at the reader and writer boundary |
 | **SQLite** | ✅ catalog, rows, foreign keys | ✅ create/drop table, insert/update/delete | `sqlite_port.rs`, `sqlite_writes.rs`, `sqlite_row_writes.rs` | separate backend behind the same command vocabulary |
 | **Design layer (ADR-1)** | sidecar `.datacraft` forms, queries, reports; native saved queries read-only | ✅ sidecar save/load; ⬜ native form/report writes | `schema_document.rs`, `canvas.rs`, `form_runtime.rs`; `native_queries.rs` | native Access forms/reports are neither read nor written; the sidecar is versioned and database-name checked |
 | **Programmability** | ✅ macro names + coarse arguments; VBA modules, source, static analysis | ⬜ read-only | `macros.rs`, `port_macros.rs`, `vba.rs`, `vba_project.rs`, `vba_analysis.rs` | no macro/VBA execution (ADR-2), no p-code; Jet3 macro/VBA definitions are not decoded |
