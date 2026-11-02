@@ -113,6 +113,22 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("arrives in {phase}", "verfügbar ab {phase}"),
     (
+        "the open source cannot create tables",
+        "Die geöffnete Datenquelle kann keine Tabellen erstellen",
+    ),
+    (
+        "the open source cannot drop tables",
+        "Die geöffnete Datenquelle kann keine Tabellen löschen",
+    ),
+    (
+        "the open source is read-only",
+        "Die geöffnete Datenquelle ist schreibgeschützt",
+    ),
+    (
+        "the open source has no relationships",
+        "Die geöffnete Datenquelle hat keine Beziehungen",
+    ),
+    (
         "one SELECT/WITH statement · read-only",
         "eine SELECT/WITH-Anweisung · schreibgeschützt",
     ),

@@ -5,6 +5,7 @@
 //! per the §5 convention; every identifier here is derived, never
 //! invented.
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -47,6 +48,11 @@ pub struct DatabaseSnapshot {
     pub driver: crate::port::DriverId,
     /// The driver's per-session capabilities (phase 30, M17; ADR-7).
     pub capabilities: crate::port::DriverCapabilities,
+    /// Disabled command affordances for this source with their reasons
+    /// (phase 30, M17; ADR-7): absence means enabled, so capable sources
+    /// carry an empty map. UI code renders from this — never from format
+    /// matches.
+    pub availability: BTreeMap<String, crate::availability::DisabledReason>,
     /// Tables in catalog order, with their navigation-pane test IDs.
     pub tables: Vec<TableEntrySnapshot>,
     /// Referential relationships (mapper pane and agents).
@@ -172,6 +178,7 @@ impl UiStateSnapshot {
                 format: db.format,
                 driver: db.driver.clone(),
                 capabilities: db.capabilities,
+                availability: crate::availability::affordances(&db.capabilities),
                 relationships: db.relationships.clone(),
                 forms: db.forms.clone(),
                 reports: db.reports.clone(),

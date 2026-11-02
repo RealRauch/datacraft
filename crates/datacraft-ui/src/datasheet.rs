@@ -104,6 +104,13 @@ fn new_row_ui(
     ui: &mut egui::Ui,
 ) {
     ui.separator();
+    // Capability-disabled for the open source (ADR-7): the read-only
+    // new-record row renders muted with the reason instead of editable
+    // cells.
+    let new_record_reason = crate::availability::restricted(
+        app.snapshot(),
+        datacraft_core::availability::ids::NEW_RECORD,
+    );
     let mut cells = app.new_row_cells(tab.id, columns.len());
     let mut add = false;
     egui::ScrollArea::horizontal()
@@ -113,19 +120,35 @@ fn new_row_ui(
                 ui.add_space(SELECTOR_WIDTH);
                 ui.label(egui::RichText::new("*").strong());
                 for (index, cell) in cells.iter_mut().enumerate() {
-                    ui.add_sized(
-                        [
-                            widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH),
-                            22.0,
-                        ],
-                        egui::TextEdit::singleline(cell).hint_text(&columns[index]),
-                    );
+                    let edit = egui::TextEdit::singleline(cell).hint_text(&columns[index]);
+                    if new_record_reason.is_some() {
+                        ui.add_enabled(
+                            false,
+                            edit.desired_width(
+                                widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH),
+                            ),
+                        );
+                    } else {
+                        ui.add_sized(
+                            [
+                                widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH),
+                                22.0,
+                            ],
+                            edit,
+                        );
+                    }
                 }
             });
         });
     ui.horizontal(|ui| {
         ui.add_space(SELECTOR_WIDTH);
-        if ui.button(t("Add record")).clicked() {
+        let add_response = match new_record_reason {
+            Some(reason) => ui
+                .add_enabled(false, egui::Button::new(t("Add record")))
+                .on_hover_text(crate::availability::reason_text(reason)),
+            None => ui.button(t("Add record")),
+        };
+        if add_response.clicked() {
             add = true;
         }
         ui.weak(t("Empty cells are Null; AutoNumber assigns itself."));

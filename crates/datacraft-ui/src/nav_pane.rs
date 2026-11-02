@@ -114,14 +114,34 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                                         }
                                     }
                                     if deletable(kind) {
+                                        // Capability-disabled for the open
+                                        // source (ADR-7): the entry renders
+                                        // muted with the reason, no click.
+                                        let reason = crate::availability::restricted(
+                                            app.snapshot(),
+                                            datacraft_core::availability::ids::NAV_DELETE,
+                                        );
                                         let remove = ui
                                             .push_id(
                                                 format!("nav.{header}.{name}.menu.delete"),
-                                                |ui| {
-                                                    ui.button(tr(
+                                                |ui| match reason {
+                                                    Some(reason) => ui
+                                                        .add_enabled(
+                                                            false,
+                                                            egui::Button::new(tr(
+                                                                "Delete {name}",
+                                                                &[("name", &name)],
+                                                            )),
+                                                        )
+                                                        .on_hover_text(
+                                                            crate::availability::reason_text(
+                                                                reason,
+                                                            ),
+                                                        ),
+                                                    None => ui.button(tr(
                                                         "Delete {name}",
                                                         &[("name", &name)],
-                                                    ))
+                                                    )),
                                                 },
                                             )
                                             .inner

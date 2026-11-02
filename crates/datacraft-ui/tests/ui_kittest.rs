@@ -254,3 +254,73 @@ fn backstage_tree_matches_the_layout_snapshot() {
     let harness = backstage_harness(mock_app());
     insta::assert_snapshot!("backstage_home", tree_dump(&harness));
 }
+
+/// Capability-restricted sources disable the matching affordances
+/// (phase 30, item M17; ADR-7): the ribbon Table action and the
+/// datasheet's new-record row render disabled with the reason, while a
+/// capable source (the default mock) leaves everything enabled. Data
+/// assertions on the semantic tree — never pixels.
+#[test]
+fn capability_restricted_sources_disable_the_matching_affordances() {
+    let mut caps = datacraft_core::port::DriverCapabilities::full();
+    caps.create_table = false;
+    caps.write_rows = false;
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_capabilities(caps);
+    let mut app = App::new(Box::new(port));
+    let events = app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    assert!(events.len() == 1, "{events:?}");
+    let (mut app, _tab) = {
+        app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+            datacraft_core::ObjectKind::Table,
+            "Customers",
+        )));
+        let tab = app.snapshot().tabs[0].id;
+        (app, tab)
+    };
+    // The Table action lives on the Create tab.
+    app.active_ribbon_tab = "create";
+
+    let mut ribbon = ribbon_harness(app);
+    ribbon.run();
+    let dump = tree_dump(&ribbon);
+    assert!(
+        dump.contains("Button|Table| disabled"),
+        "the Table action renders disabled:\n{dump}"
+    );
+
+    let (app, _tab) = {
+        let mut port = MockPort::with_tables(vec![customers()]);
+        port.with_capabilities(caps);
+        let mut app = App::new(Box::new(port));
+        app.dispatch(Command::OpenDatabase {
+            path: "shop.mdb".into(),
+            password: None,
+        });
+        app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+            datacraft_core::ObjectKind::Table,
+            "Customers",
+        )));
+        let tab = app.snapshot().tabs[0].id;
+        (app, tab)
+    };
+    let mut datasheet = datasheet_harness(app);
+    datasheet.run();
+    let dump = tree_dump(&datasheet);
+    assert!(
+        dump.contains("Button|Add record| disabled"),
+        "the new-record row renders disabled:\n{dump}"
+    );
+
+    // Contrast: a capable source keeps both affordances interactive.
+    let mut ribbon = ribbon_harness(mock_app());
+    ribbon.run();
+    let dump = tree_dump(&ribbon);
+    assert!(
+        !dump.contains("Button|Table| disabled"),
+        "a capable source keeps the Table action enabled:\n{dump}"
+    );
+}

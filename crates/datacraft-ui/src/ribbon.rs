@@ -11,6 +11,8 @@ use eframe::egui;
 use datacraft_core::command::Command;
 use datacraft_core::ribbon::{ActionState, rendered_tabs};
 
+use crate::availability;
+
 use crate::app::App;
 use crate::i18n::{t, tr};
 use crate::icons;
@@ -95,6 +97,18 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                         tip_index += 1;
                         let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
                         ui.push_id(id, |ui| match &action.state {
+                            ActionState::Enabled
+                                if availability::restricted(app.snapshot(), action.id)
+                                    .is_some() =>
+                            {
+                                // Capability-disabled for the open source
+                                // (ADR-7): same muted rendering as the
+                                // planned actions, reason instead of phase.
+                                let reason = availability::restricted(app.snapshot(), action.id)
+                                    .expect("checked above");
+                                ribbon_button_disabled(ui, t(action.label), action.id, tip)
+                                    .on_hover_text(availability::reason_text(reason));
+                            }
                             ActionState::Enabled => {
                                 if action.id == "table" {
                                     if ribbon_button(ui, t(action.label), action.id, tip) {

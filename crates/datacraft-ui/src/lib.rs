@@ -14,6 +14,7 @@
 
 pub mod app;
 pub mod appearance;
+pub mod availability;
 pub mod backstage;
 pub mod datasheet;
 pub mod design;
