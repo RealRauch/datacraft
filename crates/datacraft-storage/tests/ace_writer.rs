@@ -9,7 +9,7 @@
 //! consistent with the page scan; unqualified shapes answer `Unsupported`.
 
 use datacraft_core::port::SchemaChange;
-use datacraft_core::schema::{FieldDef, FieldKind, FieldProperties};
+use datacraft_core::schema::{FieldDef, FieldKind};
 use datacraft_storage::StorageError;
 use datacraft_storage::StorageValue;
 use datacraft_storage::jet::complex::ComplexCatalog;
@@ -431,9 +431,6 @@ fn unsupported_alters_stay_precise_on_ace_and_touch_nothing() {
         let file = fixture(name);
         let reader = Jet4TableReader::new(file.clone()).expect("pristine file decodes");
         let tdef = table1_tdef(&reader);
-        let first_column = reader.read_table(tdef).expect("rows decode").schema.columns[0]
-            .name
-            .clone();
         let mut writer = Jet4Writer::new(file).expect("writer opens ACE");
         let snapshot = writer.file().to_vec();
 
@@ -447,20 +444,6 @@ fn unsupported_alters_stay_precise_on_ace_and_touch_nothing() {
             "{name}: {error:?}"
         );
 
-        let caption = SchemaChange::SetFieldProperties {
-            field: first_column,
-            properties: FieldProperties {
-                caption: Some("First".to_owned()),
-                ..Default::default()
-            },
-        };
-        let error = writer
-            .alter_table(tdef, &caption)
-            .expect_err("captions are not representable in the TDEF");
-        assert!(
-            matches!(error, StorageError::Unsupported { .. }),
-            "{name}: {error:?}"
-        );
         assert_eq!(
             writer.file(),
             &snapshot,

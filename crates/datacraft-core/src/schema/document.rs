@@ -122,6 +122,68 @@ impl SchemaDocument {
         path
     }
 
+    /// Applies this document's table overlays onto the live catalog
+    /// (step 32.1, item H45; ADR-1 addendum): only field properties are
+    /// copied, never kinds or names. A sidecar table/field that no longer
+    /// exists is a precise error instead of a silent property loss; every
+    /// merged table is re-validated against the live kinds.
+    pub fn apply_table_properties(&self, tables: &mut [TableDef]) -> Result<(), SchemaError> {
+        for source in &self.tables {
+            let Some(target) = tables
+                .iter_mut()
+                .find(|table| table.name.eq_ignore_ascii_case(&source.name))
+            else {
+                return Err(SchemaError::InvalidProperty {
+                    detail: format!(
+                        "the sidecar table {:?} is not in the database — properties were not                          applied",
+                        source.name
+                    ),
+                });
+            };
+            for source_field in &source.fields {
+                let Some(target_field) = target
+                    .fields
+                    .iter_mut()
+                    .find(|field| field.name.eq_ignore_ascii_case(&source_field.name))
+                else {
+                    return Err(SchemaError::InvalidProperty {
+                        detail: format!(
+                            "the sidecar field {:?}.{:?} is not in the database — properties were                              not applied",
+                            source.name, source_field.name
+                        ),
+                    });
+                };
+                target_field.properties = source_field.properties.clone();
+            }
+            target.validate()?;
+        }
+        Ok(())
+    }
+
+    /// Lenient property copy for internal catalog refreshes (step 32.1,
+    /// item H45): matching table/field properties are copied, everything
+    /// else is skipped. Used after `alter_table` replaced the definitions
+    /// from the port's physical catalog.
+    pub fn merge_field_properties(target: &mut [TableDef], source: &[TableDef]) {
+        for source_table in source {
+            let Some(target_table) = target
+                .iter_mut()
+                .find(|table| table.name.eq_ignore_ascii_case(&source_table.name))
+            else {
+                continue;
+            };
+            for source_field in &source_table.fields {
+                if let Some(target_field) = target_table
+                    .fields
+                    .iter_mut()
+                    .find(|field| field.name.eq_ignore_ascii_case(&source_field.name))
+                {
+                    target_field.properties = source_field.properties.clone();
+                }
+            }
+        }
+    }
+
     /// Writes the document to `path` (the sidecar file).
     pub fn save(&self, path: &Path) -> Result<(), SchemaError> {
         std::fs::write(path, self.to_json())?;

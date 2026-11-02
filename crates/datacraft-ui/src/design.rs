@@ -111,9 +111,13 @@ pub fn design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     // Design-time edits (step 24.3, M9): one command per action.
     let mut intent: Option<Command> = None;
     ui.horizontal(|ui| {
-        ui.label(t("New field"));
+        let label = ui.label(t("New field"));
         let mut new_name = app.design_new_field(tab.id);
-        if ui.text_edit_singleline(&mut new_name).changed() {
+        if ui
+            .text_edit_singleline(&mut new_name)
+            .labelled_by(label.id)
+            .changed()
+        {
             app.set_design_new_field(tab.id, new_name.clone());
         }
         if ui.button(t("Add Field")).clicked() && !new_name.trim().is_empty() {
@@ -126,8 +130,13 @@ pub fn design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     });
     if let Some(field) = fields.get(selected) {
         ui.horizontal(|ui| {
+            let label = ui.label(t("Rename field"));
             let mut rename = app.design_rename(tab.id);
-            if ui.text_edit_singleline(&mut rename).changed() {
+            if ui
+                .text_edit_singleline(&mut rename)
+                .labelled_by(label.id)
+                .changed()
+            {
                 app.set_design_rename(tab.id, rename.clone());
             }
             if ui.button(t("Rename")).clicked() && !rename.trim().is_empty() {

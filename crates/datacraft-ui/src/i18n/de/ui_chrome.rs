@@ -79,6 +79,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Record Source", "Datensatzquelle"),
     ("Redo", "Wiederholen"),
     ("Relationships", "Beziehungen"),
+    ("Rename field", "Feld umbenennen"),
     ("Report Design", "Berichtsentwurf"),
     ("Report Tools", "Berichtstools"),
     ("Reports", "Berichte"),

@@ -13,6 +13,9 @@ use crate::state::DatabaseState;
 
 mod alter;
 mod password;
+mod sidecar;
+
+use sidecar::read_sidecar;
 
 impl crate::core::Core {
     pub(crate) fn open_database(
@@ -67,6 +70,20 @@ impl crate::core::Core {
                     Ok(None) => (None, None),
                     Err(reason) => (None, Some(reason)),
                 };
+                // The sidecar is the property authority (step 32.1, item
+                // H45): overlay its field properties onto the physical
+                // catalog. A stale or invalid overlay surfaces as
+                // `sidecar_error` without blocking the open or discarding
+                // the design documents.
+                let mut tables = self.port.tables();
+                let mut sidecar_error = sidecar_error;
+                if let Some(document) = &sidecar {
+                    let mut merged = tables.clone();
+                    match document.apply_table_properties(&mut merged) {
+                        Ok(()) => tables = merged,
+                        Err(error) => sidecar_error = Some(error.to_string()),
+                    }
+                }
                 let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
@@ -76,7 +93,7 @@ impl crate::core::Core {
                     format,
                     driver: driver.clone(),
                     capabilities,
-                    tables: self.port.tables(),
+                    tables,
                     relationships,
                     queries: sidecar
                         .as_ref()
@@ -458,10 +475,16 @@ impl crate::core::Core {
             return failed(format!("invalid schema change: {error}"));
         }
         let canonical = def.name.clone();
+        let old_tables = db.tables.clone();
         if let Err(error) = self.port.alter_table(&canonical, change) {
             return failed(error.to_string());
         }
-        let tables = self.port.tables();
+        let mut tables = self.port.tables();
+        // The physical catalog carries no property blocks (H45): keep the
+        // sidecar overlay across the refresh, with the validated trial
+        // definition winning for the altered table.
+        crate::schema::SchemaDocument::merge_field_properties(&mut tables, &old_tables);
+        crate::schema::SchemaDocument::merge_field_properties(&mut tables, &[trial.clone()]);
         if let Some(db) = self.state.database.as_mut() {
             db.tables = tables;
         }
@@ -470,29 +493,4 @@ impl crate::core::Core {
             field,
         }]
     }
-}
-
-/// Reads the sibling `.datacraft` sidecar (ADR-1) for the database at
-/// `path`. A missing sidecar is `Ok(None)` — it is not an error; a broken
-/// document or a foreign database name is `Err(reason)`, surfaced as
-/// `sidecar_error` (phase 29, step 29.4).
-fn read_sidecar(
-    path: &std::path::Path,
-    expected_name: &str,
-) -> Result<Option<crate::schema::SchemaDocument>, String> {
-    let sidecar = path.with_extension("datacraft");
-    let json = match std::fs::read_to_string(&sidecar) {
-        Ok(json) => json,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(format!("sidecar read failed: {e}")),
-    };
-    let document = crate::schema::SchemaDocument::from_json(&json)
-        .map_err(|e| format!("sidecar decode failed: {e}"))?;
-    if document.database_name != expected_name {
-        return Err(format!(
-            "the sidecar belongs to {:?}, not to {:?}",
-            document.database_name, expected_name
-        ));
-    }
-    Ok(Some(document))
 }

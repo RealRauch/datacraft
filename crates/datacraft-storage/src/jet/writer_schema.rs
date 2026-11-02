@@ -120,14 +120,9 @@ impl Jet4Writer {
                 RowChange::Identity
             }
             SchemaChange::SetFieldProperties { field, properties } => {
+                // The TDEF stores only the nullability bit; the full
+                // property sheet is DataCraft's sidecar authority (H45).
                 let index = column_index(&columns, field)?;
-                if !only_required_changed(properties) {
-                    return Err(StorageError::Unsupported {
-                        reason: "only the required property is stored in the TDEF; other \
-                                 property changes are not writable"
-                            .to_owned(),
-                    });
-                }
                 let column = &mut columns[index];
                 if properties.required {
                     column.flags &= !flags::NULLABLE;
@@ -197,12 +192,4 @@ fn column_index(columns: &[JetColumn], field: &str) -> Result<usize, StorageErro
             table: "alter table".to_owned(),
             detail: format!("field {field:?} not found"),
         })
-}
-
-/// Whether the property set carries nothing the TDEF cannot represent.
-fn only_required_changed(properties: &datacraft_core::schema::FieldProperties) -> bool {
-    datacraft_core::schema::FieldProperties {
-        required: properties.required,
-        ..Default::default()
-    } == *properties
 }

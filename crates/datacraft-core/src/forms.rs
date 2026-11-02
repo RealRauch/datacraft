@@ -238,7 +238,7 @@ impl crate::core::Core {
         let document = crate::schema::SchemaDocument {
             schema_version: crate::schema::SCHEMA_VERSION,
             database_name: db.name.clone(),
-            tables: Vec::new(),
+            tables: db.tables.clone(),
             queries: db.queries.clone(),
             forms: db.forms.clone(),
             reports: db.reports.clone(),
@@ -266,6 +266,9 @@ impl crate::core::Core {
             Ok(document) => document,
             Err(e) => return failed(e.to_string()),
         };
+        if let Err(e) = document.validate() {
+            return failed(format!("sidecar validation failed: {e}"));
+        }
         if document.database_name != expected {
             return failed(format!(
                 "the sidecar belongs to {:?}, not to {:?}",
@@ -275,9 +278,14 @@ impl crate::core::Core {
         let forms = document.forms.len();
         let queries = document.queries.len();
         let reports = document.reports.len();
+        let mut tables = db.tables.clone();
+        if let Err(e) = document.apply_table_properties(&mut tables) {
+            return failed(format!("sidecar property overlay failed: {e}"));
+        }
         let Some(db) = self.state.database.as_mut() else {
             return failed("no database is open — open a database first");
         };
+        db.tables = tables;
         db.forms = document.forms;
         db.queries = document.queries;
         db.reports = document.reports;

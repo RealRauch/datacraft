@@ -240,6 +240,17 @@ file, schema version field, forward-migration rule). Native accdb embedding
 becomes available only when the ACE writer lands; the sidecar format stays the
 portable fallback and is what MCP agents script against.
 
+**ADR-1 addendum (2026-11-03 — resolves BACKLOG item H45):** the sidecar is
+also the **authority for field properties**. The Jet/ACE writer leaves
+`MSysObjects.LvProp` `NULL` (the file stays Access-readable); the full
+`FieldProperties` sheet lives in the sidecar's `tables` list and is overlaid
+onto the physical catalog on open and after design-time schema refreshes.
+A stale table/field or a property that does not fit the live kind is a
+precise error (explicit load) or `sidecar_error` (auto-load), never a silent
+loss. Encoding the `MR2` property pack into `LvProp` so Access itself shows
+defaults/captions is a separate, deferred storage-format item
+(`docs/ROADMAP.md` §6).
+
 ## 8. Rendering & performance
 
 - egui immediate mode; **no layout or business logic in paint code** — layout

@@ -181,20 +181,6 @@ fn rejected_changes_leave_the_file_untouched() {
         .alter_table("AlterMe", SchemaChange::AddField { field: required })
         .expect_err("required fields need a default for existing rows");
     assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
-    let captioned = FieldProperties {
-        caption: Some("Note".to_owned()),
-        ..Default::default()
-    };
-    let error = port
-        .alter_table(
-            "AlterMe",
-            SchemaChange::SetFieldProperties {
-                field: "note".to_owned(),
-                properties: captioned,
-            },
-        )
-        .expect_err("only required is representable in the TDEF");
-    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
     port.close();
     let after = std::fs::read(&path).expect("copy readable");
     assert_eq!(before, after, "rejected changes leave the file untouched");
@@ -319,6 +305,39 @@ fn a_change_that_does_not_fit_the_tdef_page_is_rejected() {
         }
     }
     assert!(rejected, "the TDEF page must eventually overflow");
+    port.close();
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn property_sheets_are_accepted_and_only_required_is_physical() {
+    let (mut port, path) = opened("properties");
+    let properties = FieldProperties {
+        caption: Some("Note".to_owned()),
+        required: true,
+        ..Default::default()
+    };
+    port.alter_table(
+        "AlterMe",
+        SchemaChange::SetFieldProperties {
+            field: "note".to_owned(),
+            properties,
+        },
+    )
+    .expect("the property sheet is accepted");
+    port.close();
+
+    port.open(&path, None).expect("reopen");
+    let definition = port
+        .tables()
+        .into_iter()
+        .find(|table| table.name == "AlterMe")
+        .expect("table survives");
+    assert!(definition.fields[1].properties.required);
+    assert!(
+        definition.fields[1].properties.caption.is_none(),
+        "the caption is sidecar authority, not a TDEF field"
+    );
     port.close();
     let _ = std::fs::remove_file(&path);
 }
