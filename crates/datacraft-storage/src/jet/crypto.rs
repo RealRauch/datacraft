@@ -161,6 +161,80 @@ pub fn encrypt_file(
     Ok(())
 }
 
+/// Deterministic database key written for newly protected copies. The key
+/// is stored in the clear at 0x3e; the password only gates the open, so a
+/// fixed value keeps the output deterministic (LESSONS #6).
+pub const DEFAULT_DB_KEY: u32 = 0x4A65_7434;
+
+/// Writes a password (and the matching page-encryption state) into the
+/// **decrypted** page-0 header region (step 27.2, M14).
+///
+/// Jet4: the UTF-16 password is masked with the creation date; a non-empty
+/// password selects [`DEFAULT_DB_KEY`], `None` clears both the password and
+/// the key. ACE answers `Unsupported` for any non-empty password (Office
+/// encryption is not written); an unencrypted ACE header is left as is.
+/// Jet3 stays read-only.
+pub fn set_password(
+    file: &mut [u8],
+    header: &FileHeader,
+    password: Option<&str>,
+) -> Result<Option<PageEncryption>, StorageError> {
+    let password = password.unwrap_or("");
+    match header.format {
+        FormatVersion::Jet3 => Err(StorageError::Unsupported {
+            reason: "Jet3 (Access 97) sources are read-only — no password writer exists".to_owned(),
+        }),
+        FormatVersion::Ace => {
+            if password.is_empty() {
+                Ok(None)
+            } else {
+                Err(StorageError::Unsupported {
+                    reason: "ACE Office encryption (RC4 CryptoAPI/AES) is not supported — \
+                             DataCraft writes Jet4 RC4 passwords only"
+                        .to_owned(),
+                })
+            }
+        }
+        FormatVersion::Jet4 => {
+            if password.contains('\0') {
+                return Err(StorageError::Unsupported {
+                    reason: "a database password must not contain a NUL character".to_owned(),
+                });
+            }
+            if password.encode_utf16().count() > JET4_PASSWORD_LEN / 2 {
+                return Err(StorageError::Unsupported {
+                    reason: format!(
+                        "a Jet4 database password is limited to {} characters",
+                        JET4_PASSWORD_LEN / 2
+                    ),
+                });
+            }
+            let region = file
+                .get_mut(HEADER_START..HEADER_START + JET4_HEADER_REGION)
+                .ok_or_else(|| corrupt("file shorter than the page-0 header region"))?;
+            let date = f64::from_le_bytes(read::<8>(region, CREATION_DATE_OFFSET - HEADER_START)?);
+            let mask = (date as i64 as u32).to_le_bytes();
+            let mut field = [0u8; JET4_PASSWORD_LEN];
+            for (index, unit) in password.encode_utf16().enumerate() {
+                field[index * 2..index * 2 + 2].copy_from_slice(&unit.to_le_bytes());
+            }
+            for (index, byte) in field.iter_mut().enumerate() {
+                *byte ^= mask[index % 4];
+            }
+            let start = PASSWORD_OFFSET - HEADER_START;
+            region[start..start + JET4_PASSWORD_LEN].copy_from_slice(&field);
+            let db_key = if password.is_empty() {
+                0
+            } else {
+                DEFAULT_DB_KEY
+            };
+            let key = DB_KEY_OFFSET - HEADER_START;
+            region[key..key + 4].copy_from_slice(&db_key.to_le_bytes());
+            Ok((db_key != 0).then_some(PageEncryption { db_key }))
+        }
+    }
+}
+
 /// Encrypts/decrypts every page after page 0 (RC4 is symmetric).
 fn crypt_pages(file: &mut [u8], header: &FileHeader, db_key: u32) {
     for page in 1..header.page_count as u32 {
@@ -262,94 +336,4 @@ fn corrupt(detail: &str) -> StorageError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rc4_matches_the_reference_vector() {
-        let mut data = b"Plaintext".to_vec();
-        rc4(b"Key", &mut data);
-        assert_eq!(
-            data,
-            vec![0xBB, 0xF3, 0x16, 0xE8, 0xD9, 0x40, 0xAF, 0x0A, 0xD3]
-        );
-        rc4(b"Key", &mut data);
-        assert_eq!(data, b"Plaintext");
-    }
-
-    #[test]
-    fn the_jet4_mask_is_the_creation_date_integer() {
-        let date = 44_568.676_921_724_54f64;
-        let mask = (date as i64 as u32).to_le_bytes();
-        assert_eq!(mask, [0x18, 0xAE, 0x00, 0x00]);
-    }
-
-    #[test]
-    fn jet3_passwords_are_plain_text_in_the_decrypted_header() {
-        let mut region = [0u8; JET3_HEADER_REGION];
-        region[PASSWORD_OFFSET - HEADER_START..PASSWORD_OFFSET - HEADER_START + 6]
-            .copy_from_slice(b"secret");
-        assert_eq!(jet3_password(&region).unwrap(), "secret");
-        assert_eq!(jet3_password(&[0u8; JET3_HEADER_REGION]).unwrap(), "");
-    }
-
-    #[test]
-    fn jet4_passwords_unmask_with_the_date_mask() {
-        let date = 44_568.0f64;
-        let mask = (date as i64 as u32).to_le_bytes();
-        let mut region = [0u8; JET4_HEADER_REGION];
-        let start = PASSWORD_OFFSET - HEADER_START;
-        // The whole field is plaintext XOR the mask; an empty password is
-        // therefore the mask itself.
-        for index in 0..JET4_PASSWORD_LEN {
-            region[start + index] = mask[index % 4];
-        }
-        for (index, unit) in "password".encode_utf16().enumerate() {
-            let bytes = unit.to_le_bytes();
-            region[start + 2 * index] = bytes[0] ^ mask[(2 * index) % 4];
-            region[start + 2 * index + 1] = bytes[1] ^ mask[(2 * index + 1) % 4];
-        }
-        assert_eq!(jet4_password(&region, date).unwrap(), "password");
-        let mut empty = [0u8; JET4_HEADER_REGION];
-        for index in 0..JET4_PASSWORD_LEN {
-            empty[start + index] = mask[index % 4];
-        }
-        assert_eq!(jet4_password(&empty, date).unwrap(), "");
-    }
-
-    #[test]
-    fn a_truncated_header_region_is_corrupt() {
-        let header = FileHeader {
-            format: FormatVersion::Jet4,
-            version: 1,
-            page_size: 4096,
-            page_count: 1,
-        };
-        let err = decode_header_region(&[0u8; 0x20], &header).expect_err("truncated");
-        assert!(matches!(err, StorageError::Corrupt { .. }), "{err:?}");
-    }
-
-    #[test]
-    fn page_encryption_round_trips_in_memory() {
-        let header = FileHeader {
-            format: FormatVersion::Jet4,
-            version: 1,
-            page_size: 4096,
-            page_count: 3,
-        };
-        let mut file = vec![0u8; 3 * 4096];
-        file[2 * 4096] = 0x02;
-        let encryption = PageEncryption {
-            db_key: 0x1234_5678,
-        };
-        // The decrypted header region carries the database key.
-        file[DB_KEY_OFFSET..DB_KEY_OFFSET + 4].copy_from_slice(&encryption.db_key.to_le_bytes());
-        let original = file.clone();
-        encrypt_file(&mut file, &header, Some(&encryption)).expect("encrypt");
-        assert_ne!(file[2 * 4096], 0x02);
-        let mut decrypted = file;
-        let state = decrypt_file(&mut decrypted, &header, None).expect("decrypt");
-        assert_eq!(state, Some(encryption));
-        assert_eq!(decrypted, original);
-    }
-}
+mod tests;

@@ -520,6 +520,19 @@ page-encrypted copies of the pinned fixtures.
 - **Writes:** the port's read-modify-write keeps encrypted files encrypted —
   the writer re-encrypts the header region and every page with the same
   database key; newly appended pages use their page number.
+- **Save-As and password changes (step 27.2, item M14).** `SaveDatabaseAs`
+  derives the copy from the decrypted writer handoff: it rewrites the 40-byte
+  Jet4 password field (masked with the creation date), selects the
+  deterministic `DEFAULT_DB_KEY = 0x4A65_7434` for a protected copy (0 for
+  an unencrypted one) and re-encrypts the header region plus every page.
+  `ChangePassword` performs the same rewrite in place and atomically
+  replaces the file through a sibling `.tmp`; the open reader swaps to the
+  new decrypted state, so later writes keep the new key. Restrictions:
+  Jet4 only for password writes (20 UTF-16 characters, no NUL), ACE answers
+  `Unsupported` for a non-empty password (Office encryption is not written;
+  unencrypted ACE copies are allowed), Jet3 sources are read-only. A
+  Save-As target that already exists is refused, and a failed write removes
+  the partial copy.
 
 ## SQLite backend (2026-11-01, step 13.1, BACKLOG H35)
 

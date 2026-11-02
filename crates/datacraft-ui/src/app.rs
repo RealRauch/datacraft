@@ -74,6 +74,14 @@ pub struct App {
     pub new_database_path: String,
     /// Registry name of the template selected on the New Database page.
     pub new_database_template: Option<String>,
+    /// Path buffer of the backstage Save-a-copy flow (step 27.2, M14).
+    pub save_as_path: String,
+    /// Whether the copy is protected (the checkbox next to the path).
+    pub save_as_encrypted: bool,
+    /// Password buffer of the Save-a-copy flow.
+    pub save_as_password: String,
+    /// New-password buffer of the change-password flow.
+    pub change_password: String,
     /// Success notice of the last command (status bar), cleared by
     /// failures (step 11.8).
     pub(crate) last_notice: Option<String>,
@@ -132,6 +140,10 @@ impl App {
             sidecar_path: String::new(),
             new_database_path: String::new(),
             new_database_template: None,
+            save_as_path: String::new(),
+            save_as_encrypted: false,
+            save_as_password: String::new(),
+            change_password: String::new(),
             new_row: HashMap::new(),
             column_widths: HashMap::new(),
             sql_column_widths: Vec::new(),

@@ -65,7 +65,11 @@ fn a_csv_directory_drives_the_full_stack_over_the_wire() {
     // the availability map names exactly that (ADR-7).
     assert_eq!(
         snapshot["database"]["availability"],
-        json!({"relationships": "no_relationships"})
+        json!({
+            "relationships": "no_relationships",
+            "backstage.save_as": "no_passwords",
+            "backstage.change_password": "no_passwords"
+        })
     );
 
     let events = &result_of(&responses[2])["events"];

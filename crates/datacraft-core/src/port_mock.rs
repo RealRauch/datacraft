@@ -36,6 +36,10 @@ pub struct MockPort {
     pub open_calls: usize,
     /// Number of `close` calls (observability for tests).
     pub close_calls: usize,
+    /// Save-As calls recorded for core tests (path, password).
+    pub save_as_calls: Vec<(std::path::PathBuf, Option<String>)>,
+    /// Password-change calls recorded for core tests.
+    pub change_password_calls: Vec<Option<String>>,
 }
 
 mod alter;
@@ -233,6 +237,28 @@ impl StoragePort for MockPort {
             });
         }
         let _ = (path, format);
+        Ok(())
+    }
+
+    fn save_as(&mut self, path: &std::path::Path, password: Option<&str>) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        self.save_as_calls
+            .push((path.to_path_buf(), password.map(str::to_owned)));
+        Ok(())
+    }
+
+    fn change_password(&mut self, new_password: Option<&str>) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        self.change_password_calls
+            .push(new_password.map(str::to_owned));
         Ok(())
     }
 

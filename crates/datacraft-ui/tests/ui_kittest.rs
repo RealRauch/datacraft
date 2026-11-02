@@ -7,7 +7,9 @@
 
 use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
-use datacraft_core::port::{MockPort, NativeQuery, NativeQueryColumn, NativeQueryKind};
+use datacraft_core::port::{
+    DriverCapabilities, MockPort, NativeQuery, NativeQueryColumn, NativeQueryKind,
+};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use eframe::egui;
@@ -384,4 +386,58 @@ fn native_query_run_executes_through_the_ui() {
         dump.contains("Ran — 1 row"),
         "the native query executed through the bus:\n{dump}"
     );
+}
+
+/// A mock source that honours the password surface (the default mock
+/// reports `passwords: false`).
+fn password_capable_app() -> App {
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_capabilities(DriverCapabilities::full());
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    app
+}
+
+#[test]
+fn backstage_save_copy_dispatches_one_command() {
+    let mut app = password_capable_app();
+    app.backstage_page = datacraft_ui::backstage::BackstagePage::Save;
+    app.save_as_path = "copy.mdb".to_owned();
+    let mut harness = backstage_harness(app);
+    harness.run();
+    harness.get_by_label("Save Copy").click();
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(dump.contains("Copy saved to copy.mdb"), "{dump}");
+}
+
+#[test]
+fn backstage_change_password_dispatches_the_command() {
+    let mut app = password_capable_app();
+    app.backstage_page = datacraft_ui::backstage::BackstagePage::Save;
+    app.change_password = "secret".to_owned();
+    let mut harness = backstage_harness(app);
+    harness.run();
+    harness.get_by_label("Change Password").click();
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(dump.contains("Database password changed"), "{dump}");
+}
+
+#[test]
+fn backstage_password_controls_gate_on_the_capability() {
+    let mut app = mock_app();
+    app.backstage_page = datacraft_ui::backstage::BackstagePage::Save;
+    let mut harness = backstage_harness(app);
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("the open source has no database passwords"),
+        "{dump}"
+    );
+    assert!(dump.contains("Button|Save Copy| disabled"), "{dump}");
+    assert!(dump.contains("Button|Change Password| disabled"), "{dump}");
 }

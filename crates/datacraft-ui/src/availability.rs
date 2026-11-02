@@ -15,6 +15,7 @@ pub fn reason_text(reason: &DisabledReason) -> &'static str {
         DisabledReason::DropTables => t("the open source cannot drop tables"),
         DisabledReason::WriteRows => t("the open source is read-only"),
         DisabledReason::NoRelationships => t("the open source has no relationships"),
+        DisabledReason::NoPasswords => t("the open source has no database passwords"),
     }
 }
 

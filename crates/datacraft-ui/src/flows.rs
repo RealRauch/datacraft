@@ -216,9 +216,26 @@ fn next_free_name(used: Vec<String>, prefix: &str) -> String {
         .unwrap_or_else(|| prefix.to_owned())
 }
 
-/// Status-bar notice for successful design-document operations.
+/// Status-bar notice for successful design-document and database-copy
+/// operations.
 pub(crate) fn notice_for(events: &[Event]) -> Option<String> {
     events.iter().find_map(|event| match event {
+        Event::DatabaseSavedAs { path, encrypted } => Some(if *encrypted {
+            tr(
+                "Copy saved to {path} (password-protected)",
+                &[("path", &path.display().to_string())],
+            )
+        } else {
+            tr(
+                "Copy saved to {path}",
+                &[("path", &path.display().to_string())],
+            )
+        }),
+        Event::PasswordChanged { encrypted } => Some(if *encrypted {
+            tr("Database password changed", &[])
+        } else {
+            tr("Database password removed", &[])
+        }),
         Event::DesignDocumentSaved { path } => Some(tr(
             "Design saved to {path}",
             &[("path", &path.display().to_string())],

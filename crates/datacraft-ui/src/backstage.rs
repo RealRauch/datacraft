@@ -16,6 +16,8 @@ use crate::i18n::t;
 use crate::settings::LanguageSetting;
 use crate::theme::{fonts, tokens};
 
+mod save;
+
 /// Backstage pages — a deliberate subset of the Access set (Home, New,
 /// Open, Samples, Save, Info, Options); Recent Databases is follow-up U15.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -131,7 +133,7 @@ fn page_body(app: &mut App, ui: &mut egui::Ui) {
         BackstagePage::New => new_database_page(app, ui, &mut intents),
         BackstagePage::Open => open_page(app, ui, &mut intents),
         BackstagePage::Samples => samples_page(app, ui, &mut intents),
-        BackstagePage::Save => save_page(app, ui, &mut intents),
+        BackstagePage::Save => save::save_page(app, ui, &mut intents),
         BackstagePage::Info => info_page(app, ui),
         BackstagePage::Options => options_page(app, ui),
     }
@@ -340,43 +342,6 @@ fn sample_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
         .collect();
     files.sort();
     files
-}
-
-/// Save: the sidecar path buffer and the save/load commands.
-fn save_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
-    ui.label(t("path to .datacraft"));
-    ui.add(
-        egui::TextEdit::singleline(&mut app.sidecar_path)
-            .desired_width(360.0)
-            .hint_text(t("path to .datacraft")),
-    );
-    ui.add_space(8.0);
-    ui.horizontal(|ui| {
-        let enabled = !app.sidecar_path.trim().is_empty();
-        if ui
-            .push_id("backstage.save.save_design", |ui| {
-                ui.add_enabled(enabled, egui::Button::new(t("Save Design")))
-            })
-            .inner
-            .clicked()
-        {
-            intents.push(Command::SaveDesignDocument {
-                path: app.sidecar_path.clone().into(),
-            });
-        }
-        if ui
-            .push_id("backstage.save.load_design", |ui| {
-                ui.add_enabled(enabled, egui::Button::new(t("Load Design")))
-            })
-            .inner
-            .clicked()
-        {
-            intents.push(Command::LoadDesignDocument {
-                path: app.sidecar_path.clone().into(),
-            });
-        }
-    });
-    status_line(app, ui);
 }
 
 /// Info: database facts, read from the snapshot.

@@ -114,6 +114,20 @@ impl StoragePort for DetectingPort {
         }
     }
 
+    fn save_as(&mut self, path: &Path, password: Option<&str>) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .save_as(path, password)
+    }
+
+    fn change_password(&mut self, new_password: Option<&str>) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .change_password(new_password)
+    }
+
     fn tables(&self) -> Vec<TableDef> {
         self.session
             .as_ref()

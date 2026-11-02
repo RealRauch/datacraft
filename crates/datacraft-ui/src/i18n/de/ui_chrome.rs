@@ -85,6 +85,22 @@ pub static TABLE: &[(&str, &str)] = &[
     ("SQL", "SQL"),
     ("Save", "Speichern"),
     ("Save Design", "Entwurf speichern"),
+    ("Save a Copy", "Eine Kopie speichern"),
+    ("Save Copy", "Kopie speichern"),
+    ("Database Password", "Datenbankpasswort"),
+    ("Database password changed", "Datenbankpasswort geändert"),
+    ("Database password removed", "Datenbankpasswort entfernt"),
+    ("New password", "Neues Passwort"),
+    ("Password", "Passwort"),
+    ("Protect with a password", "Mit Passwort schützen"),
+    ("Remove Password", "Passwort entfernen"),
+    ("Change Password", "Passwort ändern"),
+    ("path to the copy", "Pfad zur Kopie"),
+    ("Copy saved to {path}", "Kopie gespeichert unter {path}"),
+    (
+        "Copy saved to {path} (password-protected)",
+        "Kopie gespeichert unter {path} (passwortgeschützt)",
+    ),
     ("Select a tab", "Wählen Sie eine Registerkarte"),
     (
         "Settings could not be saved: {reason}",
@@ -127,6 +143,10 @@ pub static TABLE: &[(&str, &str)] = &[
     (
         "the open source has no relationships",
         "Die geöffnete Datenquelle hat keine Beziehungen",
+    ),
+    (
+        "the open source has no database passwords",
+        "Die geöffnete Datenquelle kennt keine Datenbankpasswörter",
     ),
     (
         "one SELECT/WITH statement · read-only",

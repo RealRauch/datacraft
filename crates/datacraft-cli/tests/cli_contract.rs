@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use datacraft_cli::{Outcome, run};
 use datacraft_core::core::Core;
-use datacraft_core::port::MockPort;
+use datacraft_core::port::{DriverCapabilities, MockPort};
 
 fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -319,4 +319,41 @@ fn ace_databases_take_writes_through_the_cli_vocabulary() {
         .expect("the inserted row persisted");
     assert_eq!(rows, [vec![FieldValue::Text("via the cli".into())]]);
     let _ = std::fs::remove_file(&copy);
+}
+
+#[test]
+fn exec_reaches_save_as_and_password_change() {
+    let mut port = MockPort::new();
+    port.with_capabilities(DriverCapabilities::full());
+    let mut core = Core::new(Box::new(port));
+
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "exec".to_owned(),
+            "{\"SaveDatabaseAs\":{\"path\":\"copy.mdb\",\"password\":\"secret\"}}".to_owned(),
+            "--json".to_owned(),
+            "--db".to_owned(),
+            "shop.mdb".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.contains("DatabaseSavedAs"), "{text}");
+
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "exec".to_owned(),
+            "{\"ChangePassword\":{\"new_password\":null}}".to_owned(),
+            "--json".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.contains("PasswordChanged"), "{text}");
 }
