@@ -17,10 +17,7 @@ use datacraft_csv::CsvPort;
 fn scratch_path(stem: &str) -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!(
-        "datacraft-csv-{}-{n}-{stem}",
-        std::process::id()
-    ))
+    std::env::temp_dir().join(format!("datacraft-csv-{}-{n}-{stem}", std::process::id()))
 }
 
 struct Scratch(PathBuf);
@@ -134,8 +131,10 @@ fn csv_writes_survive_a_reopen() {
     let rows = reopened
         .read_rows("people", RowRange { start: 0, len: 10 })
         .expect("read after reopen");
-    assert_eq!(rows.len(), 1);
+    // 2 initial rows + 1 insert − 1 delete.
+    assert_eq!(rows.len(), 2);
     assert_eq!(rows[0][0], FieldValue::Text("ada l".to_owned()));
+    assert_eq!(rows[1][0], FieldValue::Text("alan".to_owned()));
 
     let error = reopened
         .insert_row("people", &[FieldValue::Text("one".to_owned())])
@@ -161,7 +160,8 @@ fn csv_create_database_and_create_table_behave() {
         .expect_err("foreign formats are refused");
     assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
 
-    port.open(&scratch.0, None).expect("open the empty directory");
+    port.open(&scratch.0, None)
+        .expect("open the empty directory");
     port.create_table(&TableDef::new(
         "places",
         vec![
@@ -201,7 +201,10 @@ fn csv_capability_gaps_answer_precisely() {
         .open(&file, None)
         .expect_err("a plain file is no CSV directory");
     assert!(
-        matches!(error, PortError::OpenFailed { .. } | PortError::Unsupported { .. }),
+        matches!(
+            error,
+            PortError::OpenFailed { .. } | PortError::Unsupported { .. }
+        ),
         "{error:?}"
     );
     assert!(error.to_string().contains(&file.display().to_string()));

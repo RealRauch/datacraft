@@ -5,10 +5,17 @@
 //! item T4); the exit code carries the outcome for machines.
 
 use datacraft_core::core::Core;
+use datacraft_core::port::StoragePort;
 use datacraft_storage::detecting::DetectingPort;
 
+/// The composed driver set (ADR-7): built-in probes plus the out-of-tree
+/// CSV directory driver.
+fn csv_driver() -> Box<dyn StoragePort> {
+    Box::new(datacraft_csv::CsvPort::new())
+}
+
 fn main() {
-    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let mut core = Core::new(Box::new(DetectingPort::new().with_fallback(csv_driver)));
     let args: Vec<String> = std::env::args().skip(1).collect();
     let stdout = std::io::stdout();
     let stderr = std::io::stderr();

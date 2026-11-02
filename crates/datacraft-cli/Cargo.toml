@@ -9,6 +9,7 @@ description = "Command-line client of the DataCraft command bus (fourth headless
 
 [dependencies]
 datacraft-core = { workspace = true }
+datacraft-csv = { workspace = true }
 datacraft-storage = { workspace = true }
 serde_json = { workspace = true }
 

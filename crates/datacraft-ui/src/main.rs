@@ -6,7 +6,14 @@
 
 use eframe::egui;
 
+use datacraft_core::port::StoragePort;
 use datacraft_ui::app::App;
+
+/// The composed driver set (ADR-7): the built-in Jet/ACE+SQLite probes
+/// plus the out-of-tree CSV directory driver.
+fn csv_driver() -> Box<dyn StoragePort> {
+    Box::new(datacraft_csv::CsvPort::new())
+}
 
 /// Embedded 64 px brand render (assets/app-icon, Crafting Apps office-symbol
 /// grammar — see `assets/app-icon/README.md`).
@@ -45,7 +52,9 @@ fn main() -> eframe::Result {
         options,
         Box::new(move |cc| {
             datacraft_ui::theme::fonts::install(&cc.egui_ctx);
-            let mut app = App::new(Box::new(datacraft_storage::detecting::DetectingPort::new()));
+            let mut app = App::new(Box::new(
+                datacraft_storage::detecting::DetectingPort::new().with_fallback(csv_driver),
+            ));
             app.set_settings_path(settings_path);
             app.apply_settings(settings);
             Ok(Box::new(app))

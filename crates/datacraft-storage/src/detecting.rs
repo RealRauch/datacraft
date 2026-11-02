@@ -22,6 +22,11 @@ use crate::sqlite::SqlitePort;
 pub struct DetectingPort {
     /// The open session, whatever driver claimed the file.
     session: Option<Box<dyn StoragePort>>,
+    /// Out-of-tree driver factory (ADR-7): consulted when no built-in
+    /// probe claims the path, and for `create_database` formats the
+    /// built-ins don't serve. The driver answers for itself or fails
+    /// the open precisely.
+    fallback: Option<Box<dyn Fn() -> Box<dyn StoragePort> + Send + Sync>>,
 }
 
 impl std::fmt::Debug for DetectingPort {
@@ -31,6 +36,7 @@ impl std::fmt::Debug for DetectingPort {
                 "session",
                 &self.session.as_ref().map(|session| session.driver_id()),
             )
+            .field("fallback", &self.fallback.is_some())
             .finish()
     }
 }
@@ -39,6 +45,17 @@ impl DetectingPort {
     /// Creates an unattached port.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Registers an out-of-tree driver factory (ADR-7): the composition
+    /// roots compose the engine with their driver set this way — the
+    /// storage crate never names the extra driver crates.
+    pub fn with_fallback(
+        mut self,
+        factory: impl Fn() -> Box<dyn StoragePort> + Send + Sync + 'static,
+    ) -> Self {
+        self.fallback = Some(Box::new(factory));
+        self
     }
 }
 
@@ -58,7 +75,18 @@ impl StoragePort for DetectingPort {
     }
 
     fn open(&mut self, path: &Path, password: Option<&str>) -> Result<OpenedDatabase, PortError> {
-        let mut driver = probe(path)?;
+        let mut driver = match probe(path) {
+            Ok(driver) => driver,
+            Err(error) => {
+                let Some(factory) = &self.fallback else {
+                    return Err(error);
+                };
+                let mut fallback = factory();
+                let opened = fallback.open(path, password)?;
+                self.session = Some(fallback);
+                return Ok(opened);
+            }
+        };
         let opened = driver.open(path, password)?;
         self.session = Some(driver);
         Ok(opened)
@@ -74,12 +102,15 @@ impl StoragePort for DetectingPort {
         match format {
             DatabaseFormat::Jet4 => Jet4Port::new().create_database(path, format),
             DatabaseFormat::Sqlite => SqlitePort::new().create_database(path, format),
-            other => Err(PortError::Unsupported {
-                reason: format!(
-                    "creating a {other:?} database file is not supported — create a \
-                     Jet4 or SQLite database"
-                ),
-            }),
+            other => match &self.fallback {
+                Some(factory) => factory().create_database(path, other),
+                None => Err(PortError::Unsupported {
+                    reason: format!(
+                        "creating a {other:?} database file is not supported — create a \
+                         Jet4 or SQLite database"
+                    ),
+                }),
+            },
         }
     }
 

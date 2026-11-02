@@ -162,6 +162,10 @@ impl StoragePort for Jet4Port {
                 reason: "SQLite files are created by the SQLite backend, not the Jet backend"
                     .to_owned(),
             }),
+            DatabaseFormat::Csv => Err(PortError::Unsupported {
+                reason: "CSV directories are created by the CSV driver, not the Jet backend"
+                    .to_owned(),
+            }),
         }
     }
 
