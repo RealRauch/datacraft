@@ -398,3 +398,44 @@ fn vba_static_analysis_crosses_the_wire() {
         "{analysis}"
     );
 }
+
+/// CreateDatabase over the wire (phase 29, step 29.1, item H44): the file
+/// is created but NOT opened — the client dispatches `OpenDatabase` next.
+#[test]
+fn creates_a_jet4_database_over_the_wire() {
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-e2e-{}-create.mdb",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"CreateDatabase":{"path": path.to_string_lossy(),
+                                                "format":"jet4"}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": path.to_string_lossy()}}}),
+            json!({"jsonrpc":"2.0","id":3,"method":"inspect"}),
+        ],
+    );
+    let created = &result_of(&responses[0])["events"][0]["DatabaseCreated"];
+    assert_eq!(
+        created["format"], "jet4",
+        "the creation event reports the format: {responses:?}"
+    );
+    assert_eq!(
+        result_of(&responses[1])["events"][0]["DatabaseOpened"]["format"],
+        "jet4",
+        "{responses:?}"
+    );
+    let snapshot = &result_of(&responses[2])["database"];
+    assert_eq!(snapshot["format"], "jet4", "{snapshot}");
+    assert!(
+        snapshot["tables"].as_array().expect("tables").is_empty(),
+        "a fresh database has no tables: {snapshot}"
+    );
+    let _ = std::fs::remove_file(&path);
+}
