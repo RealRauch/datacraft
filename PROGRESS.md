@@ -9,13 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 25 — ACCDB-Write
-
-**Scope (Steps):**
-
-- **25.1 ACCDB-Write-Verträge (H42)**
-- **25.2 ACCDB-Port-Write-Through + Bus-E2E (H43)**
-- **25.3 Phase 25 Quality Gate Review**
 ### Phase 26 — Distribution & Release
 
 **Scope (Steps):**
@@ -202,7 +195,7 @@
 | 24.4 | Phase 24 Quality Gate Review | ✅ |
 | 25.1 | ACCDB-Write-Verträge (H42) | ✅ |
 | 25.2 | ACCDB-Port-Write-Through + Bus-E2E (H43) | ✅ |
-| 25.3 | Phase 25 Quality Gate Review | ⬜ |
+| 25.3 | Phase 25 Quality Gate Review | ✅ |
 | 26.1 | Release-Workflow: Matrix, Checksums, Notices (M13) | ⬜ |
 | 26.2 | Release-Smoke + Tag-Politik (M13) | ⬜ |
 | 26.3 | Phase 26 Quality Gate Review | ⬜ |

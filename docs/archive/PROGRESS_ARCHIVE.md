@@ -325,3 +325,14 @@
 - **24.3 Design-time schema editing, ALTER TABLE (M9)**
 - **24.4 Phase 24 Quality Gate Review**
 **Verification:** Phase 24 gate: fmt --check, clippy -D warnings, workspace tests (incl. oracle-gated writer tests), file-size gate and marker scan are green; local Windows llvm-cov 93.32% under the documented platform note (CI ubuntu is binding); README phase table extended; M7/M8/M9 archived. (checkpoint: 4fecca9)
+
+---
+
+### Phase 25 — ACCDB-Write
+
+**Scope (Steps):**
+
+- **25.1 ACCDB-Write-Verträge (H42)**
+- **25.2 ACCDB-Port-Write-Through + Bus-E2E (H43)**
+- **25.3 Phase 25 Quality Gate Review**
+**Verification:** canonical verification set green (fmt, clippy -D warnings, workspace tests, llvm-cov >= 95% lines, file-size gate); README matrix + ROADMAP + FORMAT-JET now carry the verified ACE write claims (checkpoint: b7afaef)
