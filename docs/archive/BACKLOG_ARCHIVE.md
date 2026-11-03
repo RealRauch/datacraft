@@ -949,3 +949,12 @@
 - **Approach:** Reuse the settings/password pattern for every persistence step: write a sibling temp file, flush, rename over the target, remove the temp on failure. Keep the produced bytes identical (no format change); document the guarantee in FORMAT-JET next to the password rewrite note.
 - **Acceptance:** A failed or interrupted persistence leaves the original database/sidecar byte-identical (tested by injecting a write failure or by asserting the temp/rename sequence); created files never survive as partials; the canonical verification set stays green and `jet_writer_roundtrip`/`ace_writer` byte comparisons are unchanged.
 - **Done:** fixed in `e138361` (RED `0a37cb1`): datacraft_core::atomic_write (sibling-temp replace, exclusive create) used by the Jet write-through, file/template creation, Save-As, password change and both sidecar saves; a failed replace leaves the live file byte-identical and a failed create leaves no partial
+
+---
+
+### [x] M25 — SQLite create_table leaves an open transaction when CREATE INDEX fails — 🟡
+- **Location:** `crates/datacraft-sqlite/src/lib.rs:207-234` (`create_table`), `CREATE TABLE` plus per-index `CREATE INDEX` in one `execute_batch("BEGIN; … COMMIT;")`.
+- **Problem:** `execute_batch` stops at the first failing statement without rolling back, so a failed `CREATE INDEX` (e.g. an index-name collision from `idx_<table>_<field>` concatenation) leaves the transaction open on the pooled connection. The table is visible in-session but missing from `self.tables`, and the next write fails with "cannot start a transaction within a transaction". The relationship rebuild path already rolls back explicitly, so this is an oversight rather than a design choice.
+- **Approach:** Issue `ROLLBACK` on every error path (mirror `relationships.rs::rebuild`) and/or run the DDL through a `rusqlite::Transaction` so the error closes it. Ensure `self.tables` only changes after a successful commit. An index-name scheme that cannot collide (or a pre-flight existence check) removes the typical trigger.
+- **Acceptance:** A failing table creation leaves no open transaction and no visible table; the next create/insert on the same port succeeds; a RED test reproduces the collision case and a GREEN test pins the recovery.
+- **Done:** fixed in `e1b18c2` (RED `47ef985`): the error path of the DDL batch issues ROLLBACK, the connection stays usable and the half-created table is gone
