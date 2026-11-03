@@ -1048,3 +1048,12 @@
 - **Approach:** Mark the four enums `#[non_exhaustive]` with the same rationale as M22, extend the publishing policy's vocabulary list, and state that snapshot structs are read-only (field access is the contract, construction is internal). In-crate matches already use wildcards where needed; fix any that become non-exhaustive.
 - **Acceptance:** The four enums are `#[non_exhaustive]`, `docs/PUBLISHING.md` lists them and the snapshot contract, an out-of-crate consumer compiled with wildcard arms still builds, and the wire/serde shape is unchanged.
 - **Done:** fixed in `011bc76`: Event, DisabledReason, DatabaseFormat and SchemaChange are non_exhaustive; Jet and UI wildcards answer precise/localized fallbacks; PUBLISHING lists the vocabulary and states the read-only snapshot contract
+
+---
+
+### [x] M33 — datacraft-jet publishes its raw format layer without a stability contract — 🟡
+- **Location:** `crates/datacraft-jet/src/lib.rs:9-13` (`pub mod jet`, `pub mod port_write`), the `pub` items inside `src/jet/**` (`JetTableDef`, `JetColumn`, `JetType`, `Jet4TableReader`, `Jet4Writer`, `decode_row`, `encode_row`, page/usage-map/crypto helpers); `docs/PUBLISHING.md` (the jet row names the crate but not its supported surface).
+- **Problem:** The crate publishes its entire raw format layer together with the supported `Jet4Port`/`StorageError`/`types` API, and the integration tests need that visibility (`datacraft_jet::jet::{...}`). Published `pub` items carry a semver promise, so every internal parser refactor would force a minor bump, and docs.rs presents the internals as equal to the port. The publishing policy neither claims nor excludes this surface, so a consumer cannot tell what is stable.
+- **Approach:** Decide and document: either keep the raw layer as a deliberately public low-level API (state it in PUBLISHING, keep it documented and semver-covered) or hide it behind a `#[doc(hidden)]`/feature-gated `internals` module used only by the test targets. The port-facing API stays the supported contract either way.
+- **Acceptance:** `docs/PUBLISHING.md` names the supported surface of `datacraft-jet`; docs.rs shows the supported API as primary; integration tests keep compiling without a behaviour change; the decision is recorded (ADR-7 addendum).
+- **Done:** decided in `c1d0223`: the raw `datacraft_jet::jet` layer is a deliberately supported, semver-covered surface (needed by consumers and the integration tests); PUBLISHING names both surfaces explicitly
