@@ -6,7 +6,25 @@
 
 use datacraft_core::schema::{AutoKind, BinaryKind, FieldKind, FieldValue, NumericKind};
 
+use datacraft_core::port::NativeQueryKind;
+
 use crate::i18n::{t, tr};
+
+/// Localized name of a native query flavor (the QBE viewer's subtitle).
+/// The wire enum stays locale-neutral (ADR-4); the UI supplies the words.
+pub fn native_query_kind_label(kind: NativeQueryKind) -> &'static str {
+    match kind {
+        NativeQueryKind::Select => t("Select"),
+        NativeQueryKind::Crosstab => t("Crosstab"),
+        NativeQueryKind::Delete => t("Delete query"),
+        NativeQueryKind::Update => t("Update query"),
+        NativeQueryKind::Append => t("Append query"),
+        NativeQueryKind::MakeTable => t("Make-table query"),
+        NativeQueryKind::DataDefinition => t("Data-definition query"),
+        NativeQueryKind::Passthrough => t("Pass-through query"),
+        NativeQueryKind::Union => t("Union query"),
+    }
+}
 
 /// Access UI type name of a field kind (design grid and field list).
 pub fn field_kind_label(kind: &FieldKind) -> String {
@@ -74,15 +92,9 @@ mod tests {
     fn native_query_kinds_are_localized() {
         let _guard = lang_lock();
         set_lang(Lang::English);
-        assert_eq!(
-            native_query_kind_label(NativeQueryKind::Select),
-            "Select"
-        );
+        assert_eq!(native_query_kind_label(NativeQueryKind::Select), "Select");
         set_lang(Lang::German);
-        assert_eq!(
-            native_query_kind_label(NativeQueryKind::Select),
-            "Auswahl"
-        );
+        assert_eq!(native_query_kind_label(NativeQueryKind::Select), "Auswahl");
         assert_eq!(
             native_query_kind_label(NativeQueryKind::MakeTable),
             "Tabellenerstellungsabfrage"

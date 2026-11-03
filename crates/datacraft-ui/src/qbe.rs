@@ -198,7 +198,7 @@ fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         return;
     };
     let name = native.name.clone();
-    let kind = format!("{:?}", native.kind);
+    let kind = crate::labels::native_query_kind_label(native.kind);
     let tables = native.tables.join(", ");
     let columns: Vec<String> = native
         .columns
@@ -237,7 +237,7 @@ fn native_query_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         &[("name", &name)],
     )));
     ui.label(
-        egui::RichText::new(tr("{kind} — read-only (MSysQueries)", &[("kind", &kind)]))
+        egui::RichText::new(tr("{kind} — read-only (MSysQueries)", &[("kind", kind)]))
             .small()
             .weak(),
     );
