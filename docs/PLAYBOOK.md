@@ -114,3 +114,12 @@ A blocked step is **never** reported as done; the blocker — provided it is a g
 ## 8. Method retrospective (periodic pruning)
 
 Every **5 phases** (this project's declared interval) the acting team reviews `LESSONS.md` and this playbook as a whole. Three guiding questions per rule: (1) Did the rule prevent a bug? (2) Does it cost more than it catches? (3) Can it be consolidated? Every rule ends in exactly one outcome: **stay**, **demote** (binding → recommended) or **drop** (text preserved with a pointer in the archive). There is no obligation to prune — but this is the legitimized path for dropping rules. Changes to this fork are committed here (upstream sync is no longer automatic).
+
+## 9. Release policy (tags, artifacts, publication)
+
+- **Version source of truth:** the workspace version in `Cargo.toml` (`[workspace.package]`). A release tag is `v<version>` and must match it exactly; `release.yml` refuses to build a mismatched tag.
+- **Tagging:** annotated `vX.Y.Z` tag on `main`, only after the phase gate and the canonical verification set are green on CI `main`. A published tag is never moved, re-tagged or force-pushed; mistakes fix forward with a bumped version.
+- **Build & smoke:** pushing the tag triggers `release.yml` (Windows/macOS/Linux matrix). Every artifact must pass the packaged smoke (Jet fixture, samples demo, CSV directory) before checksums are generated.
+- **Publication:** the workflow attaches the three archives plus `checksums-sha256.txt` to a **draft** GitHub Release named after the tag; a human reviews the draft (checksums, notes) and publishes it. Nothing releases without that gate.
+- **No binaries in the repository:** archives and binaries exist only as CI build artifacts and on the draft release, never as tracked files.
+
