@@ -13,7 +13,7 @@ use datacraft_core::port::MockPort;
 
 fn open(core: &mut Core) -> Vec<Event> {
     core.dispatch(Command::OpenDatabase {
-        path: PathBuf::from("northwind.accdb"),
+        path: PathBuf::from("programmability.accdb"),
         password: None,
     })
 }

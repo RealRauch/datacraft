@@ -789,7 +789,7 @@ The column order varies between writers, so the decoder looks columns up
 by name (`Id`, `ParentId`, `Type`, `Name`, `Lv`).
 
 Named macros hang off the `Scripts` storage (observed on the pinned
-`northwind2007.accdb`):
+`programmability.accdb`):
 
 - `Scripts/<n>/Blob` — one definition stream per macro;
 - `Scripts/\u{3}DirData` — the directory:

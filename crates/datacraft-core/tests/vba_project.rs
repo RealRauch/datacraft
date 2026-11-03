@@ -34,7 +34,7 @@ fn opened_core() -> Core {
     port.with_vba(project());
     let mut core = Core::new(Box::new(port));
     let events = core.dispatch(Command::OpenDatabase {
-        path: PathBuf::from("northwind.accdb"),
+        path: PathBuf::from("programmability.accdb"),
         password: None,
     });
     assert!(

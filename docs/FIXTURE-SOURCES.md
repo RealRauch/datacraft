@@ -101,7 +101,7 @@ MIT-licensed JS reader; test databases include material nobody else ships:
 | mdb-reader `office-agile-4.2.accdb` @ 3dc637a (Office Agile AES) | 315 392 | `bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2` |
 | jackcess `V1997/testV1997.mdb` @ be0a2139 (pristine, Jet3) | 118 784 | `27788b47e17412427830e80c2cb69366885aa11b12c61422de73029194bef135` |
 | jackcess `V1997/test2V1997.mdb` @ be0a2139 (pristine, Jet3 jump-table row) | 137 216 | `ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668` |
-| `ssmith1975/samples-vb-net` @ master `Northwind 2007.accdb` (real Access; macros + VBA) | 3 661 824 | `3105c66a6fab059d7da9d00b4e91438dd084bb3da55655183c7d2c21929f9e1f` |
+| `ssmith1975/samples-vb-net` @ master `Northwind 2007.accdb` (real Access; macros + VBA) — retired by H50, removed from the tree (history removal M34) | 3 661 824 | `3105c66a6fab059d7da9d00b4e91438dd084bb3da55655183c7d2c21929f9e1f` |
 
 The query fixture is pinned as `fixtures/queryTestV2000.mdb` (jackcess V2000,
 provenance in `fixtures/manifest`; native saved queries for the MSysQueries

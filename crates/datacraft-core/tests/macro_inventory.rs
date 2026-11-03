@@ -41,7 +41,7 @@ fn macro_port() -> MockPort {
 fn opened_core() -> Core {
     let mut core = Core::new(Box::new(macro_port()));
     let events = core.dispatch(Command::OpenDatabase {
-        path: PathBuf::from("northwind.accdb"),
+        path: PathBuf::from("programmability.accdb"),
         password: None,
     });
     assert!(

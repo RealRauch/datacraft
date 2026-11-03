@@ -95,7 +95,7 @@ mod tests {
     fn load_reports_the_precise_failure_for_a_missing_module() {
         let mut core = core_with_project();
         core.dispatch(Command::OpenDatabase {
-            path: std::path::PathBuf::from("northwind.accdb"),
+            path: std::path::PathBuf::from("programmability.accdb"),
             password: None,
         });
         assert!(core.vba_project().is_some());
