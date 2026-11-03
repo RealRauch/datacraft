@@ -80,3 +80,23 @@ fn a_failed_index_creation_rolls_back_and_keeps_the_connection_usable() {
         .expect("count tables");
     assert_eq!(count, 0, "the failed create must not leave a table behind");
 }
+
+/// Creation refuses an existing target and a foreign format family.
+#[test]
+fn creation_refuses_existing_files_and_foreign_formats() {
+    use datacraft_core::port::DatabaseFormat;
+
+    let scratch = empty_database("exists");
+    let mut port = SqlitePort::new();
+    let err = port
+        .create_database(&scratch.0, DatabaseFormat::Sqlite)
+        .expect_err("an existing file must be refused");
+    assert!(err.to_string().contains("already exists"), "{err}");
+
+    let fresh = scratch_path("foreign");
+    let err = port
+        .create_database(&fresh, DatabaseFormat::Jet4)
+        .expect_err("Jet4 is not a SQLite creation target");
+    assert!(err.to_string().contains("SQLite"), "{err}");
+    assert!(!fresh.exists(), "no file is created for a foreign format");
+}
