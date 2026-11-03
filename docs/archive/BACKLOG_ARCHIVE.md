@@ -868,3 +868,12 @@
 - **Approach:** Before the crate split (31.2): mark the wire-facing enums `#[non_exhaustive]` (`Support`, `PortError`; `#[non_exhaustive]` on the `DriverCapabilities` struct for its fields), decide the default question explicitly — conservative default (a forgetful driver declares nothing) versus making `capabilities()` required — pin the decision in ADR-7 and the 31.4 Semver policy, and add a meta-test that every registered shipped driver overrides `driver_id`/`capabilities` explicitly.
 - **Acceptance:** Adding a vocabulary variant does not break a compiled out-of-tree driver (proven by `datacraft-csv` compiling unchanged against the extended core); the default story is decided, documented and meta-tested; canonical verification set green.
 - **Done:** done in `5dad505` — driver_id/capabilities required, none()/full() constructors, Support/PortError/Command non_exhaustive, ADR-7 addendum item 6; datacraft-csv compiles unchanged (acceptance proof); deviation documented: DriverCapabilities keeps constructible pub fields (non_exhaustive struct would break field reads)
+
+---
+
+### [x] M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — 🟡
+- **Location:** `crates/datacraft-storage/` (split into `datacraft-jet` + `datacraft-sqlite`), `crates/datacraft-mcp/` (new binary crate), workspace `Cargo.toml`, packaging documentation
+- **Problem:** The engine (`datacraft-core`) and all drivers share one workspace with lockstep versions; external consumers and contributors cannot depend on stable published crates, and the pure-Rust Jet story is diluted by the C-backed `rusqlite` dependency in the same crate.
+- **Approach:** split the storage crate into per-driver crates (Jet stays pure Rust with its oracle suite; SQLite moves its dependency into its own crate), extract `datacraft-mcp` as its own binary crate, then publish in dependency order (engine → jet → sqlite → csv → mcp) with a Semver/MSRV/changelog policy. Details are packaged when Phase 31 starts (ADR-7 records the decision).
+- **Acceptance:** each crate builds and publishes independently; the workspace still builds as one unit; the publishing checklist and versioning policy are documented; no behavior change.
+- **Done:** done in steps 31.2-31.4 (`10689e6`, `360028e`, `49b1456`) — jet/sqlite/mcp crates extracted, storage is the composite, core gained the default-on sql-engine feature gate (jet is C-free), publishing order + semver/msrv/changelog policy documented in docs/PUBLISHING.md; workspace builds as one unit, no behavior change

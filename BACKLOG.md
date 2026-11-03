@@ -24,12 +24,6 @@
 
 > No open items.
 
-### [ ] M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — 🟡
-- **Location:** `crates/datacraft-storage/` (split into `datacraft-jet` + `datacraft-sqlite`), `crates/datacraft-mcp/` (new binary crate), workspace `Cargo.toml`, packaging documentation
-- **Problem:** The engine (`datacraft-core`) and all drivers share one workspace with lockstep versions; external consumers and contributors cannot depend on stable published crates, and the pure-Rust Jet story is diluted by the C-backed `rusqlite` dependency in the same crate.
-- **Approach:** split the storage crate into per-driver crates (Jet stays pure Rust with its oracle suite; SQLite moves its dependency into its own crate), extract `datacraft-mcp` as its own binary crate, then publish in dependency order (engine → jet → sqlite → csv → mcp) with a Semver/MSRV/changelog policy. Details are packaged when Phase 31 starts (ADR-7 records the decision).
-- **Acceptance:** each crate builds and publishes independently; the workspace still builds as one unit; the publishing checklist and versioning policy are documented; no behavior change.
-
 ### [ ] R1 — Cross-cutting code review round (Phase 34) — 🟡
 - **Location:** whole workspace (review only — findings become BACKLOG items; fixes only via the inline-fix lane or packaged follow-ups)
 - **Problem:** Thirty-plus phases of feature work have never had a deliberate cross-cutting review pass; the per-phase gates verify the canonical set, but nobody has walked the LESSONS checklist across module boundaries since the driver model, the capability vocabulary and the CSV driver landed.
@@ -209,3 +203,4 @@
 - M13 — Release-Engineering (Tags, release.yml, Checksums, Smoke) — done (done in `7ba87f1` + `d3a008c` (steps 26.1/26.2) — release.yml matrix/packaging/per-artifact smoke/checksums, draft-release publishing via gh, PLAYBOOK §9 tag policy; local packaged smoke green on windows (jet fixture, samples demo, csv directory))
 - M21 — Retire the vestigial StorageEngine trait (ADR-7 single seam) — done (done in `45a852d` + `44b1fff` (step 31.1) — trait/mock/boundary suite removed after porting the contract to tests/port_contract.rs (Jet4 + SQLite cross-driver); coverage >= 95 held; ARCHITECTURE §6 cites the removal; finding M24 (tri-state Boolean NULL) filed from the porting run)
 - M22 — Publish-ready API vocabulary: non_exhaustive and the capabilities default (Phase 31 prep) — done (done in `5dad505` — driver_id/capabilities required, none()/full() constructors, Support/PortError/Command non_exhaustive, ADR-7 addendum item 6; datacraft-csv compiles unchanged (acceptance proof); deviation documented: DriverCapabilities keeps constructible pub fields (non_exhaustive struct would break field reads))
+- M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — done (done in steps 31.2-31.4 (`10689e6`, `360028e`, `49b1456`) — jet/sqlite/mcp crates extracted, storage is the composite, core gained the default-on sql-engine feature gate (jet is C-free), publishing order + semver/msrv/changelog policy documented in docs/PUBLISHING.md; workspace builds as one unit, no behavior change)

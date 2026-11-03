@@ -423,3 +423,16 @@
 - **26.2 Release-Smoke + Tag-Politik (M13)**
 - **26.3 Phase 26 Quality Gate Review**
 **Verification:** canonical gates green (fmt/clippy/tests 130 suites ok, local coverage >= 95, file-size, hygiene tokens, fixture pins, no binaries in repo); release.yml YAML-validated; packaged smoke green in three runs (jet fixture, samples demo, csv directory); M13 acceptance verified and archived; security self-review: least-privilege token scopes, draft-only publication, no third-party actions; the first real release run stays pending the first v* tag push (checkpoint: d3a008c)
+
+---
+
+### Phase 31 — Engine Publishing *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **31.1 Retire the vestigial StorageEngine trait (M21, High gate: test suite ported)**
+- **31.2 Crate split: datacraft-jet + datacraft-sqlite (M19)**
+- **31.3 Standalone datacraft-mcp binary crate (M19)**
+- **31.4 Publishing: Semver/MSRV/changelog policy, crates.io order (M19)**
+- **31.5 Phase 31 Quality Gate Review**
+**Verification:** canonical gates green (fmt/clippy/tests 134 suites, local coverage >= 95, file-size, hygiene, fixture pins 14/14); acceptance walked: one seam (M21), C-free datacraft-jet via the core sql-engine gate + standalone datacraft-mcp crate (M19), publishing policy in docs/PUBLISHING.md with package dry-run evidence (31.4); M19/M21/M22 archived; pending honestly: first CI run against the seven-crate layout, first v* release and first crates.io publish all wait on the next push/tag (checkpoint: 10689e6)
