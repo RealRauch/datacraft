@@ -82,7 +82,17 @@ impl StoragePort for DetectingPort {
                     return Err(error);
                 };
                 let mut fallback = factory();
-                let opened = fallback.open(path, password)?;
+                let opened = fallback.open(path, password).map_err(|fallback_error| {
+                    // L9: an unknown file reaches the fallback only after the
+                    // sniff declined it — when the fallback declines too, the
+                    // user still needs the family hint, so the sniff's precise
+                    // reason stays and the fallback's verdict is appended.
+                    PortError::OpenFailed {
+                        detail: format!(
+                            "{error} — the registered fallback declined it too: {fallback_error}"
+                        ),
+                    }
+                })?;
                 self.session = Some(fallback);
                 return Ok(opened);
             }
