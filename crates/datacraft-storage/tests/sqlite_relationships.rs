@@ -315,7 +315,8 @@ fn port_level_errors_and_read_only_sources_are_precise() {
     assert!(error.to_string().contains("not found"), "{error:?}");
     port.close();
 
-    let mut permissions = std::fs::metadata(&path).expect("metadata").permissions();
+    let original = std::fs::metadata(&path).expect("metadata").permissions();
+    let mut permissions = original.clone();
     permissions.set_readonly(true);
     std::fs::set_permissions(&path, permissions).expect("read-only");
     let mut read_only = SqlitePort::new();
@@ -329,9 +330,7 @@ fn port_level_errors_and_read_only_sources_are_precise() {
         .expect_err("read-only source");
     assert!(error.to_string().contains("read-only"), "{error:?}");
     read_only.close();
-    let mut permissions = std::fs::metadata(&path).expect("metadata").permissions();
-    permissions.set_readonly(false);
-    std::fs::set_permissions(&path, permissions).expect("writable again");
+    std::fs::set_permissions(&path, original).expect("restore the original permissions");
 }
 
 #[test]
