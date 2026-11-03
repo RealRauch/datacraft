@@ -400,3 +400,15 @@
 - **33.1 Journal batches gate on the atomic_batch capability (M20)**
 - **33.2 Phase 33 Quality Gate Review**
 **Verification:** Phase 33 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.04% lines (above the 94.00% baseline; CI ubuntu binding); docs_validate has no Phase-33 finding; no debt markers.
+
+---
+
+### Phase 32 — Writer Catalog Fidelity
+
+**Scope (Steps):**
+
+- **32.1 Field properties persistence (H45)**
+- **32.2 Index creation in the Jet writer (M15)**
+- **32.3 Relationship and foreign-key creation (M16)**
+- **32.4 Phase 32 Quality Gate Review**
+**Verification:** Phase 32 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.05% lines (above the 94.00% pre-phase baseline; CI ubuntu binding); docs_validate has no Phase-32 finding; no debt markers.

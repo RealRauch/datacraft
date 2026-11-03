@@ -16,14 +16,6 @@
 - **26.1 Release-Workflow: Matrix, Checksums, Notices (M13)**
 - **26.2 Release-Smoke + Tag-Politik (M13)**
 - **26.3 Phase 26 Quality Gate Review**
-### Phase 32 — Writer Catalog Fidelity
-
-**Scope (Steps):**
-
-- **32.1 Field properties persistence (H45)**
-- **32.2 Index creation in the Jet writer (M15)**
-- **32.3 Relationship and foreign-key creation (M16)**
-- **32.4 Phase 32 Quality Gate Review**
 ### Phase 31 — Engine Publishing
 
 **Scope (Steps):**
@@ -243,7 +235,7 @@
 | 32.1 | Field properties persistence (H45) | ✅ |
 | 32.2 | Index creation in the Jet writer (M15) | ✅ |
 | 32.3 | Relationship and foreign-key creation (M16) | ✅ |
-| 32.4 | Phase 32 Quality Gate Review | 🔄 |
+| 32.4 | Phase 32 Quality Gate Review | ✅ |
 | 33.1 | Journal batches gate on the atomic_batch capability (M20) | ✅ |
 | 33.2 | Phase 33 Quality Gate Review | ✅ |
 | 31.1 | Retire the vestigial StorageEngine trait (M21, High gate: test suite ported) | ⬜ |
