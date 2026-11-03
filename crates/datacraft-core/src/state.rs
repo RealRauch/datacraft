@@ -43,6 +43,9 @@ pub struct AppState {
     pub pending_write: Option<crate::journal::PendingWrite>,
     /// Last applied write batch, kept for rollback (step 11.11, M2).
     pub last_applied: Option<crate::journal::AppliedWrite>,
+    /// The composition's driver inventory (step 36.4, M23) — fixed at
+    /// core construction from the port's registry; never mutates.
+    pub drivers: Vec<crate::port::DriverInfo>,
 }
 
 impl AppState {

@@ -49,6 +49,9 @@ impl StoragePort for PickyFallback {
     fn driver_id(&self) -> DriverId {
         DriverId::new("picky")
     }
+    fn source_format(&self) -> Option<DatabaseFormat> {
+        Some(DatabaseFormat::Csv)
+    }
     fn capabilities(&self) -> DriverCapabilities {
         let mut caps = DriverCapabilities::none();
         caps.read_tables = true;
@@ -298,4 +301,40 @@ fn unopened_inventory_calls_answer_no_database() {
     assert!(port.native_queries().expect("empty").is_empty());
     assert!(port.macros().expect("empty").is_empty());
     assert!(port.vba_project().expect("none").is_none());
+}
+
+/// The registry is data (M23): a composed core's snapshot lists the
+/// built-in probes plus the registered fallback with ids, fixed families
+/// and the offline capability summaries — the pre-flight surface for
+/// agents, additive next to `templates`.
+#[test]
+fn the_composed_snapshot_lists_the_driver_inventory() {
+    use datacraft_core::core::Core;
+    use datacraft_core::port::DatabaseFormat;
+
+    let core = Core::new(Box::new(DetectingPort::new().with_fallback(picky_factory)));
+    let snapshot = core.inspect();
+    assert_eq!(snapshot.drivers.len(), 3, "{:?}", snapshot.drivers);
+
+    let jet = &snapshot.drivers[0];
+    assert_eq!(jet.id.as_str(), "jet");
+    assert_eq!(jet.format, Some(DatabaseFormat::Jet4));
+    assert!(jet.capabilities.write_rows, "the offline reference set");
+
+    let sqlite = &snapshot.drivers[1];
+    assert_eq!(sqlite.id.as_str(), "sqlite");
+    assert_eq!(sqlite.format, Some(DatabaseFormat::Sqlite));
+
+    let picky = &snapshot.drivers[2];
+    assert_eq!(picky.id.as_str(), "picky", "the fallback is inventoried");
+    assert_eq!(
+        picky.format,
+        Some(DatabaseFormat::Csv),
+        "PickyFallback names its family via source_format"
+    );
+    assert!(!picky.capabilities.write_rows, "the offline declared set");
+
+    // A composition without a fallback inventories the built-ins only.
+    let plain = Core::new(Box::new(DetectingPort::new()));
+    assert_eq!(plain.inspect().drivers.len(), 2);
 }

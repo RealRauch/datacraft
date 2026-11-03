@@ -23,10 +23,11 @@ pub struct Core {
 impl Core {
     /// Creates a core over the given storage backend.
     pub fn new(port: Box<dyn StoragePort>) -> Self {
-        Self {
-            state: AppState::new(),
-            port,
-        }
+        let mut state = AppState::new();
+        // The composition's driver inventory (M23) is fixed at
+        // construction — the registry never mutates at runtime.
+        state.drivers = port.driver_inventory();
+        Self { state, port }
     }
 
     /// Read access to the application state (the UI re-renders from it).

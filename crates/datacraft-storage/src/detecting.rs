@@ -9,8 +9,8 @@
 use std::path::Path;
 
 use datacraft_core::port::{
-    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
-    RowRange, SchemaChange, StoragePort,
+    DatabaseFormat, DriverCapabilities, DriverId, DriverInfo, OpenedDatabase, PortError,
+    Relationship, RowRange, SchemaChange, StoragePort,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
@@ -72,6 +72,36 @@ impl StoragePort for DetectingPort {
         self.session
             .as_ref()
             .map_or_else(DriverCapabilities::full, |session| session.capabilities())
+    }
+
+    /// The registry as data (M23): the built-in probes plus any
+    /// registered fallback — id, fixed family and offline capability
+    /// summary — so clients can pre-flight an open against the reported
+    /// families instead of learning them by failed attempts.
+    fn driver_inventory(&self) -> Vec<DriverInfo> {
+        let jet = Jet4Port::new();
+        let sqlite = SqlitePort::new();
+        let mut inventory = vec![
+            DriverInfo {
+                id: jet.driver_id(),
+                format: Some(DatabaseFormat::Jet4),
+                capabilities: jet.capabilities(),
+            },
+            DriverInfo {
+                id: sqlite.driver_id(),
+                format: Some(DatabaseFormat::Sqlite),
+                capabilities: sqlite.capabilities(),
+            },
+        ];
+        if let Some(factory) = &self.fallback {
+            let driver = factory();
+            inventory.push(DriverInfo {
+                id: driver.driver_id(),
+                format: driver.source_format(),
+                capabilities: driver.capabilities(),
+            });
+        }
+        inventory
     }
 
     fn open(&mut self, path: &Path, password: Option<&str>) -> Result<OpenedDatabase, PortError> {

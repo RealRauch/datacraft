@@ -41,6 +41,12 @@ impl StoragePort for CsvPort {
         DriverId::new("csv")
     }
 
+    /// The driver's fixed family (M23): the inventory reports it so a
+    /// composed binary can advertise the CSV driver offline.
+    fn source_format(&self) -> Option<DatabaseFormat> {
+        Some(DatabaseFormat::Csv)
+    }
+
     /// The honest set (phase 30, M18): table/row/file creation served
     /// with one atomic rewrite per call; no schema alteration, no
     /// passwords, no engine-assigned AutoNumbers, and none of the

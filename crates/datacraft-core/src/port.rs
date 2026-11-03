@@ -11,7 +11,7 @@ use crate::schema::{FieldValue, TableDef};
 
 mod capabilities;
 
-pub use capabilities::{DriverCapabilities, DriverId, Support};
+pub use capabilities::{DriverCapabilities, DriverId, DriverInfo, Support};
 
 /// Binary format family of an opened database (domain vocabulary; the
 /// backends map their physical version detection onto it).
@@ -294,6 +294,22 @@ pub trait StoragePort {
     /// declaration. Start from [`DriverCapabilities::none`] or
     /// [`DriverCapabilities::full`] and state the deviations.
     fn capabilities(&self) -> DriverCapabilities;
+    /// The source family this driver opens, when fixed for the driver
+    /// (M23). The default is `None` — a single-purpose driver names its
+    /// family; a multi-family driver (the Jet/ACE adapter) may too, with
+    /// its primary family. The detecting composite reads this for its
+    /// inventory's fallback entries.
+    fn source_format(&self) -> Option<DatabaseFormat> {
+        None
+    }
+    /// The driver inventory of this composition (M23): every driver it
+    /// can open with id, fixed family and offline capability summary.
+    /// The default is empty — a single-purpose port names itself via
+    /// [`StoragePort::driver_id`]; the detecting composite reports its
+    /// full registry so agents can pre-flight an open.
+    fn driver_inventory(&self) -> Vec<DriverInfo> {
+        Vec::new()
+    }
     /// Opens the database at `path`; `password` is `None` for unprotected
     /// files (step 16.2, M5). Backends without passwords ignore it.
     fn open(

@@ -32,6 +32,11 @@ pub struct UiStateSnapshot {
     /// The shipped database templates (phase 29, item H44) — the registry
     /// behind `CreateDatabaseFromTemplate`, visible to every client.
     pub templates: Vec<crate::templates::TemplateSummary>,
+    /// The composition's driver inventory (step 36.4, M23): every driver
+    /// the composed binary can open with id, fixed family and offline
+    /// capability summary — additive next to `templates`, so agents
+    /// pre-flight an open against the reported families.
+    pub drivers: Vec<crate::port::DriverInfo>,
     /// Row-write undo depth of the open database (step 28.1, item U14);
     /// `0` without a database.
     pub undo_depth: usize,
@@ -177,6 +182,7 @@ impl UiStateSnapshot {
     pub fn of(state: &AppState) -> Self {
         Self {
             templates: crate::templates::summaries(),
+            drivers: state.drivers.clone(),
             database: state.database.as_ref().map(|db| DatabaseSnapshot {
                 name: db.name.clone(),
                 path: db.path.clone(),

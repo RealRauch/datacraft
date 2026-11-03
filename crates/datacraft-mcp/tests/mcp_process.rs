@@ -42,7 +42,10 @@ fn open_request(id: u32, path: &str) -> String {
     )
 }
 
-/// `inspect` answers the serializable state snapshot in the result.
+/// `inspect` answers the serializable state snapshot in the result —
+/// including the composed driver inventory (M23): the real binary lists
+/// jet, sqlite and the csv fallback with their formats, so agents can
+/// pre-flight an open against the reported families.
 #[test]
 fn inspect_over_a_real_process_answers_the_snapshot() {
     bin()
@@ -52,6 +55,12 @@ fn inspect_over_a_real_process_answers_the_snapshot() {
         .stdout(predicate::str::contains(r#""id":1"#))
         .stdout(predicate::str::contains("nav_pane_visible"))
         .stdout(predicate::str::contains("templates"))
+        .stdout(predicate::str::contains(r#""drivers":[{"capabilities""#))
+        .stdout(predicate::str::contains(r#""format":"jet4","id":"jet""#))
+        .stdout(predicate::str::contains(
+            r#""format":"sqlite","id":"sqlite""#,
+        ))
+        .stdout(predicate::str::contains(r#""format":"csv","id":"csv""#))
         .stderr(predicate::str::is_empty());
 }
 

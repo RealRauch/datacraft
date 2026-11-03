@@ -153,3 +153,19 @@ impl DriverCapabilities {
         format!("unsupported: the {driver} driver cannot {what}")
     }
 }
+
+/// One entry of a composition's driver inventory (M23): the driver id,
+/// the source family it opens — `Some` when the family is fixed for the
+/// driver, `None` for a fallback that may serve several — and its
+/// session-independent capability summary (the offline reference set).
+/// Additive snapshot vocabulary: agents pre-flight an open against the
+/// reported families instead of learning them by failed attempts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DriverInfo {
+    /// Stable identity of the driver.
+    pub id: DriverId,
+    /// The source family the driver opens, when fixed for the driver.
+    pub format: Option<super::DatabaseFormat>,
+    /// The offline capability summary.
+    pub capabilities: DriverCapabilities,
+}

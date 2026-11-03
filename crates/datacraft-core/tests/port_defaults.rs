@@ -207,6 +207,9 @@ fn a_port_declares_its_identity_and_capabilities_explicitly() {
     assert_eq!(port.driver_id().as_str(), "minimal");
     // The declared set is the conservative one, not an inherited default.
     assert_eq!(port.capabilities(), DriverCapabilities::none());
+    // The inventory default is empty (M23): a single-purpose port names
+    // itself; the detecting composite reports its registry.
+    assert!(port.driver_inventory().is_empty());
 }
 
 #[test]
