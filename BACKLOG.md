@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T18:43
+# BACKLOG.md — Open items (As of: 2026-11-03T19:02
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -18,6 +18,18 @@
 
 > No open items.
 
+### [ ] H46 — Jet read/write paths panic on crafted structures instead of answering a precise error — 🟠
+- **Location:** `crates/datacraft-jet/src/jet/row.rs` (`decode_bytes`: `Guid` copies `bytes` into `[u8;16]` regardless of the descriptor length; `Byte`/`Int`/`LongInt`/`Currency`/`Float`/`Double`/`DateTime` index fixed slices that a hostile `col.len` can shorten), `src/jet/row.rs` (`has_external_long_value` reads `row[start..start+3]` from unchecked var-table entries), `src/jet/data_page.rs` (overflow slots are stored as `(start, start+4)` without checking `start + 4 <= page.len()`), `src/jet/lval.rs` (`read_record` slices those coordinates), `src/jet/writer.rs` (`map_row`/`rewrite_map_row` slice them; `append_page` subtracts `global.start_page` unchecked when the free map starts above EOF), `src/jet/encode.rs` (`mask` is sized by column count but indexed by `column_id`; `eod as u16` silently truncates).
+- **Problem:** A crafted `.mdb`/`.accdb` can make the reader panic (open/read path) or the writer panic during update/alter (`encode_row`, map rewrite), violating LESSONS #4/#7: malformed input must produce a precise, locatable error, never "mysteriously does not work". The panic surface is reachable from every client because all of them share the port.
+- **Approach:** Validate where the untrusted number enters the structure: per-type minimum lengths (or checked accessors) in `decode_fixed`/`decode_bytes`; overflow-slot bounds in both `DataPage` decoders (central fix for the LVAL and map-row consumers); `end <= row.len()` before the memo flags in `has_external_long_value`; `mask.get_mut` plus an `eod` range check in `encode_row`; `checked_sub` for the map window. Add an evil-input case per construction (Guid with `len != 16`, zero-length `Byte`, wide var-table gap, overflow-flagged LVAL/map slot, free map starting above EOF, non-dense column ids during alter).
+- **Acceptance:** Every listed construction returns `StorageError::Corrupt`/`Unsupported` instead of panicking; the regression cases live in `crates/datacraft-jet/tests/jet_evil_inputs.rs` (and the writer suites where the write path is required); canonical verification set green.
+
+### [ ] H47 — Jet row writes replace the live database non-atomically — 🟠
+- **Location:** `crates/datacraft-jet/src/port_adapter.rs:395` (`with_writer`), `crates/datacraft-jet/src/jet/create.rs:90` and `:200` (fresh/template materialization).
+- **Problem:** Every ordinary write persists the whole database with `std::fs::write`, which truncates the live file before writing the new bytes. A crash, power loss or full disk in that window leaves a truncated database; the password path already solves the same problem with a sibling temp file renamed over the target (`port_adapter/password.rs::write_replacing`). `create_jet4_file` likewise leaves a partial file when its direct write fails (only the template materializer removes it).
+- **Approach:** Reuse the settings/password pattern for every persistence step: write a sibling temp file, flush, rename over the target, remove the temp on failure. Keep the produced bytes identical (no format change); document the guarantee in FORMAT-JET next to the password rewrite note.
+- **Acceptance:** A failed or interrupted persistence leaves the original database byte-identical (tested by injecting a write failure or by asserting the temp/rename sequence); created files never survive as partials; the canonical verification set stays green and `jet_writer_roundtrip`/`ace_writer` byte comparisons are unchanged.
+
 ---
 
 ## 🟡 MEDIUM
@@ -35,6 +47,18 @@
 - **Problem:** The documentation has drifted across phases 10-30: the entry points an agent or contributor reads first (AGENTS.md, README architecture) describe a four-crate workspace, ARCHITECTURE carries stale milestone and mapping sections, and the driver model (ADR-7) is documented in the ADR but not in the navigation docs. A release must not ship with entry-point docs that contradict the repository.
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
+
+### [ ] M25 — SQLite create_table leaves an open transaction when CREATE INDEX fails — 🟡
+- **Location:** `crates/datacraft-sqlite/src/lib.rs:207-234` (`create_table`), `CREATE TABLE` plus per-index `CREATE INDEX` in one `execute_batch("BEGIN; … COMMIT;")`.
+- **Problem:** `execute_batch` stops at the first failing statement without rolling back, so a failed `CREATE INDEX` (e.g. an index-name collision from `idx_<table>_<field>` concatenation) leaves the transaction open on the pooled connection. The table is visible in-session but missing from `self.tables`, and the next write fails with "cannot start a transaction within a transaction". The relationship rebuild path already rolls back explicitly, so this is an oversight rather than a design choice.
+- **Approach:** Issue `ROLLBACK` on every error path (mirror `relationships.rs::rebuild`) and/or run the DDL through a `rusqlite::Transaction` so the error closes it. Ensure `self.tables` only changes after a successful commit. An index-name scheme that cannot collide (or a pre-flight existence check) removes the typical trigger.
+- **Acceptance:** A failing table creation leaves no open transaction and no visible table; the next create/insert on the same port succeeds; a RED test reproduces the collision case and a GREEN test pins the recovery.
+
+### [ ] M26 — Crafted memo and VBA lengths drive unchecked allocations — 🟡
+- **Location:** `crates/datacraft-jet/src/jet/lval.rs:37` (`Vec::with_capacity(total_len)` for a memo chain), `crates/datacraft-jet/src/jet/vba/decompress.rs:44-84` (chunk expansion before the `MAX_CHUNK` post-check).
+- **Problem:** Both lengths are taken from the crafted file before any data is read. A 12-byte memo header can request `0x3FFF_FFFF` bytes (≈1 GiB) of capacity, and one ~4 KB compressed VBA chunk can expand to ~120 MB of copy tokens before the 4096-byte limit rejects it. Both are allocation amplification on untrusted input (a DoS vector, distinct from the panic paths in H46).
+- **Approach:** Bound the pre-allocation by evidence (`min(total_len, file.len())` or no reservation at all) and enforce the per-chunk output limit inside the token loop (check `out.len() - chunk_start <= MAX_CHUNK` before each copy). No behavior change for valid files.
+- **Acceptance:** A crafted memo length allocates at most the file-backed amount and still yields the existing precise error; a crafted VBA chunk never exceeds one 4096-byte chunk of intermediate output; tests pin both bounds.
 
 ---
 
@@ -59,6 +83,24 @@
 - **Problem:** Since 2026-11-03 ~14:00 UTC every `Tests (macos-latest)` and `Oracle (mdb-tools cross-check) (macos-latest)` job is cancelled in the runner queue after exactly 15m01s with no logs (five consecutive attempts across runs 41645734997/41653027497/41666011189, including two explicit reruns). Earlier the same day both macOS jobs ran green (oracle 28s, tests 1m25s). All non-macOS jobs are green; the macOS suite is the same code that passes on ubuntu/windows, and the ubuntu oracle covers the mdbtools cross-check.
 - **Approach:** No repository change — retry `gh run rerun --failed` when GitHub macOS runner capacity/billing recovers (check account Settings → Billing → Actions minutes: the macOS 10× multiplier is the prime suspect). Optionally consider moving the oracle job to ubuntu-only (it already carries the mdbtools cross-check) if macOS capacity stays scarce.
 - **Acceptance:** A CI run on `main` completes with the macOS jobs green (or the oracle matrix consciously narrowed with a documented decision); nothing in the repo changes until then.
+
+### [ ] L11 — Anomalous whitespace runs in six user-facing messages — 🟢
+- **Location:** `crates/datacraft-core/src/journal.rs:237`, `crates/datacraft-core/src/schema/document.rs:139` and `:152`, `crates/datacraft-jet/src/port_write.rs:174`, `crates/datacraft-jet/src/jet/header.rs:99` and `:106`.
+- **Problem:** Six user-facing messages carry long runs of spaces mid-sentence (e.g. "engine-assigned                          value", "is not a                      supported combination"). They render as gaps in toasts/errors and look like a botched mechanical replacement (LESSONS #8), not like deliberate formatting.
+- **Approach:** Replace each run with a single space; no text content changes otherwise. If any test asserts on the exact string, update it in the same step.
+- **Acceptance:** `grep -nE '[a-z] {2,}[a-z]'` over the message strings returns only intentional formatting; affected tests (journal/document/writer message assertions) are green.
+
+### [ ] L12 — CSV create_table skips TableDef validation — 🟢
+- **Location:** `crates/datacraft-csv/src/lib.rs:138-158` (`create_table`).
+- **Problem:** The Jet and SQLite backends call `TableDef::validate()` before creating a table; the CSV driver writes the header row without it. A definition with an empty or duplicate field name therefore creates a table whose header cannot be read back unambiguously (the open path rejects an empty header cell, so the table becomes unopenable).
+- **Approach:** Call `definition.validate()` like the other drivers and map the error to `PortError::WriteFailed` with the table name, keeping the existing file-name check.
+- **Acceptance:** A CSV `create_table` with an invalid definition fails before any file is written and the directory still opens; test pins both the rejection and the unchanged valid path.
+
+### [ ] L13 — SQLite affinity edge cases: AUTOINCREMENT substring and parameterized type names — 🟢
+- **Location:** `crates/datacraft-sqlite/src/mapping.rs:224` (`autoincrement` detected by uppercasing the whole `CREATE TABLE` text and searching for the substring `AUTOINCREMENT`), `:279` (marker types compared by exact uppercase name).
+- **Problem:** Two affinity edge cases misclassify schemas. A table whose DDL mentions `AUTOINCREMENT` anywhere (a column default, a quoted name) turns every `INTEGER PRIMARY KEY` into an AutoNumber and rejects user values on write. Conversely a declared type with a length/precision suffix (`DATETIME(6)`, `CURRENCY(10)`) misses the marker match and falls through to `Decimal`.
+- **Approach:** Detect `AUTOINCREMENT` on the primary-key column's definition (token-aware, or via `PRAGMA table_info` + the DDL segment belonging to the PK column), and strip a trailing `(…)` before the marker-type comparison. Affinity fallbacks stay unchanged.
+- **Acceptance:** A DDL mentioning the word outside the PK column does not create an AutoNumber; `DATETIME(6)` maps to `DateTime` (and `CURRENCY(10)` to `Currency`); unit tests pin both directions, real fixture catalogs unchanged.
 
 ---
 

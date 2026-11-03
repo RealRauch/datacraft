@@ -228,7 +228,7 @@
 | 31.3 | Standalone datacraft-mcp binary crate (M19) | ✅ |
 | 31.4 | Publishing: Semver/MSRV/changelog policy, crates.io order (M19) | ✅ |
 | 31.5 | Phase 31 Quality Gate Review | ✅ |
-| 34.1 | Storage & drivers review: security self-review, error precision, clean-room (R1) | ⬜ |
+| 34.1 | Storage & drivers review: security self-review, error precision, clean-room (R1) | ✅ |
 | 34.2 | Core review: dispatch/journal/capability gates, event & snapshot shapes (R1) | ⬜ |
 | 34.3 | UI review: paint-code discipline, i18n parity, affordance coverage (R1) | ⬜ |
 | 34.4 | Public API surface audit for Phase 31 (R1) | ⬜ |
