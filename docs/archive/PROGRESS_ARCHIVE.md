@@ -436,3 +436,18 @@
 - **31.4 Publishing: Semver/MSRV/changelog policy, crates.io order (M19)**
 - **31.5 Phase 31 Quality Gate Review**
 **Verification:** canonical gates green (fmt/clippy/tests 134 suites, local coverage >= 95, file-size, hygiene, fixture pins 14/14); acceptance walked: one seam (M21), C-free datacraft-jet via the core sql-engine gate + standalone datacraft-mcp crate (M19), publishing policy in docs/PUBLISHING.md with package dry-run evidence (31.4); M19/M21/M22 archived; pending honestly: first CI run against the seven-crate layout, first v* release and first crates.io publish all wait on the next push/tag (checkpoint: 10689e6)
+
+---
+
+### Phase 36 — Coverage repair & backlog clearing
+
+**Scope (Steps):**
+
+- **36.1 CSV behavioral edge suites (T7)**
+- **36.2 Detecting registry edge suites + L9 (T7)**
+- **36.3 MCP subprocess E2E + registry row (T7) — push checkpoint, green CI**
+- **36.4 M23: registered drivers visible in the snapshot**
+- **36.5 L7: CSV type inference**
+- **36.6 M24: tri-state Boolean NULL decision**
+- **36.7 Phase 36 Quality Gate Review**
+**Verification:** canonical gates green locally (fmt/clippy/tests 138 suites/coverage >= 95/file-size after the port+csv root splits/hygiene/fixtures 14); CI green on ubuntu tests+oracle, windows tests, coverage, clippy, fmt, hygiene, fixtures; the macOS jobs were cancelled by runner infrastructure in five consecutive attempts (queue cancellation at 15m01s, no logs — the same suite ran green on macOS that morning); tracked as BACKLOG L10 for the rerun, gate config unchanged; phase acceptance: every open item archived (T7, L9, M23, L7, M24), the coverage gate green on CI, the backlog's unassigned items cleared (checkpoint: 4ca02ac)

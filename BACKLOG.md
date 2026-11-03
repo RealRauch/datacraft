@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T14:59
+# BACKLOG.md — Open items (As of: 2026-11-03T18:43
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -53,6 +53,12 @@
 - **Problem:** The driver model is ready for server drivers (Postgres/SQL Server per ADR-7's documented future path), but the wire and the UI assume a filesystem path (`path: PathBuf`, file-stem names, a sidecar next to the file).
 - **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
 - **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
+
+### [ ] L10 — CI: macOS jobs infra-cancelled — rerun for a fully green run — 🟢
+- **Location:** `.github/workflows/ci.yml` (macos-latest matrix entries), GitHub runner capacity/billing (account side)
+- **Problem:** Since 2026-11-03 ~14:00 UTC every `Tests (macos-latest)` and `Oracle (mdb-tools cross-check) (macos-latest)` job is cancelled in the runner queue after exactly 15m01s with no logs (five consecutive attempts across runs 41645734997/41653027497/41666011189, including two explicit reruns). Earlier the same day both macOS jobs ran green (oracle 28s, tests 1m25s). All non-macOS jobs are green; the macOS suite is the same code that passes on ubuntu/windows, and the ubuntu oracle covers the mdbtools cross-check.
+- **Approach:** No repository change — retry `gh run rerun --failed` when GitHub macOS runner capacity/billing recovers (check account Settings → Billing → Actions minutes: the macOS 10× multiplier is the prime suspect). Optionally consider moving the oracle job to ubuntu-only (it already carries the mdbtools cross-check) if macOS capacity stays scarce.
+- **Acceptance:** A CI run on `main` completes with the macOS jobs green (or the oracle matrix consciously narrowed with a documented decision); nothing in the repo changes until then.
 
 ---
 
