@@ -516,6 +516,23 @@ applications.** Approved with the Phase 30 plan release.
    (`t()`). UI code never matches on formats and never duplicates capability
    logic. Defense in depth: the dispatch consults the capabilities and answers
    the same `Unsupported` events if a stale client still dispatches.
+6. **Publish-ready vocabulary (addendum, 2026-11-03, M22).** (a) `driver_id`
+   and `capabilities` are **required** trait methods — the former optimistic
+   `DriverCapabilities::full()` fallback made a forgetful driver lie about its
+   surface at runtime; now the compiler asks for the declaration (rejected:
+   a conservative runtime default that silently answers `Unsupported`
+   everywhere — a compile error is honest and cheaper to diagnose).
+   `DriverCapabilities::none()` is the conservative constructor a minimal
+   driver starts from; `full()` stays the optimistic reference set for tests
+   and the mock. (b) The wire-facing vocabulary `Support`, `PortError` and
+   `Command` is `#[non_exhaustive]` — adding a variant is not a breaking
+   change for out-of-tree drivers and clients; they match with wildcard arms.
+   (c) `DriverCapabilities` deliberately keeps public, constructible fields
+   (a `#[non_exhaustive]` struct would block field *reads* and break every
+   out-of-tree driver, contradicting the csv-drives-unchanged proof);
+   field additions are shielded by the `none()`/`full()` constructors and the
+   Semver policy that both constructors carry a value for every new field
+   (formalized in step 31.4).
 
 **Consequences:** the snapshot gains additive `driver`/`capabilities` fields
 (wire-compatible); batch atomicity becomes a declared property — the SQLite

@@ -31,7 +31,12 @@ pub enum DatabaseFormat {
 }
 
 /// Errors a storage backend reports through the port.
+///
+/// `#[non_exhaustive]` (M22, ADR-7): adding a variant is not a breaking
+/// change for drivers or clients compiled against a published core —
+/// out-of-crate consumers match with a wildcard arm.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum PortError {
     /// Opening the database file failed.
     OpenFailed {
@@ -276,19 +281,19 @@ impl NativeQuery {
 /// The storage seam of the command core. Implementors must be deterministic
 /// and must not block indefinitely.
 pub trait StoragePort {
-    /// Stable identity of this driver (phase 30, item M17; ADR-7). The
-    /// default serves ports predating the capability model; every
-    /// shipped driver names itself.
-    fn driver_id(&self) -> DriverId {
-        DriverId::new("generic")
-    }
+    /// Stable identity of this driver (phase 30, item M17; ADR-7).
+    /// Required (M22): a driver names itself — there is no default
+    /// identity, so a driver that forgets its declaration does not
+    /// compile instead of hiding behind `"generic"`.
+    fn driver_id(&self) -> DriverId;
     /// Declarative capabilities of the open data source (phase 30, item
     /// M17; ADR-7) — per opened session, because they depend on runtime
-    /// state. The optimistic default keeps call-time behaviour unchanged
-    /// for ports that do not override the reporting.
-    fn capabilities(&self) -> DriverCapabilities {
-        DriverCapabilities::full()
-    }
+    /// state. Required (M22): there is no default — the former
+    /// optimistic `DriverCapabilities::full()` fallback made a forgetful
+    /// driver *lie* about what it can do; now the compiler asks for the
+    /// declaration. Start from [`DriverCapabilities::none`] or
+    /// [`DriverCapabilities::full`] and state the deviations.
+    fn capabilities(&self) -> DriverCapabilities;
     /// Opens the database at `path`; `password` is `None` for unprotected
     /// files (step 16.2, M5). Backends without passwords ignore it.
     fn open(

@@ -38,8 +38,13 @@ impl std::fmt::Display for DriverId {
 /// commands can read *and* write the surface; `ReadOnly` means the
 /// driver exposes it but no write path exists (or none yet); `No` means
 /// the driver answers a precise `Unsupported`.
+///
+/// `#[non_exhaustive]` (M22, ADR-7): adding a level is not a breaking
+/// change for drivers compiled against a published core — out-of-crate
+/// consumers match with a wildcard arm.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum Support {
     /// The driver does not provide the surface at all.
     No,
@@ -91,12 +96,37 @@ pub struct DriverCapabilities {
 }
 
 impl DriverCapabilities {
-    /// The optimistic default for ports predating the capability model:
-    /// every surface DataCraft's commands can drive is reported as
-    /// available, except batch atomicity (the trait's default batch loop
-    /// applies operations one by one) and the reserved vocabulary. These
-    /// defaults keep call-time behaviour unchanged for drivers that do
-    /// not override the reporting.
+    /// The conservative declaration (M22): every boolean capability is
+    /// absent and every optional surface is `No`. This is the honest
+    /// starting point for a minimal driver — start here and state the
+    /// deviations, because an undeclared surface answers a precise
+    /// `Unsupported` instead of a broken call.
+    pub fn none() -> Self {
+        Self {
+            read_tables: false,
+            write_rows: false,
+            create_table: false,
+            drop_table: false,
+            create_database: false,
+            alter_table: false,
+            atomic_batch: false,
+            passwords: false,
+            autonumber: Support::No,
+            relationships: Support::No,
+            native_queries: Support::No,
+            macros: Support::No,
+            vba: Support::No,
+            triggers: Support::No,
+            stored_procedures: Support::No,
+        }
+    }
+
+    /// The optimistic reference set: every surface DataCraft's commands
+    /// can drive is reported as available, except batch atomicity (the
+    /// trait's default batch loop applies operations one by one) and the
+    /// reserved vocabulary. Not a trait default (M22) — a driver must
+    /// state its own declaration; this constructor serves tests, the
+    /// mock port and drivers that genuinely cover the full surface.
     pub fn full() -> Self {
         Self {
             read_tables: true,

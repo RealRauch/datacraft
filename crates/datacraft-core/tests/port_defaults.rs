@@ -1,22 +1,37 @@
-//! Storage-port defaults and native-query mapping (phase 24 coverage gate).
+//! Storage-port defaults and native-query mapping (phase 24 coverage gate;
+//! identity/capability meta-tests since M22).
 //!
-//! Backends rely on the trait's default answers for the optional surfaces;
-//! a minimal port pins those defaults, and the native-query mapping is
-//! tested across its disqualifiers and its sort projection.
+//! The optional surfaces (`native_queries`, `macros`, `vba_project`,
+//! `alter_table`, `save_as`, `change_password`, `create_database`) keep
+//! their documented trait defaults, and a minimal port pins those
+//! defaults. Identity and capabilities have **no** default (M22, ADR-7):
+//! every port declares them explicitly — a forgetful driver does not
+//! compile — and the minimal port pins the conservative declaration. The
+//! native-query mapping is tested across its disqualifiers and its sort
+//! projection.
 
 use std::path::Path;
 
 use datacraft_core::port::{
-    DatabaseFormat, DriverCapabilities, NativeJoin, NativeJoinKind, NativeQuery, NativeQueryColumn,
-    NativeQueryKind, OpenedDatabase, PortError, Relationship, RowRange, SchemaChange, StoragePort,
+    DatabaseFormat, DriverCapabilities, DriverId, NativeJoin, NativeJoinKind, NativeQuery,
+    NativeQueryColumn, NativeQueryKind, OpenedDatabase, PortError, Relationship, RowRange,
+    SchemaChange, StoragePort, Support,
 };
 use datacraft_core::qbe::SortOrder;
 use datacraft_core::schema::{FieldValue, TableDef};
 
-/// Implements only the required trait methods; everything else is default.
+/// Implements the required trait methods; the optional surfaces keep the
+/// trait defaults, and identity/capabilities are declared explicitly.
 struct MinimalPort;
 
 impl StoragePort for MinimalPort {
+    fn driver_id(&self) -> DriverId {
+        DriverId::new("minimal")
+    }
+    fn capabilities(&self) -> DriverCapabilities {
+        // The conservative declaration (M22): this port drives nothing.
+        DriverCapabilities::none()
+    }
     fn open(&mut self, _path: &Path, _password: Option<&str>) -> Result<OpenedDatabase, PortError> {
         Err(PortError::Unsupported {
             reason: "minimal".to_owned(),
@@ -182,11 +197,44 @@ fn every_disqualifier_answers_none() {
     assert!(no_tables.query_def().is_none());
 }
 
+/// Every shipped driver must name itself and state its capabilities
+/// explicitly — the compiler enforces it for in-tree ports (M22), and the
+/// per-driver capability suites pin the exact declarations
+/// (`jet_capabilities`, `sqlite_capabilities`, the csv driver test).
 #[test]
-fn minimal_ports_keep_the_identity_and_password_defaults() {
+fn a_port_declares_its_identity_and_capabilities_explicitly() {
+    let port = MinimalPort;
+    assert_eq!(port.driver_id().as_str(), "minimal");
+    // The declared set is the conservative one, not an inherited default.
+    assert_eq!(port.capabilities(), DriverCapabilities::none());
+}
+
+#[test]
+fn the_conservative_and_optimistic_reference_sets_are_distinct() {
+    let none = DriverCapabilities::none();
+    let full = DriverCapabilities::full();
+
+    // none() refuses every driven surface…
+    assert!(!none.read_tables);
+    assert!(!none.write_rows);
+    assert!(!none.create_database);
+    assert!(!none.atomic_batch);
+    assert_eq!(none.relationships, Support::No);
+    assert_eq!(none.autonumber, Support::No);
+    // …while full() keeps its documented optimistic shape (readable and
+    // writable, but batch atomicity stays undeclared and the reserved
+    // vocabulary stays No).
+    assert!(full.read_tables);
+    assert!(full.write_rows);
+    assert!(!full.atomic_batch);
+    assert_eq!(full.autonumber, Support::No);
+    assert_eq!(full.relationships, Support::ReadOnly);
+    assert_ne!(none, full, "the two reference sets are distinct");
+}
+
+#[test]
+fn minimal_ports_keep_the_password_defaults() {
     let mut port = MinimalPort;
-    assert_eq!(port.driver_id().as_str(), "generic");
-    assert_eq!(port.capabilities(), DriverCapabilities::full());
 
     let error = port
         .save_as(Path::new("copy.mdb"), None)

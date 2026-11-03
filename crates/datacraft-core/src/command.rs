@@ -26,7 +26,13 @@ pub struct ExpressionContext {
 }
 
 /// One user-visible action.
+///
+/// `#[non_exhaustive]` (M22, ADR-7): adding a command is not a breaking
+/// change for clients compiled against a published engine — out-of-crate
+/// consumers match with a wildcard arm; wire (serde) consumers are
+/// unaffected.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Command {
     /// Opens the database file at `path` (closes nothing implicitly —
     /// rejected while another database is open).
