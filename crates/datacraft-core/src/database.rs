@@ -87,6 +87,10 @@ impl crate::core::Core {
                 let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
+                // A journal belongs to the database it was previewed on
+                // (H48): nothing may outlive a lifecycle change.
+                self.state.pending_write = None;
+                self.state.last_applied = None;
                 self.state.database = Some(DatabaseState {
                     path,
                     name: name.clone(),
@@ -147,6 +151,9 @@ impl crate::core::Core {
         self.state.sql_window_open = false;
         self.state.sql_result = None;
         self.state.expression_result = None;
+        // Journals never survive their database (H48).
+        self.state.pending_write = None;
+        self.state.last_applied = None;
         self.port.close();
         events.push(Event::DatabaseClosed);
         events
