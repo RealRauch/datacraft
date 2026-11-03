@@ -926,9 +926,13 @@ dependencies = [
 name = "datacraft-mcp"
 version = "0.1.0"
 dependencies = [
+ "assert_cmd",
+ "assert_fs",
  "datacraft-core",
  "datacraft-csv",
  "datacraft-storage",
+ "predicates",
+ "serde_json",
 ]
 
 [[package]]
