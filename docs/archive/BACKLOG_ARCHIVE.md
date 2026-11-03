@@ -967,3 +967,12 @@
 - **Approach:** Materialize through a throwaway port instance (the `DetectingPort::create_database` path already builds fresh driver instances) or snapshot the session/state and restore it exactly. The command must not touch the live session.
 - **Acceptance:** `CreateDatabaseFromTemplate` with a database open leaves that database fully usable (read, write, snapshot unchanged apart from the creation event); test over the bus with a real fixture.
 - **Done:** fixed in `4da8d63` (RED `618f720`): the command is refused while a database is open ("close the open database …"), so the live port session can never be replaced; a later fresh-session API can lift the restriction
+
+---
+
+### [x] M28 — Non-finite Jet floats break JSON-RPC serialization — 🟡
+- **Location:** `crates/datacraft-core/src/transport.rs:45` (`serde_json::to_value(core.inspect()).unwrap_or_default()`), `:65-68` (`json!({ "events": events, … })`), `crates/datacraft-jet/src/jet/row.rs` (Jet `Double`/`Float` decode into `FieldValue::Float` without a finite check).
+- **Problem:** Jet can store NaN/Infinity bit patterns; the reader maps them verbatim. `serde_json` cannot represent non-finite floats, and `json!` unwraps its conversion (`serde_json::to_value(&value).unwrap()`), so an event carrying such a value — e.g. `WritePreviewed.changes[].before` after previewing an update of a row read from a crafted `.mdb` — panics the JSON-RPC handler and kills the MCP/CLI server. The `inspect` path does not panic but silently substitutes `null` for the whole snapshot (`unwrap_or_default`), which is error swallowing in the style of LESSONS #4.
+- **Approach:** Decide the domain rule once: either reject non-finite floats at the Jet mapping boundary with a precise `Corrupt` (Access itself cannot meaningfully store them) or render them as a defined representation (`null`/text) before serialization. Make the codec fallible and answer a JSON-RPC error instead of `unwrap`/`unwrap_or_default`.
+- **Acceptance:** A row containing a NaN/Infinity double can be read, previewed and serialized without a panic; the snapshot is never silently replaced by `null`; test with a hand-built float bit pattern through `transport.rs`.
+- **Done:** fixed in `9e9bc56` (RED `1637690`): Single/Double cells with NaN or Infinity answer a precise Corrupt error naming the column; the read path now enforces the same finite-float rule as the write path, so no non-finite value can reach serde_json
