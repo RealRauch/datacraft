@@ -815,3 +815,21 @@
 - **Approach:** Decide the authority (short ADR addendum, consistent with ADR-1): Jet `LvProp` property blocks so Access sees the properties, or the sidecar's table list as DataCraft's own metadata. Implement write + read round-trip for every modeled `FieldProperties` entry, keep the file Access-readable, and reject unsupported property encodings precisely. Post-Phase-30 (ADR-7): the property surface already flows through `alter_table`/`SetFieldProperties`, so capability gating of the design-grid edits comes for free; property persistence stays a per-driver concern (Jet/ACE formats can carry it, the CSV driver stays text-only by design).
 - **Acceptance:** Every modeled property survives a Jet4 reopen (and/or sidecar load); Access displays defaults/validation/captions; tests pin each property and the rejection cases; no silent loss remains.
 - **Done:** done in `c5abd00` (RED `c5176bd`) — the .datacraft sidecar is the property authority (ADR-1 addendum): tables are saved with the full FieldProperties sheet, overlaid on explicit load and sibling auto-load with precise stale/invalid handling, preserved across Jet/ACE schema refreshes; the Jet writer keeps NULL LvProp (Access display deferred to the LvProp roadmap item); design view renders the restored sheet (kittest)
+
+---
+
+### [x] M15 — Index creation in the Jet writer — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/encode.rs` (`num_idx`/`num_real_idx`), `crates/datacraft-storage/src/jet/writer_tables.rs`, `crates/datacraft-storage/src/port_write.rs`, `crates/datacraft-storage/src/sqlite/mapping.rs`
+- **Problem:** `encode_tdef` writes zero index blocks; `FieldProperties.indexed` is serialization/UI metadata only. Generated tables and samples cannot demonstrate indexed lookups or uniqueness, and a template's `Indexed` flag does nothing.
+- **Approach:** Encode TDEF index descriptors and index pages for `IndexMode::{DuplicatesOk, NoDuplicates}`, maintain them on insert/update/delete, and emit `CREATE INDEX`/`UNIQUE` for SQLite. Keep existing index blocks readable and untouched on unrelated writes.
+- **Acceptance:** Indexes survive reopen and are visible in Access; uniqueness is enforced with a precise error; SQLite emits the matching DDL; tests cover create/insert/update/delete and the unsupported shapes.
+- **Done:** done in `c85b1b1` — TDEF index metadata encode/decode (physical + logical blocks, names), domain IndexMode round-trip, uniqueness on insert/update/batches, alter add/remove/renumber with duplicate guard, SQLite CREATE [UNIQUE] INDEX; physical Jet index pages remain the roadmap follow-up
+
+---
+
+### [x] M16 — Relationship and foreign-key creation — 🟡
+- **Location:** Jet writer (`MSysRelationships` rows and the required indexes), `crates/datacraft-storage/src/sqlite/mapping.rs` (foreign-key DDL), `crates/datacraft-core/src/port.rs` (create/delete relationship surface)
+- **Problem:** Relationships are read-only on both backends. Generated samples cannot populate the relationship mapper, and a template cannot express referential integrity.
+- **Approach:** Add a create/delete relationship path through the port and a matching bus command. Jet writes `MSysRelationships` plus the required primary/foreign indexes; SQLite emits `FOREIGN KEY` constraints. Reads must round-trip through the existing `relationships()` API. Post-Phase-30 (ADR-7): landing this flips the jet and sqlite drivers' `relationships` capability from `ReadOnly` to `Yes` — the availability map (the disabled Relationships affordance on CSV stays) and the mapper affordances update automatically; the flip is pinned in the driver capability invariants.
+- **Acceptance:** Created relationships survive reopen and appear in the mapper; Access shows them; SQLite enforces the constraint; the capability flip is pinned (`ReadOnly` → `Yes` for jet/sqlite, CSV stays `No`); tests cover create/delete, duplicates and unsupported shapes; canonical gates green.
+- **Done:** done in `1729228` — CreateRelationship/DeleteRelationship bus commands; Jet lazily creates MSysRelationships + parent/child indexes and writes/deletes rows; SQLite rebuilds the child table with enforced FOREIGN KEYs (orphans/duplicates refused); Jet/SQLite capabilities flip to Yes, CSV stays No
