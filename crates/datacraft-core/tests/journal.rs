@@ -496,3 +496,42 @@ fn apply_and_discard_error_paths_are_precise() {
         Event::WriteRolledBack { .. }
     ));
 }
+
+/// H48 regression: a journal belongs to the database it was previewed on —
+/// closing and reopening must drop it instead of letting a stale token
+/// rewrite the next database.
+#[test]
+fn journals_do_not_survive_a_database_lifecycle() {
+    let mut core = core_with_rows();
+    let token = preview_token(&core.dispatch(Command::PreviewWrite {
+        table: "Customers".into(),
+        ops: batch(),
+    }));
+    core.dispatch(Command::ApplyWrite { token });
+    let applied = rows(&core);
+    core.dispatch(Command::CloseDatabase);
+    core.dispatch(Command::OpenDatabase {
+        path: "memory.mock".into(),
+        password: None,
+    });
+
+    let reason = failure(&core.dispatch(Command::RollbackWrite { token }));
+    assert!(reason.contains("no applied"), "{reason}");
+    assert_eq!(
+        rows(&core),
+        applied,
+        "a stale rollback must not rewrite the reopened database"
+    );
+
+    let pending = preview_token(&core.dispatch(Command::PreviewWrite {
+        table: "Customers".into(),
+        ops: batch(),
+    }));
+    core.dispatch(Command::CloseDatabase);
+    core.dispatch(Command::OpenDatabase {
+        path: "memory.mock".into(),
+        password: None,
+    });
+    let reason = failure(&core.dispatch(Command::ApplyWrite { token: pending }));
+    assert!(reason.contains("no pending"), "{reason}");
+}
