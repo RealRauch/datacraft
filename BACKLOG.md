@@ -54,12 +54,6 @@
 - **Approach:** Two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; the capability-rejection reasons map onto the `DisabledReason` vocabulary where they overlap; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
 - **Acceptance:** Every dispatch failure carries a stable code (including the capability gates); the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs, driver_caps.rs) switch to code assertions.
 
-### [ ] L7 — CSV type inference beyond Short Text — 🟢
-- **Location:** `crates/datacraft-csv/src/lib.rs` (`collect_tables`)
-- **Problem:** Every CSV column is Short Text (255) — deterministic and honest, but numeric/date columns read and sort as text, and the datasheet parses accordingly.
-- **Approach:** Conservative, deterministic inference per column over a full scan (integer → LongInteger, float → Double, ISO date → DateTime; anything else stays Short Text), decided at open and stable across opens; quoted values stay text (CSV semantics — quoting is the user's escape hatch); the rule is documented in the driver docs and pinned by tests; ambiguous columns never guess.
-- **Acceptance:** Inference is deterministic and documented; quoted numbers remain text; tests pin each inferred kind and the Short-Text fallback; canonical verification set green.
-
 ### [ ] L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — 🟢
 - **Location:** `crates/datacraft-core/src/command.rs` (`OpenDatabase`/`CreateDatabase`), `state.rs`/`snapshot.rs` (path → source), UI backstage, sidecar path derivation (ADR-1)
 - **Problem:** The driver model is ready for server drivers (Postgres/SQL Server per ADR-7's documented future path), but the wire and the UI assume a filesystem path (`path: PathBuf`, file-stem names, a sidecar next to the file).
@@ -195,3 +189,4 @@
 - L9 — Composite fallback keeps the unknown-file format hint — done (done in `3e68e2f` (step 36.2) — the composite attaches the sniff's family hint to the fallback's rejection; pinned by detecting_edges.rs (unknown file names path, expected families and the fallback verdict); unknown paths without a fallback behave unchanged)
 - T7 — Coverage gate red on main (csv/detecting/mcp) — done (done in steps 36.1-36.3 (`dbb3ae8`, `3e68e2f`, `8d3e348`) — csv 66.8% -> 96.6%, detecting 80.7% -> 96.9%, mcp bin covered by the subprocess suite (100% locally; counted without exclusion per the human's call); CI run 41653027497 fully green including the coverage gate)
 - M23 — Registered drivers visible in the snapshot — done (done in `c4bb804` (step 36.4) — DriverInfo + driver_inventory()/source_format() vocabulary, inventory fixed at Core::new, composite lists built-ins + fallback; the real mcp binary lists jet/sqlite/csv over the wire (pinned by mcp_process.rs); wire change additive, capability invariants unaffected)
+- L7 — CSV type inference beyond Short Text — done (done in `bd71194` + `bf175e9` (step 36.5) — deterministic full-scan inference (LongInteger/Double/DateTime/Short Text), one quoted cell pins the column to text, empty cells don't vote, strict spellings; values read as text, only the schema kind inferred; rule documented in the crate docs + README row; pinned by tests/inference.rs (6 suites))

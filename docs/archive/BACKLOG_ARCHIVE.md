@@ -904,3 +904,12 @@
 - **Approach:** The composite exposes its driver set — driver id, display format, offline capability summary — for the built-ins and any registered fallbacks; the snapshot carries it additively next to `templates`. No UI surface is mandated; CLI/MCP agents read it over the wire and can pre-flight an open against the reported families.
 - **Acceptance:** `inspect()` on a composed binary lists jet, sqlite and csv with ids and formats; the wire change is additive; the driver capability invariants are unaffected; canonical verification set green.
 - **Done:** done in `c4bb804` (step 36.4) — DriverInfo + driver_inventory()/source_format() vocabulary, inventory fixed at Core::new, composite lists built-ins + fallback; the real mcp binary lists jet/sqlite/csv over the wire (pinned by mcp_process.rs); wire change additive, capability invariants unaffected
+
+---
+
+### [x] L7 — CSV type inference beyond Short Text — 🟢
+- **Location:** `crates/datacraft-csv/src/lib.rs` (`collect_tables`)
+- **Problem:** Every CSV column is Short Text (255) — deterministic and honest, but numeric/date columns read and sort as text, and the datasheet parses accordingly.
+- **Approach:** Conservative, deterministic inference per column over a full scan (integer → LongInteger, float → Double, ISO date → DateTime; anything else stays Short Text), decided at open and stable across opens; quoted values stay text (CSV semantics — quoting is the user's escape hatch); the rule is documented in the driver docs and pinned by tests; ambiguous columns never guess.
+- **Acceptance:** Inference is deterministic and documented; quoted numbers remain text; tests pin each inferred kind and the Short-Text fallback; canonical verification set green.
+- **Done:** done in `bd71194` + `bf175e9` (step 36.5) — deterministic full-scan inference (LongInteger/Double/DateTime/Short Text), one quoted cell pins the column to text, empty cells don't vote, strict spellings; values read as text, only the schema kind inferred; rule documented in the crate docs + README row; pinned by tests/inference.rs (6 suites)
