@@ -455,11 +455,15 @@ fn decode_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> Result<StorageValu
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ])),
         JetType::Float => {
-            StorageValue::Float(f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as f64)
+            let value = f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as f64;
+            finite_float(value, col)?
         }
-        JetType::Double => StorageValue::Float(f64::from_le_bytes([
-            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-        ])),
+        JetType::Double => {
+            let value = f64::from_le_bytes([
+                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            ]);
+            finite_float(value, col)?
+        }
         JetType::DateTime => StorageValue::DateTime(f64::from_le_bytes([
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ])),
@@ -473,6 +477,24 @@ fn decode_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> Result<StorageValu
             StorageValue::Guid(guid)
         }
         JetType::Numeric => decode_numeric(bytes),
+    })
+}
+
+/// Floating-point cell value. The domain model (and every wire
+/// serialization) requires finite floats — the write path already rejects
+/// non-finite values, so the read path refuses them with the same rule
+/// instead of smuggling a value `serde_json` cannot represent (M28).
+fn finite_float(value: f64, col: &JetColumn) -> Result<StorageValue, StorageError> {
+    if value.is_finite() {
+        return Ok(StorageValue::Float(value));
+    }
+    Err(StorageError::Corrupt {
+        context: "row".into(),
+        detail: format!(
+            "column {} ({}) stores the non-finite number {value}; DataCraft values require \
+             finite floats",
+            col.column_id, col.name
+        ),
     })
 }
 
