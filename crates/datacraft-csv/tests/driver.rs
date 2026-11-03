@@ -261,6 +261,8 @@ fn create_table_validates_the_definition_before_writing() {
         "no file may be written before validation"
     );
     let mut reopened = CsvPort::new();
-    reopened.open(&scratch.0, None).expect("directory still opens");
+    reopened
+        .open(&scratch.0, None)
+        .expect("directory still opens");
     assert_eq!(reopened.tables().len(), 1);
 }

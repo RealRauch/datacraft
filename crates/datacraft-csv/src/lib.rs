@@ -137,6 +137,11 @@ impl StoragePort for CsvPort {
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
         let dir = self.dir.as_ref().ok_or_else(no_database)?;
+        // The Jet and SQLite drivers validate; a CSV header cannot carry an
+        // empty or duplicate name either (the open path would reject it).
+        definition.validate().map_err(|e| PortError::WriteFailed {
+            detail: format!("table {:?}: {e}", definition.name),
+        })?;
         let file_name = table_file_name(&definition.name)?;
         let file = dir.join(file_name);
         if file.exists() {

@@ -180,10 +180,7 @@ fn failed_barrier_commands_keep_the_undo_history() {
     let events = core.dispatch(Command::CreateTable {
         definition: duplicate,
     });
-    assert!(
-        failure_reason(&events).contains("duplicate"),
-        "{events:?}"
-    );
+    assert!(failure_reason(&events).contains("duplicate"), "{events:?}");
     assert_eq!(
         core.inspect().undo_depth,
         1,

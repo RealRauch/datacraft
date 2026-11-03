@@ -196,6 +196,12 @@ impl crate::core::Core {
         if self.state.database.is_some() {
             return failed("close the open database before creating a database from a template");
         }
+        if !self.port.capabilities().create_database {
+            return failed(DriverCapabilities::unsupported(
+                &self.port.driver_id(),
+                "create database files",
+            ));
+        }
         let Some(template) = crate::templates::find_template(&template) else {
             let available: Vec<&str> = crate::templates::templates()
                 .iter()
@@ -449,8 +455,12 @@ impl crate::core::Core {
         }
         if let Some(db) = self.state.database.as_mut() {
             db.tables.retain(|t| t.name != canonical);
-            db.relationships
-                .retain(|rel| !rel.table.eq_ignore_ascii_case(&canonical));
+            // Both sides: a relationship whose parent table is gone is just
+            // as dangling as one whose child is (L16).
+            db.relationships.retain(|rel| {
+                !rel.table.eq_ignore_ascii_case(&canonical)
+                    && !rel.related_table.eq_ignore_ascii_case(&canonical)
+            });
         }
         events.push(Event::TableDropped { table: canonical });
         events

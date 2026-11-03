@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::failed;
 use crate::event::Event;
-use crate::port::{RowRange, RowWriteOp};
+use crate::port::{DriverCapabilities, RowRange, RowWriteOp};
 use crate::schema::{AutoKind, BinaryKind, FieldKind, FieldValue, TableDef};
 
 /// One row operation of a journaled batch. Indices address the row set as
@@ -253,6 +253,13 @@ impl crate::core::Core {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
         };
+        // ADR-7: the dispatcher refuses before the port is asked (L14).
+        if !db.capabilities.write_rows {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "write rows for this source",
+            ));
+        }
         if let Some(reason) = atomic_batch_reason(db, ops.len()) {
             return failed(reason);
         }
@@ -295,6 +302,15 @@ impl crate::core::Core {
 
     /// Applies the pending journal after re-validating its preview.
     pub(crate) fn apply_write(&mut self, token: u64) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        if !db.capabilities.write_rows {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "write rows for this source",
+            ));
+        }
         let Some(pending) = self.state.pending_write.clone() else {
             return failed("no pending write journal — preview a batch first");
         };
@@ -373,6 +389,15 @@ impl crate::core::Core {
 
     /// Rolls the last applied journal back (inverse operations).
     pub(crate) fn rollback_write(&mut self, token: u64) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        if !db.capabilities.write_rows {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "write rows for this source",
+            ));
+        }
         let Some(applied) = self.state.last_applied.clone() else {
             return failed("no applied write journal to roll back");
         };

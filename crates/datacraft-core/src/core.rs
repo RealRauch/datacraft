@@ -316,7 +316,19 @@ impl Core {
             Command::Redo => self.redo(),
         };
         if clears_history {
-            self.clear_history();
+            // A failed barrier command changed nothing: keep the history it
+            // would otherwise discard (L15).
+            let failed = events.iter().any(|event| {
+                matches!(
+                    event,
+                    Event::Failed { .. }
+                        | Event::PasswordRequired { .. }
+                        | Event::PasswordRejected { .. }
+                )
+            });
+            if !failed {
+                self.clear_history();
+            }
         }
         events
     }
