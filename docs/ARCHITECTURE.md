@@ -68,6 +68,7 @@ crates/
 ├── datacraft-sqlite/    SQLite backend, rusqlite statically bundled (Ph. 13, split 31.2)
 ├── datacraft-storage/   driver composite: detection + samples (Ph. 30)
 ├── datacraft-csv/       CSV directory driver — ADR-7 out-of-tree proof (Ph. 30)
+├── datacraft-mcp/       headless stdio JSON-RPC binary (Ph. 9; own crate since 31.3)
 └── datacraft-ui/        eframe/egui desktop shell (lib + bin `datacraft`)
 ```
 
@@ -81,6 +82,7 @@ Dependency direction rules (review-enforced, never cyclic):
 ```text
 datacraft-ui      ──► datacraft-core
 datacraft-cli     ──► datacraft-core
+datacraft-mcp     ──► datacraft-core, datacraft-storage, datacraft-csv
 datacraft-storage ──► datacraft-jet, datacraft-sqlite, datacraft-core
 datacraft-jet     ──► datacraft-core   (clean-room Jet/ACE backend)
 datacraft-sqlite  ──► datacraft-core   (rusqlite backend)
@@ -303,7 +305,9 @@ datacraft/
 │   ├── datacraft-jet/          lib — clean-room Jet/ACE backend (pure Rust)
 │   ├── datacraft-sqlite/       lib — SQLite backend (rusqlite bundled)
 │   ├── datacraft-storage/      lib — driver composite (detection + samples)
-│   └── datacraft-ui/           bin — eframe desktop shell
+│   ├── datacraft-cli/          bin — headless CLI client
+│   ├── datacraft-mcp/          bin — headless stdio JSON-RPC endpoint
+│   └── datacraft-ui/           lib+bin — eframe desktop shell
 ├── fixtures/                   reference .mdb/.accdb databases (Ph. 2)
 ├── docs/                       PLAYBOOK, LESSONS, ARCHITECTURE, TESTING
 │   └── archive/                stepwell append-only archives
@@ -515,8 +519,9 @@ applications.** Approved with the Phase 30 plan release.
    roots. Out-of-tree driver crates depend only on `datacraft-core`;
    `datacraft-jet` keeps the clean-room Jet/ACE implementation and its
    oracle. The target packaging (driver-per-crate split, standalone
-   `datacraft-mcp` binary crate, Semver/MSRV policy) is Phase 31 (BACKLOG M19)
-   and does not change this decision.
+   `datacraft-mcp` binary crate, Semver/MSRV policy) was decided here and
+   realized in Phase 31 (steps 31.2–31.4, BACKLOG M19); it does not change
+   this decision.
 5. **UI affordances are core-computed.** Core derives, per open source, an
    availability map (enabled + disabled reason) for command affordances into
    the snapshot; the UI only renders disabled controls with localized reasons

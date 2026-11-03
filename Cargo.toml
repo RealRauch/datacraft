@@ -5,6 +5,7 @@ members = [
     "crates/datacraft-core",
     "crates/datacraft-csv",
     "crates/datacraft-jet",
+    "crates/datacraft-mcp",
     "crates/datacraft-sqlite",
     "crates/datacraft-storage",
     "crates/datacraft-ui",
@@ -28,6 +29,7 @@ datacraft-cli = { path = "crates/datacraft-cli" }
 datacraft-core = { path = "crates/datacraft-core" }
 datacraft-csv = { path = "crates/datacraft-csv" }
 datacraft-jet = { path = "crates/datacraft-jet" }
+datacraft-mcp = { path = "crates/datacraft-mcp" }
 datacraft-sqlite = { path = "crates/datacraft-sqlite" }
 datacraft-storage = { path = "crates/datacraft-storage" }
 csv = "1.3"

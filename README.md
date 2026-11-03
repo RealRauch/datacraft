@@ -163,7 +163,7 @@ cargo test --workspace           # unit, integration, proptest and golden-file t
 Headless clients of the same command bus:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"inspect"}' | cargo run -p datacraft-ui --bin datacraft-mcp
+echo '{"jsonrpc":"2.0","id":1,"method":"inspect"}' | cargo run -p datacraft-mcp
 cargo run -p datacraft-cli -- open fixtures/testV2000.mdb --json
 ```
 
@@ -183,8 +183,9 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 | jet | `datacraft-jet` | clean-room pure-Rust Jet3/Jet4 read + Jet4/ACE write backends behind the core-owned `StoragePort` seam, libmdb oracle (`cfg(test)` only) (Phase 2, 10; split in Phase 31) |
 | sqlite | `datacraft-sqlite` | SQLite backend behind the same seam (rusqlite, statically bundled) (Phase 13; split in Phase 31) |
 | storage | `datacraft-storage` | driver composite: format-detecting registry over the shipped backends plus the deterministic samples generator (Phase 29–30) |
-| ui | `datacraft-ui` | eframe/egui desktop shell (`datacraft`) and the MCP endpoint binary (`datacraft-mcp`) (Phase 5+) |
+| ui | `datacraft-ui` | eframe/egui desktop shell — binary `datacraft` (Phase 5+) |
 | cli | `datacraft-cli` | the fourth command-bus client — binary `datacraft-cli` (Phase 9) |
+| mcp | `datacraft-mcp` | headless stdio JSON-RPC 2.0 endpoint — standalone binary crate (Phase 9, own crate since Phase 31) |
 
 ```text
 datacraft-ui (egui) ───────► datacraft-core (command bus) ──► datacraft-storage (composite)

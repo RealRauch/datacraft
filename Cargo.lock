@@ -923,6 +923,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "datacraft-mcp"
+version = "0.1.0"
+dependencies = [
+ "datacraft-core",
+ "datacraft-csv",
+ "datacraft-storage",
+]
+
+[[package]]
 name = "datacraft-sqlite"
 version = "0.1.0"
 dependencies = [

@@ -33,9 +33,10 @@ jobs:
       - uses: actions/checkout@v4
 
       # rusqlite is statically bundled (workspace `bundled` feature), so no
-      # system SQLite package is needed on any runner.
+      # system SQLite package is needed on any runner. The MCP endpoint is
+      # its own binary crate since phase 31.3.
       - name: Build release binaries
-        run: cargo build --release -p datacraft-ui -p datacraft-cli
+        run: cargo build --release -p datacraft-ui -p datacraft-cli -p datacraft-mcp
 
       - name: Package binaries, samples and notices
         shell: bash

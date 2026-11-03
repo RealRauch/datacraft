@@ -1,0 +1,16 @@
+[package]
+name = "datacraft-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Headless stdio JSON-RPC 2.0 endpoint of the DataCraft command bus (standalone binary crate)"
+
+[dependencies]
+datacraft-core = { workspace = true }
+datacraft-csv = { workspace = true }
+datacraft-storage = { workspace = true }
+
+[lints]
+workspace = true

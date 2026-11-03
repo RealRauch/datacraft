@@ -19,8 +19,10 @@ table/row paths. No COM, no OLE DB, no `winapi`, no async runtime.
 Workspace crates (dependency direction is review-enforced, never cyclic):
 
 ```text
-datacraft-ui  ──► datacraft-core          (egui shell + datacraft-mcp binary)
+datacraft-ui  ──► datacraft-core          (egui shell, binary `datacraft`)
 datacraft-cli ──► datacraft-core          (headless CLI binary)
+datacraft-mcp ──► datacraft-core, datacraft-storage, datacraft-csv
+                                          (headless stdio JSON-RPC binary)
 datacraft-storage ──► datacraft-jet, datacraft-sqlite
                                           (composite: detection + samples)
 datacraft-jet ──► datacraft-core          (clean-room pure-Rust Jet/ACE backend)
