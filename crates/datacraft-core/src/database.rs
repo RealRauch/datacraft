@@ -183,14 +183,19 @@ impl crate::core::Core {
     }
 
     /// Materializes a shipped template into a new file (phase 29, step
-    /// 29.2, item H44). Creation plus the template's tables run through
-    /// the port; any failure removes the partial file and reports a
-    /// precise `Failed`. The new database is not opened.
+    /// 29.2, item H44). Creation plus the template's tables run through the
+    /// port; any failure removes the partial file and reports a precise
+    /// `Failed`. The new database is not opened. The command requires no
+    /// open database: materialization opens the new file through the live
+    /// port, so an open session must be closed first (M27).
     pub(crate) fn create_database_from_template(
         &mut self,
         path: std::path::PathBuf,
         template: String,
     ) -> Vec<Event> {
+        if self.state.database.is_some() {
+            return failed("close the open database before creating a database from a template");
+        }
         let Some(template) = crate::templates::find_template(&template) else {
             let available: Vec<&str> = crate::templates::templates()
                 .iter()

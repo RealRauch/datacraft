@@ -105,10 +105,7 @@ fn creating_from_a_template_leaves_an_open_database_untouched() {
         vec![FieldDef::new("name", FieldKind::Text { max_len: 20 })],
     );
     let mut port = MockPort::with_tables(vec![table]);
-    port.with_row_data(
-        "Customers",
-        vec![vec![FieldValue::Text("Ada".into())]],
-    );
+    port.with_row_data("Customers", vec![vec![FieldValue::Text("Ada".into())]]);
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
@@ -129,9 +126,13 @@ fn creating_from_a_template_leaves_an_open_database_untouched() {
         ),
         "{events:?}"
     );
-    assert!(core.inspect().database.is_some(), "the open database stays in state");
+    assert!(
+        core.inspect().database.is_some(),
+        "the open database stays in state"
+    );
     assert_eq!(
-        core.read_rows("Customers", range).expect("the open database stays usable"),
+        core.read_rows("Customers", range)
+            .expect("the open database stays usable"),
         before,
         "the port session must not be replaced by the template materialization"
     );
