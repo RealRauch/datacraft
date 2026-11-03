@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T00:06
+# BACKLOG.md — Open items (As of: 2026-11-03T13:19
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -59,6 +59,12 @@
 - **Problem:** Agents can discover templates in the snapshot, but not *which* drivers the composed binary can open — they learn a source family only by attempting to open it and reading the failure. The registry exists (built-in probes plus `with_fallback`); only the projection is missing.
 - **Approach:** The composite exposes its driver set — driver id, display format, offline capability summary — for the built-ins and any registered fallbacks; the snapshot carries it additively next to `templates`. No UI surface is mandated; CLI/MCP agents read it over the wire and can pre-flight an open against the reported families.
 - **Acceptance:** `inspect()` on a composed binary lists jet, sqlite and csv with ids and formats; the wire change is additive; the driver capability invariants are unaffected; canonical verification set green.
+
+### [ ] M24 — Jet writer cannot encode tri-state Boolean NULL — 🟡
+- **Location:** `crates/datacraft-storage/src/jet/encode.rs` (`encode_row`, the `JetType::Bool` arm), `crates/datacraft-storage/src/port_write.rs` (`to_storage_values`); domain side `FieldKind::Boolean { tri_state: true }`
+- **Problem:** A Jet Bool column has no storage of its own — the writer encodes the value *as* the null-mask bit (true = bit set, false = bit clear), so `FieldValue::Null` on a tri-state Boolean reaches `encode_row` and answers a precise but unhelpful `Unsupported { "column Active (2) cannot hold Null" }`. SQLite accepts the same row, so the shipped drivers disagree on tri-state NULL; the domain model (`tri_state: true`) promises what the Jet writer cannot store. Found by the ported `port_contract.rs` suite while seeding its reference rows (step 31.1).
+- **Approach:** Decide the Jet4 tri-state encoding from the public format documentation first (a tri-state Bool needs a second null-mask bit in real Jet) — a bit-for-bit/clean-room storage decision (High-class gate), then either encode it properly (decode side must round-trip; oracle check on a real Access-written tri-state NULL) or demote the domain promise: `tri_state: true` on Jet-backed tables answers a precise creation-time rejection instead of a row-time surprise. Pin whichever way the contract test asserts.
+- **Acceptance:** Jet and SQLite agree on tri-state Boolean NULL (or the domain rejects it honestly at creation); `port_contract.rs` and `jet_row_writes` pin the decided behavior; round-trip decode∘op∘decode holds over the fixture set; docs/FORMAT-JET.md documents the Bool/null-mask mapping; canonical verification set green.
 
 ---
 
