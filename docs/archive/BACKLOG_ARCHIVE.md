@@ -976,3 +976,12 @@
 - **Approach:** Decide the domain rule once: either reject non-finite floats at the Jet mapping boundary with a precise `Corrupt` (Access itself cannot meaningfully store them) or render them as a defined representation (`null`/text) before serialization. Make the codec fallible and answer a JSON-RPC error instead of `unwrap`/`unwrap_or_default`.
 - **Acceptance:** A row containing a NaN/Infinity double can be read, previewed and serialized without a panic; the snapshot is never silently replaced by `null`; test with a hand-built float bit pattern through `transport.rs`.
 - **Done:** fixed in `9e9bc56` (RED `1637690`): Single/Double cells with NaN or Infinity answer a precise Corrupt error naming the column; the read path now enforces the same finite-float rule as the write path, so no non-finite value can reach serde_json
+
+---
+
+### [x] M26 — Crafted memo and VBA lengths drive unchecked allocations — 🟡
+- **Location:** `crates/datacraft-jet/src/jet/lval.rs:37` (`Vec::with_capacity(total_len)` for a memo chain), `crates/datacraft-jet/src/jet/vba/decompress.rs:44-84` (chunk expansion before the `MAX_CHUNK` post-check).
+- **Problem:** Both lengths are taken from the crafted file before any data is read. A 12-byte memo header can request `0x3FFF_FFFF` bytes (≈1 GiB) of capacity, and one ~4 KB compressed VBA chunk can expand to ~120 MB of copy tokens before the 4096-byte limit rejects it. Both are allocation amplification on untrusted input (a DoS vector, distinct from the panic paths in H46).
+- **Approach:** Bound the pre-allocation by evidence (`min(total_len, file.len())` or no reservation at all) and enforce the per-chunk output limit inside the token loop (check `out.len() - chunk_start <= MAX_CHUNK` before each copy). No behavior change for valid files.
+- **Acceptance:** A crafted memo length allocates at most the file-backed amount and still yields the existing precise error; a crafted VBA chunk never exceeds one 4096-byte chunk of intermediate output; tests pin both bounds.
+- **Done:** fixed in `e47edbe`: memo-chain capacity capped by the input size, VBA chunk limit enforced per token; existing hostile-length suites pin the error behavior (the bound itself is not observable)
