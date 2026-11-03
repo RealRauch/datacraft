@@ -1188,3 +1188,12 @@
 - **Fix:** `write_replacing` refuses a read-only target on every platform before writing the temp file; missing targets proceed (no flag to honor). Windows behavior unchanged (rename-replace already honored the flag).
 - **Committed:** fixed in `f787997`; RED evidence = the ubuntu failures of today's CI runs.
 - **Done:** fixed in `f787997`; RED evidence = the ubuntu CI failures of run 41720944080/41723789200 (jet_port_writes.rs readonly contract); supersedes the T8 probe-skip approach (T8 archive note) - the refusal lives in write_replacing, the test passes everywhere
+
+---
+
+### [x] L10 — CI: macOS jobs infra-cancelled — rerun for a fully green run — 🟢
+- **Location:** `.github/workflows/ci.yml` (macos-latest matrix entries), GitHub runner capacity/billing (account side)
+- **Problem:** Since 2026-11-03 ~14:00 UTC every `Tests (macos-latest)` and `Oracle (mdb-tools cross-check) (macos-latest)` job was cancelled in the runner queue after ~15m with no logs (five consecutive attempts, plus both phase-37 runs cancelling macOS via fail-fast). Ubuntu additionally carried a real failure hidden in that noise: H47's atomic write had silently lifted the read-only-file protection on POSIX (F9).
+- **Decision (2026-11-03, narrowed-matrix variant of this item's acceptance):** macOS is temporarily removed from both CI matrices (test + oracle) with an in-file comment naming this item; `release.yml` still builds and smokes the macOS artifacts, so the compatibility matrix keeps its macOS claim. Re-admission is tracked as item L25.
+- **Acceptance:** A CI run on `main` completes green on the narrowed matrix (ubuntu/windows) with the narrowing documented in-file and in the archives; nothing else changes.
+- **Done:** completed by step 37.6 (checkpoint `c096247`): CI run 41729631804 fully green on the narrowed matrix; macOS temporarily removed from the test + oracle matrices with the in-file decision comment (runner queue cancelled every macOS job after ~15m across all Nov 3 runs); release.yml keeps building and smoking macOS artifacts so the compatibility matrix holds; re-admission tracked as L25. Also uncovered on the way: F9 (H47 atomic write lifted the read-only protection on POSIX - fixed) and the coverage-gate tool-version drift (the 95% gate now computes from the exported lcov)

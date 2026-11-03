@@ -466,3 +466,32 @@
 - **34.6 Phase 34 Quality Gate Review**
 - **34.7 Semantic-Conformance-Spot-Checks (T6)**
 **Verification:** canonical gates green locally: fmt 0, clippy -D warnings 0, 143 test suites 0, coverage 95.03% lines (datacraft-ui excluded), file-size gate clean after the row/database/app splits, docs_validate clean, RUSTDOCFLAGS="-D warnings" cargo doc 0. Review: 34 findings filed across storage/core/UI/API; all three HIGH (H46 crafted-structure panics, H47 non-atomic persistence, H48 stale journals) fixed in-phase with RED/GREEN commits, plus M25/M26/M27/M28/M29/M32/M33, L11-L20 and F5 — 19 items archived with hashes, the rest packaged (M31, M35-M37, L13, L18, L22, I6, L8, L10; H49/H50 and M34 come from the parallel release-prep work). LESSONS checklist walked per area in the phase review notes; T6 spot checks ran 7 clusters against expression/QBE/SQL: NULL semantics conformant, Format named pictures broken (M35), SQL and QBE dialect divergences fenced as M36/M37, QBE projection contract as L22. Correction: the L17 and M29 archive notes carry typo'd RED hashes — the actual commits are c96d117 and ff678c7.
+
+---
+
+### Phase 37 — Release Provenance & Licensing *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **37.1 Replacement fixture: object inventory and creation recipe (H50)**
+- **37.2 Replacement fixture: create, hash-pin, port the suites, retire Northwind (H50)**
+- **37.3 Fixture rebuild tooling: SaveAsText exports and COM builder (L21)**
+- **37.4 Public-release readiness: licenses, fixture attribution, repo settings (H49)**
+- **37.5 Pre-public history rewrite and verification (M34)**
+- **37.6 Release checklist, macOS CI rerun and phase gate (L10)**
+
+**Goal:** Make the repository publishable: no unlicensed fixture, tracked
+license texts, rewritten private history, green CI. Replace the unlicensed
+Northwind fixture with a self-created, hash-pinned one, record the fixture
+attribution, and rewrite the private history before the visibility switch.
+Risk gates apply per step: H50 is Medium (new fixture) plus High (evidence
+change), H49 (license files) and M34 (history rewrite) are High — each needs
+an explicit human release; 37.5 runs only after 37.2.
+
+**Acceptance:** No committed fixture traces to an unlicensed source; license
+texts, attribution and history are release-clean. `LICENSE-MIT`,
+`LICENSE-APACHE` and `NOTICE` are tracked and referenced by Cargo/README;
+every fixture has an attribution row; `git log --all --name-only` lists
+neither the Northwind fixture nor `.zcode` plans; the rewritten `main` passes
+the canonical set and the fixture hash gate; CI including macOS is green
+before the tag.
