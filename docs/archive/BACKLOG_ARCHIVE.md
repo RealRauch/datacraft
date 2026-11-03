@@ -877,3 +877,12 @@
 - **Approach:** split the storage crate into per-driver crates (Jet stays pure Rust with its oracle suite; SQLite moves its dependency into its own crate), extract `datacraft-mcp` as its own binary crate, then publish in dependency order (engine → jet → sqlite → csv → mcp) with a Semver/MSRV/changelog policy. Details are packaged when Phase 31 starts (ADR-7 records the decision).
 - **Acceptance:** each crate builds and publishes independently; the workspace still builds as one unit; the publishing checklist and versioning policy are documented; no behavior change.
 - **Done:** done in steps 31.2-31.4 (`10689e6`, `360028e`, `49b1456`) — jet/sqlite/mcp crates extracted, storage is the composite, core gained the default-on sql-engine feature gate (jet is C-free), publishing order + semver/msrv/changelog policy documented in docs/PUBLISHING.md; workspace builds as one unit, no behavior change
+
+---
+
+### [x] L9 — Composite fallback keeps the unknown-file format hint — 🟢
+- **Location:** `crates/datacraft-storage/src/detecting.rs` (`open`), `crates/datacraft-csv/src/lib.rs` (`open`)
+- **Problem:** With a registered fallback (the composed binaries), an unrecognized *file* now answers the fallback's "not a CSV directory — this driver opens directories of *.csv tables" instead of the sniff's precise "expected a Jet/ACE header (01 00 00 00) or a SQLite header" reason. The hint regressed exactly for the most common user mistake — opening a random file (LESSONS #4).
+- **Approach:** Chain the reasons: the composite attaches the sniff hint when the fallback rejects (or the CSV driver's rejection text names the expected families) — one precise, user-renderable message either way, pinned by a composed-port test.
+- **Acceptance:** An unknown file through a fallback-composed port names both the path and the expected source families; unknown paths without a fallback behave unchanged; a test pins the message; canonical verification set green.
+- **Done:** done in `3e68e2f` (step 36.2) — the composite attaches the sniff's family hint to the fallback's rejection; pinned by detecting_edges.rs (unknown file names path, expected families and the fallback verdict); unknown paths without a fallback behave unchanged

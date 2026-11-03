@@ -72,12 +72,6 @@
 - **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
 - **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
 
-### [ ] L9 — Composite fallback keeps the unknown-file format hint — 🟢
-- **Location:** `crates/datacraft-storage/src/detecting.rs` (`open`), `crates/datacraft-csv/src/lib.rs` (`open`)
-- **Problem:** With a registered fallback (the composed binaries), an unrecognized *file* now answers the fallback's "not a CSV directory — this driver opens directories of *.csv tables" instead of the sniff's precise "expected a Jet/ACE header (01 00 00 00) or a SQLite header" reason. The hint regressed exactly for the most common user mistake — opening a random file (LESSONS #4).
-- **Approach:** Chain the reasons: the composite attaches the sniff hint when the fallback rejects (or the CSV driver's rejection text names the expected families) — one precise, user-renderable message either way, pinned by a composed-port test.
-- **Acceptance:** An unknown file through a fallback-composed port names both the path and the expected source families; unknown paths without a fallback behave unchanged; a test pins the message; canonical verification set green.
-
 ---
 
 ## 🔵 TEST GAPS
@@ -210,3 +204,4 @@
 - M21 — Retire the vestigial StorageEngine trait (ADR-7 single seam) — done (done in `45a852d` + `44b1fff` (step 31.1) — trait/mock/boundary suite removed after porting the contract to tests/port_contract.rs (Jet4 + SQLite cross-driver); coverage >= 95 held; ARCHITECTURE §6 cites the removal; finding M24 (tri-state Boolean NULL) filed from the porting run)
 - M22 — Publish-ready API vocabulary: non_exhaustive and the capabilities default (Phase 31 prep) — done (done in `5dad505` — driver_id/capabilities required, none()/full() constructors, Support/PortError/Command non_exhaustive, ADR-7 addendum item 6; datacraft-csv compiles unchanged (acceptance proof); deviation documented: DriverCapabilities keeps constructible pub fields (non_exhaustive struct would break field reads))
 - M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — done (done in steps 31.2-31.4 (`10689e6`, `360028e`, `49b1456`) — jet/sqlite/mcp crates extracted, storage is the composite, core gained the default-on sql-engine feature gate (jet is C-free), publishing order + semver/msrv/changelog policy documented in docs/PUBLISHING.md; workspace builds as one unit, no behavior change)
+- L9 — Composite fallback keeps the unknown-file format hint — done (done in `3e68e2f` (step 36.2) — the composite attaches the sniff's family hint to the fallback's rejection; pinned by detecting_edges.rs (unknown file names path, expected families and the fallback verdict); unknown paths without a fallback behave unchanged)
