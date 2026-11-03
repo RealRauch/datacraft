@@ -49,6 +49,9 @@ pub fn decompress(container: &[u8]) -> Result<Vec<u8>, StorageError> {
                     break;
                 }
                 if flags & (1 << bit) == 0 {
+                    if out.len() - chunk_start >= MAX_CHUNK {
+                        return Err(corrupt(format!("chunk exceeds the {MAX_CHUNK}-byte limit")));
+                    }
                     out.push(container[pos]);
                     pos += 1;
                     continue;
@@ -68,6 +71,12 @@ pub fn decompress(container: &[u8]) -> Result<Vec<u8>, StorageError> {
                         "copy offset {offset} reaches before the current chunk \
                          (position {position})"
                     )));
+                }
+                // Untrusted tokens expand up to 65538 bytes each: stop at
+                // the chunk limit instead of materializing the expansion and
+                // rejecting it afterwards (M26).
+                if out.len() - chunk_start + length > MAX_CHUNK {
+                    return Err(corrupt(format!("chunk exceeds the {MAX_CHUNK}-byte limit")));
                 }
                 let source = out.len() - offset;
                 for index in 0..length {

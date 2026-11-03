@@ -34,7 +34,9 @@ pub fn resolve(
         }
         _ => {
             // Chain of type-2 records: [next pointer u32][data], 0 ends it.
-            let mut out = Vec::with_capacity(total_len);
+            // The declared length is untrusted: never reserve more than the
+            // input file itself can back (M26).
+            let mut out = Vec::with_capacity(total_len.min(file.len()));
             let mut pointer = record_pointer;
             loop {
                 let (page, row) = split_pointer(pointer)?;
