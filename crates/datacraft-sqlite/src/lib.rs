@@ -228,10 +228,16 @@ CREATE {suffix}INDEX {} ON {} ({});",
             "
 COMMIT;",
         );
-        conn.execute_batch(&sql)
-            .map_err(|e| PortError::WriteFailed {
-                detail: format!("creating table {:?} failed: {e}", definition.name),
-            })?;
+        // `execute_batch` stops at the first failing statement without
+        // closing the transaction (M25): roll back explicitly so a failed
+        // CREATE INDEX cannot leave the connection inside an open
+        // transaction with a half-created table.
+        if let Err(error) = conn.execute_batch(&sql) {
+            let _ = conn.execute_batch("ROLLBACK;");
+            return Err(PortError::WriteFailed {
+                detail: format!("creating table {:?} failed: {error}", definition.name),
+            });
+        }
         self.tables.push(definition.clone());
         Ok(())
     }
