@@ -1075,3 +1075,12 @@
 - **Approach:** Derive the affected table from every row-mutating event (`Undone`, `Redone`, `RowUpdated`, `RowDeleted`, `WriteApplied`, `WriteRolledBack`, `TableAltered`) and drop the caches of all open tabs bound to it — table tabs and form tabs whose source matches. One shared helper instead of per-event special cases.
 - **Acceptance:** Undo/Redo and a journal apply refresh every grid bound to the table; a kittest drives insert → undo and asserts the row disappears; no cache survives a schema change.
 - **Done:** fixed in `244a22b` (RED `d78bce4`): all row-mutating events invalidate the affected table and form caches (bound source), so undo/redo/updates/deletes never leave stale grids
+
+---
+
+### [x] F5 — Inline fix: scratch database removed while a SQLite handle is open — 🟡
+- **Location:** `crates/datacraft-storage/tests/create_database.rs` (`the_sqlite_backend_creates_an_openable_database`).
+- **Problem:** The test removed its scratch database while the `SqlitePort` still held the connection. On Windows the delete failed and the error was ignored, so every run left a scratch file; when the OS reused a PID, `create_database` refused the pre-existing path and the suite failed. Found while running the Phase 34 coverage gate (about 170 stale files in `%TEMP%`).
+- **Fix:** `port.close()` before the removal and assert the removal, so the scratch file cannot survive a run.
+- **Acceptance:** The suite passes repeatedly and leaves no `datacraft-storage-create-*` file behind (verified after the fix).
+- **Done:** fixed in `6cafd83`: the port is closed before the scratch removal and the removal is asserted; no leftover scratch files after repeated runs

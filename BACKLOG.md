@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T19:11
+# BACKLOG.md — Open items (As of: 2026-11-03T19:43
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -232,3 +232,4 @@
 - M33 — datacraft-jet publishes its raw format layer without a stability contract — done (decided in `c1d0223`: the raw `datacraft_jet::jet` layer is a deliberately supported, semver-covered surface (needed by consumers and the integration tests); PUBLISHING names both surfaces explicitly)
 - L17 — Native query flavor renders as a Rust Debug name — done (fixed in `8095d68` (RED `e9a1c26`): all nine native query flavors render through labels::native_query_kind_label with German catalog entries; the parity test verifies coverage)
 - M29 — UI row caches go stale after Undo/Redo and other row-mutating events — done (fixed in `244a22b` (RED `d78bce4`): all row-mutating events invalidate the affected table and form caches (bound source), so undo/redo/updates/deletes never leave stale grids)
+- F5 — Inline fix: scratch database removed while a SQLite handle is open — done (fixed in `6cafd83`: the port is closed before the scratch removal and the removal is asserted; no leftover scratch files after repeated runs)
