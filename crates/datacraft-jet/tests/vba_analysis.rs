@@ -1,4 +1,5 @@
-//! Static analysis over the real Northwind VBA project (step 17.3, L5).
+//! Static analysis over the real VBA project (step 17.3, L5; fixture
+//! replaced by H50 with the self-created programmability fixture).
 
 use std::path::{Path, PathBuf};
 
@@ -15,17 +16,18 @@ fn fixture(name: &str) -> PathBuf {
 }
 
 #[test]
-fn the_northwind_project_analysis_is_complete_and_deterministic() {
+fn the_programmability_project_analysis_is_complete_and_deterministic() {
     let mut port = Jet4Port::new();
-    port.open(&fixture("northwind2007.accdb"), None)
+    port.open(&fixture("programmability.accdb"), None)
         .expect("fixture opens");
     let project = port
         .vba_project()
         .expect("project extracts")
         .expect("project present");
     let tables: Vec<String> = port.tables().into_iter().map(|table| table.name).collect();
-    // The fixture carries native queries outside the decoded MSysQueries
-    // subset; analysis works without them (the core falls back the same way).
+    // The fixture carries one multi-value expansion query outside the
+    // decoded MSysQueries subset; analysis works without them (the core
+    // falls back the same way).
     let queries: Vec<String> = port
         .native_queries()
         .unwrap_or_default()
@@ -47,7 +49,7 @@ fn the_northwind_project_analysis_is_complete_and_deterministic() {
         analysis
             .table_references
             .iter()
-            .any(|table| table == "Employee Privileges"),
+            .any(|table| table == "Staff Permissions"),
         "string-literal table references are resolved: {:#?}",
         analysis.table_references
     );
@@ -55,11 +57,8 @@ fn the_northwind_project_analysis_is_complete_and_deterministic() {
         analysis
             .call_graph
             .iter()
-            .any(|entry| entry.module == "Form_Order Details"
-                && entry
-                    .callees
-                    .iter()
-                    .any(|callee| callee == "CustomerOrders")),
+            .any(|entry| entry.module == "Form_Movement Editor"
+                && entry.callees.iter().any(|callee| callee == "QueryHelpers")),
         "qualified calls resolve: {:#?}",
         analysis.call_graph
     );

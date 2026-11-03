@@ -1,7 +1,8 @@
-//! VBA extraction contract suite (step 17.2, item L5).
+//! VBA extraction contract suite (step 17.2, item L5; fixture replaced by
+//! H50 with the self-created programmability fixture).
 //!
-//! The pinned Northwind 2007 fixture carries a real 18-module VBA project
-//! in `MSysAccessStorage` (VBA/VBAProject/VBA). The extraction is
+//! The pinned `programmability.accdb` carries a real 8-module VBA project in
+//! `MSysAccessStorage` (VBA/VBAProject/VBA). The extraction is
 //! deterministic: `dir` records define name, stream name, offset and kind;
 //! each module stream is [performance cache][compressed source].
 
@@ -23,65 +24,77 @@ fn reader(name: &str) -> Jet4TableReader {
 }
 
 #[test]
-fn northwind_vba_project_decodes_every_module_with_its_source() {
-    let project = reader("northwind2007.accdb")
+fn programmability_vba_project_decodes_every_module_with_its_source() {
+    let project = reader("programmability.accdb")
         .vba_project()
         .expect("VBA project decodes")
-        .expect("northwind has a VBA project");
-    assert_eq!(project.modules.len(), 18, "{:#?}", project.modules);
+        .expect("the fixture has a VBA project");
+    assert_eq!(project.modules.len(), 8, "{:#?}", project.modules);
     let names: Vec<&str> = project
         .modules
         .iter()
         .map(|module| module.name.as_str())
         .collect();
     assert_eq!(
-        &names[..8],
+        &names[..],
         &[
-            "Utilities",
-            "ErrorHandling",
-            "CustomerOrders",
-            "Inventory",
-            "Privileges",
-            "DomainFunctionWrappers",
-            "RecordsetWrapper",
-            "PurchaseOrders",
+            "InventoryHelpers",
+            "QueryHelpers",
+            "ArchiveExporter",
+            "TaskRunner",
+            "AuditRecorder",
+            "Form_Items Browser",
+            "Form_Movement Editor",
+            "Report_Stock Summary",
         ]
     );
 
-    let utilities = &project.modules[0];
-    assert_eq!(utilities.kind, StoredModuleKind::Standard);
+    let standard = &project.modules[0];
+    assert_eq!(standard.kind, StoredModuleKind::Standard);
     assert!(
-        utilities
+        standard
             .source
-            .starts_with("Attribute VB_Name = \"Utilities\""),
+            .starts_with("Attribute VB_Name = \"InventoryHelpers\""),
         "{}",
-        utilities.source
+        standard.source
     );
-    assert!(utilities.source.contains("Option Compare Database"));
-    assert!(utilities.source.contains("Public Enum StringIDEnum"));
+    assert!(standard.source.contains("Option Compare Database"));
+    assert!(standard.source.contains("Public Enum StockScopeEnum"));
+    // Copy-token fodder: the repeated long identifier survives decompression.
+    assert!(
+        standard
+            .source
+            .contains("WarehouseInventoryLedgerEntryCaption")
+    );
+    // Non-ASCII content survives the Windows-1252 project code page.
+    assert!(
+        standard
+            .source
+            .contains("Lagerstraße Süd 12, 70182 Stuttgart")
+    );
 
     let form = project
         .modules
         .iter()
-        .find(|module| module.name == "Form_Sales Reports Dialog")
+        .find(|module| module.name == "Form_Items Browser")
         .expect("form module");
     assert_eq!(form.kind, StoredModuleKind::Form);
     assert!(
         form.source
-            .starts_with("Attribute VB_Name = \"Form_Sales Reports Dialog\"")
+            .starts_with("Attribute VB_Name = \"Form_Items Browser\"")
     );
 
     let report = project
         .modules
         .iter()
-        .find(|module| module.name == "Report_Yearly Sales Report")
+        .find(|module| module.name == "Report_Stock Summary")
         .expect("report module");
     assert_eq!(report.kind, StoredModuleKind::Report);
 
     let class = project
         .modules
         .iter()
-        .find(|module| module.name == "ErrorHandling")
+        .find(|module| module.name == "TaskRunner")
         .expect("class module");
     assert_eq!(class.kind, StoredModuleKind::Class);
 }

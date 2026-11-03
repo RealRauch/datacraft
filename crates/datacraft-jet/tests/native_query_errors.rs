@@ -1,9 +1,10 @@
-//! Native-query decode-error contract on the real Northwind fixture
-//! (step 23.3, item M10).
+//! Native-query decode-error contract on the self-created programmability
+//! fixture (step 23.3, item M10; fixture replaced by H50).
 //!
-//! `northwind2007.accdb` carries `MSysQueries` attribute code 12, which the
-//! decoder does not map. The port must answer a precise `Unsupported`
-//! instead of an empty list — the core snapshot then surfaces it.
+//! `programmability.accdb` carries `MSysQueries` attribute code 12 — the
+//! multi-value expansion of the `Tags` column (the bound form's shadow
+//! query uses it). The port must answer a precise `Unsupported` instead of
+//! an empty list — the core snapshot then surfaces it.
 
 use std::path::{Path, PathBuf};
 
@@ -19,9 +20,9 @@ fn fixture(name: &str) -> PathBuf {
 }
 
 #[test]
-fn the_northwind_attribute_12_is_a_precise_unsupported() {
+fn the_multi_value_attribute_12_is_a_precise_unsupported() {
     let mut port = Jet4Port::new();
-    port.open(&fixture("northwind2007.accdb"), None)
+    port.open(&fixture("programmability.accdb"), None)
         .expect("fixture opens");
     let error = port
         .native_queries()

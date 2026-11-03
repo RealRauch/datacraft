@@ -1,9 +1,10 @@
-//! Macro inventory contract suite (step 17.1, item L4).
+//! Macro inventory contract suite (step 17.1, item L4; fixture replaced by
+//! H50 with the self-created programmability fixture).
 //!
-//! The pinned Northwind 2007 fixture is the only committed database with
-//! named macros; the jackcess templates carry empty `Scripts` containers.
-//! Assertions pin the catalog names and the readable definition arguments
-//! (the coarse action list — no execution semantics).
+//! The pinned `programmability.accdb` carries two named macros with
+//! readable, non-destructive arguments; the jackcess templates carry empty
+//! `Scripts` containers. Assertions pin the catalog names and the readable
+//! definition arguments (the coarse action list — no execution semantics).
 
 use std::path::{Path, PathBuf};
 
@@ -23,57 +24,54 @@ fn reader(name: &str) -> Jet4TableReader {
 }
 
 #[test]
-fn catalog_lists_the_northwind_macros_in_storage_order() {
-    let reader = reader("northwind2007.accdb");
+fn catalog_lists_the_fixture_macros_in_storage_order() {
+    let reader = reader("programmability.accdb");
     assert_eq!(
         reader.macro_names().expect("catalog decodes"),
-        vec!["AutoExec", "Delete All Data"]
+        vec!["Open Item Browser", "Refresh Stock Views"]
     );
 }
 
 #[test]
-fn northwind_macros_decode_their_readable_definition_arguments() {
-    let reader = reader("northwind2007.accdb");
+fn fixture_macros_decode_their_readable_definition_arguments() {
+    let reader = reader("programmability.accdb");
     let macros = reader.macros().expect("macro definitions decode");
     assert_eq!(macros.len(), 2, "{macros:#?}");
 
-    let autoexec = &macros[0];
-    assert_eq!(autoexec.name, "AutoExec");
-    assert!(autoexec.definition_decoded);
+    let open = &macros[0];
+    assert_eq!(open.name, "Open Item Browser");
+    assert!(open.definition_decoded);
     assert_eq!(
-        autoexec.arguments,
+        open.arguments,
         vec![
-            "Northwind Traders",
-            "Not [CurrentProject].[IsTrusted]",
-            "Startup Screen",
-            "[CurrentProject].[IsTrusted]",
-            "Login Dialog",
+            "Inventory sample ready.",
+            "Items Browser",
+            "ItemName",
+            "Pick a category to filter the view.",
+            "Category Picker",
         ]
     );
 
-    let delete = &macros[1];
-    assert_eq!(delete.name, "Delete All Data");
-    assert!(delete.definition_decoded);
+    let refresh = &macros[1];
+    assert_eq!(refresh.name, "Refresh Stock Views");
+    assert!(refresh.definition_decoded);
     assert_eq!(
-        delete.arguments,
+        refresh.arguments,
         vec![
-            "MsgBox(\"Do you really want to delete all data in the database?\",260)",
-            "Delete * from [Invoices]",
-            "Delete * from [Order Details]",
-            "Delete * from [Orders]",
-            "Delete * from [Purchase Order Details]",
-            "Delete * from [Purchase Orders]",
-            "Delete * from [Inventory Transactions]",
+            "Items In Stock",
+            "ItemName",
+            "[StockLevel] > 0",
+            "Stock By Category",
         ]
     );
 }
 
 #[test]
 fn the_access_storage_tree_exposes_the_scripts_container_and_its_blobs() {
-    let reader = reader("northwind2007.accdb");
+    let reader = reader("programmability.accdb");
     let storage = AccessStorage::read(&reader)
         .expect("storage decodes")
-        .expect("northwind has MSysAccessStorage");
+        .expect("the fixture has MSysAccessStorage");
     let scripts = storage
         .entry("Scripts")
         .expect("Scripts container is present");

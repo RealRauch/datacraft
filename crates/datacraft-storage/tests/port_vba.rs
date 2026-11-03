@@ -1,4 +1,5 @@
-//! Port-level VBA project contracts (step 17.2, item L5).
+//! Port-level VBA project contracts (step 17.2, item L5; fixture replaced
+//! by H50 with the self-created programmability fixture).
 
 use std::path::{Path, PathBuf};
 
@@ -15,16 +16,16 @@ fn fixture(name: &str) -> PathBuf {
 }
 
 #[test]
-fn jet_port_maps_the_northwind_vba_project() {
+fn jet_port_maps_the_fixture_vba_project() {
     let mut port = Jet4Port::new();
-    port.open(&fixture("northwind2007.accdb"), None)
+    port.open(&fixture("programmability.accdb"), None)
         .expect("fixture opens");
     let project = port
         .vba_project()
         .expect("project reads")
-        .expect("northwind has a project");
-    assert_eq!(project.modules.len(), 18);
-    assert_eq!(project.modules[0].name, "Utilities");
+        .expect("the fixture has a project");
+    assert_eq!(project.modules.len(), 8);
+    assert_eq!(project.modules[0].name, "InventoryHelpers");
     assert_eq!(
         project.modules[0].kind,
         datacraft_core::vba::VbaModuleKind::Standard
@@ -37,13 +38,13 @@ fn jet_port_maps_the_northwind_vba_project() {
 #[test]
 fn detecting_port_delegates_the_vba_project() {
     let mut port = DetectingPort::new();
-    port.open(&fixture("northwind2007.accdb"), None)
+    port.open(&fixture("programmability.accdb"), None)
         .expect("fixture opens");
     let project = port
         .vba_project()
         .expect("project reads")
         .expect("project present");
-    assert_eq!(project.modules.len(), 18);
+    assert_eq!(project.modules.len(), 8);
 }
 
 #[test]
