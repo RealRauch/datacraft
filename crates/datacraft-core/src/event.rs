@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ObjectId;
 use crate::ids::TabId;
-use crate::port::DatabaseFormat;
+use crate::port::{DatabaseFormat, Relationship};
 
 /// One observable outcome of a dispatched command.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -287,6 +287,14 @@ pub enum Event {
         name: String,
     },
     /// The relationship mapper visibility changed.
+    RelationshipCreated {
+        /// The created relationship.
+        relationship: Relationship,
+    },
+    RelationshipDeleted {
+        /// The deleted relationship.
+        relationship: Relationship,
+    },
     RelationshipMapperToggled {
         /// Openness after the toggle.
         open: bool,

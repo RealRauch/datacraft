@@ -220,6 +220,18 @@ pub enum Command {
     /// Shows or hides the relationship mapper (Access opens it as a
     /// document; the headless core models it as a pane flag).
     ToggleRelationshipMapper,
+    /// Creates a referential relationship (step 32.3, item M16). The
+    /// referencing and referenced tables/columns must exist; duplicates are
+    /// refused.
+    CreateRelationship {
+        /// The relationship to create.
+        relationship: crate::port::Relationship,
+    },
+    /// Deletes one referential relationship (step 32.3, item M16).
+    DeleteRelationship {
+        /// The relationship to delete.
+        relationship: crate::port::Relationship,
+    },
     /// Shows or hides the SQL window (step 13.3, H37).
     ToggleSqlWindow,
     /// Runs exactly one SELECT/WITH statement over the loaded tables in a

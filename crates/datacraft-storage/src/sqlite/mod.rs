@@ -130,6 +130,7 @@ impl StoragePort for SqlitePort {
         caps.alter_table = false;
         caps.atomic_batch = false;
         caps.passwords = false;
+        caps.relationships = Support::Yes;
         caps.autonumber = Support::Yes; // single AutoNumber via AUTOINCREMENT
         caps.native_queries = Support::No;
         caps.macros = Support::No;
@@ -390,6 +391,14 @@ COMMIT;",
         Ok(())
     }
 
+    fn create_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        relationships::create(self, relationship)
+    }
+
+    fn delete_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        relationships::delete(self, relationship)
+    }
+
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
         let conn = self.conn.as_ref().ok_or_else(no_database)?;
         let mut out = Vec::new();
@@ -401,6 +410,7 @@ COMMIT;",
 }
 
 mod mapping;
+mod relationships;
 
 use mapping::{
     collect_tables, count_rows, create_sql, foreign_keys, no_database, open_database, quote_ident,

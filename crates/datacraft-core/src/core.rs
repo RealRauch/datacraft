@@ -11,6 +11,7 @@ use crate::port::{PortError, StoragePort};
 use crate::snapshot::UiStateSnapshot;
 use crate::state::AppState;
 
+mod relationships;
 mod tabs;
 
 /// The headless application core: reducer + state + storage port.
@@ -191,6 +192,8 @@ impl Core {
                     visible: self.state.nav_pane_visible,
                 }]
             }
+            Command::CreateRelationship { relationship } => self.create_relationship(relationship),
+            Command::DeleteRelationship { relationship } => self.delete_relationship(relationship),
             Command::ToggleRelationshipMapper => {
                 self.state.relationship_mapper_open = !self.state.relationship_mapper_open;
                 vec![Event::RelationshipMapperToggled {

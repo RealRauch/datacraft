@@ -386,6 +386,22 @@ pub trait StoragePort {
     }
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
+    /// Creates one referential relationship (step 32.3, item M16).
+    /// Backends without a relationship write path answer a precise
+    /// `Unsupported` (the default).
+    fn create_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        let _ = relationship;
+        Err(PortError::Unsupported {
+            reason: "creating relationships is not supported by this backend".to_owned(),
+        })
+    }
+    /// Deletes one referential relationship (step 32.3, item M16).
+    fn delete_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        let _ = relationship;
+        Err(PortError::Unsupported {
+            reason: "deleting relationships is not supported by this backend".to_owned(),
+        })
+    }
     /// Native saved queries of the open database (step 15.3, M3).
     /// Backends without native queries return an empty list.
     fn native_queries(&self) -> Result<Vec<NativeQuery>, PortError> {

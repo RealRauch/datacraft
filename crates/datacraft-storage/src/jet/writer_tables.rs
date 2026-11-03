@@ -27,6 +27,10 @@ use super::tdef::JetColumn;
 const TABLES_CONTAINER_ID: i64 = 0x0F00_0001;
 /// Owner bytes of user-created table rows (fixture: both writers agree).
 const USER_TABLE_OWNER: [u8; 2] = [0xE5, 0xA3];
+/// Owner bytes of system table rows (`MSysRelationships` etc.).
+const SYSTEM_TABLE_OWNER: [u8; 2] = [0xE4, 0xA1];
+/// Catalog `Flags` of a system table (fixture: `MSysRelationships`).
+const SYSTEM_TABLE_FLAGS: i64 = 0x8000_0000;
 /// Free-space reserve: pages below this are unmarked in the free map.
 const FREE_MAP_RESERVE: usize = 512;
 /// `MSysObjects` TDEF page (format constant, see `catalog.rs`).
@@ -57,6 +61,27 @@ impl Jet4Writer {
     /// Returns the new table's TDEF page number (its identity at every
     /// boundary — the catalog `Id`).
     pub fn create_table(&mut self, name: &str, columns: &[JetColumn]) -> Result<u32, StorageError> {
+        self.create_table_with(name, columns, 0, USER_TABLE_OWNER)
+    }
+
+    /// Creates a system table (catalog flags `0x80000000`, system owner) —
+    /// used for the lazily created `MSysRelationships` table (step 32.3,
+    /// item M16).
+    pub fn create_system_table(
+        &mut self,
+        name: &str,
+        columns: &[JetColumn],
+    ) -> Result<u32, StorageError> {
+        self.create_table_with(name, columns, SYSTEM_TABLE_FLAGS, SYSTEM_TABLE_OWNER)
+    }
+
+    fn create_table_with(
+        &mut self,
+        name: &str,
+        columns: &[JetColumn],
+        flags: i64,
+        owner: [u8; 2],
+    ) -> Result<u32, StorageError> {
         // 1. Usage page (owner 0) with empty used/free rows.
         let usage_page = self.append_page()?;
         let empty = UsageMap {
@@ -81,7 +106,14 @@ impl Jet4Writer {
         // writer's catalog date — construction time by default, pinned by
         // the deterministic template materializer (phase 29, step 29.2).
         let catalog_def = JetTableDef::decode(&self.file, CATALOG_TDEF)?;
-        let values = Self::catalog_row(&catalog_def, tdef_page, name, self.catalog_date);
+        let values = Self::catalog_row(
+            &catalog_def,
+            tdef_page,
+            name,
+            self.catalog_date,
+            flags,
+            owner,
+        );
         self.insert_row(CATALOG_TDEF, &values)?;
         Ok(tdef_page)
     }
@@ -89,7 +121,14 @@ impl Jet4Writer {
     /// MSysObjects column values for a new user table, driven by the
     /// catalog's actual definition (column-name keyed — robust against
     /// catalogs with more or fewer columns; unknown columns stay NULL).
-    fn catalog_row(def: &JetTableDef, tdef_page: u32, name: &str, now: f64) -> Vec<StorageValue> {
+    fn catalog_row(
+        def: &JetTableDef,
+        tdef_page: u32,
+        name: &str,
+        now: f64,
+        flags: i64,
+        owner: [u8; 2],
+    ) -> Vec<StorageValue> {
         def.columns
             .iter()
             .map(|col| match col.name.as_str() {
@@ -98,8 +137,8 @@ impl Jet4Writer {
                 "Name" => StorageValue::Text(name.to_owned()),
                 "Type" => StorageValue::Int(1),
                 "DateCreate" | "DateUpdate" => StorageValue::DateTime(now),
-                "Owner" => StorageValue::Binary(USER_TABLE_OWNER.to_vec()),
-                "Flags" => StorageValue::Int(0),
+                "Owner" => StorageValue::Binary(owner.to_vec()),
+                "Flags" => StorageValue::Int(flags),
                 _ => StorageValue::Null, // LvProp etc. (see module docs)
             })
             .collect()

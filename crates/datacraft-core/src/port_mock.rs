@@ -413,6 +413,40 @@ impl StoragePort for MockPort {
         Ok(self.relationships.clone())
     }
 
+    fn create_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        if self.relationships.iter().any(|entry| entry == relationship) {
+            return Err(PortError::WriteFailed {
+                detail: format!("duplicate relationship {relationship:?}"),
+            });
+        }
+        self.relationships.push(relationship.clone());
+        Ok(())
+    }
+
+    fn delete_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        if let Some(detail) = &self.write_fail {
+            return Err(PortError::WriteFailed {
+                detail: detail.clone(),
+            });
+        }
+        let Some(position) = self
+            .relationships
+            .iter()
+            .position(|entry| entry == relationship)
+        else {
+            return Err(PortError::WriteFailed {
+                detail: format!("relationship {relationship:?} not found"),
+            });
+        };
+        self.relationships.remove(position);
+        Ok(())
+    }
+
     fn macros(&self) -> Result<Vec<crate::macro_def::MacroDef>, PortError> {
         Ok(self.macros.clone())
     }

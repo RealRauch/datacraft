@@ -668,6 +668,20 @@ the remainder — headers announce compression (memos always carry it);
 values without the header follow the column's compressed-unicode flag
 (flag: single-byte + switch, no flag: UCS-2 throughout).
 
+## MSysRelationships — relationship writes (2026-11-03, step 32.3, item M16)
+
+The read path (port `relationships()`) already read the four name columns.
+The write path creates the system table lazily with the fixture shape
+(`szRelationship`/`szObject`/`szColumn`/`szReferencedObject`/
+`szReferencedColumn` as Text 510-byte slots, `grbit`/`ccolumn`/`icolumn` as
+LongInt), catalog `Flags = 0x80000000` and owner `E4 A1`. `CreateRelationship`
+adds a unique index on the referenced column and a plain index on the
+referencing column through the M15 TDEF metadata, then appends one row
+(`grbit`/counters = 0) in the same writer session; a failing index check
+leaves the file untouched. `DeleteRelationship` marks the matching row
+deleted. The four names are matched case-insensitively; the `szRelationship`
+name is generated from table/column/parent and is not user-visible.
+
 ## MSysQueries — native saved queries (step 15.3, item M3)
 
 `MSysObjects` rows with `Type = 5` name the queries; `Flags & 0xF0` is the

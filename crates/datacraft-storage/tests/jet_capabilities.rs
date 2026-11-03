@@ -49,7 +49,7 @@ fn the_jet_driver_reports_its_reference_capabilities() {
     assert!(caps.atomic_batch, "Jet batches apply in one writer session");
     assert!(caps.passwords);
     assert_eq!(caps.autonumber, Support::Yes);
-    assert_eq!(caps.relationships, Support::ReadOnly);
+    assert_eq!(caps.relationships, Support::Yes);
     assert_eq!(caps.native_queries, Support::ReadOnly);
     assert_eq!(caps.macros, Support::ReadOnly);
     assert_eq!(caps.vba, Support::ReadOnly);

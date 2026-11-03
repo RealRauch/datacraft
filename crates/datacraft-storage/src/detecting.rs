@@ -201,6 +201,20 @@ impl StoragePort for DetectingPort {
             .map_or_else(|| Ok(Vec::new()), |session| session.relationships())
     }
 
+    fn create_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .create_relationship(relationship)
+    }
+
+    fn delete_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .delete_relationship(relationship)
+    }
+
     fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {
         self.session
             .as_ref()

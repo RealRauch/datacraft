@@ -24,7 +24,17 @@ const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\x00";
 /// `AUTOINCREMENT` requires an `INTEGER PRIMARY KEY` and at most one such
 /// column exists per table.
 pub(crate) fn create_sql(definition: &TableDef) -> Result<String, PortError> {
-    let mut columns = Vec::with_capacity(definition.fields.len());
+    create_sql_named(definition, &definition.name, &[])
+}
+
+/// `CREATE TABLE` for `name`, optionally carrying foreign-key clauses
+/// (step 32.3, item M16 rebuild path).
+pub(crate) fn create_sql_named(
+    definition: &TableDef,
+    name: &str,
+    foreign_keys: &[Relationship],
+) -> Result<String, PortError> {
+    let mut columns = Vec::with_capacity(definition.fields.len() + foreign_keys.len());
     let mut auto_seen = false;
     for field in &definition.fields {
         let mut column = format!("{} {}", quote_ident(&field.name), sql_type(&field.kind)?);
@@ -45,9 +55,17 @@ pub(crate) fn create_sql(definition: &TableDef) -> Result<String, PortError> {
         }
         columns.push(column);
     }
+    for fk in foreign_keys {
+        columns.push(format!(
+            "FOREIGN KEY ({}) REFERENCES {} ({})",
+            quote_ident(&fk.column),
+            quote_ident(&fk.related_table),
+            quote_ident(&fk.related_column)
+        ));
+    }
     Ok(format!(
         "CREATE TABLE {} ({})",
-        quote_ident(&definition.name),
+        quote_ident(name),
         columns.join(", ")
     ))
 }
@@ -144,26 +162,39 @@ pub(crate) fn read_magic(path: &Path) -> Result<(), PortError> {
 /// Opens read-write so writes work; a read-only file still opens for
 /// reading and reports a precise `Unsupported` on write attempts.
 pub(crate) fn open_database(path: &Path) -> Result<(Connection, bool), PortError> {
+    // Foreign-key constraints are declared in the DDL (step 32.3, M16);
+    // SQLite only enforces them when the pragma is on for the connection.
+    let enable = |conn: Connection| -> Result<Connection, PortError> {
+        conn.execute_batch("PRAGMA foreign_keys=ON;")
+            .map_err(|e| PortError::OpenFailed {
+                detail: format!("{}: enabling foreign keys: {e}", path.display()),
+            })?;
+        Ok(conn)
+    };
     // Windows lets a read-write open succeed on a read-only file and fails
     // only on the first write; the metadata check keeps the answer precise.
     let readonly_file = std::fs::metadata(path)
         .map(|meta| meta.permissions().readonly())
         .unwrap_or(false);
     if readonly_file {
-        return Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-            .map(|conn| (conn, false))
-            .map_err(|e| PortError::OpenFailed {
-                detail: format!("{}: {e}", path.display()),
-            });
+        let conn =
+            Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| {
+                PortError::OpenFailed {
+                    detail: format!("{}: {e}", path.display()),
+                }
+            })?;
+        return enable(conn).map(|conn| (conn, false));
     }
     let rw = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE);
     match rw {
-        Ok(conn) => Ok((conn, true)),
-        Err(rw_error) => Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-            .map(|conn| (conn, false))
-            .map_err(|_| PortError::OpenFailed {
-                detail: format!("{}: {rw_error}", path.display()),
-            }),
+        Ok(conn) => enable(conn).map(|conn| (conn, true)),
+        Err(rw_error) => {
+            let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+                .map_err(|_| PortError::OpenFailed {
+                    detail: format!("{}: {rw_error}", path.display()),
+                })?;
+            enable(conn).map(|conn| (conn, false))
+        }
     }
 }
 

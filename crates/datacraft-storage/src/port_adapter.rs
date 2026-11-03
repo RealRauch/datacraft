@@ -80,6 +80,7 @@ impl StoragePort for Jet4Port {
         let mut caps = DriverCapabilities::full();
         caps.atomic_batch = true; // batches apply in one writer session
         caps.passwords = true;
+        caps.relationships = Support::Yes;
         caps.autonumber = Support::Yes; // LongInteger; ReplicationId answers Unsupported
         if self.opened_format() == Some(FormatVersion::Jet3) {
             caps.write_rows = false;
@@ -247,6 +248,20 @@ impl StoragePort for Jet4Port {
         Ok(self.vba.clone())
     }
 
+    fn create_relationship(
+        &mut self,
+        relationship: &datacraft_core::port::Relationship,
+    ) -> Result<(), PortError> {
+        relationships::create(self, relationship)
+    }
+
+    fn delete_relationship(
+        &mut self,
+        relationship: &datacraft_core::port::Relationship,
+    ) -> Result<(), PortError> {
+        relationships::delete(self, relationship)
+    }
+
     fn relationships(&self) -> Result<Vec<datacraft_core::port::Relationship>, PortError> {
         let reader = self.reader.as_ref().ok_or_else(|| PortError::Unsupported {
             reason: "no database is open".to_owned(),
@@ -333,6 +348,7 @@ impl StoragePort for Jet4Port {
 }
 
 mod password;
+mod relationships;
 mod rows;
 
 impl Jet4Port {

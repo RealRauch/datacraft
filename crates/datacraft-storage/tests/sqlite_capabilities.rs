@@ -60,7 +60,7 @@ fn the_sqlite_driver_reports_its_writable_capabilities() {
     assert!(!caps.atomic_batch, "batches apply one by one");
     assert!(!caps.passwords, "SQLite has no database password");
     assert_eq!(caps.autonumber, Support::Yes);
-    assert_eq!(caps.relationships, Support::ReadOnly);
+    assert_eq!(caps.relationships, Support::Yes);
     assert_eq!(caps.native_queries, Support::No);
     assert_eq!(caps.macros, Support::No);
     assert_eq!(caps.vba, Support::No);
