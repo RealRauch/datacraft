@@ -16,8 +16,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{DatabaseFormat, PortError, RowRange, StoragePort};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
-use datacraft_storage::port_adapter::Jet4Port;
-use datacraft_storage::sqlite::SqlitePort;
+use datacraft_jet::port_adapter::Jet4Port;
+use datacraft_sqlite::SqlitePort;
 
 /// Unique scratch path per test process and call.
 fn scratch_path(stem: &str, extension: &str) -> PathBuf {

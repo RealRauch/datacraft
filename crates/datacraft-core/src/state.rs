@@ -33,7 +33,7 @@ pub struct AppState {
     pub sql_window_open: bool,
     /// Result of the last successful SQL run (not projected into the
     /// snapshot; the UI renders it from the core's state).
-    pub sql_result: Option<crate::sql_engine::SqlResult>,
+    pub sql_result: Option<crate::sql_types::SqlResult>,
     /// Result of the last successful expression run (step 15.2, H41; not
     /// projected into the snapshot — agents read it via `Core`).
     pub expression_result: Option<crate::schema::FieldValue>,

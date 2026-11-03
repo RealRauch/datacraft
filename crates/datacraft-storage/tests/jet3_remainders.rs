@@ -8,9 +8,9 @@
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{RowRange, StoragePort};
-use datacraft_storage::StorageValue;
+use datacraft_jet::StorageValue;
+use datacraft_jet::jet::{Jet4TableReader, JetTableDef};
 use datacraft_storage::detecting::DetectingPort;
-use datacraft_storage::jet::{Jet4TableReader, JetTableDef};
 
 fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -82,7 +82,7 @@ fn jet3_overflow_rows_resolve_through_the_format_specific_decoder() {
     // overflow pointer is decoded with the Jet3 10-byte page header, not the
     // Jet4 layout.
     let file = std::fs::read(fixture()).expect("fixture");
-    let reader = datacraft_storage::jet::Jet4TableReader::new(file).expect("reader");
+    let reader = datacraft_jet::jet::Jet4TableReader::new(file).expect("reader");
     let entries = reader.catalog().expect("catalog with overflow rows");
     assert!(
         entries.iter().any(|entry| entry.name == "MSysObjects"),

@@ -180,14 +180,16 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 | Layer | Crate | Job |
 | --- | --- | --- |
 | core | `datacraft-core` | domain model, schema, command bus, query engine, application state, snapshots, JSON-RPC transport (Phases 3–4, 7) |
-| storage | `datacraft-storage` | pure-Rust Jet3/Jet4 read + Jet4/ACE write backends and the SQLite backend behind the core-owned `StoragePort` seam, libmdb oracle (`cfg(test)` only) (Phase 2, 10, 13) |
+| jet | `datacraft-jet` | clean-room pure-Rust Jet3/Jet4 read + Jet4/ACE write backends behind the core-owned `StoragePort` seam, libmdb oracle (`cfg(test)` only) (Phase 2, 10; split in Phase 31) |
+| sqlite | `datacraft-sqlite` | SQLite backend behind the same seam (rusqlite, statically bundled) (Phase 13; split in Phase 31) |
+| storage | `datacraft-storage` | driver composite: format-detecting registry over the shipped backends plus the deterministic samples generator (Phase 29–30) |
 | ui | `datacraft-ui` | eframe/egui desktop shell (`datacraft`) and the MCP endpoint binary (`datacraft-mcp`) (Phase 5+) |
 | cli | `datacraft-cli` | the fourth command-bus client — binary `datacraft-cli` (Phase 9) |
 
 ```text
-datacraft-ui (egui) ───────► datacraft-core (command bus) ──► datacraft-storage (Jet/ACE)
-datacraft-cli (shell) ──────┘            ▲
-JSON-RPC / MCP (datacraft-mcp) ──────────┘
+datacraft-ui (egui) ───────► datacraft-core (command bus) ──► datacraft-storage (composite)
+datacraft-cli (shell) ──────┘            ▲                        ├─ datacraft-jet (Jet/ACE)
+JSON-RPC / MCP (datacraft-mcp) ──────────┘                        └─ datacraft-sqlite (SQLite)
 ```
 
 Dependency direction is one-way and review-enforced: `ui → core`,

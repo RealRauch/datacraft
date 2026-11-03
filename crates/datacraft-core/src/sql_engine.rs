@@ -7,24 +7,16 @@
 //!
 //! Agent safety gate: exactly one statement, and only `SELECT`/`WITH`.
 //! Everything else is rejected before SQLite sees it.
+//!
+//! The engine sits behind the `sql-engine` feature (`rusqlite` is optional
+//! in `datacraft-core`, step 31.2 / M19): the result types live in
+//! [`crate::sql_types`] so the state and the wire vocabulary stay C-free.
 
 use rusqlite::Connection;
 use rusqlite::types::ValueRef;
-use serde::{Deserialize, Serialize};
 
 use crate::schema::{AutoKind, FieldKind, FieldValue, NumericKind, TableDef};
-
-/// Columns plus positional rows of one SQL result.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SqlResult {
-    /// Result column names in select order.
-    pub columns: Vec<String>,
-    /// Rows, positional to `columns`.
-    pub rows: Vec<Vec<FieldValue>>,
-}
-
-/// One materialized source: the table definition and all of its rows.
-pub type Source = (TableDef, Vec<Vec<FieldValue>>);
+pub use crate::sql_types::{Source, SqlResult};
 
 /// Executes one `SELECT`/`WITH` statement over the materialized sources.
 pub fn run_sql(sql: &str, sources: &[Source]) -> Result<SqlResult, String> {

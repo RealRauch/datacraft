@@ -14,8 +14,8 @@ use datacraft_core::port::{
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
-use crate::port_adapter::Jet4Port;
-use crate::sqlite::SqlitePort;
+use datacraft_jet::port_adapter::Jet4Port;
+use datacraft_sqlite::SqlitePort;
 
 /// One port over all supported source families, selected by file magic.
 #[derive(Default)]

@@ -915,12 +915,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "datacraft-storage"
+name = "datacraft-jet"
+version = "0.1.0"
+dependencies = [
+ "datacraft-core",
+ "serde",
+]
+
+[[package]]
+name = "datacraft-sqlite"
 version = "0.1.0"
 dependencies = [
  "datacraft-core",
  "rusqlite",
- "serde",
+]
+
+[[package]]
+name = "datacraft-storage"
+version = "0.1.0"
+dependencies = [
+ "datacraft-core",
+ "datacraft-jet",
+ "datacraft-sqlite",
+ "rusqlite",
 ]
 
 [[package]]

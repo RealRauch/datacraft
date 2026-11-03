@@ -1,0 +1,15 @@
+[package]
+name = "datacraft-sqlite"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "SQLite backend for DataCraft behind the storage port (rusqlite, statically bundled)"
+
+[dependencies]
+datacraft-core = { workspace = true }
+rusqlite = { workspace = true }
+
+[lints]
+workspace = true

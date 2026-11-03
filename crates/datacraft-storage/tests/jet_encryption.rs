@@ -13,11 +13,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{PortError, RowRange, StoragePort};
 use datacraft_core::schema::FieldValue;
-use datacraft_storage::StorageError;
+use datacraft_jet::StorageError;
+use datacraft_jet::jet::crypto::{self, HEADER_RC4_KEY, PageEncryption};
+use datacraft_jet::jet::{FileHeader, Jet4TableReader};
+use datacraft_jet::port_adapter::Jet4Port;
 use datacraft_storage::detecting::DetectingPort;
-use datacraft_storage::jet::crypto::{self, HEADER_RC4_KEY, PageEncryption};
-use datacraft_storage::jet::{FileHeader, Jet4TableReader};
-use datacraft_storage::port_adapter::Jet4Port;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -288,6 +288,6 @@ fn jet3_password_and_page_encryption_decode_through_the_reader() {
     assert_eq!(table.rows.len(), 1);
     assert_eq!(
         table.rows[0][0],
-        datacraft_storage::StorageValue::Text("alpha".into())
+        datacraft_jet::StorageValue::Text("alpha".into())
     );
 }

@@ -7,8 +7,8 @@
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::StoragePort;
+use datacraft_jet::port_adapter::Jet4Port;
 use datacraft_storage::detecting::DetectingPort;
-use datacraft_storage::port_adapter::Jet4Port;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

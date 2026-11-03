@@ -43,11 +43,12 @@ the GUI does.
 │  └───────────────────────────┬───────────────────────────────┘  │
 │                              │ StoragePort seam (ADR-7)          │
 │  ┌───────────────────────────▼───────────────────────────────┐  │
-│  │ datacraft-storage                                         │  │
+│  │ datacraft-storage (composite)                             │  │
 │  │  ┌─────────────────────────────┐   ┌───────────────────┐  │  │
-│  │  │ jet-rs backend (product)    │   │ libmdb oracle     │  │  │
-│  │  │ pure-Rust Jet/ACE reader &  │   │ (test-time only,  │  │  │
-│  │  │ writer, clean-room          │   │ LGPL, cfg(test))  │  │  │
+│  │  │ datacraft-jet (pure-Rust    │   │ datacraft-sqlite  │  │  │
+│  │  │ Jet/ACE reader & writer)    │   │ (rusqlite,        │  │  │
+│  │  │ libmdb oracle: test-time    │   │  statically       │  │  │
+│  │  │ only, LGPL, cfg(test))      │   │  bundled)         │  │  │
 │  │  └─────────────────────────────┘   └───────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
@@ -63,7 +64,9 @@ headlessly (Principle 4) and the tool agent-operable (Principle 3).
 ```text
 crates/
 ├── datacraft-core/      domain model, command bus, app state, test IDs
-├── datacraft-storage/   StoragePort + Jet/ACE and SQLite backends (Ph. 2+)
+├── datacraft-jet/       clean-room pure-Rust Jet/ACE backend (Ph. 2+, split 31.2)
+├── datacraft-sqlite/    SQLite backend, rusqlite statically bundled (Ph. 13, split 31.2)
+├── datacraft-storage/   driver composite: detection + samples (Ph. 30)
 ├── datacraft-csv/       CSV directory driver — ADR-7 out-of-tree proof (Ph. 30)
 └── datacraft-ui/        eframe/egui desktop shell (lib + bin `datacraft`)
 ```
@@ -78,7 +81,9 @@ Dependency direction rules (review-enforced, never cyclic):
 ```text
 datacraft-ui      ──► datacraft-core
 datacraft-cli     ──► datacraft-core
-datacraft-storage ──► datacraft-core
+datacraft-storage ──► datacraft-jet, datacraft-sqlite, datacraft-core
+datacraft-jet     ──► datacraft-core   (clean-room Jet/ACE backend)
+datacraft-sqlite  ──► datacraft-core   (rusqlite backend)
 datacraft-csv     ──► datacraft-core   (out-of-tree driver, ADR-7)
 datacraft-core    ──► (nothing internal)
 ```
@@ -295,7 +300,9 @@ datacraft/
 ├── rust-toolchain.toml         pinned toolchain (H3)
 ├── crates/
 │   ├── datacraft-core/         lib — domain, commands, state
-│   ├── datacraft-storage/      lib — Jet/ACE + SQLite backends
+│   ├── datacraft-jet/          lib — clean-room Jet/ACE backend (pure Rust)
+│   ├── datacraft-sqlite/       lib — SQLite backend (rusqlite bundled)
+│   ├── datacraft-storage/      lib — driver composite (detection + samples)
 │   └── datacraft-ui/           bin — eframe desktop shell
 ├── fixtures/                   reference .mdb/.accdb databases (Ph. 2)
 ├── docs/                       PLAYBOOK, LESSONS, ARCHITECTURE, TESTING
@@ -506,7 +513,7 @@ applications.** Approved with the Phase 30 plan release.
    engine. The GUI (`datacraft`), `datacraft-cli` and `datacraft-mcp` are
    applications that compose the engine with a driver set at their composition
    roots. Out-of-tree driver crates depend only on `datacraft-core`;
-   `datacraft-storage` keeps the clean-room Jet/ACE implementation and its
+   `datacraft-jet` keeps the clean-room Jet/ACE implementation and its
    oracle. The target packaging (driver-per-crate split, standalone
    `datacraft-mcp` binary crate, Semver/MSRV policy) is Phase 31 (BACKLOG M19)
    and does not change this decision.

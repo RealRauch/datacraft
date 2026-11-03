@@ -121,7 +121,8 @@ impl Core {
     /// Runs one gated SQL statement over the loaded tables in a throwaway
     /// in-memory database (step 13.3, H37) — the data seam of the SQL
     /// window. Sources are read through the port and never written.
-    pub fn run_sql(&self, sql: &str) -> Result<crate::sql_engine::SqlResult, String> {
+    #[cfg(feature = "sql-engine")]
+    pub fn run_sql(&self, sql: &str) -> Result<crate::sql_types::SqlResult, String> {
         let Some(db) = &self.state.database else {
             return Err("no database is open".to_owned());
         };
@@ -142,8 +143,18 @@ impl Core {
         crate::sql_engine::run_sql(sql, &sources)
     }
 
+    /// Without the `sql-engine` feature the engine is not compiled in; the
+    /// command still dispatches and answers a precise failure (step 31.2).
+    #[cfg(not(feature = "sql-engine"))]
+    pub fn run_sql(&self, _sql: &str) -> Result<crate::sql_types::SqlResult, String> {
+        Err(
+            "the SQL engine is not part of this build (enable the datacraft-core `sql-engine` feature)"
+                .to_owned(),
+        )
+    }
+
     /// Result of the last successful `RunSql` (the UI's data source).
-    pub fn sql_result(&self) -> Option<&crate::sql_engine::SqlResult> {
+    pub fn sql_result(&self) -> Option<&crate::sql_types::SqlResult> {
         self.state.sql_result.as_ref()
     }
 

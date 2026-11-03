@@ -79,7 +79,7 @@ jobs:
         if: runner.os == 'Linux'
       - run: brew install mdbtools
         if: runner.os == 'macOS'
-      - run: cargo test -p datacraft-storage --test oracle -- --nocapture
+      - run: cargo test -p datacraft-jet --test oracle -- --nocapture
 
   coverage:
     name: Coverage gate (>= 95% lines)

@@ -5,12 +5,15 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Pure-Rust Jet/ACE and SQLite backends behind the DataCraft storage port"
+description = "Format-detecting driver composite for DataCraft (shipped backends plus samples)"
 
 [dependencies]
 datacraft-core = { workspace = true }
+datacraft-jet = { workspace = true }
+datacraft-sqlite = { workspace = true }
+
+[dev-dependencies]
 rusqlite = { workspace = true }
-serde = { workspace = true }
 
 [lints]
 workspace = true

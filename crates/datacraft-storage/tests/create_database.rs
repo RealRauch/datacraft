@@ -11,10 +11,10 @@ use std::process::id;
 
 use datacraft_core::port::{DatabaseFormat, StoragePort};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
-use datacraft_storage::jet::{FileHeader, Jet4TableReader};
-use datacraft_storage::port_adapter::Jet4Port;
-use datacraft_storage::sqlite::SqlitePort;
-use datacraft_storage::{FormatVersion, StorageError};
+use datacraft_jet::jet::{FileHeader, Jet4TableReader};
+use datacraft_jet::port_adapter::Jet4Port;
+use datacraft_jet::{FormatVersion, StorageError};
+use datacraft_sqlite::SqlitePort;
 
 fn scratch(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!("datacraft-storage-create-{}-{name}", id()))
@@ -27,7 +27,7 @@ fn jet_bytes(path: &Path) -> Vec<u8> {
 #[test]
 fn a_fresh_jet4_file_opens_with_an_empty_catalog() {
     let path = scratch("fresh.mdb");
-    datacraft_storage::jet::create::create_jet4_file(&path, 45_000.0).expect("create");
+    datacraft_jet::jet::create::create_jet4_file(&path, 45_000.0).expect("create");
     let bytes = jet_bytes(&path);
 
     let header = FileHeader::decode(&bytes, bytes.len() as u64).expect("valid header");
@@ -54,8 +54,8 @@ fn a_fresh_jet4_file_opens_with_an_empty_catalog() {
 fn creation_is_deterministic_for_a_fixed_creation_date() {
     let first = scratch("det-a.mdb");
     let second = scratch("det-b.mdb");
-    datacraft_storage::jet::create::create_jet4_file(&first, 45_000.0).expect("create a");
-    datacraft_storage::jet::create::create_jet4_file(&second, 45_000.0).expect("create b");
+    datacraft_jet::jet::create::create_jet4_file(&first, 45_000.0).expect("create a");
+    datacraft_jet::jet::create::create_jet4_file(&second, 45_000.0).expect("create b");
     assert_eq!(
         jet_bytes(&first),
         jet_bytes(&second),
@@ -107,11 +107,10 @@ fn a_fresh_database_takes_the_full_write_path() {
 #[test]
 fn creating_over_an_existing_file_is_refused_and_leaves_it_intact() {
     let path = scratch("exists.mdb");
-    datacraft_storage::jet::create::create_jet4_file(&path, 45_000.0).expect("first create");
+    datacraft_jet::jet::create::create_jet4_file(&path, 45_000.0).expect("first create");
     let before = jet_bytes(&path);
 
-    let error =
-        datacraft_storage::jet::create::create_jet4_file(&path, 46_000.0).expect_err("refused");
+    let error = datacraft_jet::jet::create::create_jet4_file(&path, 46_000.0).expect_err("refused");
     match error {
         StorageError::Unsupported { reason } => {
             assert!(reason.contains("already exists"), "{reason}");

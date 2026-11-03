@@ -8,12 +8,21 @@ authors.workspace = true
 description = "Headless domain model, command bus and application state for DataCraft"
 
 [dependencies]
-rusqlite = { workspace = true }
+rusqlite = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
 proptest = { workspace = true }
+
+[features]
+default = ["sql-engine"]
+# The shadow SQL engine (step 13.3, H37) materializes sources into a
+# throwaway in-memory SQLite — the only C-backed surface of the engine.
+# Pure-Rust consumers (datacraft-jet) build with default-features = false;
+# the RunSql command then dispatches and answers a precise failure
+# (step 31.2 / M19).
+sql-engine = ["dep:rusqlite"]
 
 [lints]
 workspace = true

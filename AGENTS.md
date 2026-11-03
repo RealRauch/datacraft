@@ -21,7 +21,11 @@ Workspace crates (dependency direction is review-enforced, never cyclic):
 ```text
 datacraft-ui  ──► datacraft-core          (egui shell + datacraft-mcp binary)
 datacraft-cli ──► datacraft-core          (headless CLI binary)
-datacraft-storage ──► datacraft-core      (Jet/ACE + SQLite backends)
+datacraft-storage ──► datacraft-jet, datacraft-sqlite
+                                          (composite: detection + samples)
+datacraft-jet ──► datacraft-core          (clean-room pure-Rust Jet/ACE backend)
+datacraft-sqlite ──► datacraft-core       (SQLite backend, rusqlite bundled)
+datacraft-csv ──► datacraft-core          (CSV directory driver, ADR-7)
 datacraft-core ──► (nothing internal)
 ```
 
@@ -164,7 +168,7 @@ Hard rules (CI-enforced):
 - `lcov.info` is generated and git-ignored; `.zcode/` holds local session
   artifacts and is never committed.
 - The oracle suite needs `mdbtools` (available on Ubuntu/macOS CI, not on
-  Windows): `DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-storage --test oracle`.
+  Windows): `DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-jet --test oracle`.
 
 ## 9. Where to look
 

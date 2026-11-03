@@ -14,8 +14,8 @@ use datacraft_core::port::{DatabaseFormat, PortError, StoragePort};
 use datacraft_core::schema::{FieldValue, SCHEMA_VERSION, SchemaDocument, TableDef};
 use datacraft_core::templates;
 
-use crate::jet::create::materialize_jet4_template;
-use crate::sqlite::SqlitePort;
+use datacraft_jet::jet::create::materialize_jet4_template;
+use datacraft_sqlite::SqlitePort;
 
 /// The pinned creation date of every shipped sample (OLE automation days —
 /// a fixed point in 2025, never the wall clock).
