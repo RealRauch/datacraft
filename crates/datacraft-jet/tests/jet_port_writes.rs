@@ -187,6 +187,24 @@ fn writes_to_a_read_only_copy_fail_precisely_and_leave_it_intact() {
         .permissions();
     permissions.set_readonly(true);
     std::fs::set_permissions(&scratch.0, permissions).expect("make read-only");
+    // The contract below is OS-enforcement-based (T8): privileged runners
+    // where the kernel still permits appends to a read-only-flagged file
+    // (ubuntu-26.04 images) do not provide the premise, so the test skips
+    // instead of asserting the platform's shortcut. On enforcing platforms
+    // the probe is itself rejected and the full contract runs.
+    match std::fs::OpenOptions::new().append(true).open(&scratch.0) {
+        Err(_) => {}
+        Ok(_) => {
+            eprintln!("skipped: file permissions are not enforced on this runner");
+            let mut permissions = std::fs::metadata(&scratch.0)
+                .expect("metadata")
+                .permissions();
+            #[allow(clippy::permissions_set_readonly_false)]
+            permissions.set_readonly(false);
+            std::fs::set_permissions(&scratch.0, permissions).expect("restore");
+            return;
+        }
+    }
 
     let err = port
         .insert_row("Table1", &table1_values())
