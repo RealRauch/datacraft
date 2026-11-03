@@ -1021,3 +1021,21 @@
 - **Approach:** Prune both sides (`rel.table` and `rel.related_table`), and let the driver delete the matching MSysRelationships rows on drop if it does not already.
 - **Acceptance:** Dropping a parent table removes every relationship that references it from `state.relationships`/the snapshot; the mapper shows no dangling edge; test over the bus.
 - **Done:** fixed in `9d4d865` (RED `788f739`): DropTable prunes relationships whose child or parent is the dropped table, so the snapshot carries no dangling edge
+
+---
+
+### [x] L19 — rustdoc: missing public docs and broken intra-doc links — 🟢
+- **Location:** `crates/datacraft-core/src/lib.rs:61-64` (`ObjectKind::{Table, Query, Form, Report}` variants), `src/event.rs` (`Event::{RelationshipDeleted, RelationshipMapperToggled}`); broken intra-doc links in `src/field_expressions.rs:6` (private `prepare_insert`/`prepare_update`), `src/journal.rs:7` (`StoragePort::write_row_ops` not in scope), `src/schema/document.rs:20` (private `MIGRATIONS`), `src/form.rs` (`ControlKind`), `crates/datacraft-jet/src/jet/tdef.rs` (`JetTableDef::decode_jet3` — the function is `decode_tdef`), `src/jet/writer.rs` (`tdef_pages` links to private `ensure_plausible_tdef`).
+- **Problem:** `RUSTDOCFLAGS="-D missing_docs" cargo doc --workspace --no-deps` fails on six public variants without docs, and a plain doc build emits seven broken/private intra-doc link warnings. Published crates are judged on docs.rs; blank variants and dead links undercut the documented-API claim, and the `decode_jet3` link points at a method that does not exist.
+- **Approach:** Add the six variant docs, fix or unlink the seven references, and record `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` as a release-checklist step in `docs/PUBLISHING.md`. A CI doc job would be a workflow change (High gate) and is a separate decision.
+- **Acceptance:** The doc command exits 0 with `-D warnings`; no public item lacks documentation; PUBLISHING's checklist names the command.
+- **Done:** fixed in `66afb36`: six variant docs added, seven doc links repaired, `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` exits 0 and is now a release-checklist step in PUBLISHING
+
+---
+
+### [x] L20 — Core public surface: empty public modules and an undocumented MockPort API — 🟢
+- **Location:** `crates/datacraft-core/src/lib.rs:7-11` (`pub mod database; pub mod forms; pub mod reports;` — the modules only host `impl Core` blocks), `src/port.rs:374` (`pub use crate::port_mock::MockPort`), `docs/PUBLISHING.md`.
+- **Problem:** Three public modules expose no public items (they exist to split `impl Core` bodies), so docs.rs lists empty modules next to real ones. `MockPort` is a full 474-line test double promoted into the published API without the publishing policy naming it — a consumer cannot tell whether it is supported or an artifact of the crate's own tests, yet it is the natural way to test a client against the engine.
+- **Approach:** Make the three `impl`-only modules private (the `impl Core` blocks keep working) and document `MockPort` in PUBLISHING as a supported testing surface (or gate it behind a `test-support` feature if it should not be a default dependency).
+- **Acceptance:** No public module is empty; PUBLISHING states the `MockPort` contract; `cargo doc` shows only real modules; no API consumer breaks.
+- **Done:** fixed in `7ee7954`: the impl-only modules are private, and PUBLISHING documents MockPort as a supported testing surface (not a production backend)
