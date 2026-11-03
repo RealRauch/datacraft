@@ -252,18 +252,18 @@ fn recent_databases_are_bounded_deduplicated_and_newest_first() {
     }
     assert_eq!(settings.recent.len(), MAX_RECENT_DATABASES);
     assert_eq!(
-        settings.recent[0],
+        settings.recent[0].path,
         dir.join(format!("db{}.mdb", MAX_RECENT_DATABASES + 1))
     );
 
     std::fs::write(dir.join("db5.mdb"), b"x").expect("seed the reopened path");
     settings.record_recent(&dir.join("db5.mdb"));
-    assert_eq!(settings.recent[0], dir.join("db5.mdb"));
+    assert_eq!(settings.recent[0].path, dir.join("db5.mdb"));
     assert_eq!(
         settings
             .recent
             .iter()
-            .filter(|candidate| **candidate == dir.join("db5.mdb"))
+            .filter(|candidate| candidate.path == dir.join("db5.mdb"))
             .count(),
         1,
         "a reopened path moves to the front instead of repeating"
@@ -282,16 +282,75 @@ fn missing_recent_paths_are_pruned_with_a_report() {
     std::fs::write(&existing, b"x").expect("seed the existing path");
     let missing = dir.join("missing.mdb");
     let settings = Settings {
-        recent: vec![existing.clone(), missing.clone()],
+        recent: vec![
+            RecentDatabase {
+                path: existing.clone(),
+                modified: None,
+            },
+            RecentDatabase {
+                path: missing.clone(),
+                modified: None,
+            },
+        ],
         ..Settings::default()
     };
     settings.save(&path).expect("save");
 
     let loaded = Settings::load(&path);
-    assert_eq!(loaded.recent, vec![existing], "stale paths are pruned");
+    assert_eq!(loaded.recent.len(), 1, "stale paths are pruned");
+    assert_eq!(loaded.recent[0].path, existing);
     assert_eq!(
         loaded.pruned_recent,
         vec![missing],
         "the pruned path stays visible for the notice"
     );
+}
+
+/// Step 38.2 (item M41): a recorded recent entry carries the file's mtime so
+/// the backstage can show a "Modified" timestamp without per-frame fs access.
+#[test]
+fn recent_entries_capture_the_file_mtime() {
+    let dir = temp_dir("recent-mtime");
+    let candidate = dir.join("stamp.mdb");
+    std::fs::write(&candidate, b"x").expect("seed the file");
+    let mut settings = Settings::default();
+    settings.record_recent(&candidate);
+    assert_eq!(settings.recent.len(), 1);
+    assert_eq!(settings.recent[0].path, candidate);
+    assert!(
+        settings.recent[0].modified.is_some(),
+        "the mtime is captured at record time"
+    );
+}
+
+/// Step 38.2 (item M41): `ui.json` files written before the structured
+/// entries (plain path strings) still load; the mtime is filled from the file.
+#[test]
+fn legacy_plain_string_recent_entries_still_load() {
+    let dir = temp_dir("recent-legacy");
+    let existing = dir.join("legacy.mdb");
+    std::fs::write(&existing, b"x").expect("seed the file");
+    let path = dir.join("ui.json");
+    let json = serde_json::json!({
+        "language": "en",
+        "recent": [existing.to_string_lossy()],
+    });
+    std::fs::write(&path, json.to_string()).expect("write the legacy settings");
+
+    let loaded = Settings::load(&path);
+    assert_eq!(loaded.recent.len(), 1, "the legacy entry survives");
+    assert_eq!(loaded.recent[0].path, existing);
+    assert!(
+        loaded.recent[0].modified.is_some(),
+        "the mtime is filled from the file at load"
+    );
+}
+
+/// Step 38.2 (item M41): the backstage renders the captured mtime as a
+/// deterministic ISO date (no new dependency, no locale drift).
+#[test]
+fn recent_modified_renders_as_an_iso_date() {
+    use datacraft_ui::backstage::recent::iso_date_from_unix;
+    assert_eq!(iso_date_from_unix(0), "1970-01-01");
+    assert_eq!(iso_date_from_unix(1_793_664_000), "2026-11-03");
 }
