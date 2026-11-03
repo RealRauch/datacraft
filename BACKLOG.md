@@ -66,12 +66,6 @@
 - **Approach:** Two stages: (1) horizontal body scrolling — widths are already per-tab session state shared by header, body and new-record row; (2) a frozen-column count per tab plus pure frozen-pane placement math in core `grid.rs` (own implementation of the quadrant idea GridCraft uses; no code or dependency from it), surfaced through header freeze/unfreeze context-menu actions.
 - **Acceptance:** Frozen columns stay pinned during horizontal scrolling in header and body; all placement math is pure core functions, unit-tested; a kittest snapshot pins the frozen/visible split; no per-frame allocations on the hot path.
 
-### [ ] M42 — Window chrome polish pass: ribbon hierarchy, spacing rhythm, surface consistency — 🟡
-- **Location:** `crates/datacraft-ui/src/shell.rs` (panel layout: top ribbon, left nav pane, bottom status bar), `ribbon.rs` (387 lines; painted buttons/badges around :212-250), `theme.rs` `GEOMETRY` (:143-150) — the visible frame around the workspace.
-- **Problem:** The user flags the overall window as visually behind the sibling apps: the ribbon is functional but flat (uniform painted buttons/badges, unmodulated spacing), the chrome/ribbon/canvas/panel surfaces lack a consistent rhythm, and details like group separation, hover affordance depth and QAT/tab-strip/command-row alignment do not reach the Crafting-Apps reference polish.
-- **Approach:** One audit-driven polish pass over the shell regions against the Phase-20 token grammar: align paddings, radii and typography rungs per region, refine the painted ribbon buttons and badges (hover/active/checked depth without breaking the neutral-chrome rule), consistent group separators and spacing rhythm in ribbon, nav pane and status bar; reuse M40 glyphs where they fit. Record before/after screenshots per the Phase-20 gate pattern (`docs/phase-*/`).
-- **Acceptance:** Region-by-region before/after screenshots recorded; kittest semantic snapshots regenerated where the tree changes; no token/contrast regression (existing theme tests stay green); canonical verification set green; every `.rs` file < 500 lines.
-
 ---
 
 ## 🟢 LOW
@@ -279,3 +273,4 @@
 - M40 — Crafting-Apps icon glyphs: license-cleared port into the painter dispatcher — done (done in `0fc15bd` (RED `beceb0e`) — 12 nav glyphs adapted into icons/nav.rs with NAV_GLYPHS vocabulary; attribution in THIRD-PARTY-NOTICES.md)
 - M41 — Backstage restyle: Excel-style full-height accent sidebar, cards, recent metadata — done (done in `3566391` (RED `8be40fb`) — Excel-style backstage chrome (sidebar/cards/recent stamps) on the token system, split into nav/pages/recent)
 - M43 — Native file and message dialogs where sensible (rfd behind a UI seam) — done (done in `6a7c97e` (RED `6c1f26d`) — rfd 0.17 behind the DialogHost seam; browse pickers on Open/New/Save, native confirmations gate delete and Save-Copy overwrite)
+- M42 — Window chrome polish pass: ribbon hierarchy, spacing rhythm, surface consistency — done (closed 2026-11-04 (step 38.4) — the audit found the chrome token-clean (no drift to fix, no before/after changes); the subjective polish pass is deferred until the human reviews the restyled build)

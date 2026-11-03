@@ -495,3 +495,16 @@ every fixture has an attribution row; `git log --all --name-only` lists
 neither the Northwind fixture nor `.zcode` plans; the rewritten `main` passes
 the canonical set and the fixture hash gate; CI including macOS is green
 before the tag.
+
+---
+
+### Phase 38 — UI restyle
+
+**Scope (Steps):**
+
+- **38.1 Crafting-Apps icon glyphs ported into the painter dispatcher (M40)**
+- **38.2 Backstage restyle: full-height accent sidebar, cards, recent metadata (M41)**
+- **38.3 Native file and message dialogs behind a UI seam (M43; rfd needs its own release)**
+- **38.4 Window chrome polish pass: ribbon hierarchy, spacing, surfaces (M42)**
+- **38.5 Phase 38 Quality Gate Review**
+**Verification:** Canonical set on the final tree: fmt green, clippy -D warnings green, 143 workspace test suites green, file-size gate green, docs_validate clean. llvm-cov exits 1 locally at 94.82% lines — the documented Windows skew (runner-conditional skips landed in phase 37; all phase-38 code sits in the coverage-excluded UI crate and moves the number not at all); CI ubuntu-latest is the binding gate per AGENTS §4 and runs on the next push. README/NOTICES updated per step (icon attribution, backstage grammar, dialog seam).

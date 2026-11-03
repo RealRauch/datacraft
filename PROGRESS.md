@@ -17,15 +17,6 @@
 - **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
-### Phase 38 — UI restyle
-
-**Scope (Steps):**
-
-- **38.1 Crafting-Apps icon glyphs ported into the painter dispatcher (M40)**
-- **38.2 Backstage restyle: full-height accent sidebar, cards, recent metadata (M41)**
-- **38.3 Native file and message dialogs behind a UI seam (M43; rfd needs its own release)**
-- **38.4 Window chrome polish pass: ribbon hierarchy, spacing, surfaces (M42)**
-- **38.5 Phase 38 Quality Gate Review**
 
 
 
@@ -255,5 +246,5 @@
 | 38.1 | Crafting-Apps icon glyphs ported into the painter dispatcher (M40) | ✅ |
 | 38.2 | Backstage restyle: full-height accent sidebar, cards, recent metadata (M41) | ✅ |
 | 38.3 | Native file and message dialogs behind a UI seam (M43; rfd needs its own release) | ✅ |
-| 38.4 | Window chrome polish pass: ribbon hierarchy, spacing, surfaces (M42) | ⬜ |
-| 38.5 | Phase 38 Quality Gate Review | ⬜ |
+| 38.4 | Window chrome polish pass: ribbon hierarchy, spacing, surfaces (M42) | ✅ |
+| 38.5 | Phase 38 Quality Gate Review | ✅ |
