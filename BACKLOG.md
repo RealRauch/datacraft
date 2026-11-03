@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T21:47
+# BACKLOG.md — Open items (As of: 2026-11-03T22:02
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -17,12 +17,6 @@
 ## 🟠 HIGH
 
 > No open items.
-
-### [ ] H49 — Public-release readiness: license texts, fixture attribution, repo hygiene — 🟠
-- **Location:** repo root (`LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`), `README.md` "License and credits" (still says "to be finalized with the skeleton"), `THIRD-PARTY-NOTICES.md` (covers bundled binaries and samples only), `docs/PUBLISHING.md`, GitHub repo settings
-- **Problem:** The repository is private and GitHub reports `license: null`: `Cargo.toml` declares `MIT OR Apache-2.0` and the README advertises it, but no license text is tracked. crates.io publishing (Phase 31 / M19) needs the license files regardless, and a public repository additionally needs fixture attribution (jackcess Apache-2.0, mdb-reader MIT, the Access-touched derivative) that `THIRD-PARTY-NOTICES.md` does not yet carry. AGENTS.md classifies license files as High-class.
-- **Approach:** Add the canonical `LICENSE-MIT` and `LICENSE-APACHE` texts (copyright "DataCraft contributors") plus a `NOTICE` for the Apache-2.0 side; correct the README license paragraph; extend `THIRD-PARTY-NOTICES.md` with a fixture table (source `repo@commit`, license, modifications); decide and record repo settings (secret scanning, Dependabot, branch protection, issue templates) in `docs/PUBLISHING.md`. Do not touch fixtures, code or the append-only archives.
-- **Acceptance:** GitHub detects the license; `cargo package` / `cargo publish --dry-run` include the license files; every committed fixture has a license or attribution row; README and PUBLISHING agree; no fixture bytes or code behaviour change.
 
 ---
 
@@ -150,6 +144,12 @@
 - **Problem:** Cells of existing rows cannot be edited in place; edits have to go through other paths. Access edits datasheet cells directly. The write path itself is already landed (Jet4 update/delete, ACCDB write-through), so this is a presentation-layer gap only.
 - **Approach:** Swap the painted cell for a real widget on the active cell (the in-cell editor idea GridCraft implements in its `editor.rs`; own implementation, no borrowed code), commit through exactly one `UpdateRow` dispatch, surface failures precisely (M31 pattern — never swallow), Enter/Escape semantics building on the keyboard-navigation item M38.
 - **Acceptance:** Editing an existing cell dispatches exactly one `UpdateRow`, updates the presentation cache, shows a precise error on failure; a kittest drives an edit end-to-end; canonical verification set green.
+
+### [ ] L24 — Publish metadata: description/repository/homepage for the published crates — 🟢
+- **Location:** `crates/*/Cargo.toml` (`[package]` metadata), `docs/PUBLISHING.md` release checklist step 4
+- **Problem:** `cargo package --list` warns "manifest has no documentation, homepage or repository" for the published crates (found in step 37.4 while verifying the packaged license files). crates.io shows empty repository/docs links for such packages; the release checklist's dry-run step would surface it too late.
+- **Approach:** Set `description`, `repository` and `homepage` (workspace inheritance or per crate) on the six published crates; `documentation` follows the docs.rs default unless a distinct target is wanted. Cargo.toml changes are Medium-class - one per-occurrence release when picked up, ideally before the first public tag (fits the 37.6 release checklist step).
+- **Acceptance:** `cargo package --list` reports no metadata warnings for the published crates; crates.io preview (dry-run) carries description/repository links.
 
 ---
 
@@ -296,3 +296,4 @@
 - F8 — Inline fix: all-fixed rows from real Access 365 have no variable tail — done (fixed in `b4ae17e` (RED `0638c9f`))
 - H50 — Self-created Access fixtures replace the unlicensed Northwind file — done (completed by step 37.2 (checkpoint `cda8bf5`): the self-created programmability fixture (Access 16.0.20527.20112) replaced the unlicensed Northwind 2007 sample; seven suites ported and green, manifest verifies offline, recipe + provenance documented in FIXTURE-SOURCES; canonical verification set green (fmt/clippy/tests/coverage/file-size); two inline fixes filed as F7/F8 (macro argument markers, tail-less all-fixed rows))
 - L21 — Access fixture rebuild: SaveAsText sources + COM builder — done (completed by step 37.3 (checkpoint `2ba18bd`): tools/fixture-build carries the versioned object texts (UTF-8 in the repo, converted to UTF-16LE/cp1252 at build time), plain SQL text and the fail-fast COM builder; verified end to end - inventory match against the committed fixture through the datacraft snapshot, hash recorded, no process/lock leftovers, committed fixture untouched)
+- H49 — Public-release readiness: license texts, fixture attribution, repo hygiene — done (completed by step 37.4 (checkpoint `b2a31d6`): canonical LICENSE-MIT/LICENSE-APACHE/NOTICE tracked and packaged in all six published crates (3 files each verified via cargo package --list), README license paragraph final, THIRD-PARTY-NOTICES carries the fixture attribution table (every committed fixture has a license row), PUBLISHING records the repo-settings decisions and the release-time order; no fixture bytes or code behaviour changed)
