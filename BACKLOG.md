@@ -77,12 +77,6 @@
 - **Approach:** Two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; the capability-rejection reasons map onto the `DisabledReason` vocabulary where they overlap; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
 - **Acceptance:** Every dispatch failure carries a stable code (including the capability gates); the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs, driver_caps.rs) switch to code assertions.
 
-### [ ] L6 — Ship samples next to the binary and in release archives — 🟢
-- **Location:** release packaging (Phase 26, M13), `crates/datacraft-ui/src/samples.rs` (runtime resolution)
-- **Problem:** The backstage Samples page resolves `samples/` from `DATACRAFT_SAMPLES_DIR`, the executable directory, or the dev workspace. Installed builds have no installer step that places the folder next to the binary, so the page falls back to a path that does not exist.
-- **Approach:** Copy `samples/` into every release archive next to `datacraft`/`datacraft-cli`/`datacraft-mcp`, document the resolution order, and add a smoke check that an extracted archive finds and opens the demo.
-- **Acceptance:** Release archives contain `samples/`; the backstage page resolves them without repo paths; a packaged smoke test opens the demo; no binary or sample is committed into the repo twice.
-
 ### [ ] L7 — CSV type inference beyond Short Text — 🟢
 - **Location:** `crates/datacraft-csv/src/lib.rs` (`collect_tables`)
 - **Problem:** Every CSV column is Short Text (255) — deterministic and honest, but numeric/date columns read and sort as text, and the datasheet parses accordingly.
@@ -222,3 +216,4 @@
 - H45 — Persist field properties (defaults, validation, captions, formats, input masks, index flags) — done (done in `c5abd00` (RED `c5176bd`) — the .datacraft sidecar is the property authority (ADR-1 addendum): tables are saved with the full FieldProperties sheet, overlaid on explicit load and sibling auto-load with precise stale/invalid handling, preserved across Jet/ACE schema refreshes; the Jet writer keeps NULL LvProp (Access display deferred to the LvProp roadmap item); design view renders the restored sheet (kittest))
 - M15 — Index creation in the Jet writer — done (done in `c85b1b1` — TDEF index metadata encode/decode (physical + logical blocks, names), domain IndexMode round-trip, uniqueness on insert/update/batches, alter add/remove/renumber with duplicate guard, SQLite CREATE [UNIQUE] INDEX; physical Jet index pages remain the roadmap follow-up)
 - M16 — Relationship and foreign-key creation — done (done in `1729228` — CreateRelationship/DeleteRelationship bus commands; Jet lazily creates MSysRelationships + parent/child indexes and writes/deletes rows; SQLite rebuilds the child table with enforced FOREIGN KEYs (orphans/duplicates refused); Jet/SQLite capabilities flip to Yes, CSV stays No)
+- L6 — Ship samples next to the binary and in release archives — done (done in `7ba87f1` (step 26.1) — release.yml copies samples/ into every archive and the packaged smoke opens the bike-shop demo from the extracted archive; resolution order documented at backstage.rs)

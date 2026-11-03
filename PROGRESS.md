@@ -207,7 +207,7 @@
 | 25.1 | ACCDB-Write-Verträge (H42) | ✅ |
 | 25.2 | ACCDB-Port-Write-Through + Bus-E2E (H43) | ✅ |
 | 25.3 | Phase 25 Quality Gate Review | ✅ |
-| 26.1 | Release-Workflow: Matrix, Checksums, Notices (M13) | ⬜ |
+| 26.1 | Release-Workflow: Matrix, Checksums, Notices (M13) | ✅ |
 | 26.2 | Release-Smoke + Tag-Politik (M13) | ⬜ |
 | 26.3 | Phase 26 Quality Gate Review | ⬜ |
 | 27.1 | Native Query Execution (M12) | ✅ |
