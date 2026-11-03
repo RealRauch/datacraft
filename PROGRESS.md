@@ -9,13 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 26 — Distribution & Release *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **26.1 Release-Workflow: Matrix, Checksums, Notices (M13)**
-- **26.2 Release-Smoke + Tag-Politik (M13)**
-- **26.3 Phase 26 Quality Gate Review**
 ### Phase 31 — Engine Publishing *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -209,7 +202,7 @@
 | 25.3 | Phase 25 Quality Gate Review | ✅ |
 | 26.1 | Release-Workflow: Matrix, Checksums, Notices (M13) | ✅ |
 | 26.2 | Release-Smoke + Tag-Politik (M13) | ✅ |
-| 26.3 | Phase 26 Quality Gate Review | ⬜ |
+| 26.3 | Phase 26 Quality Gate Review | ✅ |
 | 27.1 | Native Query Execution (M12) | ✅ |
 | 27.2 | Encrypted Save-As + Passwortwechsel (M14) | ✅ |
 | 27.3 | Phase 27 Quality Gate Review | ✅ |

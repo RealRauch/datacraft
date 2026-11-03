@@ -412,3 +412,14 @@
 - **32.3 Relationship and foreign-key creation (M16)**
 - **32.4 Phase 32 Quality Gate Review**
 **Verification:** Phase 32 gate passed: fmt, clippy -D warnings, cargo test --workspace green; file-size gate clean; local Windows coverage 94.05% lines (above the 94.00% pre-phase baseline; CI ubuntu binding); docs_validate has no Phase-32 finding; no debt markers.
+
+---
+
+### Phase 26 — Distribution & Release *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **26.1 Release-Workflow: Matrix, Checksums, Notices (M13)**
+- **26.2 Release-Smoke + Tag-Politik (M13)**
+- **26.3 Phase 26 Quality Gate Review**
+**Verification:** canonical gates green (fmt/clippy/tests 130 suites ok, local coverage >= 95, file-size, hygiene tokens, fixture pins, no binaries in repo); release.yml YAML-validated; packaged smoke green in three runs (jet fixture, samples demo, csv directory); M13 acceptance verified and archived; security self-review: least-privilege token scopes, draft-only publication, no third-party actions; the first real release run stays pending the first v* tag push (checkpoint: d3a008c)
