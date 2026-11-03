@@ -67,11 +67,13 @@ is a decision, not an oversight; revisit only if a library consumer appears.
 1. Canonical verification set green on CI `main` (fmt, clippy, tests,
    coverage ≥ 95 %, file-size, hygiene, oracle).
 2. Bump the workspace version, date the changelog section.
-3. `cargo publish --dry-run` per crate **in the order above**; every package
+3. `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` is clean
+   (docs.rs is part of the published surface).
+4. `cargo publish --dry-run` per crate **in the order above**; every package
    must build cleanly (`cargo package --list` shows no stray files).
-4. Publish in order; verify `cargo install datacraft-mcp` resolves.
-5. Push the annotated `v<version>` tag — `release.yml` builds the three
+5. Publish in order; verify `cargo install datacraft-mcp` resolves.
+6. Push the annotated `v<version>` tag — `release.yml` builds the three
    platform archives (binaries + samples + third-party notices), runs the
    packaged smoke, collects sha256 checksums and drafts the GitHub release;
    a human reviews and publishes the draft (PLAYBOOK §9).
-6. Re-verify the README compatibility matrix and date-stamp it.
+7. Re-verify the README compatibility matrix and date-stamp it.

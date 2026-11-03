@@ -258,7 +258,7 @@ impl JetTableDef {
     ///
     /// Index definitions are parsed past (their semantics are not needed for
     /// reads and land with the oracle step). Jet3 files dispatch to
-    /// [`JetTableDef::decode_jet3`].
+    /// [`JetTableDef::decode_tdef`].
     pub fn decode(file: &[u8], tdef_page: u32) -> Result<Self, StorageError> {
         let header = crate::jet::header::FileHeader::decode(
             file.get(..0x18).unwrap_or(file),

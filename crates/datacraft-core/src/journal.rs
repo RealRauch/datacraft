@@ -4,7 +4,8 @@
 //! confirms the token, and carries the inverse operations for a rollback.
 //! The profile restricts the batch to qualified field families — anything
 //! else is refused precisely instead of being guessed (BACKLOG M2).
-//! Backends apply the batch through [`StoragePort::write_row_ops`]
+//! Backends apply the batch through
+//! [`StoragePort::write_row_ops`](crate::port::StoragePort::write_row_ops)
 //! ([`crate::port::StoragePort`]), which is atomic on the Jet backend.
 
 use serde::{Deserialize, Serialize};

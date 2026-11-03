@@ -17,7 +17,7 @@ use super::properties::IndexMode;
 use crate::qbe::QueryDef;
 
 /// Version this DataCraft writes. Bump when the document format changes and
-/// append a migration step to [`MIGRATIONS`].
+/// append a migration step to `MIGRATIONS`.
 pub const SCHEMA_VERSION: u32 = 1;
 
 /// Initial document version (the ladder's floor).

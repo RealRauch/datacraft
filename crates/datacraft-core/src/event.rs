@@ -291,10 +291,12 @@ pub enum Event {
         /// The created relationship.
         relationship: Relationship,
     },
+    /// A referential relationship was deleted.
     RelationshipDeleted {
         /// The deleted relationship.
         relationship: Relationship,
     },
+    /// The relationship mapper pane visibility changed.
     RelationshipMapperToggled {
         /// Openness after the toggle.
         open: bool,

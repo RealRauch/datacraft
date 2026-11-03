@@ -1,6 +1,6 @@
 //! Report design documents (step 10.4, item H31; ADR-1).
 //!
-//! Reports share the form [`ControlKind`] canvas (the palette, snapping
+//! Reports share the form [`ControlKind`](crate::form::ControlKind) canvas (the palette, snapping
 //! and sidecar persistence are proven) but carry **print geometry**: an
 //! A4-portrait page with half-inch margins replaces the form's free
 //! canvas. The design surface is the page — controls must stay inside it

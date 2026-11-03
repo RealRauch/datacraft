@@ -3,7 +3,7 @@
 //! One source of truth for how the expression service connects to the
 //! data paths — the row commands ([`crate::command::Command::InsertRow`]
 //! / [`crate::command::Command::UpdateRow`]) and the journaled write
-//! profile alike go through [`prepare_insert`]/[`prepare_update`]:
+//! profile alike go through `prepare_insert`/`prepare_update`:
 //!
 //! 1. **Defaults** fill `Null` cells on insert (never on update) with an
 //!    empty scope — Access defaults see no row fields.

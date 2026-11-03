@@ -133,7 +133,7 @@ impl Jet4Writer {
     /// points at via its next pointer. Chain members are excluded (a chained
     /// TDEF decodes to its head's table); freed TDEF pages re-filled with
     /// the writer's `ff`-pattern (observed on the fixture: pages 322, 707,
-    /// 708) fail the [`Jet4Writer::ensure_plausible_tdef`] check.
+    /// 708) fail the `ensure_plausible_tdef` check.
     pub fn tdef_pages(&self) -> Vec<u32> {
         let mut heads: Vec<u32> = Vec::new();
         let mut linked: Vec<u32> = Vec::new();

@@ -59,9 +59,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ObjectKind {
+    /// A table (datasheet and design view).
     Table,
+    /// A saved query (QBE grid).
     Query,
+    /// A form design (canvas and runtime view).
     Form,
+    /// A report design (canvas and print preview).
     Report,
     /// Named macro object (step 17.1, item L4) — read-only inventory.
     Macro,
