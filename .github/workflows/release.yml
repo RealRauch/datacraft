@@ -1,0 +1,151 @@
+name: Release
+
+# Tag-triggered release build (M13, phase 26.1): the mirror of the CI gates
+# produces the three binaries for Windows/macOS/Linux, packages them with the
+# samples and third-party notices, smoke-opens a Jet fixture and a throwaway
+# CSV directory through the packaged CLI (the bundled driver set proves
+# itself inside the artifact) and publishes checksummed archives as build
+# artifacts. Attaching them to a GitHub Release is the tag policy (step 26.2).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+  # upload-artifact/download-artifact (v4) talk to the Actions artifact API.
+  actions: write
+
+jobs:
+  package:
+    name: Package & smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # rusqlite is statically bundled (workspace `bundled` feature), so no
+      # system SQLite package is needed on any runner.
+      - name: Build release binaries
+        run: cargo build --release -p datacraft-ui -p datacraft-cli
+
+      - name: Package binaries, samples and notices
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${GITHUB_REF_TYPE:-}" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "datacraft-core") | .version')
+          fi
+          target=$(rustc -vV | awk '/^host:/ {print $2}')
+          name="datacraft-${version}-${target}"
+          exe=""
+          if [ "${RUNNER_OS:-}" = "Windows" ]; then exe=".exe"; fi
+
+          mkdir -p "dist/${name}"
+          for bin in datacraft datacraft-cli datacraft-mcp; do
+            cp "target/release/${bin}${exe}" "dist/${name}/"
+          done
+          cp -r samples "dist/${name}/samples"
+          cp THIRD-PARTY-NOTICES.md "dist/${name}/"
+
+          if [ "${RUNNER_OS:-}" = "Windows" ]; then
+            # The directory itself, not 'dir/*': the zip must carry the same
+            # top-level folder as the tar.gz so both extract identically.
+            powershell -NoProfile -Command "Compress-Archive -Path 'dist/${name}' -DestinationPath 'dist/${name}.zip'"
+          else
+            tar -czf "dist/${name}.tar.gz" -C dist "${name}"
+          fi
+          echo "RELEASE_NAME=${name}" >> "$GITHUB_ENV"
+
+      - name: Smoke the packaged artifact (Jet fixture, samples demo, CSV directory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          workdir=$(mktemp -d)
+          if [ "${RUNNER_OS:-}" = "Windows" ]; then
+            # PowerShell needs a real Windows path for the Git-Bash mktemp dir.
+            win_workdir=$(cygpath -w "$workdir")
+            powershell -NoProfile -Command "Expand-Archive -Path 'dist/${RELEASE_NAME}.zip' -DestinationPath '${win_workdir}\archive'"
+            base="${workdir}/archive/${RELEASE_NAME}"
+            cli="${base}/datacraft-cli.exe"
+          else
+            tar -xzf "dist/${RELEASE_NAME}.tar.gz" -C "${workdir}/"
+            base="${workdir}/${RELEASE_NAME}"
+            cli="${base}/datacraft-cli"
+          fi
+
+          assert_open() {
+            local label="$1" path="$2"
+            # Native Windows binaries need Windows paths; Git Bash's mktemp
+            # dirs are POSIX-style, so convert them where cygpath exists.
+            if command -v cygpath >/dev/null 2>&1; then path=$(cygpath -w "$path"); fi
+            local out rc
+            set +e
+            out=$("$cli" open "$path" --json 2>"${workdir}/stderr.txt")
+            rc=$?
+            set -e
+            if [ "$rc" -ne 0 ] || ! grep -q 'DatabaseOpened' <<<"$out"; then
+              echo "::error::smoke ${label} failed (rc=${rc})"
+              echo "--- stdout ---"; printf '%s\n' "$out"
+              echo "--- stderr ---"; cat "${workdir}/stderr.txt"
+              exit 1
+            fi
+            echo "smoke ${label}: ok"
+          }
+
+          # The canonical Jet4 fixture from the checkout proves the artifact
+          # opens files outside its own directory…
+          assert_open "jet-fixture" "$GITHUB_WORKSPACE/fixtures/testV2000.mdb"
+          # …the shipped samples prove the archive is self-contained (L6)…
+          assert_open "samples-demo" "${base}/samples/bike_shop.mdb"
+          # …and a throwaway CSV directory proves the bundled driver set.
+          mkdir -p "${workdir}/csvdb"
+          printf 'id,name\n1,Ada\n' > "${workdir}/csvdb/people.csv"
+          printf 'person_id,city\n1,Berlin\n' > "${workdir}/csvdb/cities.csv"
+          assert_open "csv-directory" "${workdir}/csvdb"
+
+      - name: Upload archive (zip)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: dist/*.zip
+      - name: Upload archive (tar.gz)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: dist/*.tar.gz
+
+  checksums:
+    name: Checksums
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+      - name: Generate sha256 checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum $(ls | grep -E '\.(zip|tar\.gz)$' | sort) > checksums-sha256.txt
+          cat checksums-sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/checksums-sha256.txt
