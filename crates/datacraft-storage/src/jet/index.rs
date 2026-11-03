@@ -222,3 +222,6 @@ fn corrupt(detail: &str) -> StorageError {
         detail: detail.to_owned(),
     }
 }
+
+#[cfg(test)]
+mod tests;

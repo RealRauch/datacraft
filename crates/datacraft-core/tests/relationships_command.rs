@@ -201,3 +201,79 @@ fn a_port_failure_is_reported_and_changes_nothing() {
     }));
     assert!(reason.contains("disk full"), "{reason}");
 }
+
+#[test]
+fn the_commands_need_an_open_database() {
+    let mut core = Core::new(Box::new(MockPort::new()));
+    for command in [
+        Command::CreateRelationship {
+            relationship: relationship(),
+        },
+        Command::DeleteRelationship {
+            relationship: relationship(),
+        },
+    ] {
+        let reason = failure(&core.dispatch(command));
+        assert!(reason.contains("no database"), "{reason}");
+    }
+}
+
+#[test]
+fn unindexable_fields_are_refused() {
+    let memo = TableDef::new("Customers", vec![FieldDef::new("id", FieldKind::Memo)]);
+    let orders = TableDef::new(
+        "Orders",
+        vec![FieldDef::new(
+            "customer_id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
+    let mut port = MockPort::with_tables(vec![memo, orders]);
+    port.with_capabilities(DriverCapabilities {
+        relationships: Support::Yes,
+        ..DriverCapabilities::full()
+    });
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    let reason = failure(&core.dispatch(Command::CreateRelationship {
+        relationship: relationship(),
+    }));
+    assert!(reason.contains("cannot carry an index"), "{reason}");
+}
+
+#[test]
+fn a_delete_port_failure_is_reported() {
+    let customers = TableDef::new(
+        "Customers",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
+    let orders = TableDef::new(
+        "Orders",
+        vec![FieldDef::new(
+            "customer_id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
+    let mut port = MockPort::with_tables(vec![customers, orders]);
+    port.with_relationships(vec![relationship()]);
+    port.with_write_failure("disk full");
+    port.with_capabilities(DriverCapabilities {
+        relationships: Support::Yes,
+        ..DriverCapabilities::full()
+    });
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    let reason = failure(&core.dispatch(Command::DeleteRelationship {
+        relationship: relationship(),
+    }));
+    assert!(reason.contains("disk full"), "{reason}");
+}

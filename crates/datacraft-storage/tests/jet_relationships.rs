@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
-use datacraft_core::port::{DatabaseFormat, Relationship};
+use datacraft_core::port::{DatabaseFormat, Relationship, StoragePort};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, IndexMode, NumericKind, TableDef};
 use datacraft_storage::port_adapter::Jet4Port;
 
@@ -219,4 +219,76 @@ fn a_unique_parent_index_over_duplicates_is_refused() {
             .relationships
             .is_empty()
     );
+}
+
+#[test]
+fn port_level_relationship_errors_are_precise() {
+    let path = scratch_path("port-errors");
+    let _scratch = Scratch(path.clone());
+    let mut port = Jet4Port::new();
+    port.create_database(&path, DatabaseFormat::Jet4)
+        .expect("create");
+    port.open(&path, None).expect("open");
+    port.create_table(&TableDef::new(
+        "Customers",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    ))
+    .expect("customers");
+    port.create_table(&TableDef::new(
+        "Orders",
+        vec![
+            FieldDef::new("customer_id", FieldKind::Number(NumericKind::LongInteger)),
+            FieldDef::new("other_id", FieldKind::Number(NumericKind::LongInteger)),
+        ],
+    ))
+    .expect("orders");
+
+    let relationship = relationship();
+    let error = port
+        .delete_relationship(&relationship)
+        .expect_err("no MSysRelationships yet");
+    assert!(
+        error.to_string().contains("no MSysRelationships"),
+        "{error:?}"
+    );
+
+    let other = Relationship {
+        table: "Orders".into(),
+        column: "other_id".into(),
+        related_table: "Customers".into(),
+        related_column: "id".into(),
+    };
+    port.create_relationship(&other)
+        .expect("first relationship");
+    port.create_relationship(&relationship)
+        .expect("second relationship reuses MSysRelationships");
+    let error = port
+        .create_relationship(&relationship)
+        .expect_err("duplicate");
+    assert!(error.to_string().contains("duplicate"), "{error:?}");
+
+    let missing = Relationship {
+        table: "Orders".into(),
+        column: "ghost".into(),
+        related_table: "Customers".into(),
+        related_column: "id".into(),
+    };
+    let error = port
+        .create_relationship(&missing)
+        .expect_err("missing child field");
+    assert!(error.to_string().contains("ghost"), "{error:?}");
+
+    let absent = Relationship {
+        table: "Orders".into(),
+        column: "customer_id".into(),
+        related_table: "Customers".into(),
+        related_column: "ghost".into(),
+    };
+    let error = port
+        .delete_relationship(&absent)
+        .expect_err("four names must match");
+    assert!(error.to_string().contains("not found"), "{error:?}");
 }

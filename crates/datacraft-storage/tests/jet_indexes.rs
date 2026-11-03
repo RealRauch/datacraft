@@ -357,3 +357,126 @@ fn a_unique_index_added_by_alter_survives_reopen() {
         .expect_err("the new unique index is enforced");
     assert!(unique_index_error(&error), "{error:?}");
 }
+
+#[test]
+fn adding_an_indexed_field_survives_reopen() {
+    let path = scratch_path("add-field");
+    let _scratch = Scratch(path.clone());
+    let mut port = Jet4Port::new();
+    port.create_database(&path, DatabaseFormat::Jet4)
+        .expect("create");
+    port.open(&path, None).expect("open");
+    port.create_table(&TableDef::new(
+        "Notes",
+        vec![FieldDef::new("body", FieldKind::Text { max_len: 20 })],
+    ))
+    .expect("create table");
+    port.alter_table(
+        "Notes",
+        datacraft_core::port::SchemaChange::AddField {
+            field: FieldDef {
+                name: "code".into(),
+                kind: FieldKind::Number(NumericKind::LongInteger),
+                properties: FieldProperties {
+                    indexed: IndexMode::NoDuplicates,
+                    ..FieldProperties::default()
+                },
+            },
+        },
+    )
+    .expect("add indexed field");
+    port.close();
+    port.open(&path, None).expect("reopen");
+    let tables = port.tables();
+    let field = tables[0]
+        .fields
+        .iter()
+        .find(|field| field.name == "code")
+        .expect("code field");
+    assert_eq!(field.properties.indexed, IndexMode::NoDuplicates);
+    port.insert_row(
+        "Notes",
+        &[FieldValue::Text("a".into()), FieldValue::Integer(1)],
+    )
+    .expect("first code");
+    let error = port
+        .insert_row(
+            "Notes",
+            &[FieldValue::Text("b".into()), FieldValue::Integer(1)],
+        )
+        .expect_err("duplicate code");
+    assert!(unique_index_error(&error), "{error:?}");
+}
+
+#[test]
+fn dropping_an_indexed_field_remaps_the_remaining_index() {
+    let path = scratch_path("drop-field");
+    let _scratch = Scratch(path.clone());
+    let mut port = Jet4Port::new();
+    port.create_database(&path, DatabaseFormat::Jet4)
+        .expect("create");
+    port.open(&path, None).expect("open");
+    port.create_table(&indexed_table()).expect("create table");
+    port.alter_table(
+        "People",
+        datacraft_core::port::SchemaChange::DropField { field: "id".into() },
+    )
+    .expect("drop indexed field");
+    port.close();
+    port.open(&path, None).expect("reopen");
+    assert_eq!(port.tables()[0].fields.len(), 1);
+    assert_eq!(
+        port.tables()[0].fields[0].properties.indexed,
+        IndexMode::DuplicatesOk
+    );
+    port.insert_row("People", &[FieldValue::Text("same".into())])
+        .expect("first name");
+    port.insert_row("People", &[FieldValue::Text("same".into())])
+        .expect("duplicate non-unique name");
+    let bytes = std::fs::read(&path).expect("read");
+    let reader = Jet4TableReader::new(bytes.clone()).expect("reader");
+    let entry = reader
+        .catalog()
+        .expect("catalog")
+        .into_iter()
+        .find(|entry| entry.name == "People")
+        .expect("People");
+    let def = JetTableDef::decode(&bytes, entry.tdef_page.expect("tdef")).expect("decode");
+    assert_eq!(def.indexes.len(), 1, "{:?}", def.indexes);
+    assert_eq!(def.indexes[0].columns, [0]);
+}
+
+#[test]
+fn removing_an_index_by_properties_survives_reopen() {
+    let path = scratch_path("remove-index");
+    let _scratch = Scratch(path.clone());
+    let mut port = Jet4Port::new();
+    port.create_database(&path, DatabaseFormat::Jet4)
+        .expect("create");
+    port.open(&path, None).expect("open");
+    port.create_table(&indexed_table()).expect("create table");
+    port.alter_table(
+        "People",
+        datacraft_core::port::SchemaChange::SetFieldProperties {
+            field: "id".into(),
+            properties: FieldProperties::default(),
+        },
+    )
+    .expect("drop the index");
+    port.close();
+    port.open(&path, None).expect("reopen");
+    assert_eq!(
+        port.tables()[0].fields[0].properties.indexed,
+        IndexMode::None
+    );
+    port.insert_row(
+        "People",
+        &[FieldValue::Integer(1), FieldValue::Text("a".into())],
+    )
+    .expect("first row");
+    port.insert_row(
+        "People",
+        &[FieldValue::Integer(1), FieldValue::Text("b".into())],
+    )
+    .expect("duplicates are allowed without the index");
+}
