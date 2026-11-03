@@ -115,3 +115,31 @@ applied when the repository goes public — **after** the history rewrite
 Order of operations at release time: M34 rewrite → force-push → verify
 canonical set + fixture hash gate → apply branch protection → flip
 visibility → tag the first public release per the checklist above.
+
+## History rewrite (pre-public, M34)
+
+Executed 2026-11-03 with `git filter-repo --invert-paths` (step 37.5) on the
+still-private repository (0 forks, 0 releases, `main` the only branch):
+
+- Removed paths: `fixtures/northwind2007.accdb` (added `cf63492`, the
+  unlicensed Northwind 2007 sample retired by H50) and
+  `.zcode/plans/plan-sess_0f91246f-6f07-484a-ae52-f5616fada1f1.md`.
+- Head mapping: pre-rewrite `main` = `c5a62c8`; rewritten `main` tip =
+  `e534c56` (453 commits preserved — the manifest and `.gitignore` edits
+  keep the removal commits non-empty, only the blobs are gone).
+- Verification on the rewritten tree: `git log --all --name-only` lists
+  neither path; the fixture hash gate (`sha256sum -c fixtures/manifest`)
+  passes; the canonical verification set is green; a pre-rewrite backup
+  bundle was taken locally (contains the removed blob — keep it only as
+  long as needed, then delete it so the unlicensed bytes leave the
+  machine).
+- Known consequence: commit-hash references in the Done Index, the
+  archives and older commit messages point into the pre-rewrite history;
+  they are historical records and were deliberately left untouched
+  (append-only archives are never edited).
+
+**The rewrite is only valid while the repository is private** — never
+rewrite after the visibility switch. Force-pushing the rewritten `main`
+replaces the remote history; GitHub may retain unreachable objects on its
+side for a while, which is acceptable for a private repository with zero
+forks and zero releases.
