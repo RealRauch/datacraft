@@ -48,8 +48,8 @@ bbabd68b6cd9c581348fe1c967a9e55bdd3cde893229c83c2198d822fd4069d2  officeAgile42.
 # source: jahlborn/jackcess@be0a2139 src/test/data/V1997/test2V1997.mdb (pristine)
 ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668  test2V1997.mdb
 
-# source: ssmith1975/samples-vb-net@master
-# wrox/Chpt 15.1 - Accessing Databases/Northwind Customers DataGridView/
-# Northwind Customers DataGridView/Northwind 2007.accdb (created with real
-# Access; 2 named macros, 18 VBA modules, 34 forms, 15 reports, 40 queries)
-3105c66a6fab059d7da9d00b4e91438dd084bb3da55655183c7d2c21929f9e1f  northwind2007.accdb
+# source: created with Microsoft Access 16.0.20527.20112 on 2026-11-03 by
+# DataCraft contributors (self-created programmability fixture; see
+# docs/FIXTURE-SOURCES.md "Programmability fixture" for the object
+# inventory and creation recipe)
+6735f409a40ea606a4471315b87cd03405c1fb8f074868a307637c98d3417989  programmability.accdb

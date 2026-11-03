@@ -81,7 +81,11 @@ with `Unsupported`** for now (rare; item to be scheduled before large-DB work).
   the last variable field; `var_table` holds start offsets **in reverse
   order** (entry 0 = last variable column); `var_len` = variable columns in
   this row. An empty variable slot (start equals the next start or `eod`) is
-  NULL for long-value columns, empty string for text.
+  NULL for long-value columns, empty string for text. Rows of tables
+  **without variable columns may carry no tail at all** — real Access 365
+  writes `[num_cols][fixed data][mask]` (observed on the self-created
+  programmability fixture); the tail is only needed to locate variable
+  field data, so all-fixed rows decode mask-only.
 - Null mask: `(num_cols + 7) / 8` bytes, LSB first — but **bit k belongs to
   the column with `col_num` k, not to the k-th descriptor**. TDEF descriptors
   can be stored name-sorted (MSysObjects stores them alphabetically) while
@@ -167,7 +171,8 @@ sorted by `col_num`.
 ## TDEF index metadata (2026-11-03, step 32.2, item M15)
 
 Layout after the column names (public MDB Tools `HACKING` documentation,
-verified against `testV2000.mdb` Table4 and the Northwind ACE fixture):
+verified against `testV2000.mdb` Table4 and the ACE fixtures including the
+self-created programmability fixture):
 
 - `num_real_idx` × 12-byte statistics descriptors (`idx_rows1` u32,
   `idx_rows2` u32, zero u32) — written as zeros, only loose hints.
@@ -797,15 +802,18 @@ The definition blob is a binary action tree whose readable parts are
 length-tagged UTF-16 texts (expressions, SQL statements, form names). The
 inventory decoder emits those texts in storage order and strips the
 one-byte record tag that precedes some of them (`7=MsgBox(…)`,
-`8Delete * from …`). Action-name tables and execution semantics are
-**not** decoded — DataCraft does not execute macros (ADR-2,
-`docs/ROADMAP.md` §3). The catalog names come from `MSysObjects`
-`Type = -32766` (same value in Jet 3 and ACE).
+`8Delete * from …`) plus the value-type markers that prefix
+expression-form arguments (`<` string literal, `$`, `&`, `"`, `,` —
+observed on the self-created programmability fixture; stored argument
+text never begins with the markers themselves). Action-name tables and
+execution semantics are **not** decoded — DataCraft does not execute
+macros (ADR-2, `docs/ROADMAP.md` §3). The catalog names come from
+`MSysObjects` `Type = -32766` (same value in Jet 3 and ACE).
 
-Oracle: `fixtures/northwind2007.accdb` decodes `AutoExec` (5 arguments,
-including `Not [CurrentProject].[IsTrusted]` and the two form names) and
-`Delete All Data` (the `MsgBox` expression followed by six
-`Delete * from …` statements). Jet 3 keeps macro definitions inside
+Oracle: `fixtures/programmability.accdb` decodes `Open Item Browser`
+(5 arguments: two `MsgBox` messages, two form names, one control name)
+and `Refresh Stock Views` (two query names, one control name, the filter
+expression `[StockLevel] > 0`). Jet 3 keeps macro definitions inside
 `MSysAccessObjects`; that compound-file chunking is not decoded yet, so
 Jet 3 names are reported with `definition_decoded = false`.
 
@@ -847,6 +855,8 @@ nothing is executed (ADR-2). Jet 3 keeps the project in
 `MSysAccessObjects` (compound-file chunking), which is not decoded yet —
 Jet 3 databases report no project (BACKLOG remainder).
 
-Oracle: `fixtures/northwind2007.accdb` extracts 18 modules with source
-(`Utilities` … `Report_Monthly Sales Report`); the jackcess ACE templates
-carry an empty project (0 modules).
+Oracle: `fixtures/programmability.accdb` extracts 8 modules with source
+(`InventoryHelpers` … `Report_Stock Summary`, covering the standard,
+class, form and report kinds plus Windows-1252 umlauts and repeated
+long-identifier copy tokens); the jackcess ACE templates carry an empty
+project (0 modules).
