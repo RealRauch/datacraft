@@ -566,7 +566,12 @@ page-encrypted copies of the pinned fixtures.
   `-p`/`--password`, MCP agents pass the same command field.
 - **Writes:** the port's read-modify-write keeps encrypted files encrypted —
   the writer re-encrypts the header region and every page with the same
-  database key; newly appended pages use their page number.
+  database key; newly appended pages use their page number. Every
+  persistence step (row writes, table creation, Save-As, password changes and
+  the sidecar saves in core) replaces the file through a sibling temporary
+  file renamed over the target (`datacraft_core::atomic_write`), so an
+  interrupted write cannot truncate the live database; a failed create
+  removes its partial file.
 - **Save-As and password changes (step 27.2, item M14).** `SaveDatabaseAs`
   derives the copy from the decrypted writer handoff: it rewrites the 40-byte
   Jet4 password field (masked with the creation date), selects the

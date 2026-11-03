@@ -243,7 +243,7 @@ impl crate::core::Core {
             forms: db.forms.clone(),
             reports: db.reports.clone(),
         };
-        match std::fs::write(path, document.to_json()) {
+        match crate::atomic_write::write_replacing(path, document.to_json().as_bytes()) {
             Ok(()) => vec![Event::DesignDocumentSaved {
                 path: path.to_path_buf(),
             }],

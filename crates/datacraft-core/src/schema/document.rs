@@ -201,9 +201,9 @@ impl SchemaDocument {
         }
     }
 
-    /// Writes the document to `path` (the sidecar file).
+    /// Writes the document to `path` (the sidecar file) atomically.
     pub fn save(&self, path: &Path) -> Result<(), SchemaError> {
-        std::fs::write(path, self.to_json())?;
+        crate::atomic_write::write_replacing(path, self.to_json().as_bytes())?;
         Ok(())
     }
 

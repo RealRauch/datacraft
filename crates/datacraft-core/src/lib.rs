@@ -5,6 +5,7 @@
 //! maps to one command, every observable outcome is queryable as serializable
 //! state. See `docs/ARCHITECTURE.md` §5.
 
+pub mod atomic_write;
 pub mod availability;
 pub mod canvas;
 pub mod command;

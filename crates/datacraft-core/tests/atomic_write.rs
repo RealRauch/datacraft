@@ -9,10 +9,7 @@ use std::path::PathBuf;
 use datacraft_core::atomic_write;
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "datacraft-atomic-{}-{name}",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("datacraft-atomic-{}-{name}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("scratch directory");
     dir.join("target.bin")

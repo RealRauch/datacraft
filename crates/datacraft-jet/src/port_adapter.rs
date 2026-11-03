@@ -392,8 +392,10 @@ impl Jet4Port {
         let mut disk = reader.file.clone();
         crate::jet::crypto::encrypt_file(&mut disk, &header, encryption.as_ref())
             .map_err(map_open)?;
-        std::fs::write(&path, &disk).map_err(|e| PortError::WriteFailed {
-            detail: format!("{}: {e}", path.display()),
+        datacraft_core::atomic_write::write_replacing(&path, &disk).map_err(|e| {
+            PortError::WriteFailed {
+                detail: format!("{}: {e}", path.display()),
+            }
         })?;
         let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
         let entries = collect_tables(&reader, &complex)?;

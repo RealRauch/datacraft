@@ -1,7 +1,7 @@
 //! Save-As and password-change implementation (step 27.2, item M14) —
 //! split from `port_adapter.rs` to keep every file under the size gate.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use datacraft_core::port::PortError;
 
@@ -62,52 +62,21 @@ pub(crate) fn change_password(
 /// Writes a new file, refusing an existing target; a failed write removes
 /// the partial file so no half-copy survives (step 27.2, M14).
 fn write_new_file(path: &Path, bytes: &[u8]) -> Result<(), PortError> {
-    use std::io::Write;
-    let mut file = match std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)
-    {
-        Ok(file) => file,
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            return Err(PortError::WriteFailed {
-                detail: format!("{}: the target file already exists", path.display()),
-            });
-        }
-        Err(e) => {
-            return Err(PortError::WriteFailed {
-                detail: format!("{}: {e}", path.display()),
-            });
-        }
-    };
-    if let Err(e) = file.write_all(bytes) {
-        drop(file);
-        let _ = std::fs::remove_file(path);
-        return Err(PortError::WriteFailed {
+    match datacraft_core::atomic_write::write_new(path, bytes) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Err(PortError::WriteFailed {
+            detail: format!("{}: the target file already exists", path.display()),
+        }),
+        Err(e) => Err(PortError::WriteFailed {
             detail: format!("{}: {e}", path.display()),
-        });
+        }),
     }
-    Ok(())
 }
 
-/// Atomically replaces `path` through a sibling temp file (the settings
-/// pattern from step 22.1): an interrupted write can never truncate the
-/// existing database.
+/// Atomically replaces `path` through a sibling temp file: an interrupted
+/// write can never truncate the existing database.
 fn write_replacing(path: &Path, bytes: &[u8]) -> Result<(), PortError> {
-    let mut name = path.as_os_str().to_os_string();
-    name.push(".tmp");
-    let temp = PathBuf::from(name);
-    if let Err(e) = std::fs::write(&temp, bytes) {
-        let _ = std::fs::remove_file(&temp);
-        return Err(PortError::WriteFailed {
-            detail: format!("{}: {e}", path.display()),
-        });
-    }
-    if let Err(e) = std::fs::rename(&temp, path) {
-        let _ = std::fs::remove_file(&temp);
-        return Err(PortError::WriteFailed {
-            detail: format!("{}: {e}", path.display()),
-        });
-    }
-    Ok(())
+    datacraft_core::atomic_write::write_replacing(path, bytes).map_err(|e| PortError::WriteFailed {
+        detail: format!("{}: {e}", path.display()),
+    })
 }

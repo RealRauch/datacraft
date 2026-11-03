@@ -87,8 +87,14 @@ pub fn create_jet4_file(path: &Path, created: f64) -> Result<(), StorageError> {
     .encode_row();
     write_data_page(&mut file, 3, 0, &[empty.clone(), empty]);
 
-    std::fs::write(path, &file).map_err(|e| StorageError::Unsupported {
-        reason: format!("{}: {e}", path.display()),
+    datacraft_core::atomic_write::write_new(path, &file).map_err(|e| match e.kind() {
+        std::io::ErrorKind::AlreadyExists => StorageError::Unsupported {
+            reason: format!(
+                "{}: file already exists — creating would overwrite it",
+                path.display()
+            ),
+        },
+        _ => unsupported(path, &e),
     })
 }
 
@@ -197,7 +203,8 @@ fn materialize_tables(
             writer.insert_row(page, &stored)?;
         }
     }
-    std::fs::write(path, writer.into_file()).map_err(|e| unsupported(path, &e))
+    datacraft_core::atomic_write::write_replacing(path, &writer.into_file())
+        .map_err(|e| unsupported(path, &e))
 }
 
 /// Uniform storage error for filesystem failures on a fresh file.
