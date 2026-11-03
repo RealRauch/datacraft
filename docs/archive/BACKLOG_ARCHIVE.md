@@ -842,3 +842,11 @@
 - **Approach:** Copy `samples/` into every release archive next to `datacraft`/`datacraft-cli`/`datacraft-mcp`, document the resolution order, and add a smoke check that an extracted archive finds and opens the demo.
 - **Acceptance:** Release archives contain `samples/`; the backstage page resolves them without repo paths; a packaged smoke test opens the demo; no binary or sample is committed into the repo twice.
 - **Done:** done in `7ba87f1` (step 26.1) — release.yml copies samples/ into every archive and the packaged smoke opens the bike-shop demo from the extracted archive; resolution order documented at backstage.rs
+
+---
+
+### [x] M13 — Release-Engineering (Tags, release.yml, Checksums, Smoke) — 🟡
+- **Location:** `.github/workflows/release.yml` (new), `Cargo.toml` (version policy), `docs/PLAYBOOK.md` (release section), Third-Party-Notices
+- **Approach:** Tag-triggered release workflow (mirror of the CI gates): build `datacraft`, `datacraft-cli` and `datacraft-mcp` for Windows/macOS/Linux (rusqlite statically bundled), archives with sha256 checksums + third-party notices. Post-Phase-30 additions (ADR-7): the composed binaries bundle the CSV driver through the composite fallback, so the per-artifact smoke also opens a throwaway CSV directory headlessly (the driver set is proven inside the artifact), and the notices name the `csv` crate.
+- **Acceptance:** The workflow file lints (YAML/Actions conventions like ci.yml); the local release smoke opens `testV2000.mdb` headless *and* a CSV directory; the tag policy is documented; no binary lives in the repo.
+- **Done:** done in `7ba87f1` + `d3a008c` (steps 26.1/26.2) — release.yml matrix/packaging/per-artifact smoke/checksums, draft-release publishing via gh, PLAYBOOK §9 tag policy; local packaged smoke green on windows (jet fixture, samples demo, csv directory)

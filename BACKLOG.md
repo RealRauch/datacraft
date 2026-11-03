@@ -24,11 +24,6 @@
 
 > No open items.
 
-### [ ] M13 — Release-Engineering (Tags, release.yml, Checksums, Smoke) — 🟡
-- **Location:** `.github/workflows/release.yml` (new), `Cargo.toml` (version policy), `docs/PLAYBOOK.md` (release section), Third-Party-Notices
-- **Approach:** Tag-triggered release workflow (mirror of the CI gates): build `datacraft`, `datacraft-cli` and `datacraft-mcp` for Windows/macOS/Linux (rusqlite statically bundled), archives with sha256 checksums + third-party notices. Post-Phase-30 additions (ADR-7): the composed binaries bundle the CSV driver through the composite fallback, so the per-artifact smoke also opens a throwaway CSV directory headlessly (the driver set is proven inside the artifact), and the notices name the `csv` crate.
-- **Acceptance:** The workflow file lints (YAML/Actions conventions like ci.yml); the local release smoke opens `testV2000.mdb` headless *and* a CSV directory; the tag policy is documented; no binary lives in the repo.
-
 ### [ ] M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — 🟡
 - **Location:** `crates/datacraft-storage/` (split into `datacraft-jet` + `datacraft-sqlite`), `crates/datacraft-mcp/` (new binary crate), workspace `Cargo.toml`, packaging documentation
 - **Problem:** The engine (`datacraft-core`) and all drivers share one workspace with lockstep versions; external consumers and contributors cannot depend on stable published crates, and the pure-Rust Jet story is diluted by the C-backed `rusqlite` dependency in the same crate.
@@ -217,3 +212,4 @@
 - M15 — Index creation in the Jet writer — done (done in `c85b1b1` — TDEF index metadata encode/decode (physical + logical blocks, names), domain IndexMode round-trip, uniqueness on insert/update/batches, alter add/remove/renumber with duplicate guard, SQLite CREATE [UNIQUE] INDEX; physical Jet index pages remain the roadmap follow-up)
 - M16 — Relationship and foreign-key creation — done (done in `1729228` — CreateRelationship/DeleteRelationship bus commands; Jet lazily creates MSysRelationships + parent/child indexes and writes/deletes rows; SQLite rebuilds the child table with enforced FOREIGN KEYs (orphans/duplicates refused); Jet/SQLite capabilities flip to Yes, CSV stays No)
 - L6 — Ship samples next to the binary and in release archives — done (done in `7ba87f1` (step 26.1) — release.yml copies samples/ into every archive and the packaged smoke opens the bike-shop demo from the extracted archive; resolution order documented at backstage.rs)
+- M13 — Release-Engineering (Tags, release.yml, Checksums, Smoke) — done (done in `7ba87f1` + `d3a008c` (steps 26.1/26.2) — release.yml matrix/packaging/per-artifact smoke/checksums, draft-release publishing via gh, PLAYBOOK §9 tag policy; local packaged smoke green on windows (jet fixture, samples demo, csv directory))
