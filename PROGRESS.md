@@ -17,7 +17,7 @@
 - **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
-### Phase 37 — Release Provenance & Licensing
+### Phase 37 — Release Provenance & Licensing *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
