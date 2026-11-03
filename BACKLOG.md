@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T19:05
+# BACKLOG.md — Open items (As of: 2026-11-03T19:08
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -78,6 +78,18 @@
 - **Approach:** Decide the domain rule once: either reject non-finite floats at the Jet mapping boundary with a precise `Corrupt` (Access itself cannot meaningfully store them) or render them as a defined representation (`null`/text) before serialization. Make the codec fallible and answer a JSON-RPC error instead of `unwrap`/`unwrap_or_default`.
 - **Acceptance:** A row containing a NaN/Infinity double can be read, previewed and serialized without a panic; the snapshot is never silently replaced by `null`; test with a hand-built float bit pattern through `transport.rs`.
 
+### [ ] M29 — UI row caches go stale after Undo/Redo and other row-mutating events — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs:366-497` (`maintain_caches` invalidates `rows` only for `RowInserted`, `DatabaseClosed` and `TableDropped`).
+- **Problem:** The datasheet renders from the per-tab row cache and only reloads a tab whose cache is missing. After `Undo`/`Redo` from the Quick Access Toolbar (rows change, events are `Undone`/`Redone`) the grid keeps showing the pre-undo rows; the same applies to `RowUpdated`/`RowDeleted`, `WriteApplied`/`WriteRolledBack` and `TableAltered` if those commands are ever driven from this process. Form runtime tabs bound to an inserted table are also not refreshed (the invalidation branch only matches `object_kind == "table"`).
+- **Approach:** Derive the affected table from every row-mutating event (`Undone`, `Redone`, `RowUpdated`, `RowDeleted`, `WriteApplied`, `WriteRolledBack`, `TableAltered`) and drop the caches of all open tabs bound to it — table tabs and form tabs whose source matches. One shared helper instead of per-event special cases.
+- **Acceptance:** Undo/Redo and a journal apply refresh every grid bound to the table; a kittest drives insert → undo and asserts the row disappears; no cache survives a schema change.
+
+### [ ] M31 — Presentation cache loads swallow read errors — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs:462-470` (`if let Ok(rows) = self.core.read_rows(…)`) and `:489-495` (`if let Ok(result) = self.core.run_query(…)`), rendered by `crates/datacraft-ui/src/datasheet.rs:59-61` ("Loading rows…").
+- **Problem:** A failing row read or query run is discarded: the cache stays empty and the datasheet displays "Loading rows…" forever, with no reason anywhere. LESSONS #4 forbids silent swallowing — the other command paths surface failures in the status bar, this one does not.
+- **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
+- **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
+
 ---
 
 ## 🟢 LOW
@@ -137,6 +149,18 @@
 - **Problem:** Only relationships whose *child* table was dropped are removed. Relationships where the dropped table is the *referenced* parent stay in the snapshot and point at a table that no longer exists, so the relationship mapper renders a dangling edge until the database is reopened (the Jet catalog also keeps the MSysRelationships row unless the driver prunes it).
 - **Approach:** Prune both sides (`rel.table` and `rel.related_table`), and let the driver delete the matching MSysRelationships rows on drop if it does not already.
 - **Acceptance:** Dropping a parent table removes every relationship that references it from `state.relationships`/the snapshot; the mapper shows no dangling edge; test over the bus.
+
+### [ ] L17 — Native query flavor renders as a Rust Debug name — 🟢
+- **Location:** `crates/datacraft-ui/src/qbe.rs:201` (`let kind = format!("{:?}", native.kind)`), rendered at `:235-243`.
+- **Problem:** The native-query flavor is rendered from the Rust `Debug` name ("Select", "Crosstab", "MakeTable", …) inside an otherwise translated sentence. In German the line reads "Select — read-only (MSysQueries)"; renaming the enum variant would silently change user-visible text. The i18n parity scanner cannot see it because it is not a `t()` key.
+- **Approach:** Add a `NativeQueryKind` label function in the UI (match every variant to a `t()` key), mirroring `labels::field_kind_label`; keep the wire enum untouched (ADR-4).
+- **Acceptance:** Every native query flavor renders from the catalog in both languages; the German catalog gains the entries and the parity test stays green.
+
+### [ ] L18 — Design-time schema edits are not capability-gated in the UI — 🟢
+- **Location:** `crates/datacraft-ui/src/design.rs:111-168` (Add Field / Rename / Delete / Required are always enabled), `crates/datacraft-core/src/availability.rs` (`DisabledReason` has no `AlterTables` variant and no affordance id).
+- **Problem:** The design view offers schema edits regardless of the driver's `alter_table` capability. SQLite reports `alter_table=false`, so every click there produces a `Failed` toast ("unsupported: the sqlite driver cannot alter the schema for this source") instead of a disabled control with the reason — the affordance vocabulary covers create/drop/write/relationships/passwords but not alter. The backstage "Create Database" button is likewise enabled from the selected format rather than `create_database`.
+- **Approach:** Add the `AlterTables` reason plus the design-view affordance ids to the core availability map, render the controls disabled with the localized tooltip, and gate the Create Database button on the same map; keep the dispatcher gates as the second line of defence.
+- **Acceptance:** On a SQLite session the design-view edit controls (and on a creation-disabled composition the Create Database button) are disabled with a localized reason; kittest pins the SQLite case; no command is required to discover the restriction.
 
 ---
 
