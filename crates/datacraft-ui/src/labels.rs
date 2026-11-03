@@ -62,3 +62,31 @@ pub fn value_label(value: &FieldValue) -> String {
         other => datacraft_core::present::display_value(other),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use datacraft_core::port::NativeQueryKind;
+
+    use super::*;
+    use crate::i18n::{Lang, lang_lock, set_lang};
+
+    #[test]
+    fn native_query_kinds_are_localized() {
+        let _guard = lang_lock();
+        set_lang(Lang::English);
+        assert_eq!(
+            native_query_kind_label(NativeQueryKind::Select),
+            "Select"
+        );
+        set_lang(Lang::German);
+        assert_eq!(
+            native_query_kind_label(NativeQueryKind::Select),
+            "Auswahl"
+        );
+        assert_eq!(
+            native_query_kind_label(NativeQueryKind::MakeTable),
+            "Tabellenerstellungsabfrage"
+        );
+        set_lang(Lang::English);
+    }
+}
