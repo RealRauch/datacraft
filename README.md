@@ -195,7 +195,9 @@ JSON-RPC / MCP (datacraft-mcp) ──────────┘                
 
 Dependency direction is one-way and review-enforced: `ui → core`,
 `cli → core`, `storage → core`, `core → nothing`; the binary targets
-are the composition roots that name storage.
+are the composition roots that name storage. The crates.io publishing
+order, the Semver/MSRV policy and the release checklist live in
+[docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 The UI never touches storage directly — every client speaks the same command
 language, and a ribbon button dispatches the identical `Command` as an MCP

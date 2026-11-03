@@ -521,7 +521,8 @@ applications.** Approved with the Phase 30 plan release.
    oracle. The target packaging (driver-per-crate split, standalone
    `datacraft-mcp` binary crate, Semver/MSRV policy) was decided here and
    realized in Phase 31 (steps 31.2–31.4, BACKLOG M19); it does not change
-   this decision.
+   this decision. The binding publishing policy is
+   [`docs/PUBLISHING.md`](PUBLISHING.md).
 5. **UI affordances are core-computed.** Core derives, per open source, an
    availability map (enabled + disabled reason) for command affordances into
    the snapshot; the UI only renders disabled controls with localized reasons
