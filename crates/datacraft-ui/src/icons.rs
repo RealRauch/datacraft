@@ -34,7 +34,7 @@ pub const ICON_SIZE: f32 = 16.0;
 /// adapt the sibling Crafting Apps' 16×16 grammar (see `nav`).
 pub const NAV_GLYPHS: &[&str] = &[
     "back", "home", "new", "open", "info", "save", "save_as", "print", "export", "close",
-    "account", "options",
+    "account", "options", "database",
 ];
 
 /// Paints the icon named `name` into `rect`. Returns whether the name is
@@ -77,6 +77,7 @@ pub fn paint(
         "close" => nav::close(painter, rect, ink, accent),
         "account" => nav::account(painter, rect, ink, accent),
         "options" => nav::options(painter, rect, ink, accent),
+        "database" => nav::database(painter, rect, ink, accent),
         _ => return false,
     }
     true

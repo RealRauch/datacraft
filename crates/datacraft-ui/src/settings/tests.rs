@@ -350,7 +350,7 @@ fn legacy_plain_string_recent_entries_still_load() {
 /// deterministic ISO date (no new dependency, no locale drift).
 #[test]
 fn recent_modified_renders_as_an_iso_date() {
-    use datacraft_ui::backstage::recent::iso_date_from_unix;
+    use crate::backstage::recent::iso_date_from_unix;
     assert_eq!(iso_date_from_unix(0), "1970-01-01");
     assert_eq!(iso_date_from_unix(1_793_664_000), "2026-11-03");
 }

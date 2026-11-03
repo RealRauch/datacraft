@@ -259,3 +259,36 @@ pub(super) fn options(painter: &egui::Painter, rect: Rect, ink: Color32, _accent
     );
     circle_filled(painter, rect, (g(8.0), g(8.0)), g(2.0), ink);
 }
+
+/// Database: the plain cylinder (recent database files, samples).
+pub(super) fn database(painter: &egui::Painter, rect: Rect, ink: Color32, _accent: Color32) {
+    let stroke = Stroke::new(1.2, ink);
+    polyline(
+        painter,
+        rect,
+        &[
+            (g(2.5), g(4.5)),
+            (g(5.0), g(3.0)),
+            (g(11.0), g(3.0)),
+            (g(13.5), g(4.5)),
+            (g(11.0), g(6.0)),
+            (g(5.0), g(6.0)),
+        ],
+        stroke,
+        true,
+    );
+    line(painter, rect, (g(2.5), g(4.5)), (g(2.5), g(12.0)), stroke);
+    line(painter, rect, (g(13.5), g(4.5)), (g(13.5), g(12.0)), stroke);
+    polyline(
+        painter,
+        rect,
+        &[
+            (g(2.5), g(12.0)),
+            (g(5.0), g(13.5)),
+            (g(11.0), g(13.5)),
+            (g(13.5), g(12.0)),
+        ],
+        stroke,
+        false,
+    );
+}

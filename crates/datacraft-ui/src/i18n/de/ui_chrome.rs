@@ -53,6 +53,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Light", "Hell"),
     ("Load Design", "Entwurf laden"),
     ("Macros", "Makros"),
+    ("Modified", "Geändert"),
     ("Modules", "Module"),
     ("Navigation Pane", "Navigationsbereich"),
     ("New Table", "Neue Tabelle"),

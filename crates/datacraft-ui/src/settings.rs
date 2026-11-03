@@ -17,6 +17,18 @@ use crate::window::WindowGeometry;
 /// Maximum number of recent database paths kept in `ui.json` (item U15).
 pub const MAX_RECENT_DATABASES: usize = 10;
 
+/// One recent-database entry (step 38.2, item M41): the path plus the file's
+/// modification time (unix seconds) captured at record/load time, so the
+/// backstage renders a "Modified" stamp without per-frame fs access.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecentDatabase {
+    /// The database path.
+    pub path: PathBuf,
+    /// Modification time in unix seconds; `None` when the file could not be
+    /// stat'ed.
+    pub modified: Option<u64>,
+}
+
 /// Persisted UI preferences: language, appearance, window geometry and the
 /// bounded recent-database list (item U15).
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -27,9 +39,10 @@ pub struct Settings {
     pub appearance: Appearance,
     /// Last window geometry (sanitized; `None` uses the defaults).
     pub window: Option<WindowGeometry>,
-    /// Recently opened database paths, newest first, bounded by
-    /// [`MAX_RECENT_DATABASES`] and de-duplicated.
-    pub recent: Vec<PathBuf>,
+    /// Recently opened databases, newest first, bounded by
+    /// [`MAX_RECENT_DATABASES`] and de-duplicated (step 38.2, item M41:
+    /// entries carry the file's modification time).
+    pub recent: Vec<RecentDatabase>,
     /// Paths dropped on load because they no longer exist (not persisted;
     /// surfaced as a startup notice).
     pub pruned_recent: Vec<PathBuf>,
@@ -96,12 +109,17 @@ impl Settings {
             return Self::default();
         };
         let mut settings = Self::from_file(file);
+        for entry in &mut settings.recent {
+            if entry.modified.is_none() {
+                entry.modified = file_modified(&entry.path);
+            }
+        }
         let mut pruned = Vec::new();
-        settings.recent.retain(|path| {
-            if path.exists() {
+        settings.recent.retain(|entry| {
+            if entry.path.exists() {
                 true
             } else {
-                pruned.push(path.clone());
+                pruned.push(entry.path.clone());
                 false
             }
         });
@@ -121,7 +139,10 @@ impl Settings {
             recent: self
                 .recent
                 .iter()
-                .map(|path| path.to_string_lossy().into_owned())
+                .map(|entry| RecentFile::Entry {
+                    path: entry.path.clone(),
+                    modified: entry.modified,
+                })
                 .collect(),
         };
         let json = serde_json::to_string_pretty(&file).map_err(std::io::Error::other)?;
@@ -160,23 +181,34 @@ impl Settings {
             recent: file
                 .recent
                 .into_iter()
-                .filter(|path| !path.is_empty())
-                .map(PathBuf::from)
+                .map(|entry| RecentDatabase {
+                    path: entry.path(),
+                    modified: None,
+                })
+                .filter(|entry| !entry.path.as_os_str().is_empty())
                 .collect(),
             pruned_recent: Vec::new(),
         }
     }
 
     /// Records a successfully opened database (item U15): newest first,
-    /// de-duplicated case-insensitively on Windows, bounded.
+    /// de-duplicated case-insensitively on Windows, bounded. The file's
+    /// modification time is captured here (step 38.2, item M41).
     pub fn record_recent(&mut self, path: &Path) {
-        self.recent.retain(|candidate| !same_path(candidate, path));
-        self.recent.insert(0, path.to_path_buf());
+        self.recent
+            .retain(|candidate| !same_path(&candidate.path, path));
+        self.recent.insert(
+            0,
+            RecentDatabase {
+                path: path.to_path_buf(),
+                modified: file_modified(path),
+            },
+        );
         self.recent.truncate(MAX_RECENT_DATABASES);
     }
 
-    /// The recent-database paths, newest first.
-    pub fn recent(&self) -> &[PathBuf] {
+    /// The recent-database entries, newest first.
+    pub fn recent(&self) -> &[RecentDatabase] {
         &self.recent
     }
 }
@@ -189,6 +221,18 @@ fn same_path(left: &Path, right: &Path) -> bool {
     } else {
         left == right
     }
+}
+
+/// The file's modification time in unix seconds; `None` when it cannot be
+/// stat'ed (step 38.2, item M41).
+fn file_modified(path: &Path) -> Option<u64> {
+    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+    Some(
+        modified
+            .duration_since(std::time::UNIX_EPOCH)
+            .ok()?
+            .as_secs(),
+    )
 }
 
 /// Localized startup notice for recent paths that no longer exist.
@@ -226,7 +270,31 @@ struct SettingsFile {
     appearance: Option<String>,
     window: Option<WindowGeometry>,
     #[serde(default)]
-    recent: Vec<String>,
+    recent: Vec<RecentFile>,
+}
+
+/// On-disk shape of one recent entry: the structured object since step 38.2
+/// (item M41) or a legacy plain path string, which still loads.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum RecentFile {
+    /// Structured entry.
+    Entry {
+        path: PathBuf,
+        #[serde(default)]
+        modified: Option<u64>,
+    },
+    /// Pre-38.2 plain path string.
+    Legacy(PathBuf),
+}
+
+impl RecentFile {
+    /// The entry's path regardless of the on-disk shape.
+    fn path(self) -> PathBuf {
+        match self {
+            RecentFile::Entry { path, .. } | RecentFile::Legacy(path) => path,
+        }
+    }
 }
 
 /// Platform conventions for the config directory (resolved without a new
@@ -288,8 +356,8 @@ impl crate::app::App {
         crate::i18n::init_language(self.language_setting().lang());
     }
 
-    /// Recent database paths, newest first (item U15).
-    pub fn recent_databases(&self) -> &[PathBuf] {
+    /// Recent database entries, newest first (item U15).
+    pub fn recent_databases(&self) -> &[RecentDatabase] {
         self.settings.recent()
     }
 

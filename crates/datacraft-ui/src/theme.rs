@@ -428,6 +428,12 @@ mod tests {
                     4.5,
                 ),
                 (
+                    "backstage selected text on the paper row",
+                    palette.accent_fill,
+                    palette.on_accent,
+                    4.5,
+                ),
+                (
                     "accent_text on checked",
                     palette.accent_text,
                     palette.checked,

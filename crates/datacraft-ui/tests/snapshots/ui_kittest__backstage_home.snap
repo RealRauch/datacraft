@@ -1,10 +1,9 @@
 ---
 source: crates/datacraft-ui/tests/ui_kittest.rs
+assertion_line: 257
 expression: tree_dump(&harness)
 ---
-Button|← Back|
-Label||File
-TextRun||File
+Button|Back|
 Button|Home|
 Button|New|
 Button|Open|

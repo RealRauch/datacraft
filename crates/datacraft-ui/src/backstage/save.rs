@@ -8,7 +8,7 @@ use datacraft_core::command::Command;
 use crate::app::App;
 use crate::i18n::t;
 
-use super::status_line;
+use super::pages::status_line;
 
 /// Save-a-copy flow (step 27.2, item M14): capability-gated through the
 /// core availability map, one `SaveDatabaseAs` command per click.

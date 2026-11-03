@@ -148,12 +148,13 @@ fn opening_a_database_records_it_as_recent_and_persists() {
         path: database.clone(),
         password: None,
     });
-    assert_eq!(app.recent_databases().first(), Some(&database));
     assert_eq!(
-        Settings::load(&path).recent,
-        vec![database],
-        "the recent list is persisted"
+        app.recent_databases().first().map(|entry| &entry.path),
+        Some(&database)
     );
+    let loaded = Settings::load(&path);
+    assert_eq!(loaded.recent.len(), 1, "the recent list is persisted");
+    assert_eq!(loaded.recent[0].path, database);
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -169,7 +170,10 @@ fn startup_reports_pruned_recent_paths() {
     let path = dir.join("ui.json");
     let missing = dir.join("gone.mdb");
     let settings = Settings {
-        recent: vec![missing.clone()],
+        recent: vec![crate::settings::RecentDatabase {
+            path: missing.clone(),
+            modified: None,
+        }],
         ..Settings::default()
     };
     settings.save(&path).expect("save");
