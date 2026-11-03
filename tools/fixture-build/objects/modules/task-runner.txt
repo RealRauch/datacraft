@@ -1,0 +1,20 @@
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Compare Database
+Option Explicit
+
+Private m_TaskName As String
+
+Public Property Get TaskName() As String
+    TaskName = m_TaskName
+End Property
+
+Public Property Let TaskName(ByVal newValue As String)
+    m_TaskName = newValue
+End Property
+
+Public Function Describe() As String
+    Describe = "Task " & m_TaskName & " runs at " & InventoryHelpers.StorageLocationCaption()
+End Function

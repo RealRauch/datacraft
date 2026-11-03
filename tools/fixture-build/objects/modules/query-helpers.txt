@@ -1,0 +1,23 @@
+Attribute VB_Name = "QueryHelpers"
+Option Compare Database
+Option Explicit
+
+Public Function BuildItemFilter(ByVal includeDiscontinued As Boolean) As String
+    Dim filterSql As String
+    filterSql = "SELECT ItemId, ItemName, StockLevel FROM [Warehouse Items] WHERE StockLevel > 0"
+    If Not includeDiscontinued Then
+        filterSql = filterSql & " AND Discontinued = False"
+    End If
+    BuildItemFilter = filterSql & " ORDER BY ItemName"
+End Function
+
+Public Function StaffPermissionLevel(ByVal userId As Long) As Variant
+    ' The table name below is a string literal the static analysis resolves.
+    StaffPermissionLevel = DLookup("PermissionLevel", "Staff Permissions", "UserId = " & userId)
+End Function
+
+Public Function OpenItemSummaryRecordset() As Object
+    Dim db As Object
+    Set db = CurrentDb()
+    Set OpenItemSummaryRecordset = db.OpenRecordset("SELECT ItemName, StockLevel FROM [Warehouse Items] ORDER BY ItemName")
+End Function

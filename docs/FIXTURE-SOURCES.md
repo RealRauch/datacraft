@@ -166,9 +166,10 @@ self-authored):
 | Report `Stock Summary` | report + module | `Report_Stock Summary` code-behind |
 
 **Creation recipe** (scripted builder, proven end to end; prerequisites:
-Windows with the Access build above; the installed build keeps
-`AccessVBOM` unset, so every object-text import goes through
-`SaveAsText`/`LoadFromText` — no Trust Center change):
+Windows x64 with the Access build above (Microsoft 365,
+`16.0.20527.20112`); the installed build keeps `AccessVBOM` unset, so
+every object-text import goes through `SaveAsText`/`LoadFromText` — no
+Trust Center change):
 
 1. Scratch directory outside the repository; `Access.Application` COM
    automation with `AutomationSecurity` forced to disable macros (the
@@ -218,8 +219,15 @@ Windows with the Access build above; the installed build keeps
     Microsoft Access 16.0.20527.20112 on <date> by DataCraft
     contributors". The finished file is never reopened in Access after
     it is committed; regeneration reruns the builder in a scratch
-    directory (the builder script lands under `tools/fixture-build/` in
-    step 37.3 / L21).
+    directory (`tools/fixture-build/build.ps1`, object texts under
+    `tools/fixture-build/objects/`, SQL text under
+    `tools/fixture-build/sql/`). The object texts live in the
+    repository, not inside the committed fixture — reading them out of
+    the fixture would mean opening it in Access, which fixtures never
+    survive (§4). The inventory comparison runs through the datacraft
+    decoder snapshot; the rebuilt file's hash is recorded but
+    intentionally differs from the pin (creation timestamps are inside
+    the file).
 
 Empirical values (macro argument strings, module storage order, the exact
 attribute set) are read off the built file and pinned in the ported suites —

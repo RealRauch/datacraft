@@ -1,0 +1,53 @@
+Version =20
+VersionRequired =20
+Begin Form
+    DividingLines = NotDefault
+    AllowDesignChanges = NotDefault
+    DefaultView =0
+    PictureAlignment =2
+    DatasheetGridlinesBehavior =3
+    GridX =24
+    GridY =24
+    Width =8884
+    DatasheetFontHeight =11
+    ItemSuffix =2
+    Right =50000
+    Bottom =50000
+    Caption ="Category Picker"
+    RecordSource ="Categories"
+    FilterOnLoad =0
+    ShowPageMargins =0
+    DatasheetAlternateBackColor =15921906
+    DatasheetGridlinesColor12 =0
+    FitToScreen =1
+    Begin
+        Begin Section
+            Height =1200
+            Name ="Detail"
+            AutoHeight =1
+            BackThemeColorIndex =1
+            Begin
+                Begin TextBox
+                    OverlapFlags =85
+                    Left =1500
+                    Top =300
+                    Width =1440
+                    Height =315
+                    Name ="txtCategoryName"
+                    ControlSource ="CategoryName"
+                    Begin
+                        Begin Label
+                            OverlapFlags =85
+                            Left =0
+                            Top =300
+                            Width =1440
+                            Height =315
+                            Name ="Label1"
+                            Caption ="Category"
+                        End
+                    End
+                End
+            End
+        End
+    End
+End

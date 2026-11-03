@@ -1,0 +1,13 @@
+Attribute VB_Name = "ArchiveExporter"
+Option Compare Database
+Option Explicit
+
+Public Sub ExportArchivedItems()
+    Dim filterSql As String
+    filterSql = QueryHelpers.BuildItemFilter(False)
+    Debug.Print filterSql
+End Sub
+
+Public Function ArchiveTargetPath() As String
+    ArchiveTargetPath = "C:\WarehouseExports\archived-items.csv"
+End Function

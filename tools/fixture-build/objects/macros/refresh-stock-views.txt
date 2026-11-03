@@ -1,0 +1,24 @@
+Version =196611
+PublishOption =1
+ColumnsShown =0
+Begin
+    Action ="OpenQuery"
+    Argument ="Items In Stock"
+    Argument ="0"
+    Argument ="0"
+End
+Begin
+    Action ="GoToControl"
+    Argument ="ItemName"
+End
+Begin
+    Action ="ApplyFilter"
+    Argument =""
+    Argument ="[StockLevel] > 0"
+End
+Begin
+    Action ="OpenQuery"
+    Argument ="Stock By Category"
+    Argument ="0"
+    Argument ="0"
+End

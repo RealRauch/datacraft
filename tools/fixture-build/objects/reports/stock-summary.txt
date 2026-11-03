@@ -1,0 +1,76 @@
+Version =20
+VersionRequired =20
+Begin Report
+    DividingLines = NotDefault
+    DefaultView =0
+    PictureAlignment =2
+    DatasheetGridlinesBehavior =3
+    GridX =24
+    GridY =24
+    Width =8884
+    ItemSuffix =3
+    Right =50000
+    Bottom =50000
+    Caption ="Stock Summary"
+    RecordSource ="Items In Stock"
+    FilterOnLoad =0
+    ShowPageMargins =0
+    Begin
+        Begin Section
+            Height =1500
+            Name ="Detail"
+            AutoHeight =1
+            BackThemeColorIndex =1
+            Begin
+                Begin TextBox
+                    OverlapFlags =85
+                    Left =1500
+                    Top =300
+                    Width =1440
+                    Height =315
+                    Name ="txtItemName"
+                    ControlSource ="ItemName"
+                    Begin
+                        Begin Label
+                            OverlapFlags =85
+                            Left =0
+                            Top =300
+                            Width =1440
+                            Height =315
+                            Name ="Label1"
+                            Caption ="Item Name"
+                        End
+                    End
+                End
+                Begin TextBox
+                    OverlapFlags =85
+                    Left =3200
+                    Top =300
+                    Width =1440
+                    Height =315
+                    Name ="txtStockLevel"
+                    ControlSource ="StockLevel"
+                    Begin
+                        Begin Label
+                            OverlapFlags =85
+                            Left =3200
+                            Top =0
+                            Width =1440
+                            Height =315
+                            Name ="Label2"
+                            Caption ="Stock Level"
+                        End
+                    End
+                End
+            End
+        End
+    End
+End
+CodeBehindForm
+Attribute VB_Name = "Report_Stock Summary"
+Option Compare Database
+Option Explicit
+
+Private Sub Report_Load()
+    Debug.Print "Stock Summary ready"
+End Sub

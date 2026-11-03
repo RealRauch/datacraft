@@ -1,0 +1,29 @@
+Version =196611
+PublishOption =1
+ColumnsShown =0
+Begin
+    Action ="MsgBox"
+    Argument ="Inventory sample ready."
+    Argument ="-1"
+    Argument ="64"
+End
+Begin
+    Action ="OpenForm"
+    Argument ="Items Browser"
+    Argument ="0"
+End
+Begin
+    Action ="GoToControl"
+    Argument ="ItemName"
+End
+Begin
+    Action ="MsgBox"
+    Argument ="Pick a category to filter the view."
+    Argument ="-1"
+    Argument ="64"
+End
+Begin
+    Action ="OpenForm"
+    Argument ="Category Picker"
+    Argument ="0"
+End

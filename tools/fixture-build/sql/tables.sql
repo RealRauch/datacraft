@@ -1,0 +1,6 @@
+CREATE TABLE Categories (CategoryId COUNTER CONSTRAINT PK_Categories PRIMARY KEY, CategoryName TEXT(50) NOT NULL)
+CREATE TABLE Suppliers (SupplierId COUNTER CONSTRAINT PK_Suppliers PRIMARY KEY, SupplierName TEXT(80) NOT NULL, City TEXT(50), Country TEXT(50))
+CREATE TABLE [Warehouse Items] (ItemId COUNTER CONSTRAINT PK_WarehouseItems PRIMARY KEY, ItemName TEXT(80) NOT NULL, CategoryId LONG CONSTRAINT FK_Items_Category REFERENCES Categories (CategoryId), SupplierId LONG CONSTRAINT FK_Items_Supplier REFERENCES Suppliers (SupplierId), StockLevel LONG, UnitPrice CURRENCY, AddedOn DATETIME, Discontinued YESNO, Notes MEMO)
+CREATE TABLE Tags (TagId COUNTER CONSTRAINT PK_Tags PRIMARY KEY, TagName TEXT(40) NOT NULL)
+CREATE TABLE [Stock Movements] (MovementId COUNTER CONSTRAINT PK_StockMovements PRIMARY KEY, ItemId LONG CONSTRAINT FK_Movements_Item REFERENCES [Warehouse Items] (ItemId), MovedOn DATETIME, Quantity LONG)
+CREATE TABLE [Staff Permissions] (PermissionId COUNTER CONSTRAINT PK_StaffPermissions PRIMARY KEY, UserId LONG, PermissionLevel LONG, GrantedOn DATETIME)

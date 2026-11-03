@@ -1,0 +1,38 @@
+Attribute VB_Name = "InventoryHelpers"
+Option Compare Database
+Option Explicit
+
+Public Enum StockScopeEnum
+    ScopeAllItems = 0
+    ScopeInStockOnly = 1
+    ScopeDiscontinuedOnly = 2
+End Enum
+
+Public Const WarehouseInventoryLedgerEntryCaption As String = "Warehouse Inventory Ledger Entry Overview"
+
+Public Function WarehouseInventoryLedgerEntryLabel(ByVal entryTitle As String) As String
+    ' The repeated long identifiers below give the VBA compressor copy tokens.
+    Dim WarehouseInventoryLedgerEntryPrefix As String
+    Dim WarehouseInventoryLedgerEntrySuffix As String
+    WarehouseInventoryLedgerEntryPrefix = WarehouseInventoryLedgerEntryCaption & " for "
+    WarehouseInventoryLedgerEntrySuffix = " (Warehouse Inventory Ledger Entry)"
+    WarehouseInventoryLedgerEntryLabel = WarehouseInventoryLedgerEntryPrefix & entryTitle & WarehouseInventoryLedgerEntrySuffix
+End Function
+
+Public Function WarehouseInventoryLedgerEntryScopeLabel(ByVal scope As StockScopeEnum) As String
+    Select Case scope
+        Case ScopeAllItems
+            WarehouseInventoryLedgerEntryScopeLabel = "all items"
+        Case ScopeInStockOnly
+            WarehouseInventoryLedgerEntryScopeLabel = "in stock only"
+        Case ScopeDiscontinuedOnly
+            WarehouseInventoryLedgerEntryScopeLabel = "discontinued only"
+        Case Else
+            WarehouseInventoryLedgerEntryScopeLabel = "unknown scope"
+    End Select
+End Function
+
+Public Function StorageLocationCaption() As String
+    ' Non-ASCII literal exercises the Windows-1252 project code page.
+    StorageLocationCaption = "Lagerstraße Süd 12, 70182 Stuttgart"
+End Function

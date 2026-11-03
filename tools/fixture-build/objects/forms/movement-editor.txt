@@ -1,0 +1,83 @@
+Version =20
+VersionRequired =20
+Begin Form
+    DividingLines = NotDefault
+    AllowDesignChanges = NotDefault
+    DefaultView =0
+    PictureAlignment =2
+    DatasheetGridlinesBehavior =3
+    GridX =24
+    GridY =24
+    Width =8884
+    DatasheetFontHeight =11
+    ItemSuffix =3
+    Right =50000
+    Bottom =50000
+    Caption ="Movement Editor"
+    RecordSource ="Stock Movements"
+    FilterOnLoad =0
+    ShowPageMargins =0
+    DatasheetAlternateBackColor =15921906
+    DatasheetGridlinesColor12 =0
+    FitToScreen =1
+    Begin
+        Begin Section
+            Height =1500
+            Name ="Detail"
+            AutoHeight =1
+            BackThemeColorIndex =1
+            Begin
+                Begin TextBox
+                    OverlapFlags =85
+                    Left =1500
+                    Top =300
+                    Width =1440
+                    Height =315
+                    Name ="txtQuantity"
+                    ControlSource ="Quantity"
+                    Begin
+                        Begin Label
+                            OverlapFlags =85
+                            Left =0
+                            Top =300
+                            Width =1440
+                            Height =315
+                            Name ="Label1"
+                            Caption ="Quantity"
+                        End
+                    End
+                End
+                Begin TextBox
+                    OverlapFlags =85
+                    Left =1500
+                    Top =800
+                    Width =1440
+                    Height =315
+                    Name ="txtMovedOn"
+                    ControlSource ="MovedOn"
+                    Begin
+                        Begin Label
+                            OverlapFlags =85
+                            Left =0
+                            Top =800
+                            Width =1440
+                            Height =315
+                            Name ="Label2"
+                            Caption ="Moved On"
+                        End
+                    End
+                End
+            End
+        End
+    End
+End
+CodeBehindForm
+Attribute VB_Name = "Form_Movement Editor"
+Option Compare Database
+Option Explicit
+
+Private Sub Form_Load()
+    Dim filterSql As String
+    filterSql = QueryHelpers.BuildItemFilter(True)
+    Debug.Print filterSql
+End Sub
