@@ -17,6 +17,7 @@ datacraft-csv = { workspace = true }
 datacraft-storage = { workspace = true }
 eframe = "0.37.0"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
+rfd = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sys-locale = "0.3.2"

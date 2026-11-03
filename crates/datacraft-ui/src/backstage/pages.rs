@@ -122,6 +122,20 @@ fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command
             .desired_width(360.0)
             .hint_text(t("path for the new database")),
     );
+    let suggested = std::path::Path::new(app.new_database_path.trim())
+        .file_name()
+        .map_or_else(
+            || "database.mdb".to_owned(),
+            |n| n.to_string_lossy().into_owned(),
+        );
+    if ui
+        .push_id("backstage.new.browse", |ui| ui.button(t("Browse…")))
+        .inner
+        .clicked()
+        && let Some(path) = app.dialogs.pick_save_file(&suggested)
+    {
+        app.new_database_path = path.display().to_string();
+    }
     ui.add_space(8.0);
     let enabled = !app.new_database_path.trim().is_empty() && app.new_database_template.is_some();
     if ui
@@ -154,6 +168,26 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
             .desired_width(360.0)
             .hint_text(t("path to .mdb")),
     );
+    ui.horizontal(|ui| {
+        if ui
+            .push_id("backstage.open.browse", |ui| ui.button(t("Browse…")))
+            .inner
+            .clicked()
+            && let Some(path) = app.dialogs.pick_open_file()
+        {
+            app.open_path = path.display().to_string();
+        }
+        if ui
+            .push_id("backstage.open.browse_folder", |ui| {
+                ui.button(t("Browse Folder…"))
+            })
+            .inner
+            .clicked()
+            && let Some(path) = app.dialogs.pick_open_folder()
+        {
+            app.open_path = path.display().to_string();
+        }
+    });
     ui.add_space(8.0);
     let path = app.open_path.trim();
     let enabled = !path.is_empty();

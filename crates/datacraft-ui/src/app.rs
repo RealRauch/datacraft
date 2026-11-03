@@ -105,6 +105,9 @@ pub struct App {
     pub(crate) settings_path: Option<std::path::PathBuf>,
     /// Whether the restored window position was already checked (step 22.2).
     pub(crate) position_rescued: bool,
+    /// The dialog seam: platform dialogs in the binary, scripted in the
+    /// headless suite (step 38.3, item M43).
+    pub(crate) dialogs: Box<dyn crate::dialogs::DialogHost>,
 }
 
 impl App {
@@ -116,6 +119,7 @@ impl App {
         Self {
             core,
             snapshot,
+            dialogs: Box::new(crate::dialogs::NativeDialogs),
             open_path: String::new(),
             active_ribbon_tab: "home",
             backstage_page: crate::backstage::BackstagePage::default(),

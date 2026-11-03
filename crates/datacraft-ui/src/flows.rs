@@ -37,7 +37,9 @@ impl App {
         }
     }
 
-    /// Deletes a database object through the bus (step 11.4).
+    /// Deletes a database object through the bus (step 11.4) after a native
+    /// confirmation (step 38.3, item M43) — a declined dialog dispatches
+    /// nothing.
     pub fn delete_object(&mut self, kind: datacraft_core::ObjectKind, name: &str) {
         let command = match kind {
             datacraft_core::ObjectKind::Table => Command::DropTable {
@@ -55,6 +57,13 @@ impl App {
             // Macros are a read-only inventory (step 17.1) — no delete.
             datacraft_core::ObjectKind::Macro | ObjectKind::Module => return,
         };
+        let message = crate::i18n::tr("Delete {name}? This cannot be undone.", &[("name", name)]);
+        if !self
+            .dialogs
+            .confirm(crate::i18n::t("Delete Object"), &message)
+        {
+            return;
+        }
         self.dispatch(command);
     }
 

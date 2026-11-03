@@ -27,6 +27,20 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
                 .desired_width(360.0)
                 .hint_text(t("path to the copy")),
         );
+        let suggested = std::path::Path::new(app.save_as_path.trim())
+            .file_name()
+            .map_or_else(
+                || "database.mdb".to_owned(),
+                |n| n.to_string_lossy().into_owned(),
+            );
+        if ui
+            .push_id("backstage.save.browse", |ui| ui.button(t("Browse…")))
+            .inner
+            .clicked()
+            && let Some(path) = app.dialogs.pick_save_file(&suggested)
+        {
+            app.save_as_path = path.display().to_string();
+        }
         ui.checkbox(&mut app.save_as_encrypted, t("Protect with a password"));
         if app.save_as_encrypted {
             let label = ui.label(t("Password"));
@@ -46,6 +60,7 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
             })
             .inner
             .clicked()
+            && overwrite_confirmed(app)
         {
             intents.push(Command::SaveDatabaseAs {
                 path: app.save_as_path.trim().into(),
@@ -53,6 +68,22 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
             });
         }
     });
+}
+
+/// The save-copy overwrite gate (step 38.3, item M43): when the target file
+/// already exists, a native confirmation decides — a declined dialog keeps
+/// the existing file untouched.
+fn overwrite_confirmed(app: &mut App) -> bool {
+    let target = app.save_as_path.trim().to_owned();
+    if !std::path::Path::new(&target).exists() {
+        return true;
+    }
+    let message = crate::i18n::tr(
+        "The file {path} already exists. Overwrite?",
+        &[("path", &target)],
+    );
+    app.dialogs
+        .confirm(crate::i18n::t("Overwrite File"), &message)
 }
 
 /// Change/remove-password flow (step 27.2, item M14).

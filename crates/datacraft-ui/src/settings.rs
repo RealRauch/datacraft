@@ -346,6 +346,12 @@ impl crate::app::App {
         self.settings_path = path;
     }
 
+    /// Attaches the dialog host: the binary uses the native dialogs, the
+    /// headless suite injects scripted answers (step 38.3, item M43).
+    pub fn set_dialogs(&mut self, host: Box<dyn crate::dialogs::DialogHost>) {
+        self.dialogs = host;
+    }
+
     /// Applies persisted settings at startup: the stored language choice
     /// beats the environment and system detection (ADR-5).
     pub fn apply_settings(&mut self, settings: Settings) {

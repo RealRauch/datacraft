@@ -73,6 +73,13 @@ fn the_new_table_flow_creates_and_opens_the_default_table() {
 fn delete_flows_dispatch_and_surface_precise_errors() {
     use datacraft_core::ObjectKind;
     let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
+    // The delete flow confirms natively first (step 38.3, item M43); the
+    // scripted host accepts both confirmations.
+    app.set_dialogs(Box::new(
+        crate::dialogs::ScriptedDialogs::new()
+            .confirm(true)
+            .confirm(true),
+    ));
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
