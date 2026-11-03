@@ -18,12 +18,6 @@
 
 > No open items.
 
-### [ ] H45 — Persist field properties (defaults, validation, captions, formats, input masks, index flags) — 🟠
-- **Location:** `crates/datacraft-storage/src/jet/writer_tables.rs`, `crates/datacraft-storage/src/port_write.rs`, `crates/datacraft-storage/src/port_schema.rs`, `crates/datacraft-core/src/forms.rs` (sidecar tables)
-- **Problem:** `create_table` writes `NULL` into `MSysObjects.LvProp`, and `port_schema.rs` reconstructs only the column type plus `required`. Defaults, validation rules, captions, formats, input masks and `Indexed` are lost on every reopen. The sidecar saves `tables: Vec::new()` and ignores `document.tables` on load, so it cannot carry them either. Templates therefore ship as structure + data only.
-- **Approach:** Decide the authority (short ADR addendum, consistent with ADR-1): Jet `LvProp` property blocks so Access sees the properties, or the sidecar's table list as DataCraft's own metadata. Implement write + read round-trip for every modeled `FieldProperties` entry, keep the file Access-readable, and reject unsupported property encodings precisely. Post-Phase-30 (ADR-7): the property surface already flows through `alter_table`/`SetFieldProperties`, so capability gating of the design-grid edits comes for free; property persistence stays a per-driver concern (Jet/ACE formats can carry it, the CSV driver stays text-only by design).
-- **Acceptance:** Every modeled property survives a Jet4 reopen (and/or sidecar load); Access displays defaults/validation/captions; tests pin each property and the rejection cases; no silent loss remains.
-
 ---
 
 ## 🟡 MEDIUM
@@ -237,3 +231,4 @@
 - U14 — Command history for Undo/Redo — done (done in `a4ca640` (RED `926cbca`) — bounded per-database row-write history; Undo/Redo bus commands address rows by value image, restore_row preserves AutoNumber identities, journal/schema/file lifecycle are barriers, QAT enables from snapshot depths; Jet4 delete/restore verified across reopen, SQLite restore pinned)
 - U15 — Recent databases in the backstage — done (done in `da1a0e8` (RED `2ad9d26`) — ui.json persists a bounded, de-duplicated recent list on DatabaseOpened; stale paths are pruned on load with a localized notice; the backstage Home/Open pages dispatch one OpenDatabase per click; kittest and updated Home snapshot pin the flow)
 - M20 — Journal batches gate on the declared atomic_batch capability (Phase 30 follow-up) — done (done in `fc2b623` (RED `905ed72`) — preview_write and apply_write refuse multi-op batches on drivers with atomic_batch=false with the precise one-at-a-time reason; single-op batches stay available; Jet's atomic path unchanged; core and SQLite contracts pin both sides)
+- H45 — Persist field properties (defaults, validation, captions, formats, input masks, index flags) — done (done in `c5abd00` (RED `c5176bd`) — the .datacraft sidecar is the property authority (ADR-1 addendum): tables are saved with the full FieldProperties sheet, overlaid on explicit load and sibling auto-load with precise stale/invalid handling, preserved across Jet/ACE schema refreshes; the Jet writer keeps NULL LvProp (Access display deferred to the LvProp roadmap item); design view renders the restored sheet (kittest))
