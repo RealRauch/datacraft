@@ -1084,3 +1084,12 @@
 - **Fix:** `port.close()` before the removal and assert the removal, so the scratch file cannot survive a run.
 - **Acceptance:** The suite passes repeatedly and leaves no `datacraft-storage-create-*` file behind (verified after the fix).
 - **Done:** fixed in `6cafd83`: the port is closed before the scratch removal and the removal is asserted; no leftover scratch files after repeated runs
+
+---
+
+### [x] L11 — Mechanical-edit artifacts in messages and a doc comment — 🟢
+- **Location:** `crates/datacraft-core/src/journal.rs:237`, `crates/datacraft-core/src/schema/document.rs:139` and `:152`, `crates/datacraft-jet/src/port_write.rs:174`, `crates/datacraft-jet/src/jet/header.rs:99` and `:106` (long space runs); `crates/datacraft-core/src/transport.rs:89-90` (doc comment lost its parameter names: "requests from , writing … to  (flushed …)").
+- **Problem:** Six user-facing messages carry long runs of spaces mid-sentence (e.g. "engine-assigned                          value", "is not a                      supported combination"), and one public doc comment lost two identifiers. All are leftovers of a mechanical edit (LESSONS #8): they render as gaps in toasts/errors and read as broken documentation.
+- **Approach:** Replace each run with a single space and restore the two parameter names in the doc comment; no wording changes otherwise. If any test asserts on the exact string, update it in the same step.
+- **Acceptance:** `grep -nE '[a-z] {2,}[a-z]'` over the message strings returns only intentional formatting; the transport doc comment names its reader/writer parameters; affected tests are green.
+- **Done:** fixed in `30005be`: the six messages use single spaces and the transport doc names `reader`/`writer`; the grep over message strings is clean

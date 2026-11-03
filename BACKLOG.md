@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T19:43
+# BACKLOG.md — Open items (As of: 2026-11-03T19:53
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -17,6 +17,18 @@
 ## 🟠 HIGH
 
 > No open items.
+
+### [ ] H49 — Public-release readiness: license texts, fixture attribution, repo hygiene — 🟠
+- **Location:** repo root (`LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`), `README.md` "License and credits" (still says "to be finalized with the skeleton"), `THIRD-PARTY-NOTICES.md` (covers bundled binaries and samples only), `docs/PUBLISHING.md`, GitHub repo settings
+- **Problem:** The repository is private and GitHub reports `license: null`: `Cargo.toml` declares `MIT OR Apache-2.0` and the README advertises it, but no license text is tracked. crates.io publishing (Phase 31 / M19) needs the license files regardless, and a public repository additionally needs fixture attribution (jackcess Apache-2.0, mdb-reader MIT, the Access-touched derivative) that `THIRD-PARTY-NOTICES.md` does not yet carry. AGENTS.md classifies license files as High-class.
+- **Approach:** Add the canonical `LICENSE-MIT` and `LICENSE-APACHE` texts (copyright "DataCraft contributors") plus a `NOTICE` for the Apache-2.0 side; correct the README license paragraph; extend `THIRD-PARTY-NOTICES.md` with a fixture table (source `repo@commit`, license, modifications); decide and record repo settings (secret scanning, Dependabot, branch protection, issue templates) in `docs/PUBLISHING.md`. Do not touch fixtures, code or the append-only archives.
+- **Acceptance:** GitHub detects the license; `cargo package` / `cargo publish --dry-run` include the license files; every committed fixture has a license or attribution row; README and PUBLISHING agree; no fixture bytes or code behaviour change.
+
+### [ ] H50 — Self-created Access fixtures replace the unlicensed Northwind file — 🟠
+- **Location:** `fixtures/northwind2007.accdb`, `fixtures/manifest`, `docs/FIXTURE-SOURCES.md` §3, the Jet fixtures suites (`crates/datacraft-jet/tests/{vba,vba_analysis,macros,native_query_errors}.rs`), `crates/datacraft-storage/tests/port_macros.rs`, README compatibility matrix
+- **Problem:** The only committed fixture with a VBA project and named macros comes from `ssmith1975/samples-vb-net`, a repository without a license file (already noted in FIXTURE-SOURCES §3). It is load-bearing evidence for the VBA, macro and MSysQueries paths (ten-plus assertions plus README claims), so it cannot simply be dropped; publishing the repository would redistribute the file. `docs/FIXTURE-SOURCES.md` §1 explicitly allows files created with real Access, and the development machine has a current Access installation — self-created fixtures carry our own content and remove the provenance problem entirely.
+- **Approach:** Author a replacement in Access (ACE `.accdb`; Jet4 `.mdb` only if a Jet4 VBA fixture is wanted) containing: a VBA project with standard, class, form and report modules covering the compression vocabulary (repeated long identifiers for copy tokens, string literals, comments, non-ASCII/code-page cases), named macros with readable arguments (no `AutoExec`, no destructive actions), saved queries exercising the decoded attribute set (5/6/7/8/9/10/11) plus one selecting an attachment or multi-value column — the confirmed source of `MSysQueries` attribute 12 — forms/reports with controls, and the source tables the suites need. Record the Access build, file format and locale; hash-pin the result in `fixtures/manifest` with provenance "created with Microsoft Access <build> on <date> by DataCraft contributors"; document the object list and creation recipe in `docs/FIXTURE-SOURCES.md` so it can be regenerated; update test expectations, README module/macro counts and the compatibility-matrix date. The fixture is immutable once committed; creation happens in a scratch directory, never on an existing fixture.
+- **Acceptance:** No committed fixture traces to an unlicensed source; the VBA, macro, native-query and port suites run green against the self-created file with the same behavioural coverage; `fixtures/manifest` verifies offline in CI; the creation recipe and provenance are documented; README/matrix numbers match the new fixture; canonical verification set green.
 
 ---
 
@@ -42,6 +54,12 @@
 - **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
 - **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
 
+### [ ] M34 — History hygiene before the repository goes public (Northwind + .zcode) — 🟡
+- **Location:** git history — `cf63492` (`fixtures/northwind2007.accdb` added), `c01889b` / `dac5d35` (tracked then untracked `.zcode/plans/plan-sess_0f91246f-….md`), remote `origin` (GitHub, private, 0 forks, 0 releases)
+- **Problem:** Removing a path from HEAD does not remove it from history; both blobs stay cloneable from every commit that carried them. The `.zcode` plan is harmless project planning, but the Northwind fixture is the redistribution problem addressed by H50. A rewrite is cheap only while the repository is private and has no forks, releases or external clones — after the visibility switch it is no longer an option.
+- **Approach:** After H50 lands, rewrite the private history with `git filter-repo --invert-paths` for both paths, re-verify every fixture hash against `fixtures/manifest` and run the full canonical set on the rewritten tree, force-push `main` and delete/recreate any local branches that still carry the old objects, then document the rewrite date and old→new head in `docs/PUBLISHING.md`. Never rewrite after the repository is public; the append-only archives stay untouched (they contain no fixture bytes).
+- **Acceptance:** `git log --all --name-only` lists neither path; the rewritten `main` passes the canonical verification set and the fixture hash gate; local and remote branches agree on the new history; the rewrite is recorded in PUBLISHING; no rewrite happens after the visibility switch.
+
 ---
 
 ## 🟢 LOW
@@ -65,12 +83,6 @@
 - **Problem:** Since 2026-11-03 ~14:00 UTC every `Tests (macos-latest)` and `Oracle (mdb-tools cross-check) (macos-latest)` job is cancelled in the runner queue after exactly 15m01s with no logs (five consecutive attempts across runs 41645734997/41653027497/41666011189, including two explicit reruns). Earlier the same day both macOS jobs ran green (oracle 28s, tests 1m25s). All non-macOS jobs are green; the macOS suite is the same code that passes on ubuntu/windows, and the ubuntu oracle covers the mdbtools cross-check.
 - **Approach:** No repository change — retry `gh run rerun --failed` when GitHub macOS runner capacity/billing recovers (check account Settings → Billing → Actions minutes: the macOS 10× multiplier is the prime suspect). Optionally consider moving the oracle job to ubuntu-only (it already carries the mdbtools cross-check) if macOS capacity stays scarce.
 - **Acceptance:** A CI run on `main` completes with the macOS jobs green (or the oracle matrix consciously narrowed with a documented decision); nothing in the repo changes until then.
-
-### [ ] L11 — Mechanical-edit artifacts in messages and a doc comment — 🟢
-- **Location:** `crates/datacraft-core/src/journal.rs:237`, `crates/datacraft-core/src/schema/document.rs:139` and `:152`, `crates/datacraft-jet/src/port_write.rs:174`, `crates/datacraft-jet/src/jet/header.rs:99` and `:106` (long space runs); `crates/datacraft-core/src/transport.rs:89-90` (doc comment lost its parameter names: "requests from , writing … to  (flushed …)").
-- **Problem:** Six user-facing messages carry long runs of spaces mid-sentence (e.g. "engine-assigned                          value", "is not a                      supported combination"), and one public doc comment lost two identifiers. All are leftovers of a mechanical edit (LESSONS #8): they render as gaps in toasts/errors and read as broken documentation.
-- **Approach:** Replace each run with a single space and restore the two parameter names in the doc comment; no wording changes otherwise. If any test asserts on the exact string, update it in the same step.
-- **Acceptance:** `grep -nE '[a-z] {2,}[a-z]'` over the message strings returns only intentional formatting; the transport doc comment names its reader/writer parameters; affected tests are green.
 
 ### [ ] L13 — SQLite affinity edge cases: AUTOINCREMENT substring and parameterized type names — 🟢
 - **Location:** `crates/datacraft-sqlite/src/mapping.rs:224` (`autoincrement` detected by uppercasing the whole `CREATE TABLE` text and searching for the substring `AUTOINCREMENT`), `:279` (marker types compared by exact uppercase name).
@@ -233,3 +245,4 @@
 - L17 — Native query flavor renders as a Rust Debug name — done (fixed in `8095d68` (RED `e9a1c26`): all nine native query flavors render through labels::native_query_kind_label with German catalog entries; the parity test verifies coverage)
 - M29 — UI row caches go stale after Undo/Redo and other row-mutating events — done (fixed in `244a22b` (RED `d78bce4`): all row-mutating events invalidate the affected table and form caches (bound source), so undo/redo/updates/deletes never leave stale grids)
 - F5 — Inline fix: scratch database removed while a SQLite handle is open — done (fixed in `6cafd83`: the port is closed before the scratch removal and the removal is asserted; no leftover scratch files after repeated runs)
+- L11 — Mechanical-edit artifacts in messages and a doc comment — done (fixed in `30005be`: the six messages use single spaces and the transport doc names `reader`/`writer`; the grep over message strings is clean)
