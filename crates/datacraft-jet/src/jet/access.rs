@@ -283,6 +283,24 @@ fn normalize_argument(raw: &str) -> Option<String> {
             text = &text[first.len_utf8()..];
         }
     }
+    // Expression-form arguments carry value-type markers (`<` string
+    // literal, `$`, `&`, `"`, `,`) and may carry a record tag byte in front
+    // of the marker. Strip up to two markers while the remainder begins
+    // with a letter, a bracketed name or another marker; stored argument
+    // text never begins with these markers themselves.
+    const MARKERS: [char; 6] = ['\'', '"', '$', '&', ',', '<'];
+    for _ in 0..2 {
+        let mut chars = text.chars();
+        if let (Some(first), Some(second)) = (chars.next(), chars.next()) {
+            let continues =
+                second.is_ascii_alphabetic() || second == '[' || MARKERS.contains(&second);
+            if MARKERS.contains(&first) && continues {
+                text = &text[first.len_utf8()..];
+                continue;
+            }
+        }
+        break;
+    }
     let text = text.strip_prefix('=').unwrap_or(text).trim();
     if text.chars().count() < 3 {
         return None;

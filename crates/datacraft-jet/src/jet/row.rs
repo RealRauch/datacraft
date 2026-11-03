@@ -52,7 +52,21 @@ fn decode_row_with(
     page_size: usize,
     jet3: bool,
 ) -> Result<Vec<StorageValue>, StorageError> {
-    let layout = RowLayout::parse(row, jet3)?;
+    // Rows of tables without variable columns need no variable tail to
+    // locate field data: values sit at their TDEF offsets and the null
+    // mask always ends the row. Real Access 365 omits the tail on such
+    // rows entirely (observed on the self-created programmability
+    // fixture), so their layout is parsed mask-only. Bools never touch
+    // the variable area, so they count as fixed here.
+    let all_fixed = def
+        .columns
+        .iter()
+        .all(|col| col.is_fixed() || col.data_type == JetType::Bool);
+    let layout = if all_fixed {
+        RowLayout::parse_fixed(row, jet3)?
+    } else {
+        RowLayout::parse(row, jet3)?
+    };
     let mut values = Vec::with_capacity(def.columns.len());
     for col in &def.columns {
         if col.column_id as usize >= layout.num_cols {
@@ -98,6 +112,47 @@ struct RowLayout {
 }
 
 impl RowLayout {
+    /// Mask-only layout for rows of tables without variable columns. The
+    /// null mask always ends the row; any variable tail between the fixed
+    /// data and the mask (present on some writers) is unused by fixed
+    /// decoding and skipped here.
+    fn parse_fixed(row: &[u8], jet3: bool) -> Result<Self, StorageError> {
+        let (num_cols, header) = if jet3 {
+            if row.is_empty() {
+                return Err(StorageError::Corrupt {
+                    context: "row".into(),
+                    detail: "row shorter than num_cols field (0 bytes)".into(),
+                });
+            }
+            (row[0] as usize, 1usize)
+        } else {
+            if row.len() < 2 {
+                return Err(StorageError::Corrupt {
+                    context: "row".into(),
+                    detail: format!("row shorter than num_cols field ({} bytes)", row.len()),
+                });
+            }
+            (u16::from_le_bytes([row[0], row[1]]) as usize, 2usize)
+        };
+        let mask_len = num_cols.div_ceil(8);
+        if row.len() < header + mask_len {
+            return Err(StorageError::Corrupt {
+                context: "row".into(),
+                detail: "row too short for null mask".into(),
+            });
+        }
+        Ok(Self {
+            num_cols,
+            mask_at: row.len() - mask_len,
+            var_len: 0,
+            table_at: 0,
+            jump_at: 0,
+            jump_len: 0,
+            eod: 0,
+            jet3,
+        })
+    }
+
     fn parse(row: &[u8], jet3: bool) -> Result<Self, StorageError> {
         if jet3 {
             return Self::parse_jet3(row);
@@ -124,7 +179,11 @@ impl RowLayout {
             _ => {
                 return Err(StorageError::Corrupt {
                     context: "row".into(),
-                    detail: "row too short for variable column table".into(),
+                    detail: format!(
+                        "row too short for variable column table (var_len {var_len}, \
+                         mask at {mask_at}, {} row bytes)",
+                        row.len()
+                    ),
                 });
             }
         };
