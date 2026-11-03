@@ -268,6 +268,9 @@ renders and the Windows `.ico` live in [`assets/app-icon/`](assets/app-icon/). T
 
 - **DataCraft code:** MIT OR Apache-2.0 (dual-licensed, to be finalized with
   the skeleton).
+- **Shipped third-party components** (egui stack, csv, bundled SQLite, the two
+  SIL-OFL fonts): named in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md);
+  the notices ship in every release archive.
 - **MDB Tools (`libmdb`):** LGPL-2.1 — used exclusively as a test-time oracle,
   never linked into release builds.
 
