@@ -301,3 +301,47 @@ fn a_password_required_open_raises_the_prompt_and_retries() {
     assert!(app.password_prompt().is_none(), "the prompt closes");
     assert!(app.snapshot().database.is_some());
 }
+
+/// M29 regression: a row-mutating event must invalidate the per-tab row
+/// cache — otherwise the datasheet keeps showing pre-undo rows.
+#[test]
+fn undo_refreshes_the_datasheet_row_cache() {
+    use datacraft_core::ObjectId;
+    use datacraft_core::ObjectKind;
+    use datacraft_core::command::Command;
+    use datacraft_core::port::MockPort;
+    use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
+
+    let notes = TableDef::new(
+        "Notes",
+        vec![FieldDef::new("body", FieldKind::Text { max_len: 40 })],
+    );
+    let mut app = App::new(Box::new(MockPort::with_tables(vec![notes])));
+    app.dispatch(Command::OpenDatabase {
+        path: "notes.mdb".into(),
+        password: None,
+    });
+    app.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Table,
+        "Notes",
+    )));
+    let tab = app.snapshot().tabs[0].id;
+    assert_eq!(app.rows_for(tab).map(Vec::len), Some(0));
+
+    app.dispatch(Command::InsertRow {
+        table: "Notes".into(),
+        values: vec![FieldValue::Text("first".into())],
+    });
+    assert_eq!(
+        app.rows_for(tab).map(Vec::len),
+        Some(1),
+        "the insert refreshes the cache"
+    );
+
+    app.dispatch(Command::Undo);
+    assert_eq!(
+        app.rows_for(tab).map(Vec::len),
+        Some(0),
+        "undo must refresh the datasheet cache"
+    );
+}
