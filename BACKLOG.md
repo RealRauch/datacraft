@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T13:19
+# BACKLOG.md — Open items (As of: 2026-11-03T14:59
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -94,6 +94,12 @@
 - **Hinweis 6 — NULL-Kanten:** `NOT IN` mit NULL, `Nz()`-Rückgabetypen, IIf-Zweig-Auswertung. Spot-Check: je ein Fall pro Kante.
 - **Hinweis 7 — Multivalue-Prädikate im SQL-Pfad:** Attachment-/Multivalue-Felder in SQL → mögliche stille Leerergebnisse. Spot-Check: WHERE über Multivalue-Spalte.
 - **Acceptance:** Jeder Cluster mit 3–5 Vektoren gegen alle drei Oberflächen gespielt; Divergenzen werden Findings (→ 34.5 Triage) oder bewusst eingezäunt/dokumentiert; Ergebnis landet als Folge-Items bzw. in TESTING/FORMAT-JET-Doku.
+
+### [ ] T7 — Coverage gate red on main (csv/detecting/mcp) — 🔵
+- **Location:** `crates/datacraft-csv/src/lib.rs` (66.8 % lines on CI), `crates/datacraft-storage/src/detecting.rs` (80.7 %), `crates/datacraft-mcp/src/main.rs` (0 %, was covered by the ui-crate exclusion before step 31.3 extracted it); CI run 41645734997 (first run after phases 26/30/31 — the previous green run predates them)
+- **Problem:** The coverage gate is red on `main`: csv write/error paths (arity, out-of-range, batch failure atomicity, drop, write failures), the detecting registry's sniff/fallback rejections and the mcp composition binary were never measured by the CI job — the csv E2E suite lives in the coverage-excluded ui crate, and the detecting registry grew after the last green run.
+- **Approach:** Behavioral edge suites for csv (arity/out-of-range/batch-failure/drop/write-failure paths) and for the detecting registry (sniff rejections, fallback chain, session routing); a real-subprocess E2E for the mcp binary (spawn, inspect over stdin, open a CSV directory — the `cli_process`/T4 pattern); the 11-line composition root counts against the gate like `datacraft-cli`'s (TESTING.md §3 documents it "none"-style — no exclusion, no ci.yml change).
+- **Acceptance:** csv and detecting ≥ 95 % lines in the CI lcov with the mcp bin counted; a fully green CI run on `main` pins the acceptance.
 
 ---
 

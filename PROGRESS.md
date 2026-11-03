@@ -28,6 +28,18 @@
 - **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
+### Phase 36 — Coverage repair & backlog clearing
+
+**Scope (Steps):**
+
+- **36.1 CSV behavioral edge suites (T7)**
+- **36.2 Detecting registry edge suites + L9 (T7)**
+- **36.3 MCP subprocess E2E + registry row (T7) — push checkpoint, green CI**
+- **36.4 M23: registered drivers visible in the snapshot**
+- **36.5 L7: CSV type inference**
+- **36.6 M24: tri-state Boolean NULL decision**
+- **36.7 Phase 36 Quality Gate Review**
+
 
 
 
@@ -238,3 +250,10 @@
 | 35.3 | FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2) | ⬜ |
 | 35.4 | Phase 35 Quality Gate Review | ⬜ |
 | 34.7 | Semantic-Conformance-Spot-Checks (T6) | ⬜ |
+| 36.1 | CSV behavioral edge suites (T7) | 🔄 |
+| 36.2 | Detecting registry edge suites + L9 (T7) | ⬜ |
+| 36.3 | MCP subprocess E2E + registry row (T7) — push checkpoint, green CI | ⬜ |
+| 36.4 | M23: registered drivers visible in the snapshot | ⬜ |
+| 36.5 | L7: CSV type inference | ⬜ |
+| 36.6 | M24: tri-state Boolean NULL decision | ⬜ |
+| 36.7 | Phase 36 Quality Gate Review | ⬜ |

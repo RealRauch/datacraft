@@ -401,18 +401,9 @@ fn parse_csv(file: &Path) -> Result<Vec<Vec<String>>, PortError> {
         let record = record.map_err(|e| PortError::OpenFailed {
             detail: format!("{}: row {}: {e}", file.display(), index + 1),
         })?;
+        // `flexible(false)` makes a ragged row a reader *error*, so every
+        // pushed record has the header's arity by construction.
         records.push(record.into_iter().map(String::from).collect());
-    }
-    if let Some(first) = records.first() {
-        let arity = first.len();
-        if records.iter().any(|row| row.len() != arity) {
-            return Err(PortError::OpenFailed {
-                detail: format!(
-                    "{}: ragged rows — the header defines {arity} columns",
-                    file.display()
-                ),
-            });
-        }
     }
     Ok(records)
 }
