@@ -187,7 +187,7 @@ fn jet3_rows_decode_text_mask_and_booleans() {
 }
 
 #[test]
-fn jet3_fixture_reads_through_the_engine_boundary() {
+fn jet3_fixture_decodes_through_the_reader_boundary() {
     let mut file = shell(3);
     write_tdef(&mut file, 1, &catalog_columns());
     let mut fixed = vec![0u8; 4];

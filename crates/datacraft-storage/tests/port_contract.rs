@@ -105,11 +105,7 @@ impl Driver {
         Self::seed("sqlite", Box::new(port), _file)
     }
 
-    fn seed(
-        name: &'static str,
-        mut port: Box<dyn StoragePort>,
-        file: Scratch,
-    ) -> Self {
+    fn seed(name: &'static str, mut port: Box<dyn StoragePort>, file: Scratch) -> Self {
         port.create_table(&customers())
             .expect("create the reference table");
         for row in customers_rows() {
@@ -135,7 +131,7 @@ fn contract_drivers() -> Vec<Driver> {
 
 #[test]
 fn both_drivers_read_identical_windows_with_nulls() {
-    for mut driver in contract_drivers() {
+    for driver in contract_drivers() {
         let rows = driver
             .read(RowRange { start: 1, len: 2 })
             .unwrap_or_else(|e| panic!("{}: read window: {e}", driver.name));
@@ -166,7 +162,7 @@ fn both_drivers_read_identical_windows_with_nulls() {
 
 #[test]
 fn a_window_starting_at_row_count_is_empty_on_both_drivers() {
-    for mut driver in contract_drivers() {
+    for driver in contract_drivers() {
         let rows = driver
             .read(RowRange { start: 3, len: 5 })
             .unwrap_or_else(|e| panic!("{}: tail window: {e}", driver.name));
@@ -176,11 +172,13 @@ fn a_window_starting_at_row_count_is_empty_on_both_drivers() {
 
 #[test]
 fn a_window_beyond_row_count_is_a_precise_error_on_both_drivers() {
-    for mut driver in contract_drivers() {
-        let error = driver.read(RowRange { start: 5, len: 2 }).expect_err(&format!(
-            "{}: a window beyond the count must fail",
-            driver.name
-        ));
+    for driver in contract_drivers() {
+        let error = driver
+            .read(RowRange { start: 5, len: 2 })
+            .expect_err(&format!(
+                "{}: a window beyond the count must fail",
+                driver.name
+            ));
         assert!(
             matches!(
                 &error,
@@ -195,7 +193,7 @@ fn a_window_beyond_row_count_is_a_precise_error_on_both_drivers() {
 
 #[test]
 fn reads_from_an_unknown_table_name_the_table_on_both_drivers() {
-    for mut driver in contract_drivers() {
+    for driver in contract_drivers() {
         let error = driver
             .port
             .read_rows("Missing", RowRange { start: 0, len: 1 })

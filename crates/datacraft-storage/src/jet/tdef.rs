@@ -80,7 +80,7 @@ impl JetType {
         })
     }
 
-    /// The physical storage type this maps onto at the `StorageEngine`
+    /// The physical storage type this maps onto at the storage
     /// boundary (no Jet type leaks across it).
     pub fn storage_type(self) -> StorageDataType {
         match self {
@@ -214,7 +214,7 @@ pub struct JetTableDef {
 
 impl JetTableDef {
     /// Maps the Jet columns onto the boundary schema types (no Jet type
-    /// leaks across the `StorageEngine` boundary).
+    /// leaks across the storage boundary).
     pub fn schema_columns(&self) -> Vec<crate::types::ColumnSchema> {
         self.columns
             .iter()

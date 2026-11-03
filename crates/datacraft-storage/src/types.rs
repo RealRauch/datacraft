@@ -1,8 +1,8 @@
 //! Backend-agnostic storage domain types (step 2.1, item H4).
 //!
-//! These types form the vocabulary of the [`StorageEngine`](crate::StorageEngine)
-//! boundary (ARCHITECTURE §6): physical Jet/ACE concerns are mapped onto them
-//! and no format-specific type may leak across the boundary. Logical Access
+//! These types form the physical vocabulary of the storage boundary
+//! (ARCHITECTURE §6): Jet/ACE concerns are mapped onto them and no
+//! format-specific type may leak across the boundary. Logical Access
 //! semantics (e.g. "Short Text", "AutoNumber") are a Phase 3 concern and map
 //! onto these physical types.
 
@@ -123,7 +123,7 @@ impl TableSchema {
     }
 }
 
-/// Window selector for [`StorageEngine::read_rows`](crate::StorageEngine::read_rows).
+/// Window selector for row reads across the storage boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RowRange {
     /// Zero-based index of the first row to read.
@@ -142,8 +142,7 @@ impl RowRange {
 /// A row of values, aligned positionally with the table's columns.
 pub type Row = Vec<StorageValue>;
 
-/// Result window returned by
-/// [`StorageEngine::read_rows`](crate::StorageEngine::read_rows).
+/// Result window returned by a row read across the storage boundary.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RowBatch {
     /// Zero-based index of the first returned row.
@@ -172,8 +171,7 @@ pub enum RowOp {
     },
 }
 
-/// Summary of a successful
-/// [`StorageEngine::write_rows`](crate::StorageEngine::write_rows) batch.
+/// Summary of a successful writer batch (insert/update/delete counts).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WriteReport {
     /// Number of rows appended.

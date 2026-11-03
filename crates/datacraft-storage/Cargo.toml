@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "StorageEngine trait boundary and pure-Rust Jet/ACE backends for DataCraft"
+description = "Pure-Rust Jet/ACE and SQLite backends behind the DataCraft storage port"
 
 [dependencies]
 datacraft-core = { workspace = true }

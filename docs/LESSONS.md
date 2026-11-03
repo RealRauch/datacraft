@@ -10,7 +10,7 @@
 ## A. Tests that find something
 
 1. **Tests must not mirror their own implementation.** "Smooth" fixtures confirm the code instead of checking it. The binary fixtures must include **realistic/evil** variants: truncated files, flipped magic numbers, zero-length tables, hostile column names, mixed collations, oversized memos.
-2. **Secure contracts at the test seam, from both sides.** Where two layers share a convention (e.g. `StorageEngine` trait vs. Jet decoder, UI state vs. headless command API), there must be a test on **both** sides with a **shared** fixture source — otherwise one side "guesses" the other.
+2. **Secure contracts at the test seam, from both sides.** Where two layers share a convention (e.g. the `StoragePort` seam vs. a driver backend, UI state vs. headless command API), there must be a test on **both** sides with a **shared** fixture source — otherwise one side "guesses" the other.
 3. **In-memory mocks hide real-world behavior.** A fake storage backend that never touches the filesystem looks correct in tests and breaks on real files (encoding, byte order, sparse pages). Always exercise the real read/write path against committed fixture databases.
 4. **Silent error swallowing is diagnostic poison.** No bare `unwrap()`/`expect()` or ignored `Result` on fallible parse paths — a malformed file must produce a precise, locatable error, never "mysteriously does not work".
 

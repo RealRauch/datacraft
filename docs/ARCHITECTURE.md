@@ -41,7 +41,7 @@ the GUI does.
 │  │ datacraft-core — command bus, application state, pure     │  │
 │  │ reducers, UI-state snapshots, deterministic test IDs      │  │
 │  └───────────────────────────┬───────────────────────────────┘  │
-│                              │ StorageEngine trait (§6)          │
+│                              │ StoragePort seam (ADR-7)          │
 │  ┌───────────────────────────▼───────────────────────────────┐  │
 │  │ datacraft-storage                                         │  │
 │  │  ┌─────────────────────────────┐   ┌───────────────────┐  │  │
@@ -119,7 +119,7 @@ pub enum Command {
 pub enum Event { /* DatabaseOpened { .. }, TabOpened { .. }, .. */ }
 
 impl Core {
-    /// Pure reducer over application state; I/O happens behind ports (StorageEngine, fs).
+    /// Pure reducer over application state; I/O happens behind ports (StoragePort, fs).
     pub fn dispatch(&mut self, command: Command) -> Vec<Event>;
     /// Serializable snapshot of everything the UI shows — the headless test seam.
     pub fn inspect(&self) -> UiStateSnapshot; // serde::Serialize
@@ -193,8 +193,13 @@ families. `InsertRow`/`SqlRan` are port-level writes and the shadow-SQL
 engine reads every source through the port (see `docs/FORMAT-JET.md`
 §"SQLite backend").
 
-The `StorageEngine` snippet above is the historical Phase-2 record; the living
-boundary is the core-owned `StoragePort` trait. Since Phase 30 the driver
+The `StorageEngine` snippet above is the historical Phase-2 record; the
+living boundary is the core-owned `StoragePort` trait. The Phase-2 trait —
+with its in-memory reference backend and the `engine_boundary` suite — was
+**retired in Phase 31 (M21)**: one seam only (`StoragePort`, ADR-7). The
+contract assertions live on as the cross-driver `tests/port_contract.rs`
+suite and the per-driver capability invariants (`jet_capabilities`,
+`sqlite_capabilities`). Since Phase 30 the driver
 model — declarative capabilities, registry detection, out-of-tree driver
 crates — is governed by ADR-7 (§16).
 
@@ -290,7 +295,7 @@ datacraft/
 ├── rust-toolchain.toml         pinned toolchain (H3)
 ├── crates/
 │   ├── datacraft-core/         lib — domain, commands, state
-│   ├── datacraft-storage/      lib — StorageEngine + Jet/ACE backends
+│   ├── datacraft-storage/      lib — Jet/ACE + SQLite backends
 │   └── datacraft-ui/           bin — eframe desktop shell
 ├── fixtures/                   reference .mdb/.accdb databases (Ph. 2)
 ├── docs/                       PLAYBOOK, LESSONS, ARCHITECTURE, TESTING

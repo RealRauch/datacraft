@@ -5,7 +5,7 @@
 
 use std::fmt;
 
-/// Errors produced by any [`StorageEngine`](crate::StorageEngine) backend.
+/// Errors produced by any storage backend.
 #[derive(Debug)]
 pub enum StorageError {
     /// Underlying file I/O failure.

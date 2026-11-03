@@ -9,8 +9,8 @@ use crate::port::{
 };
 use crate::schema::{FieldValue, TableDef};
 
-/// In-memory backend for headless tests and early UI wiring (mirrors
-/// storage's `InMemoryEngine`; no filesystem involvement).
+/// In-memory backend for headless tests and early UI wiring (no filesystem
+/// involvement).
 #[derive(Debug, Default)]
 pub struct MockPort {
     tables: Vec<TableDef>,
