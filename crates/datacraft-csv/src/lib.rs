@@ -10,6 +10,17 @@
 //! Rows are addressed positionally in file order (data rows after the
 //! header). Non-text domain values render deterministically through the
 //! core's cell display (`Null` becomes an empty cell).
+//!
+//! ## Column type inference (L7)
+//!
+//! The schema kind of each column is inferred at open, deterministically,
+//! from a full scan: all-integer columns become `LongInteger`, all-float
+//! columns `Double`, all-ISO-date columns (`YYYY-MM-DD`) `DateTime`;
+//! anything else — and every ambiguous column — stays Short Text. Quoting
+//! is the user's escape hatch: one quoted cell pins the whole column to
+//! Short Text, and empty cells don't vote. Cell **values** still read as
+//! text; only the schema kind is inferred (the datasheet formats and
+//! parses by the declared kind).
 
 use std::path::{Path, PathBuf};
 
@@ -17,7 +28,7 @@ use datacraft_core::port::{
     DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
     RowRange, StoragePort, Support, window_slice,
 };
-use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
+use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 
 /// Maximum Short Text length of every CSV column.
 const MAX_LEN: u16 = 255;
@@ -303,7 +314,7 @@ impl CsvPort {
         let dir = self.dir.as_ref().ok_or_else(no_database)?;
         let def = self.definition_of(table)?;
         let file = dir.join(table_file_name(&def.name)?);
-        let records = parse_csv(&file)?;
+        let records = parse_records(&file, &read_table_text(&file)?)?;
         Ok(records.into_iter().skip(1).collect())
     }
 
@@ -366,10 +377,13 @@ fn collect_tables(dir: &Path) -> Result<Vec<TableDef>, PortError> {
     let mut tables = Vec::with_capacity(names.len());
     for stem in names {
         let file = dir.join(format!("{stem}.csv"));
-        let records = parse_csv(&file)?;
+        let text = read_table_text(&file)?;
+        let records = parse_records(&file, &text)?;
         let header = records.first().ok_or_else(|| PortError::OpenFailed {
             detail: format!("{}: the CSV file has no header row", file.display()),
         })?;
+        let mask = quote_mask(&text);
+        let kinds = infer_field_kinds(&records, &mask);
         let mut fields = Vec::with_capacity(header.len());
         for (index, column) in header.iter().enumerate() {
             if column.is_empty() {
@@ -377,27 +391,181 @@ fn collect_tables(dir: &Path) -> Result<Vec<TableDef>, PortError> {
                     detail: format!("{}: header column {index} has no name", file.display()),
                 });
             }
-            fields.push(FieldDef::new(
-                column.clone(),
-                FieldKind::Text { max_len: MAX_LEN },
-            ));
+            fields.push(FieldDef::new(column.clone(), kinds[index]));
         }
         tables.push(TableDef::new(stem, fields));
     }
     Ok(tables)
 }
 
-/// Parses one CSV file into uniform records; ragged rows and non-UTF-8
-/// content fail with a locatable reason (LESSONS #4).
-fn parse_csv(file: &Path) -> Result<Vec<Vec<String>>, PortError> {
+/// Conservative, deterministic type inference per column (step 36.5,
+/// item L7), decided at open from a full scan and stable across opens:
+///
+/// - every unquoted, non-empty cell of a column parses as a strict
+///   integer → `LongInteger`;
+/// - otherwise every such cell parses as a strict float → `Double`;
+/// - otherwise every such cell is an ISO date (`YYYY-MM-DD`) →
+///   `DateTime`;
+/// - anything else stays Short Text.
+///
+/// Quoting is the user's escape hatch (CSV semantics): **any** quoted
+/// cell in a column pins the whole column to Short Text — a column-level
+/// schema can never honor per-cell quoting, so ambiguity never guesses.
+/// Empty cells don't vote. Cells stay text at the value level; only the
+/// schema kind is inferred.
+fn infer_field_kinds(records: &[Vec<String>], mask: &[Vec<bool>]) -> Vec<FieldKind> {
+    let Some(header) = records.first() else {
+        return Vec::new();
+    };
+    let mut kinds = vec![FieldKind::Text { max_len: MAX_LEN }; header.len()];
+    for (col, kind) in kinds.iter_mut().enumerate() {
+        let mut any = false;
+        let mut all_int = true;
+        let mut all_float = true;
+        let mut all_date = true;
+        let mut any_quoted = false;
+        for (row, cells) in records.iter().enumerate().skip(1) {
+            let Some(cell) = cells.get(col) else {
+                any = false;
+                break;
+            };
+            if mask
+                .get(row)
+                .and_then(|cells| cells.get(col))
+                .copied()
+                .unwrap_or(false)
+            {
+                any_quoted = true;
+                continue;
+            }
+            if cell.is_empty() {
+                continue;
+            }
+            any = true;
+            all_int &= is_strict_int(cell);
+            all_float &= is_strict_float(cell);
+            all_date &= is_iso_date(cell);
+        }
+        if !any || any_quoted {
+            continue;
+        }
+        *kind = if all_int {
+            FieldKind::Number(NumericKind::LongInteger)
+        } else if all_float {
+            FieldKind::Number(NumericKind::Double)
+        } else if all_date {
+            FieldKind::DateTime
+        } else {
+            FieldKind::Text { max_len: MAX_LEN }
+        };
+    }
+    kinds
+}
+
+/// A strict integer: optional minus, digits only (no sign-plus, no
+/// whitespace — the conservative side).
+fn is_strict_int(cell: &str) -> bool {
+    let digits = cell.strip_prefix('-').unwrap_or(cell);
+    !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// A strict float: parses as f64 without infinities or NaN (the accepted
+/// spellings of those contain letters; digits, sign, dot and exponent
+/// notation stay allowed).
+fn is_strict_float(cell: &str) -> bool {
+    cell.parse::<f64>().is_ok()
+        && cell
+            .bytes()
+            .all(|b| b.is_ascii_digit() || matches!(b, b'-' | b'+' | b'.' | b'e' | b'E'))
+}
+
+/// A strict ISO date: `YYYY-MM-DD` with a plausible month and day.
+fn is_iso_date(cell: &str) -> bool {
+    let bytes = cell.as_bytes();
+    if bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
+        return false;
+    }
+    let (y, m, d) = (&bytes[0..4], &bytes[5..7], &bytes[8..10]);
+    let digits = |slice: &[u8]| slice.iter().all(|b| b.is_ascii_digit());
+    let number = |slice: &[u8]| -> u32 {
+        slice
+            .iter()
+            .fold(0u32, |acc, b| acc * 10 + u32::from(b - b'0'))
+    };
+    digits(y)
+        && digits(m)
+        && digits(d)
+        && (1..=12).contains(&number(m))
+        && (1..=31).contains(&number(d))
+}
+
+/// Marks which parsed cells were quoted in the raw text (L7): a small
+/// RFC-4180 state machine over the same bytes the CSV crate parsed —
+/// quoted fields, escaped `""` quotes and embedded commas/newlines stay
+/// inside the quotes. Only the *flag* is consumed (for inference); the
+/// parsed records remain the csv crate's single source of truth. A mask
+/// that disagrees with the records degrades to all-unquoted.
+fn quote_mask(text: &str) -> Vec<Vec<bool>> {
+    let mut rows: Vec<Vec<bool>> = Vec::new();
+    let mut row: Vec<bool> = Vec::new();
+    let mut cell_quoted = false;
+    let mut in_quotes = false;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if in_quotes {
+            if c == '"' {
+                if chars.peek() == Some(&'"') {
+                    chars.next();
+                } else {
+                    in_quotes = false;
+                }
+            }
+        } else {
+            match c {
+                '"' => {
+                    in_quotes = true;
+                    cell_quoted = true;
+                }
+                ',' => {
+                    row.push(cell_quoted);
+                    cell_quoted = false;
+                }
+                '\n' => {
+                    row.push(cell_quoted);
+                    rows.push(std::mem::take(&mut row));
+                    cell_quoted = false;
+                }
+                _ => {}
+            }
+        }
+    }
+    if !row.is_empty() || rows.is_empty() {
+        row.push(cell_quoted);
+        rows.push(row);
+    }
+    rows
+}
+
+/// Reads one table file as UTF-8 text with a leading BOM stripped — the
+/// single read that feeds parsing and the L7 quote mask alike;
+/// non-UTF-8 content fails with a locatable reason (LESSONS #4).
+fn read_table_text(file: &Path) -> Result<String, PortError> {
     let bytes = std::fs::read(file).map_err(|e| PortError::OpenFailed {
         detail: format!("{}: {e}", file.display()),
     })?;
     let text = String::from_utf8(bytes).map_err(|e| PortError::OpenFailed {
         detail: format!("{}: not valid UTF-8: {e}", file.display()),
     })?;
-    // A leading UTF-8 BOM is stripped; anything else parses verbatim.
-    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+    match text.strip_prefix('\u{feff}') {
+        Some(stripped) => Ok(stripped.to_owned()),
+        None => Ok(text),
+    }
+}
+
+/// Parses one CSV text into uniform records; ragged rows fail with a
+/// locatable reason naming the file (LESSONS #4). The caller reads the
+/// file once (the same text feeds the L7 quote mask).
+fn parse_records(file: &Path, text: &str) -> Result<Vec<Vec<String>>, PortError> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
         .flexible(false)
