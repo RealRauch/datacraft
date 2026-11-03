@@ -437,7 +437,7 @@ impl App {
                 | Event::Redone { table }
                 | Event::TableAltered { table, .. }
                 | Event::WriteApplied { table, .. }
-                | Event::WriteRolledBack { table } => Some(table.to_lowercase()),
+                | Event::WriteRolledBack { table, .. } => Some(table.to_lowercase()),
                 _ => None,
             })
             .collect();
