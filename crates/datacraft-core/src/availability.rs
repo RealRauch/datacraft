@@ -14,8 +14,12 @@ use crate::port::{DriverCapabilities, Support};
 /// Stable key naming why an affordance is unavailable for the open
 /// source. Locale-neutral on the wire (ADR-4): the UI resolves it
 /// through its catalog; agents read the snake_case spelling.
+///
+/// `#[non_exhaustive]` (M32): every new capability affordance adds a
+/// variant; clients match with a wildcard arm.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum DisabledReason {
     /// The driver cannot create tables for this source.
     CreateTables,

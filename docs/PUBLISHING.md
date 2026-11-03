@@ -46,9 +46,13 @@ is a decision, not an oversight; revisit only if a library consumer appears.
   every published crate. `rust-toolchain.toml` pins the *development*
   toolchain and is not the MSRV contract. An MSRV bump is a minor-version
   change (pre-1.0) and is called out in the changelog.
-- **Vocabulary stability (M22):** `Support`, `PortError` and `Command` are
+- **Vocabulary stability (M22/M32):** `Support`, `PortError`, `Command`,
+  `Event`, `DisabledReason`, `DatabaseFormat` and `SchemaChange` are
   `#[non_exhaustive]` — adding variants is additive for out-of-tree drivers
-  and clients (wildcard match arms).
+  and clients (wildcard match arms). Snapshot structs (`UiStateSnapshot`,
+  `DatabaseSnapshot` and the entry types) are **read-only**: field access is
+  the contract; constructing or exhaustively destructuring them is not
+  (adding a field is an additive change in practice).
 - **`DriverCapabilities` field additions (M22 / ADR-7 item 6c):** a new
   capability field is additive **only if** both reference constructors
   (`DriverCapabilities::none()` and `::full()`) carry a value for it.

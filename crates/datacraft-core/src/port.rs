@@ -19,8 +19,12 @@ pub use native_query::{
 
 /// Binary format family of an opened database (domain vocabulary; the
 /// backends map their physical version detection onto it).
+///
+/// `#[non_exhaustive]` (M32): ADR-7's server path adds format families;
+/// clients match with a wildcard arm.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum DatabaseFormat {
     /// Jet 3.x (Access 97 and earlier).
     Jet3,
@@ -305,7 +309,11 @@ pub trait StoragePort {
 }
 
 /// One schema change of an `alter_table` call (step 24.3, item M9).
+///
+/// `#[non_exhaustive]` (M32): new alter operations are additive for
+/// out-of-crate drivers.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaChange {
     /// Appends one field (the new last column).
     AddField {

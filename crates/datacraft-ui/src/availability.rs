@@ -16,6 +16,9 @@ pub fn reason_text(reason: &DisabledReason) -> &'static str {
         DisabledReason::WriteRows => t("the open source is read-only"),
         DisabledReason::NoRelationships => t("the open source has no relationships"),
         DisabledReason::NoPasswords => t("the open source has no database passwords"),
+        // `DisabledReason` is non_exhaustive (M32): a reason from a newer
+        // core still renders a localized, honest sentence.
+        _ => t("the open source does not support this action"),
     }
 }
 

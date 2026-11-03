@@ -147,6 +147,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Die geöffnete Datenquelle hat keine Beziehungen",
     ),
     (
+        "the open source does not support this action",
+        "Die geöffnete Datenquelle unterstützt diese Aktion nicht",
+    ),
+    (
         "A recent database was removed because it no longer exists: {path}",
         "Eine zuletzt verwendete Datenbank wurde entfernt, weil sie nicht mehr existiert: {path}",
     ),

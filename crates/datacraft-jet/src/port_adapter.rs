@@ -167,6 +167,11 @@ impl StoragePort for Jet4Port {
                 reason: "CSV directories are created by the CSV driver, not the Jet backend"
                     .to_owned(),
             }),
+            // `DatabaseFormat` is non_exhaustive (M32): a family this build
+            // does not know is refused precisely.
+            other => Err(PortError::Unsupported {
+                reason: format!("the Jet backend does not create {other:?} databases"),
+            }),
         }
     }
 

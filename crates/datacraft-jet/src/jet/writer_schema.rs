@@ -195,6 +195,11 @@ impl Jet4Writer {
                 }
                 RowChange::Identity
             }
+            other => {
+                return Err(StorageError::Unsupported {
+                    reason: format!("schema change {other:?} is not supported by the Jet writer"),
+                });
+            }
         };
 
         let mut updated = build_table_def(

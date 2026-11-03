@@ -10,7 +10,12 @@ use crate::ids::TabId;
 use crate::port::{DatabaseFormat, Relationship};
 
 /// One observable outcome of a dispatched command.
+///
+/// `#[non_exhaustive]` (M22/M32, ADR-7): events grow with the features, and
+/// adding one is not a breaking change for clients compiled against a
+/// published engine — out-of-crate consumers match with a wildcard arm.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Event {
     /// A database was opened successfully.
     DatabaseOpened {
