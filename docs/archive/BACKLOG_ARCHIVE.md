@@ -1039,3 +1039,12 @@
 - **Approach:** Make the three `impl`-only modules private (the `impl Core` blocks keep working) and document `MockPort` in PUBLISHING as a supported testing surface (or gate it behind a `test-support` feature if it should not be a default dependency).
 - **Acceptance:** No public module is empty; PUBLISHING states the `MockPort` contract; `cargo doc` shows only real modules; no API consumer breaks.
 - **Done:** fixed in `7ee7954`: the impl-only modules are private, and PUBLISHING documents MockPort as a supported testing surface (not a production backend)
+
+---
+
+### [x] M32 — Wire vocabularies beyond M22 lack non_exhaustive — 🟡
+- **Location:** `crates/datacraft-core/src/event.rs:14` (`Event`), `src/availability.rs:19` (`DisabledReason`), `src/port.rs:24` (`DatabaseFormat`), `src/port.rs:309` (`SchemaChange`); `docs/PUBLISHING.md` "Vocabulary stability (M22)".
+- **Problem:** M22 made `Command`, `Support` and `PortError` `#[non_exhaustive]`, but the other vocabulary the family is documented to grow is not: `Event` gains a variant with nearly every feature (the direct response shape to `Command`), `DisabledReason` gains one per capability affordance (L18 will add `AlterTables`), `DatabaseFormat` gains one per new driver family (ADR-7 server path), `SchemaChange` per new alter operation. Adding any of them is a breaking change for out-of-crate consumers that match exhaustively, contradicting the M22 promise for the client-facing half of the vocabulary. The snapshot structs are a related case: adding a field breaks struct-literal construction, which is currently not documented as out of contract.
+- **Approach:** Mark the four enums `#[non_exhaustive]` with the same rationale as M22, extend the publishing policy's vocabulary list, and state that snapshot structs are read-only (field access is the contract, construction is internal). In-crate matches already use wildcards where needed; fix any that become non-exhaustive.
+- **Acceptance:** The four enums are `#[non_exhaustive]`, `docs/PUBLISHING.md` lists them and the snapshot contract, an out-of-crate consumer compiled with wildcard arms still builds, and the wire/serde shape is unchanged.
+- **Done:** fixed in `011bc76`: Event, DisabledReason, DatabaseFormat and SchemaChange are non_exhaustive; Jet and UI wildcards answer precise/localized fallbacks; PUBLISHING lists the vocabulary and states the read-only snapshot contract
