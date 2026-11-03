@@ -623,3 +623,22 @@ fn free_map_above_eof_fails_instead_of_underflowing() {
         .expect_err("window above EOF must fail");
     assert!(!err.to_string().is_empty(), "{err}");
 }
+
+/// M28 regression: a non-finite double in the file must be refused at the
+/// read boundary — the domain model (and every wire serialization) requires
+/// finite floats.
+#[test]
+fn non_finite_doubles_are_refused_at_the_read_boundary() {
+    let columns = [JetColumn::new("V", JetType::Double, 0x01, 0, 0, 8)];
+    for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let mut file = file_shell(3);
+        support::write_tdef(&mut file, 1, 1, 0x4E, &columns);
+        let row = build_row(1, &value.to_le_bytes(), &[], &[true]);
+        support::write_data_page(&mut file, 2, 1, &[row]);
+        let reader = Jet4TableReader::new(file).expect("reader");
+        let err = reader
+            .read_table(1)
+            .expect_err("non-finite doubles must be refused");
+        assert!(err.to_string().contains("finite"), "{value}: {err}");
+    }
+}
