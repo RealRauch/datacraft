@@ -60,6 +60,34 @@ fn argument_scan_skips_noise_and_unterminated_runs() {
 }
 
 #[test]
+fn argument_scan_strips_expression_type_markers() {
+    // Access prefixes expression-form arguments with value-type markers
+    // (`<` string literal, `$`, `&`, `"`, `,`) and may carry a record tag
+    // byte in front of the marker (observed on the self-created
+    // programmability fixture). The remainder starts with a letter or a
+    // bracketed name — stored argument text never begins with these
+    // markers themselves.
+    let long = "'<Inventory sample ready.\0[StockLevel] > 0\0$Category Picker\0&Items In Stock\0";
+    let bytes: Vec<u8> = long.encode_utf16().flat_map(u16::to_le_bytes).collect();
+    assert_eq!(
+        decode_arguments(&bytes),
+        vec![
+            "Inventory sample ready.".to_owned(),
+            "[StockLevel] > 0".to_owned(),
+            "Category Picker".to_owned(),
+            "Items In Stock".to_owned(),
+        ]
+    );
+    // A marker followed by anything but a letter, a bracket or another
+    // marker is part of the text and stays untouched.
+    let untouched: Vec<u8> = "< 2 and 2 make 4\0"
+        .encode_utf16()
+        .flat_map(u16::to_le_bytes)
+        .collect();
+    assert_eq!(decode_arguments(&untouched), vec!["< 2 and 2 make 4"]);
+}
+
+#[test]
 fn macro_arguments_need_a_scripts_storage_and_a_blob() {
     let without_scripts = storage(vec![entry(1, 1, 1, "Root", &[])]);
     assert!(without_scripts.macro_arguments("AutoExec").is_none());
