@@ -22,6 +22,13 @@ the versions it compiles against exist on the registry:
 6. `datacraft-mcp` — headless stdio JSON-RPC 2.0 endpoint
    (`cargo install datacraft-mcp`).
 
+**Testing surface:** `datacraft_core::port::MockPort` is public on purpose —
+it lets out-of-crate clients drive `Core` over the command bus in their own
+tests without a database file. Its behaviour is part of the supported API
+(the same contract the real drivers implement where they overlap); it is not
+a production backend. The modules that only host `impl Core` blocks are
+private, so docs.rs shows no empty modules.
+
 **Not published:** `datacraft-ui`. The desktop shell ships only through the
 release archives — its value is the application, its dependency tree
 (eframe/wgpu/fonts) is large, and it has no library consumer. This exclusion
