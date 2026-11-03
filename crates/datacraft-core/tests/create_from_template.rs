@@ -92,3 +92,47 @@ fn template_commands_round_trip_through_json() {
     let back: Command = serde_json::from_str(&json).expect("deserialize command");
     assert_eq!(back, command);
 }
+
+/// M27 regression: materializing a template must never steal the port
+/// session of an open database (the command is rejected while one is open).
+#[test]
+fn creating_from_a_template_leaves_an_open_database_untouched() {
+    use datacraft_core::port::RowRange;
+    use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
+
+    let table = TableDef::new(
+        "Customers",
+        vec![FieldDef::new("name", FieldKind::Text { max_len: 20 })],
+    );
+    let mut port = MockPort::with_tables(vec![table]);
+    port.with_row_data(
+        "Customers",
+        vec![vec![FieldValue::Text("Ada".into())]],
+    );
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "memory.mock".into(),
+        password: None,
+    });
+    let range = RowRange { start: 0, len: 10 };
+    let before = core.read_rows("Customers", range).expect("rows before");
+
+    let path = scratch("contacts-while-open.mdb");
+    let events = core.dispatch(Command::CreateDatabaseFromTemplate {
+        path: path.clone(),
+        template: "contacts".into(),
+    });
+    assert!(
+        matches!(
+            events.as_slice(),
+            [Event::Failed { reason }] if reason.contains("close the open database")
+        ),
+        "{events:?}"
+    );
+    assert!(core.inspect().database.is_some(), "the open database stays in state");
+    assert_eq!(
+        core.read_rows("Customers", range).expect("the open database stays usable"),
+        before,
+        "the port session must not be replaced by the template materialization"
+    );
+}
