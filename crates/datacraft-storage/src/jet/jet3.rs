@@ -96,6 +96,7 @@ impl JetTableDef {
                 len,
                 scale: (misc & 0xFF) as u8,
                 compressed_text: false, // Jet3 has no unicode compression
+                indexed: datacraft_core::schema::IndexMode::None,
             });
             at += 18;
         }
@@ -123,6 +124,10 @@ impl JetTableDef {
             columns,
             used_pages,
             free_pages,
+            indexes: Vec::new(),
+            index_section: Vec::new(),
+            index_count: 0,
+            real_index_count: 0,
         })
     }
 }

@@ -60,6 +60,7 @@ pub(crate) fn table_to_columns(definition: &TableDef) -> Result<Vec<JetColumn>, 
             len,
         );
         column.scale = scale;
+        column.indexed = field.properties.indexed;
         columns.push(column);
     }
     Ok(columns)

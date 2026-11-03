@@ -68,6 +68,19 @@ impl FieldProperties {
                 detail: "allow_zero_length applies only to text and memo fields".to_owned(),
             });
         }
+        if self.indexed != IndexMode::None
+            && matches!(
+                kind,
+                FieldKind::Memo
+                    | FieldKind::Binary(_)
+                    | FieldKind::MultiValue(_)
+                    | FieldKind::Complex
+            )
+        {
+            return Err(SchemaError::InvalidProperty {
+                detail: format!("indexing is not supported for {} fields", kind.family()),
+            });
+        }
         for name in EXPRESSION_PROPERTIES {
             let value = match name {
                 "input_mask" => &self.input_mask,

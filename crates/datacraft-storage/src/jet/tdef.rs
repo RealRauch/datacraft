@@ -2,10 +2,14 @@
 //!
 //! Layout reference: `docs/FORMAT-JET.md` ("Table definition pages"). The
 //! block is read from offset 8 of the TDEF page (after the 8-byte page
-//! header). Multi-page TDEFs and index blocks are parsed (currently only to
-//! skip them); their semantics arrive with the oracle step.
+//! header). Multi-page TDEFs and the index section are parsed; the index
+//! metadata feeds uniqueness enforcement and the domain `IndexMode`
+//! (step 32.2, item M15).
+
+use datacraft_core::schema::IndexMode;
 
 use crate::error::StorageError;
+use crate::jet::index::JetIndex;
 use crate::types::StorageDataType;
 
 /// Logical Jet/ACE column type (TDEF type byte).
@@ -129,6 +133,9 @@ pub struct JetColumn {
     pub scale: u8,
     /// True when the text column uses compressed unicode.
     pub compressed_text: bool,
+    /// Domain index mode restored from the TDEF index metadata (step 32.2,
+    /// item M15).
+    pub indexed: IndexMode,
 }
 
 impl JetColumn {
@@ -152,6 +159,7 @@ impl JetColumn {
             len,
             scale: 0,
             compressed_text: false,
+            indexed: IndexMode::None,
         }
     }
 
@@ -194,6 +202,14 @@ pub struct JetTableDef {
     pub used_pages: u32,
     /// Raw `free_pages` dword (same packing, map of pages with free space).
     pub free_pages: u32,
+    /// Decoded logical indexes (step 32.2, item M15).
+    pub indexes: Vec<JetIndex>,
+    /// Raw TDEF index section after the column names.
+    pub index_section: Vec<u8>,
+    /// `num_idx` (logical index count) of the raw section.
+    pub index_count: u32,
+    /// `num_real_idx` (physical index count) of the raw section.
+    pub real_index_count: u32,
 }
 
 impl JetTableDef {
@@ -344,6 +360,7 @@ impl JetTableDef {
                 len,
                 scale: (misc & 0xFF) as u8,
                 compressed_text: misc_flags & 0x01 != 0,
+                indexed: IndexMode::None,
             });
             at += 25;
         }
@@ -367,12 +384,29 @@ impl JetTableDef {
         }
         let _ = max_cols; // validated implicitly: num_cols <= max_cols is a real-file check
         let _ = num_var_cols; // used by the oracle comparison in step 2.4
-        // Skip index blocks: real-index blocks, logical-index blocks, names.
-        at += num_real_idx * 52;
-        at += num_idx * 28;
-        for _ in 0..num_idx {
-            let name_len = le::u16(b, at, "index name_len")? as usize;
-            at += 2 + name_len; // byte length
+        // Index section: physical blocks, logical blocks, names. Decode
+        // the logical indexes and keep the raw prefix for unrelated
+        // rewrites (step 32.2, item M15).
+        let section = b.get(at..).ok_or_else(|| StorageError::Corrupt {
+            context: "table definition".into(),
+            detail: "truncated before the index section".to_owned(),
+        })?;
+        let (indexes, consumed) =
+            crate::jet::index::decode_section(section, num_idx, num_real_idx)?;
+        let index_section = section[..consumed].to_vec();
+        at += consumed;
+        for column in &mut columns {
+            let mut mode = IndexMode::None;
+            for index in &indexes {
+                if index.single_column() == Some(column.column_id) {
+                    if index.unique {
+                        mode = IndexMode::NoDuplicates;
+                        break;
+                    }
+                    mode = IndexMode::DuplicatesOk;
+                }
+            }
+            column.indexed = mode;
         }
         // Variable-column usage-map pointers terminate with 0xFFFF.
         if let Some(mut ptr) = b.get(at..at + 2).map(|p| u16::from_le_bytes([p[0], p[1]])) {
@@ -396,6 +430,10 @@ impl JetTableDef {
             columns,
             used_pages,
             free_pages,
+            indexes,
+            index_section,
+            index_count: num_idx as u32,
+            real_index_count: num_real_idx as u32,
         })
     }
 }

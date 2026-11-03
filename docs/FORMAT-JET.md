@@ -147,6 +147,35 @@ Database, Connect, ForeignName, RmtInfoShort, RmtInfoLong, Lv, LvProp,
 LvModule, LvExtra = col_num 0–16); decoded columns are therefore presented
 sorted by `col_num`.
 
+## TDEF index metadata (2026-11-03, step 32.2, item M15)
+
+Layout after the column names (public MDB Tools `HACKING` documentation,
+verified against `testV2000.mdb` Table4 and the Northwind ACE fixture):
+
+- `num_real_idx` × 12-byte statistics descriptors (`idx_rows1` u32,
+  `idx_rows2` u32, zero u32) — written as zeros, only loose hints.
+- `num_real_idx` × 52-byte physical blocks: tag `0x00000783`; ten 3-byte
+  slots (`col_num` u16, `col_order` u8, ascending = 1); unused slots carry
+  `0xFFFF`; `used_pages`/`first_dp` (usage-map and index-root record
+  pointers); one unknown dword; `flags` at +46 (`0x01` unique, `0x02`
+  ignore NULLs, `0x08` required, `0x80` Access-2000 marker); `complex_idx`
+  at +47; four unknown bytes.
+- `num_idx` × 28-byte logical blocks: tag `0x00000659`; `index_num`,
+  `index_num2` (physical block), relation fields, `index_type` at +23
+  (`0x01` primary, `0x02` foreign).
+- `num_idx` name entries: u16 **byte** length + UCS-2LE, parallel to the
+  logical blocks.
+
+Writer policy (M15): one real + logical index per field whose
+`FieldProperties.indexed` is not `None`; `NoDuplicates` sets the unique
+flag, every generated index ignores NULLs. Physical B-tree pages are **not**
+written (`first_dp` = 0) — a documented roadmap item; Access may rebuild
+the index on open. Uniqueness is enforced by the port on insert/update and
+over a whole journal batch. Existing index sections are preserved verbatim
+on unrelated row writes; `alter_table` re-encodes the index list (statistics
+and page pointers zeroed) and refuses a new unique index when the column
+already contains duplicates. Index names are the field names.
+
 ## Real-row tail semantics (RESOLVED 2026-11-01 — BACKLOG T2)
 
 The documented tail order `[eod][var_table reverse][var_len][null mask]` and

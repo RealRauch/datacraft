@@ -34,6 +34,10 @@ fn user_table() -> JetTableDef {
         ],
         used_pages: 0,
         free_pages: 0,
+        indexes: Vec::new(),
+        index_section: Vec::new(),
+        index_count: 0,
+        real_index_count: 0,
     }
 }
 

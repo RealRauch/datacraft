@@ -11,6 +11,7 @@ pub mod crypto;
 pub mod data_page;
 pub mod encode;
 pub mod header;
+pub mod index;
 pub mod jet3;
 pub mod lval;
 pub mod page;

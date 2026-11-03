@@ -242,6 +242,7 @@ pub fn build_table_def(
             col
         })
         .collect();
+    let (index_section, index_count, real_index_count) = crate::jet::index::build_section(&derived);
     JetTableDef {
         table_type,
         num_rows,
@@ -256,13 +257,23 @@ pub fn build_table_def(
         columns: derived,
         used_pages,
         free_pages,
+        indexes: crate::jet::index::decode_section(
+            &index_section,
+            index_count as usize,
+            real_index_count as usize,
+        )
+        .map(|(indexes, _)| indexes)
+        .unwrap_or_default(),
+        index_section,
+        index_count,
+        real_index_count,
     }
 }
 
 /// Encodes the TDEF block (inverse of `JetTableDef::decode`'s block parse):
-/// 55-byte fixed header, `num_real_idx` × 12 (zero — no indexes yet), 25-byte
-/// column descriptors in column-id order, UCS-2 names, per-variable usage-map
-/// pointers terminated by `0xFFFF`.
+/// 55-byte fixed header, `num_real_idx` × 12 zero statistics descriptors,
+/// 25-byte column descriptors in column-id order, UCS-2 names, the raw index
+/// section, per-variable usage-map pointers terminated by `0xFFFF`.
 pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
     let columns = &def.columns;
     let num_var = columns.iter().filter(|c| !c.is_fixed()).count();
@@ -279,10 +290,13 @@ pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
     block.extend_from_slice(&(columns.len() as u16).to_le_bytes()); // max_cols
     block.extend_from_slice(&(num_var as u16).to_le_bytes());
     block.extend_from_slice(&(columns.len() as u16).to_le_bytes());
-    block.extend_from_slice(&0u32.to_le_bytes()); // num_idx
-    block.extend_from_slice(&0u32.to_le_bytes()); // num_real_idx
+    block.extend_from_slice(&def.index_count.to_le_bytes()); // num_idx
+    block.extend_from_slice(&def.real_index_count.to_le_bytes()); // num_real_idx
     block.extend_from_slice(&def.used_pages.to_le_bytes());
     block.extend_from_slice(&def.free_pages.to_le_bytes());
+    // Per-real-index row statistics: zero is the observed/expected shape
+    // (the counts are loose hints, not used for reads).
+    block.extend_from_slice(&vec![0u8; def.real_index_count as usize * 12]);
     for col in columns {
         block.push(col.data_type as u8);
         block.extend_from_slice(&0u32.to_le_bytes()); // unknown
@@ -304,6 +318,7 @@ pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
             block.extend_from_slice(&unit.to_le_bytes());
         }
     }
+    block.extend_from_slice(&def.index_section);
     block.extend_from_slice(&0xFFFFu16.to_le_bytes()); // usage-pointer terminator
     let len = block.len() as u32;
     block[..4].copy_from_slice(&len.to_le_bytes());

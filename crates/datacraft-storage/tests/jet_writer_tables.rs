@@ -19,6 +19,10 @@ fn row_encoder_round_trips_every_type() {
         autonumber: 0,
         used_pages: 0,
         free_pages: 0,
+        indexes: Vec::new(),
+        index_section: Vec::new(),
+        index_count: 0,
+        real_index_count: 0,
         columns: vec![
             JetColumn::new("Id", JetType::LongInt, 0x03, 0, 0, 4),
             JetColumn::new("Price", JetType::Currency, 0x03, 1, 4, 8),
@@ -62,6 +66,10 @@ fn row_encoder_handles_nulls_and_empty_slots() {
         autonumber: 0,
         used_pages: 0,
         free_pages: 0,
+        indexes: Vec::new(),
+        index_section: Vec::new(),
+        index_count: 0,
+        real_index_count: 0,
         columns: vec![
             JetColumn::new("Id", JetType::LongInt, 0x03, 0, 0, 4),
             JetColumn::new("Name", JetType::Text, 0x02, 1, 0, 20),

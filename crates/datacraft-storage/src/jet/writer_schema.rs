@@ -12,6 +12,7 @@ use datacraft_core::port::SchemaChange;
 
 use crate::error::StorageError;
 use crate::jet::encode::{build_table_def, encode_tdef};
+use crate::jet::index::{self, JetIndex};
 use crate::jet::reader::Jet4TableReader;
 use crate::jet::tdef::{JetColumn, JetTableDef, flags};
 use crate::jet::writer::Jet4Writer;
@@ -53,6 +54,7 @@ impl Jet4Writer {
         let reader = Jet4TableReader::from_decrypted(self.file.clone(), None)?;
         let old_rows = reader.read_table(tdef_page)?.rows;
         let mut columns = old.columns.clone();
+        let mut indexes = old.indexes.clone();
         let row_change = match change {
             SchemaChange::AddField { field } => {
                 if old
@@ -85,6 +87,16 @@ impl Jet4Writer {
                     .map(|existing| existing.column_id)
                     .max()
                     .map_or(0, |max| max.saturating_add(1));
+                if column.indexed != datacraft_core::schema::IndexMode::None {
+                    indexes.push(JetIndex {
+                        name: field.name.clone(),
+                        columns: vec![column.column_id],
+                        unique: column.indexed == datacraft_core::schema::IndexMode::NoDuplicates,
+                        required: false,
+                        primary: false,
+                        foreign: false,
+                    });
+                }
                 columns.push(column);
                 RowChange::AddNull
             }
@@ -95,7 +107,21 @@ impl Jet4Writer {
                         reason: "a table must keep at least one field".to_owned(),
                     });
                 }
+                let dropped = columns[index].column_id;
                 columns.remove(index);
+                // Indexes that reference the dropped column are removed;
+                // the remaining ids shift down with the dense renumbering.
+                indexes.retain_mut(|entry| {
+                    if entry.columns.contains(&dropped) {
+                        return false;
+                    }
+                    for column in &mut entry.columns {
+                        if *column > dropped {
+                            *column -= 1;
+                        }
+                    }
+                    true
+                });
                 // Rows store a prefix of the column-id space (decoder rule);
                 // dropping a column therefore renumbers the remaining ids
                 // densely so every existing row stays within the prefix.
@@ -123,11 +149,49 @@ impl Jet4Writer {
                 // The TDEF stores only the nullability bit; the full
                 // property sheet is DataCraft's sidecar authority (H45).
                 let index = column_index(&columns, field)?;
+                if properties.indexed == datacraft_core::schema::IndexMode::NoDuplicates
+                    && columns[index].indexed != datacraft_core::schema::IndexMode::NoDuplicates
+                {
+                    let column_id = columns[index].column_id as usize;
+                    let mut seen: Vec<crate::types::StorageValue> = Vec::new();
+                    for row in &old_rows {
+                        let value = row
+                            .get(column_id)
+                            .cloned()
+                            .unwrap_or(crate::types::StorageValue::Null);
+                        if matches!(value, crate::types::StorageValue::Null) {
+                            continue;
+                        }
+                        if seen.contains(&value) {
+                            return Err(StorageError::Unsupported {
+                                reason: format!(
+                                    "field {:?} already contains the duplicate value {value:?}                                      — a unique index cannot be created",
+                                    columns[index].name
+                                ),
+                            });
+                        }
+                        seen.push(value);
+                    }
+                }
                 let column = &mut columns[index];
                 if properties.required {
                     column.flags &= !flags::NULLABLE;
                 } else {
                     column.flags |= flags::NULLABLE;
+                }
+                column.indexed = properties.indexed;
+                let column_id = column.column_id;
+                indexes.retain(|entry| entry.single_column() != Some(column_id));
+                if properties.indexed != datacraft_core::schema::IndexMode::None {
+                    indexes.push(JetIndex {
+                        name: column.name.clone(),
+                        columns: vec![column_id],
+                        unique: properties.indexed
+                            == datacraft_core::schema::IndexMode::NoDuplicates,
+                        required: false,
+                        primary: false,
+                        foreign: false,
+                    });
                 }
                 RowChange::Identity
             }
@@ -141,6 +205,11 @@ impl Jet4Writer {
             old.free_pages,
         );
         updated.autonumber = old.autonumber;
+        let (section, index_count, real_index_count) = index::encode_section(&indexes);
+        updated.index_section = section;
+        updated.index_count = index_count;
+        updated.real_index_count = real_index_count;
+        updated.indexes = indexes;
         let block = encode_tdef(&updated);
         let base = self.header.page_offset(tdef_page)? as usize;
         let page_size = self.header.page_size;

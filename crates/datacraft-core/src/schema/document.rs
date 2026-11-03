@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use super::def::TableDef;
 use super::def::validate_object_name;
 use super::error::SchemaError;
+use super::properties::IndexMode;
 use crate::qbe::QueryDef;
 
 /// Version this DataCraft writes. Bump when the document format changes and
@@ -153,7 +154,15 @@ impl SchemaDocument {
                         ),
                     });
                 };
+                // Physical index metadata is authoritative for `indexed`
+                // (step 32.2, M15); the sidecar carries the other properties
+                // and may describe an index for sources without a physical
+                // catalog (or pre-M15 sidecars).
+                let physical_indexed = target_field.properties.indexed;
                 target_field.properties = source_field.properties.clone();
+                if physical_indexed != IndexMode::None {
+                    target_field.properties.indexed = physical_indexed;
+                }
             }
             target.validate()?;
         }
@@ -178,7 +187,15 @@ impl SchemaDocument {
                     .iter_mut()
                     .find(|field| field.name.eq_ignore_ascii_case(&source_field.name))
                 {
+                    // Physical index metadata is authoritative for `indexed`
+                    // (step 32.2, M15); the sidecar carries the other properties
+                    // and may describe an index for sources without a physical
+                    // catalog (or pre-M15 sidecars).
+                    let physical_indexed = target_field.properties.indexed;
                     target_field.properties = source_field.properties.clone();
+                    if physical_indexed != IndexMode::None {
+                        target_field.properties.indexed = physical_indexed;
+                    }
                 }
             }
         }

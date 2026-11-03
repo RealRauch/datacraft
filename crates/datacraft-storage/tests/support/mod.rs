@@ -210,13 +210,16 @@ pub fn write_tdef_with_indexes(
         block.extend_from_slice(&((col.name.chars().count() * 2) as u16).to_le_bytes()); // UCS-2 byte length
         block.extend_from_slice(&name);
     }
-    block.extend_from_slice(&[0u8; 52]); // real-index definition block
-    block.extend_from_slice(&[0u8; 28]); // logical-index definition block
-    block.extend_from_slice(&6u16.to_le_bytes());
-    block.extend_from_slice(&ucs2("ByName")); // index name
-    block.extend_from_slice(&1u16.to_le_bytes()); // variable column id
-    block.extend_from_slice(&0u32.to_le_bytes()); // used pages
-    block.extend_from_slice(&0u32.to_le_bytes()); // free pages
+    let (section, _, _) =
+        datacraft_storage::jet::index::encode_section(&[datacraft_storage::jet::index::JetIndex {
+            name: "ByName".to_owned(),
+            columns: vec![1],
+            unique: false,
+            required: false,
+            primary: false,
+            foreign: false,
+        }]);
+    block.extend_from_slice(&section);
     block.extend_from_slice(&0xFFFFu16.to_le_bytes()); // terminator
     let len = block.len() as u32; // tdef_len is self-inclusive
     block[..4].copy_from_slice(&len.to_le_bytes());

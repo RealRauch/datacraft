@@ -74,5 +74,6 @@ pub(crate) fn field_def(
     };
     let mut field = FieldDef::new(&column.name, kind);
     field.properties.required = !nullable;
+    field.properties.indexed = column.indexed;
     Ok(field)
 }

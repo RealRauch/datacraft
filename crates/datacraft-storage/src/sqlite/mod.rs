@@ -201,7 +201,32 @@ impl StoragePort for SqlitePort {
         definition.validate().map_err(|e| PortError::WriteFailed {
             detail: e.to_string(),
         })?;
-        let sql = create_sql(definition)?;
+        let create = create_sql(definition)?;
+        let create = create.trim_end().trim_end_matches(';');
+        let mut sql = format!(
+            "BEGIN;
+{create};
+"
+        );
+        for field in &definition.fields {
+            let suffix = match field.properties.indexed {
+                datacraft_core::schema::IndexMode::None => continue,
+                datacraft_core::schema::IndexMode::DuplicatesOk => "",
+                datacraft_core::schema::IndexMode::NoDuplicates => "UNIQUE ",
+            };
+            let index_name = format!("idx_{}_{}", definition.name, field.name);
+            sql.push_str(&format!(
+                "
+CREATE {suffix}INDEX {} ON {} ({});",
+                quote_ident(&index_name),
+                quote_ident(&definition.name),
+                quote_ident(&field.name)
+            ));
+        }
+        sql.push_str(
+            "
+COMMIT;",
+        );
         conn.execute_batch(&sql)
             .map_err(|e| PortError::WriteFailed {
                 detail: format!("creating table {:?} failed: {e}", definition.name),
