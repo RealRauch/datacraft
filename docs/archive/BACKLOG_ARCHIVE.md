@@ -1066,3 +1066,12 @@
 - **Approach:** Add a `NativeQueryKind` label function in the UI (match every variant to a `t()` key), mirroring `labels::field_kind_label`; keep the wire enum untouched (ADR-4).
 - **Acceptance:** Every native query flavor renders from the catalog in both languages; the German catalog gains the entries and the parity test stays green.
 - **Done:** fixed in `8095d68` (RED `e9a1c26`): all nine native query flavors render through labels::native_query_kind_label with German catalog entries; the parity test verifies coverage
+
+---
+
+### [x] M29 — UI row caches go stale after Undo/Redo and other row-mutating events — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs:366-497` (`maintain_caches` invalidates `rows` only for `RowInserted`, `DatabaseClosed` and `TableDropped`).
+- **Problem:** The datasheet renders from the per-tab row cache and only reloads a tab whose cache is missing. After `Undo`/`Redo` from the Quick Access Toolbar (rows change, events are `Undone`/`Redone`) the grid keeps showing the pre-undo rows; the same applies to `RowUpdated`/`RowDeleted`, `WriteApplied`/`WriteRolledBack` and `TableAltered` if those commands are ever driven from this process. Form runtime tabs bound to an inserted table are also not refreshed (the invalidation branch only matches `object_kind == "table"`).
+- **Approach:** Derive the affected table from every row-mutating event (`Undone`, `Redone`, `RowUpdated`, `RowDeleted`, `WriteApplied`, `WriteRolledBack`, `TableAltered`) and drop the caches of all open tabs bound to it — table tabs and form tabs whose source matches. One shared helper instead of per-event special cases.
+- **Acceptance:** Undo/Redo and a journal apply refresh every grid bound to the table; a kittest drives insert → undo and asserts the row disappears; no cache survives a schema change.
+- **Done:** fixed in `244a22b` (RED `d78bce4`): all row-mutating events invalidate the affected table and form caches (bound source), so undo/redo/updates/deletes never leave stale grids
