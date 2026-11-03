@@ -1116,3 +1116,21 @@
 - **Hinweis 7 — Multivalue-Prädikate im SQL-Pfad:** Attachment-/Multivalue-Felder in SQL → mögliche stille Leerergebnisse. Spot-Check: WHERE über Multivalue-Spalte.
 - **Acceptance:** Jeder Cluster mit 3–5 Vektoren gegen alle drei Oberflächen gespielt; Divergenzen werden Findings (→ 34.5 Triage) oder bewusst eingezäunt/dokumentiert; Ergebnis landet als Folge-Items bzw. in TESTING/FORMAT-JET-Doku.
 - **Done:** completed in step 34.7 (checkpoint `eb2a03d`): all seven clusters played against the expression service, QBE engine and shadow SQL engine; NULL semantics conformant; divergences filed as M35 (Format named pictures), M36 (SQL dialect fence), M37 (QBE criteria fence) and L22 (positional projection); evidence summarized in the phase 34 verification line
+
+---
+
+### [x] F7 — Inline fix: macro argument decode kept value-type markers — 🟢
+- **Location:** `crates/datacraft-jet/src/jet/access.rs` (`normalize_argument`)
+- **Problem:** Found during step 37.2 while decoding the self-created programmability fixture: expression-form macro arguments carry value-type markers (`<`, `$`, `&`, `"`, `,`) plus a record tag byte; the coarse scan kept them as argument text (`'$Category Picker` instead of `Category Picker`).
+- **Fix:** `normalize_argument` strips up to two markers when the remainder starts with a letter, a bracketed name or another marker; pinned by `argument_scan_strips_expression_type_markers`.
+- **Committed:** fixed in `b4ae17e` (test-first: RED `0638c9f`).
+- **Done:** fixed in `b4ae17e` (RED `0638c9f`)
+
+---
+
+### [x] F8 — Inline fix: all-fixed rows from real Access 365 have no variable tail — 🟢
+- **Location:** `crates/datacraft-jet/src/jet/row.rs` (`decode_row_with`, `RowLayout`)
+- **Problem:** Found during step 37.2 when the SQL materialization failed on the fixture's all-fixed tables: real Access 365 writes rows of tables without variable columns as `[num_cols][fixed data][mask]` with no eod/var table/var_len; the tail parse failed with a Corrupt error when the last fixed bytes read as a large u16 (e.g. a DateTime's exponent bytes). Jackcess and our own writer always carry the tail, so the gap was invisible to the old fixtures.
+- **Fix:** all-fixed rows (fixed or bool columns) parse mask-only — the tail is unused by fixed decoding; the var-tail error now reports var_len/mask/row length. Note: the change exceeds the ~10-line inline-fix guide (~30 lines incl. the dedicated mask-only layout constructor); it stays a step-bound fix because H50's acceptance requires the fixture's rows to decode. Pinned by `all_fixed_rows_decode_without_a_variable_tail`.
+- **Committed:** fixed in `b4ae17e` (test-first: RED `0638c9f`).
+- **Done:** fixed in `b4ae17e` (RED `0638c9f`)

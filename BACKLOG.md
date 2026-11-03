@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T21:33
+# BACKLOG.md — Open items (As of: 2026-11-03T21:47
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -304,3 +304,5 @@
 - L11 — Mechanical-edit artifacts in messages and a doc comment — done (fixed in `30005be`: the six messages use single spaces and the transport doc names `reader`/`writer`; the grep over message strings is clean)
 - R1 — Cross-cutting code review round (Phase 34) — done (completed by phase 34 (checkpoint `eb2a03d`): storage/drivers, core, UI and public-API reviews walked the LESSONS checklist with written verdicts; 34 findings filed; all three HIGH fixed in-phase (H46 `0dd8d43`, H47 `e138361`, H48 `c50c248`), plus 16 other items; canonical verification set green (fmt/clippy/tests/coverage 95.03%/file-size/doc gate); remaining findings packaged with locations and acceptance criteria)
 - T6 — Semantic-Conformance-Hinweise fürs Code-Review (Phase 34) — done (completed in step 34.7 (checkpoint `eb2a03d`): all seven clusters played against the expression service, QBE engine and shadow SQL engine; NULL semantics conformant; divergences filed as M35 (Format named pictures), M36 (SQL dialect fence), M37 (QBE criteria fence) and L22 (positional projection); evidence summarized in the phase 34 verification line)
+- F7 — Inline fix: macro argument decode kept value-type markers — done (fixed in `b4ae17e` (RED `0638c9f`))
+- F8 — Inline fix: all-fixed rows from real Access 365 have no variable tail — done (fixed in `b4ae17e` (RED `0638c9f`))
