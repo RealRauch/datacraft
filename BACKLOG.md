@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T19:08
+# BACKLOG.md — Open items (As of: 2026-11-03T19:11
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -90,6 +90,18 @@
 - **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
 - **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
 
+### [ ] M32 — Wire vocabularies beyond M22 lack non_exhaustive — 🟡
+- **Location:** `crates/datacraft-core/src/event.rs:14` (`Event`), `src/availability.rs:19` (`DisabledReason`), `src/port.rs:24` (`DatabaseFormat`), `src/port.rs:309` (`SchemaChange`); `docs/PUBLISHING.md` "Vocabulary stability (M22)".
+- **Problem:** M22 made `Command`, `Support` and `PortError` `#[non_exhaustive]`, but the other vocabulary the family is documented to grow is not: `Event` gains a variant with nearly every feature (the direct response shape to `Command`), `DisabledReason` gains one per capability affordance (L18 will add `AlterTables`), `DatabaseFormat` gains one per new driver family (ADR-7 server path), `SchemaChange` per new alter operation. Adding any of them is a breaking change for out-of-crate consumers that match exhaustively, contradicting the M22 promise for the client-facing half of the vocabulary. The snapshot structs are a related case: adding a field breaks struct-literal construction, which is currently not documented as out of contract.
+- **Approach:** Mark the four enums `#[non_exhaustive]` with the same rationale as M22, extend the publishing policy's vocabulary list, and state that snapshot structs are read-only (field access is the contract, construction is internal). In-crate matches already use wildcards where needed; fix any that become non-exhaustive.
+- **Acceptance:** The four enums are `#[non_exhaustive]`, `docs/PUBLISHING.md` lists them and the snapshot contract, an out-of-crate consumer compiled with wildcard arms still builds, and the wire/serde shape is unchanged.
+
+### [ ] M33 — datacraft-jet publishes its raw format layer without a stability contract — 🟡
+- **Location:** `crates/datacraft-jet/src/lib.rs:9-13` (`pub mod jet`, `pub mod port_write`), the `pub` items inside `src/jet/**` (`JetTableDef`, `JetColumn`, `JetType`, `Jet4TableReader`, `Jet4Writer`, `decode_row`, `encode_row`, page/usage-map/crypto helpers); `docs/PUBLISHING.md` (the jet row names the crate but not its supported surface).
+- **Problem:** The crate publishes its entire raw format layer together with the supported `Jet4Port`/`StorageError`/`types` API, and the integration tests need that visibility (`datacraft_jet::jet::{...}`). Published `pub` items carry a semver promise, so every internal parser refactor would force a minor bump, and docs.rs presents the internals as equal to the port. The publishing policy neither claims nor excludes this surface, so a consumer cannot tell what is stable.
+- **Approach:** Decide and document: either keep the raw layer as a deliberately public low-level API (state it in PUBLISHING, keep it documented and semver-covered) or hide it behind a `#[doc(hidden)]`/feature-gated `internals` module used only by the test targets. The port-facing API stays the supported contract either way.
+- **Acceptance:** `docs/PUBLISHING.md` names the supported surface of `datacraft-jet`; docs.rs shows the supported API as primary; integration tests keep compiling without a behaviour change; the decision is recorded (ADR-7 addendum).
+
 ---
 
 ## 🟢 LOW
@@ -161,6 +173,18 @@
 - **Problem:** The design view offers schema edits regardless of the driver's `alter_table` capability. SQLite reports `alter_table=false`, so every click there produces a `Failed` toast ("unsupported: the sqlite driver cannot alter the schema for this source") instead of a disabled control with the reason — the affordance vocabulary covers create/drop/write/relationships/passwords but not alter. The backstage "Create Database" button is likewise enabled from the selected format rather than `create_database`.
 - **Approach:** Add the `AlterTables` reason plus the design-view affordance ids to the core availability map, render the controls disabled with the localized tooltip, and gate the Create Database button on the same map; keep the dispatcher gates as the second line of defence.
 - **Acceptance:** On a SQLite session the design-view edit controls (and on a creation-disabled composition the Create Database button) are disabled with a localized reason; kittest pins the SQLite case; no command is required to discover the restriction.
+
+### [ ] L19 — rustdoc: missing public docs and broken intra-doc links — 🟢
+- **Location:** `crates/datacraft-core/src/lib.rs:61-64` (`ObjectKind::{Table, Query, Form, Report}` variants), `src/event.rs` (`Event::{RelationshipDeleted, RelationshipMapperToggled}`); broken intra-doc links in `src/field_expressions.rs:6` (private `prepare_insert`/`prepare_update`), `src/journal.rs:7` (`StoragePort::write_row_ops` not in scope), `src/schema/document.rs:20` (private `MIGRATIONS`), `src/form.rs` (`ControlKind`), `crates/datacraft-jet/src/jet/tdef.rs` (`JetTableDef::decode_jet3` — the function is `decode_tdef`), `src/jet/writer.rs` (`tdef_pages` links to private `ensure_plausible_tdef`).
+- **Problem:** `RUSTDOCFLAGS="-D missing_docs" cargo doc --workspace --no-deps` fails on six public variants without docs, and a plain doc build emits seven broken/private intra-doc link warnings. Published crates are judged on docs.rs; blank variants and dead links undercut the documented-API claim, and the `decode_jet3` link points at a method that does not exist.
+- **Approach:** Add the six variant docs, fix or unlink the seven references, and record `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` as a release-checklist step in `docs/PUBLISHING.md`. A CI doc job would be a workflow change (High gate) and is a separate decision.
+- **Acceptance:** The doc command exits 0 with `-D warnings`; no public item lacks documentation; PUBLISHING's checklist names the command.
+
+### [ ] L20 — Core public surface: empty public modules and an undocumented MockPort API — 🟢
+- **Location:** `crates/datacraft-core/src/lib.rs:7-11` (`pub mod database; pub mod forms; pub mod reports;` — the modules only host `impl Core` blocks), `src/port.rs:374` (`pub use crate::port_mock::MockPort`), `docs/PUBLISHING.md`.
+- **Problem:** Three public modules expose no public items (they exist to split `impl Core` bodies), so docs.rs lists empty modules next to real ones. `MockPort` is a full 474-line test double promoted into the published API without the publishing policy naming it — a consumer cannot tell whether it is supported or an artifact of the crate's own tests, yet it is the natural way to test a client against the engine.
+- **Approach:** Make the three `impl`-only modules private (the `impl Core` blocks keep working) and document `MockPort` in PUBLISHING as a supported testing surface (or gate it behind a `test-support` feature if it should not be a default dependency).
+- **Acceptance:** No public module is empty; PUBLISHING states the `MockPort` contract; `cargo doc` shows only real modules; no API consumer breaks.
 
 ---
 
