@@ -41,11 +41,7 @@ fn opened_with(text: &str) -> (Scratch, CsvPort) {
 }
 
 fn kinds_of(port: &CsvPort) -> Vec<FieldKind> {
-    port.tables()[0]
-        .fields
-        .iter()
-        .map(|f| f.kind)
-        .collect()
+    port.tables()[0].fields.iter().map(|f| f.kind).collect()
 }
 
 fn long_integer() -> FieldKind {
