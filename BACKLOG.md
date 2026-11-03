@@ -89,12 +89,6 @@
 - **Hinweis 7 — Multivalue-Prädikate im SQL-Pfad:** Attachment-/Multivalue-Felder in SQL → mögliche stille Leerergebnisse. Spot-Check: WHERE über Multivalue-Spalte.
 - **Acceptance:** Jeder Cluster mit 3–5 Vektoren gegen alle drei Oberflächen gespielt; Divergenzen werden Findings (→ 34.5 Triage) oder bewusst eingezäunt/dokumentiert; Ergebnis landet als Folge-Items bzw. in TESTING/FORMAT-JET-Doku.
 
-### [ ] T7 — Coverage gate red on main (csv/detecting/mcp) — 🔵
-- **Location:** `crates/datacraft-csv/src/lib.rs` (66.8 % lines on CI), `crates/datacraft-storage/src/detecting.rs` (80.7 %), `crates/datacraft-mcp/src/main.rs` (0 %, was covered by the ui-crate exclusion before step 31.3 extracted it); CI run 41645734997 (first run after phases 26/30/31 — the previous green run predates them)
-- **Problem:** The coverage gate is red on `main`: csv write/error paths (arity, out-of-range, batch failure atomicity, drop, write failures), the detecting registry's sniff/fallback rejections and the mcp composition binary were never measured by the CI job — the csv E2E suite lives in the coverage-excluded ui crate, and the detecting registry grew after the last green run.
-- **Approach:** Behavioral edge suites for csv (arity/out-of-range/batch-failure/drop/write-failure paths) and for the detecting registry (sniff rejections, fallback chain, session routing); a real-subprocess E2E for the mcp binary (spawn, inspect over stdin, open a CSV directory — the `cli_process`/T4 pattern); the 11-line composition root counts against the gate like `datacraft-cli`'s (TESTING.md §3 documents it "none"-style — no exclusion, no ci.yml change).
-- **Acceptance:** csv and detecting ≥ 95 % lines in the CI lcov with the mcp bin counted; a fully green CI run on `main` pins the acceptance.
-
 ---
 
 ## ✅ DONE INDEX
@@ -205,3 +199,4 @@
 - M22 — Publish-ready API vocabulary: non_exhaustive and the capabilities default (Phase 31 prep) — done (done in `5dad505` — driver_id/capabilities required, none()/full() constructors, Support/PortError/Command non_exhaustive, ADR-7 addendum item 6; datacraft-csv compiles unchanged (acceptance proof); deviation documented: DriverCapabilities keeps constructible pub fields (non_exhaustive struct would break field reads))
 - M19 — Engine/driver publishing: crate split, standalone MCP binary, Semver policy (Phase 31) — done (done in steps 31.2-31.4 (`10689e6`, `360028e`, `49b1456`) — jet/sqlite/mcp crates extracted, storage is the composite, core gained the default-on sql-engine feature gate (jet is C-free), publishing order + semver/msrv/changelog policy documented in docs/PUBLISHING.md; workspace builds as one unit, no behavior change)
 - L9 — Composite fallback keeps the unknown-file format hint — done (done in `3e68e2f` (step 36.2) — the composite attaches the sniff's family hint to the fallback's rejection; pinned by detecting_edges.rs (unknown file names path, expected families and the fallback verdict); unknown paths without a fallback behave unchanged)
+- T7 — Coverage gate red on main (csv/detecting/mcp) — done (done in steps 36.1-36.3 (`dbb3ae8`, `3e68e2f`, `8d3e348`) — csv 66.8% -> 96.6%, detecting 80.7% -> 96.9%, mcp bin covered by the subprocess suite (100% locally; counted without exclusion per the human's call); CI run 41653027497 fully green including the coverage gate)
