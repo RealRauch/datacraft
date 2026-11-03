@@ -215,6 +215,52 @@ mod tests {
         assert!(error.to_string().contains("text picture"));
     }
 
+    /// Step 39.1 (item M35): the named date/time pictures resolve for
+    /// DateTime values too — `General Date` matches the shared datetime
+    /// renderer, the Access shapes render deterministically.
+    #[test]
+    fn named_date_pictures_render_on_datetime_values() {
+        let days = 45_662.0 + 825.0 / 1440.0; // 2025-01-05 13:45
+        let general = format_value(&FieldValue::DateTime(days), &text("General Date"), "Format")
+            .expect("general date must format");
+        assert_eq!(
+            general,
+            FieldValue::Text(crate::present::display_ole_datetime(days)),
+            "General Date matches the shared datetime renderer"
+        );
+        for (picture, expected) in [
+            ("Short Date", "01/05/2025"),
+            ("Medium Date", "05-Jan-25"),
+            ("Long Date", "Sunday, January 5, 2025"),
+            ("Long Time", "1:45:00 PM"),
+            ("Medium Time", "1:45 PM"),
+        ] {
+            let rendered = format_value(&FieldValue::DateTime(days), &text(picture), "Format")
+                .unwrap_or_else(|error| panic!("{picture} must format: {error}"));
+            assert_eq!(rendered, FieldValue::Text(expected.to_owned()), "{picture}");
+        }
+    }
+
+    /// Step 39.1 (item M35): the named-picture table matches
+    /// case-insensitively.
+    #[test]
+    fn named_pictures_are_case_insensitive() {
+        let short = format_value(&FieldValue::DateTime(45_662.0), &text("SHORT DATE"), "Format")
+            .expect("the picture match is case-insensitive");
+        assert_eq!(short, FieldValue::Text("01/05/2025".into()));
+    }
+
+    /// Step 39.1 (item M35): a word picture outside the named table answers
+    /// a precise error instead of token-heuristic garbage.
+    #[test]
+    fn unknown_word_pictures_error_precisely() {
+        for picture in ["Currency", "hh:nn AM/PM"] {
+            let error = format_value(&FieldValue::Integer(7), &text(picture), "Format")
+                .expect_err("{picture} is not in the documented subset");
+            assert!(error.to_string().contains(picture), "{error}");
+        }
+    }
+
     fn text(value: &str) -> FieldValue {
         FieldValue::Text(value.to_owned())
     }
