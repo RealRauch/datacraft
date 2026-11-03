@@ -208,7 +208,16 @@ impl Jet4Writer {
         // clear the new page's free bit. Bits above EOF stay set (free).
         let mut global = self.global_free_map()?;
         if !global.covers(page_no) {
-            let needed = ((page_no - global.start_page) as usize / 8) + 1;
+            let Some(offset) = page_no.checked_sub(global.start_page) else {
+                return Err(StorageError::Corrupt {
+                    context: "usage map".into(),
+                    detail: format!(
+                        "global free map starts at page {} but the file appends page {page_no}",
+                        global.start_page
+                    ),
+                });
+            };
+            let needed = (offset as usize / 8) + 1;
             global.bitmap.resize(needed, 0xFF);
         }
         global.clear(page_no)?;
@@ -234,7 +243,16 @@ impl Jet4Writer {
                 context: "usage map".into(),
                 detail: format!("map page {} holds no row {}", map_ref.page, map_ref.row),
             })?;
-        UsageMap::decode_row(&page[start..end])
+        let row = page.get(start..end).ok_or_else(|| StorageError::Corrupt {
+            context: "usage map".into(),
+            detail: format!(
+                "map row {} of page {} spans {start}..{end} beyond the page ({} bytes)",
+                map_ref.row,
+                map_ref.page,
+                page.len()
+            ),
+        })?;
+        UsageMap::decode_row(row)
     }
 
     /// Rewrites one row of a data page in place, re-packing all rows
@@ -250,11 +268,19 @@ impl Jet4Writer {
         let page_size = self.header.page_size;
         let page = &self.file[base..base + page_size];
         let decoded = DataPage::decode(page)?;
-        let mut rows: Vec<Vec<u8>> = decoded
-            .records
-            .iter()
-            .map(|&(start, end, _)| page[start..end].to_vec())
-            .collect();
+        let mut rows: Vec<Vec<u8>> = Vec::with_capacity(decoded.records.len());
+        for &(start, end, _) in &decoded.records {
+            let bytes = page.get(start..end).ok_or_else(|| StorageError::Corrupt {
+                context: "usage map".into(),
+                detail: format!(
+                    "map page {} carries a row spanning {start}..{end} beyond the page \
+                     ({} bytes)",
+                    map_ref.page,
+                    page.len()
+                ),
+            })?;
+            rows.push(bytes.to_vec());
+        }
         let row = rows
             .get_mut(map_ref.row as usize)
             .ok_or_else(|| StorageError::Corrupt {

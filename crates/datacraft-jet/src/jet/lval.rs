@@ -113,7 +113,18 @@ fn read_record(
     };
     let slot = decoded.records.get(row as usize);
     match slot {
-        Some((start, end, _)) => Ok(&page_bytes[*start..*end]),
+        Some((start, end, _)) => {
+            page_bytes
+                .get(*start..*end)
+                .ok_or_else(|| StorageError::Corrupt {
+                    context: "LVAL chain".into(),
+                    detail: format!(
+                        "LVAL page {page} record {row} spans {start}..{end} beyond the page \
+                     ({} bytes)",
+                        page_bytes.len()
+                    ),
+                })
+        }
         None => Err(StorageError::Corrupt {
             context: "LVAL chain".into(),
             detail: format!(

@@ -316,6 +316,9 @@ pub(crate) fn has_external_long_value(row: &[u8], def: &JetTableDef) -> Result<b
         if end <= start {
             continue; // NULL (empty slot)
         }
+        if end > row.len() {
+            return Ok(true); // hostile var table: never rewrite it blindly
+        }
         if end - start < 4 {
             return Ok(true); // malformed payload: never rewrite it blindly
         }
@@ -426,6 +429,21 @@ fn decode_long_value(
 }
 
 fn decode_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> Result<StorageValue, StorageError> {
+    // A hostile descriptor length must not reach the fixed-width readers:
+    // they index exact widths (Guid copies into `[u8; 16]`).
+    if let Some(needed) = storage_width(col.data_type)
+        && bytes.len() != needed
+    {
+        return Err(StorageError::Corrupt {
+            context: "row".into(),
+            detail: format!(
+                "fixed column {} ({}) holds {} bytes, the type requires {needed}",
+                col.column_id,
+                col.name,
+                bytes.len()
+            ),
+        });
+    }
     Ok(match col.data_type {
         JetType::Bool => unreachable!("booleans are resolved from the null mask"),
         JetType::Byte => StorageValue::Int(i16::from(bytes[0]) as i64),
@@ -455,6 +473,26 @@ fn decode_bytes(bytes: &[u8], col: &JetColumn, jet3: bool) -> Result<StorageValu
             StorageValue::Guid(guid)
         }
         JetType::Numeric => decode_numeric(bytes),
+    })
+}
+
+/// Exact storage width of a fixed-width scalar type; `None` for the
+/// variable families (text, binary, memo/OLE) whose slot length is data.
+fn storage_width(data_type: JetType) -> Option<usize> {
+    Some(match data_type {
+        JetType::Byte => 1,
+        JetType::Int => 2,
+        JetType::LongInt | JetType::Float => 4,
+        JetType::Currency | JetType::Double | JetType::DateTime => 8,
+        JetType::Guid => 16,
+        JetType::Numeric => 17,
+        JetType::Bool
+        | JetType::Binary
+        | JetType::Text
+        | JetType::Ole
+        | JetType::Memo
+        | JetType::Complex
+        | JetType::LongBinary => return None,
     })
 }
 

@@ -458,7 +458,13 @@ fn hostile_lval_pointers_fail_precisely_at_every_level() {
 fn hostile_fixed_descriptor_lengths_fail_precisely() {
     // Guid descriptor shorter than its 16 bytes.
     let mut file = file_shell(3);
-    support::write_tdef(&mut file, 1, 1, 0x4E, &[JetColumn::new("Key", JetType::Guid, 0x01, 0, 0, 15)]);
+    support::write_tdef(
+        &mut file,
+        1,
+        1,
+        0x4E,
+        &[JetColumn::new("Key", JetType::Guid, 0x01, 0, 0, 15)],
+    );
     let row = build_row(1, &[0u8; 16], &[], &[true]);
     support::write_data_page(&mut file, 2, 1, &[row]);
     let reader = Jet4TableReader::new(file).expect("reader");
@@ -467,16 +473,30 @@ fn hostile_fixed_descriptor_lengths_fail_precisely() {
 
     // Byte descriptor with length 0 (the fixed slot holds no byte).
     let mut file = file_shell(3);
-    support::write_tdef(&mut file, 1, 1, 0x4E, &[JetColumn::new("B", JetType::Byte, 0x01, 0, 0, 0)]);
+    support::write_tdef(
+        &mut file,
+        1,
+        1,
+        0x4E,
+        &[JetColumn::new("B", JetType::Byte, 0x01, 0, 0, 0)],
+    );
     let row = build_row(1, &[], &[], &[true]);
     support::write_data_page(&mut file, 2, 1, &[row]);
     let reader = Jet4TableReader::new(file).expect("reader");
-    let err = reader.read_table(1).expect_err("zero-length Byte must fail");
+    let err = reader
+        .read_table(1)
+        .expect_err("zero-length Byte must fail");
     assert!(err.to_string().contains("requires 1"), "{err}");
 
     // LongInt descriptor shorter than its 4 bytes.
     let mut file = file_shell(3);
-    support::write_tdef(&mut file, 1, 1, 0x4E, &[JetColumn::new("N", JetType::LongInt, 0x01, 0, 0, 2)]);
+    support::write_tdef(
+        &mut file,
+        1,
+        1,
+        0x4E,
+        &[JetColumn::new("N", JetType::LongInt, 0x01, 0, 0, 2)],
+    );
     let row = build_row(1, &[0u8; 2], &[], &[true]);
     support::write_data_page(&mut file, 2, 1, &[row]);
     let reader = Jet4TableReader::new(file).expect("reader");
@@ -488,8 +508,8 @@ fn hostile_fixed_descriptor_lengths_fail_precisely() {
 /// points outside the row instead of indexing past it.
 #[test]
 fn hostile_var_table_ranges_fail_in_the_writer() {
-    use datacraft_jet::jet::Jet4Writer;
     use datacraft_jet::StorageValue;
+    use datacraft_jet::jet::Jet4Writer;
 
     let columns = vec![
         JetColumn::new("Id", JetType::LongInt, 0x01, 0, 0, 4),
@@ -521,41 +541,55 @@ fn hostile_var_table_ranges_fail_in_the_writer() {
 
     let mut writer = Jet4Writer::new(file).expect("writer");
     let err = writer
-        .update_row(1, 0, &[StorageValue::Int(1), StorageValue::Null, StorageValue::Null])
+        .update_row(
+            1,
+            0,
+            &[StorageValue::Int(1), StorageValue::Null, StorageValue::Null],
+        )
         .expect_err("out-of-row var entry must fail");
     assert!(!err.to_string().is_empty(), "{err}");
 }
 
-/// H46 regression: a data page whose overflow slot points past the page is
-/// rejected at decode time (the LVAL and map-row consumers slice it).
+/// H46 regression: an overflow slot pointing past the page keeps its raw
+/// coordinates (real ACE pages carry legacy offset bits), but every consumer
+/// that slices the pointer answers a precise error.
 #[test]
-fn overflow_slots_beyond_the_page_fail_at_decode() {
-    use datacraft_jet::jet::{DataPage, lval};
+fn overflow_slots_beyond_the_page_fail_at_the_consumer() {
+    use datacraft_jet::jet::{DataPage, Jet4Writer, lval};
     let mut page = vec![0u8; PAGE];
     page[0] = 0x01;
     page[12..14].copy_from_slice(&1u16.to_le_bytes());
     page[14..16].copy_from_slice(&(0x4000u16 | 4095).to_le_bytes());
-    let err = DataPage::decode(&page).expect_err("overflow slot past the page must fail");
-    assert!(err.to_string().contains("overflow"), "{err}");
+    let decoded = DataPage::decode(&page).expect("coordinates stay permissive");
+    assert_eq!(decoded.record(0), (4095, 4099));
 
     // The LVAL resolver reaches the same page: precise error, no panic.
     let mut file = file_shell(2);
     file[PAGE..2 * PAGE].copy_from_slice(&page);
     let err = lval::resolve(&file, PAGE, 0x4000_0000u32 | 4, 1 << 8, false)
         .expect_err("overflow LVAL slot must fail");
-    assert!(err.to_string().contains("overflow"), "{err}");
+    assert!(err.to_string().contains("beyond the page"), "{err}");
+
+    // The writer's map path slices the same coordinates: precise error.
+    let mut file = support::synthetic_catalog_db();
+    file[PAGE + 14..PAGE + 16].copy_from_slice(&(0x4000u16 | 4095).to_le_bytes());
+    let mut writer = Jet4Writer::new(file).expect("writer");
+    let err = writer
+        .allocate_page(2)
+        .expect_err("map slot past the page must fail");
+    assert!(err.to_string().contains("beyond the page"), "{err}");
 }
 
 /// H46 regression: `encode_row` sizes the null mask from the column count
 /// but indexes it by the column id — a hostile id must not panic.
 #[test]
 fn encode_row_rejects_column_ids_outside_the_mask() {
-    use datacraft_jet::jet::encode::{build_table_def, encode_row};
     use datacraft_jet::StorageValue;
+    use datacraft_jet::jet::encode::{build_table_def, encode_row};
     let column = JetColumn::new("N", JetType::LongInt, 0x01, 8, 0, 4);
     let def = build_table_def(0x4E, 0, &[column], 0, 0);
-    let err = encode_row(&[StorageValue::Int(5)], &def)
-        .expect_err("column id beyond the mask must fail");
+    let err =
+        encode_row(&[StorageValue::Int(5)], &def).expect_err("column id beyond the mask must fail");
     assert!(err.to_string().contains("column id 8"), "{err}");
 }
 
@@ -563,8 +597,8 @@ fn encode_row_rejects_column_ids_outside_the_mask() {
 /// refused, not truncated into a broken `eod`.
 #[test]
 fn encode_row_refuses_rows_beyond_the_u16_eod() {
-    use datacraft_jet::jet::encode::{build_table_def, encode_row};
     use datacraft_jet::StorageValue;
+    use datacraft_jet::jet::encode::{build_table_def, encode_row};
     let column = JetColumn::new("T", JetType::Text, 0x02, 0, 0, 60_000);
     let def = build_table_def(0x4E, 0, &[column], 0, 0);
     let value = StorageValue::Text("a".repeat(40_000));
@@ -584,6 +618,8 @@ fn free_map_above_eof_fails_instead_of_underflowing() {
     let base = PAGE + start;
     file[base + 1..base + 5].copy_from_slice(&9_999u32.to_le_bytes());
     let mut writer = Jet4Writer::new(file).expect("writer");
-    let err = writer.allocate_page(2).expect_err("window above EOF must fail");
+    let err = writer
+        .allocate_page(2)
+        .expect_err("window above EOF must fail");
     assert!(!err.to_string().is_empty(), "{err}");
 }

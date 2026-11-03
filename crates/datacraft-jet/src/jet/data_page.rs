@@ -51,6 +51,9 @@ impl DataPage {
             let start = (raw & 0x1FFF) as usize;
             if raw & 0x4000 != 0 {
                 // Overflow slot: holds a 4-byte row pointer instead of data.
+                // Coordinates stay permissive here: real ACE pages carry
+                // legacy bits in the offset field, and consumers that slice
+                // the pointer are bounds-checked at their own boundary.
                 records.push((start, start + 4, raw));
                 end = start;
                 continue;

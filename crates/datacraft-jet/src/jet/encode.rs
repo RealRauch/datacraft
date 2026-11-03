@@ -40,6 +40,25 @@ pub fn encode_row(values: &[StorageValue], def: &JetTableDef) -> Result<Vec<u8>,
         });
     }
     let num_cols = def.columns.len();
+    if num_cols > u16::MAX as usize {
+        return Err(StorageError::Unsupported {
+            reason: format!("a Jet row addresses at most 65535 columns, found {num_cols}"),
+        });
+    }
+    let max_id = def
+        .columns
+        .iter()
+        .map(|column| column.column_id as usize)
+        .max()
+        .unwrap_or(0);
+    // The null mask follows the column-id space, not the descriptor count
+    // (hostile files can declare sparse or oversized ids).
+    if max_id / 8 >= num_cols.div_ceil(8) && num_cols > 0 {
+        return Err(StorageError::Corrupt {
+            context: "row encode".into(),
+            detail: format!("column id {max_id} exceeds the null mask of {num_cols} columns"),
+        });
+    }
     let fixed_size = def
         .columns
         .iter()
@@ -100,6 +119,13 @@ pub fn encode_row(values: &[StorageValue], def: &JetTableDef) -> Result<Vec<u8>,
     }
 
     let eod = 2 + fixed_size + var_data.len();
+    if eod > u16::MAX as usize {
+        return Err(StorageError::Unsupported {
+            reason: format!(
+                "the encoded row needs {eod} bytes, beyond the 65535-byte Jet row limit"
+            ),
+        });
+    }
     let mut row = Vec::with_capacity(eod + 2 + var_slots.len() * 2 + 2 + mask.len());
     row.extend_from_slice(&(num_cols as u16).to_le_bytes());
     row.extend_from_slice(&fixed);
