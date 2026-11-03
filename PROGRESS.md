@@ -253,7 +253,7 @@
 | 37.5 | Pre-public history rewrite and verification (M34) | ✅ |
 | 37.6 | Release checklist, macOS CI rerun and phase gate (L10) | ✅ |
 | 38.1 | Crafting-Apps icon glyphs ported into the painter dispatcher (M40) | ✅ |
-| 38.2 | Backstage restyle: full-height accent sidebar, cards, recent metadata (M41) | ⬜ |
+| 38.2 | Backstage restyle: full-height accent sidebar, cards, recent metadata (M41) | ✅ |
 | 38.3 | Native file and message dialogs behind a UI seam (M43; rfd needs its own release) | ⬜ |
 | 38.4 | Window chrome polish pass: ribbon hierarchy, spacing, surfaces (M42) | ⬜ |
 | 38.5 | Phase 38 Quality Gate Review | ⬜ |
