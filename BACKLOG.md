@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T19:53
+# BACKLOG.md — Open items (As of: 2026-11-03T19:58
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -36,12 +36,6 @@
 
 > No open items.
 
-### [ ] R1 — Cross-cutting code review round (Phase 34) — 🟡
-- **Location:** whole workspace (review only — findings become BACKLOG items; fixes only via the inline-fix lane or packaged follow-ups)
-- **Problem:** Thirty-plus phases of feature work have never had a deliberate cross-cutting review pass; the per-phase gates verify the canonical set, but nobody has walked the LESSONS checklist across module boundaries since the driver model, the capability vocabulary and the CSV driver landed.
-- **Approach:** One review phase before publishing (Phase 34), ordered per `docs/LESSONS.md`: (1) storage & drivers — security self-review (LESSONS #7: crafted `.mdb`/`.accdb`/`.csv` against the parsers), error precision and locatability (LESSONS #4), clean-room spot check (LESSONS #12); (2) core — dispatch/journal/capability-gate consistency, event/snapshot shape stability; (3) UI — paint-code discipline (no logic in paint), i18n parity, affordance coverage; (4) public API surface audit for Phase 31 (every `pub` item that would be published: needed, documented, semver-sane). Findings are triaged in-phase: Low-class ≤10-liners via the inline-fix lane (with F-retrospectives), everything else packaged.
-- **Acceptance:** Every LESSONS checklist item walked with a written verdict; findings triaged (fixed inline or BACKLOG items with locations + acceptance criteria); no HIGH finding left unassigned; canonical verification set green.
-
 ### [ ] R2 — Documentation sweep before the release (Phase 35) — 🟡
 - **Location:** `AGENTS.md` (§1 workspace list + dependency diagram lack `datacraft-csv`), `README.md` (architecture table + diagram), `docs/ARCHITECTURE.md` (§5 command-enum preview is the Phase-4 target shape, §6 "remaining write-path work" still lists M7/M8/ACE-write although done, §13 phase-mapping table ends at Phase 9), `docs/FORMAT-JET.md` (no CSV-driver note), `docs/TESTING.md` (taxonomy vs. capability-invariant/kittest suites)
 - **Problem:** The documentation has drifted across phases 10-30: the entry points an agent or contributor reads first (AGENTS.md, README architecture) describe a four-crate workspace, ARCHITECTURE carries stale milestone and mapping sections, and the driver model (ADR-7) is documented in the ADR but not in the navigation docs. A release must not ship with entry-point docs that contradict the repository.
@@ -59,6 +53,24 @@
 - **Problem:** Removing a path from HEAD does not remove it from history; both blobs stay cloneable from every commit that carried them. The `.zcode` plan is harmless project planning, but the Northwind fixture is the redistribution problem addressed by H50. A rewrite is cheap only while the repository is private and has no forks, releases or external clones — after the visibility switch it is no longer an option.
 - **Approach:** After H50 lands, rewrite the private history with `git filter-repo --invert-paths` for both paths, re-verify every fixture hash against `fixtures/manifest` and run the full canonical set on the rewritten tree, force-push `main` and delete/recreate any local branches that still carry the old objects, then document the rewrite date and old→new head in `docs/PUBLISHING.md`. Never rewrite after the repository is public; the append-only archives stay untouched (they contain no fixture bytes).
 - **Acceptance:** `git log --all --name-only` lists neither path; the rewritten `main` passes the canonical verification set and the fixture hash gate; local and remote branches agree on the new history; the rewrite is recorded in PUBLISHING; no rewrite happens after the visibility switch.
+
+### [ ] M35 — Format named date pictures render corrupted text — 🟡
+- **Location:** `crates/datacraft-core/src/expr/format.rs` (`format_value`: the `FieldValue::DateTime` arm calls `format_date` before the named-picture match; `looks_like_date_picture` accepts "Long Date" etc. as token pictures).
+- **Problem:** `Format(DateTime, "General Date")` — documented as supported — renders garbage (`ge0eral 15ate`) because the DateTime arm never reaches the named-picture table. Every other named picture (`Long Date`, `Short Date`, `Medium Date`, `Long Time`, …) is likewise interpreted as a token picture and produces corrupted text (`lo0g 15ate`, `00ort 15ate`) instead of a precise error. Token pictures (`"yyyy-mm-dd"`) work.
+- **Approach:** Resolve named pictures first (case-insensitive) for every value family, including DateTime; implement the Access `Long Date`/`Short Date`/`Medium Date`/`Long Time`/`Medium Time` pictures through the existing date formatting, and answer a precise runtime error for an unknown named picture instead of falling into the token heuristic.
+- **Acceptance:** `Format(#2024-01-15#, "General Date"|"Long Date"|"Short Date")` renders real date text; token pictures keep their current output; an unknown named picture errors precisely; tests pin both families.
+
+### [ ] M36 — SQL window dialect divergences are silent (currency scale, date literals, wildcards, overflow) — 🟡
+- **Location:** `crates/datacraft-core/src/sql_engine.rs` (`affinity`, `sql_value`, `to_field_value`), the SQL window (`crates/datacraft-ui/src/sql_window.rs`) and the shadow materialization.
+- **Problem:** The SQL window speaks SQLite, not Access SQL, and four divergences are silent (verified in the T6 spot checks): Currency is materialized as its scaled INTEGER and displayed raw (`SUM(amount)` → `7230000`, not `723.00`); comparing a DateTime column with a text literal (`stamp >= '2024-01-01'`) returns 0 rows because SQLite orders REAL before TEXT; `LIKE 'B*'` returns 0 rows (Access wildcards vs `%`); `9223372036854775807 + 1` promotes to REAL (`9223372036854776000`) without warning.
+- **Approach:** Decide the fence explicitly: document the SQL window as SQLite semantics (README + window hint) with a currency display rule (scale division) and an overflow guard, or add a thin translation layer for `#date#` literals and Access wildcards. Whichever way, the four cases become tests so the behavior cannot drift.
+- **Acceptance:** The README/window states the SQL dialect fence; Currency columns display scaled values (or the raw scale is called out in the UI); the date-literal, wildcard and overflow cases are pinned by tests; no silent empty/overflow result remains undocumented.
+
+### [ ] M37 — QBE criteria silently misread unsupported Access forms — 🟡
+- **Location:** `crates/datacraft-core/src/query_criteria.rs` (`parse_predicate` only understands `= <> < <= > >=` and falls back to equality), `query_engine.rs` (comparison by `FieldValue` order).
+- **Problem:** The QBE criteria grammar is a documented subset but silently misreads Access syntax outside it: `Like "B*"` becomes an equality against the literal text `Like "B*"` (0 rows, no error) instead of matching or rejecting; text comparison is case-sensitive (Access `Option Compare Database` is not); a MultiValue column is compared against its joined display text (`tags = "red"` works only for single-value cells). Users get plausible-but-wrong empty/partial result sets.
+- **Approach:** Make the parser recognize the unsupported Access forms (`Like`, `Between … And`, `In (…)`, `Is Null`) and answer a precise `BadLiteral`/unsupported reason, implement `Like` via the expression service's matcher where the column is text, and document the case/multivalue fence (or route multivalue criteria through a membership predicate).
+- **Acceptance:** `Like "B*"` matches (or is rejected precisely — no silent 0 rows); unsupported forms never degrade to equality; the case-sensitivity and multivalue rules are stated in FORMAT-JET/README and pinned by tests.
 
 ---
 
@@ -96,22 +108,23 @@
 - **Approach:** Add the `AlterTables` reason plus the design-view affordance ids to the core availability map, render the controls disabled with the localized tooltip, and gate the Create Database button on the same map; keep the dispatcher gates as the second line of defence.
 - **Acceptance:** On a SQLite session the design-view edit controls (and on a creation-disabled composition the Create Database button) are disabled with a localized reason; kittest pins the SQLite case; no command is required to discover the restriction.
 
+### [ ] L21 — Access fixture rebuild: SaveAsText sources + COM builder — 🟢
+- **Location:** new `tools/fixture-build/` (object text + builder), `fixtures/manifest`, `docs/FIXTURE-SOURCES.md` §2/§6; follows H50
+- **Problem:** H50 creates the replacement fixture by hand once; afterwards the object definitions live only inside the binary. Regeneration means repeating manual UI work, and review cannot see what the fixture actually contains. The installed Access 365 x64 build (`16.0.20527.20112`) has the VBA-project trust setting (`AccessVBOM`) unset, so `VBProject.VBComponents.Import` is not available without changing a machine security setting.
+- **Approach:** After H50, export the chosen objects from the committed fixture with Access `SaveAsText` into versioned text files (forms, reports, macros, modules), and keep table DDL and query SQL as plain SQL text. Add a PowerShell builder that creates a scratch `.accdb` via COM (`Access.Application`, `CurrentDb.Execute`, `CreateQueryDef`, `LoadFromText`), sets `AutomationSecurity` for the builder process only, closes and quits cleanly, and compares the object inventory (and optionally the hash) against the committed fixture. Prefer `LoadFromText` over `VBProject.VBComponents.Import` — it does not need the Trust Center "Trust access to the VBA project object model" setting. Windows + Access only; never part of CI — the committed fixture stays the evidence and CI keeps verifying its manifest hash offline.
+- **Acceptance:** On a Windows machine with Access, the builder produces a scratch database whose object inventory matches the committed fixture (`mdb-export` comparison) and whose hash is recorded; no `MSACCESS.EXE` process or `.laccdb` remains; the script writes only inside a scratch directory and leaves the committed fixture untouched; `docs/FIXTURE-SOURCES.md` names the prerequisites (Access build, bitness, no VBOM trust required).
+
+### [ ] L22 — QBE projection is positional while field names document source columns — 🟢
+- **Location:** `crates/datacraft-core/src/query_engine.rs:73-88` (projection uses the field's position in `def.fields`, while `parse_predicates`/`sort_rows` resolve `QbeField.name` against the table), `crates/datacraft-core/src/qbe.rs` (`QbeField.name` documented as "source field name").
+- **Problem:** A `QueryDef` whose field list is a subset or reordered silently projects the wrong columns: the header names come from the grid entries but the values come from the same positional index of the source row. Every in-tree caller builds the full grid in source order, so it works today, but the documented contract says names are source fields and an out-of-tree client can be silently wrong.
+- **Approach:** Either resolve every column by name (whitelist) and reject duplicates/unknowns, or document and validate the positional contract (field count equals the source count, names in source order) with a precise error.
+- **Acceptance:** A subset/reordered definition cannot silently project the wrong values; the chosen contract is documented on `QueryDef`/`QbeField` and pinned by a test.
+
 ---
 
 ## 🔵 TEST GAPS
 
 > No open items.
-
-### [ ] T6 — Semantic-Conformance-Hinweise fürs Code-Review (Phase 34) — 🔵
-- **Location:** Review-Ziele: `crates/datacraft-core/src/expr/` (coerce/funcs), `query_engine.rs`, `sql_engine.rs` + Shadow-SQLite-Materialisierung; Referenz-Oberflächen: Expression-Service, QBE-Engine, SQL-Fenster
-- **Hinweis 1 — Currency/Präzision:** Shadow-SQLite hält Currency als REAL → `SUM`/`AVG` über Money rundet binär statt auf 4 Dezimalstellen. Spot-Check: SUM über 3 Cent-Beträge, Multiplikation Geld×Zahl.
-- **Hinweis 2 — Kollation:** SQLite `BINARY` ≠ Access kulturabhängig (ä/ö/ü/ß, case-insensitiv) in ORDER BY/WHERE/Vergleichen. Spot-Check: Sortiere [Ärger, Ass, Berg], Filter `Name = 'müller'` case-insensitiv.
-- **Hinweis 3 — Datum:** SQLite hat keinen DATE-Typ → Literale `#…#`, `Datum + 1`, Komponenten-/Format-Funktionen über Text-Realität. Spot-Check: Datum+1, Jahresfilter, Format „Langes Datum".
-- **Hinweis 4 — LIKE-Wildcards:** Access `* ? # [..]` vs SQL `% _` im SQL-Fenster — Übersetzung oder dokumentierte Einzäunung. Spot-Check: `LIKE 'B*'` in QBE und im SQL-Fenster.
-- **Hinweis 5 — Promotion/Overflow:** Int-Overflow, Mixed-Type-Promotion-Matrix (Tiefe von `coerce.rs`). Spot-Check: 32767+1, Int×Int, Text+Zahl.
-- **Hinweis 6 — NULL-Kanten:** `NOT IN` mit NULL, `Nz()`-Rückgabetypen, IIf-Zweig-Auswertung. Spot-Check: je ein Fall pro Kante.
-- **Hinweis 7 — Multivalue-Prädikate im SQL-Pfad:** Attachment-/Multivalue-Felder in SQL → mögliche stille Leerergebnisse. Spot-Check: WHERE über Multivalue-Spalte.
-- **Acceptance:** Jeder Cluster mit 3–5 Vektoren gegen alle drei Oberflächen gespielt; Divergenzen werden Findings (→ 34.5 Triage) oder bewusst eingezäunt/dokumentiert; Ergebnis landet als Folge-Items bzw. in TESTING/FORMAT-JET-Doku.
 
 ---
 
@@ -246,3 +259,5 @@
 - M29 — UI row caches go stale after Undo/Redo and other row-mutating events — done (fixed in `244a22b` (RED `d78bce4`): all row-mutating events invalidate the affected table and form caches (bound source), so undo/redo/updates/deletes never leave stale grids)
 - F5 — Inline fix: scratch database removed while a SQLite handle is open — done (fixed in `6cafd83`: the port is closed before the scratch removal and the removal is asserted; no leftover scratch files after repeated runs)
 - L11 — Mechanical-edit artifacts in messages and a doc comment — done (fixed in `30005be`: the six messages use single spaces and the transport doc names `reader`/`writer`; the grep over message strings is clean)
+- R1 — Cross-cutting code review round (Phase 34) — done (completed by phase 34 (checkpoint `eb2a03d`): storage/drivers, core, UI and public-API reviews walked the LESSONS checklist with written verdicts; 34 findings filed; all three HIGH fixed in-phase (H46 `0dd8d43`, H47 `e138361`, H48 `c50c248`), plus 16 other items; canonical verification set green (fmt/clippy/tests/coverage 95.03%/file-size/doc gate); remaining findings packaged with locations and acceptance criteria)
+- T6 — Semantic-Conformance-Hinweise fürs Code-Review (Phase 34) — done (completed in step 34.7 (checkpoint `eb2a03d`): all seven clusters played against the expression service, QBE engine and shadow SQL engine; NULL semantics conformant; divergences filed as M35 (Format named pictures), M36 (SQL dialect fence), M37 (QBE criteria fence) and L22 (positional projection); evidence summarized in the phase 34 verification line)

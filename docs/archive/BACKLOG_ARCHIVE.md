@@ -1093,3 +1093,26 @@
 - **Approach:** Replace each run with a single space and restore the two parameter names in the doc comment; no wording changes otherwise. If any test asserts on the exact string, update it in the same step.
 - **Acceptance:** `grep -nE '[a-z] {2,}[a-z]'` over the message strings returns only intentional formatting; the transport doc comment names its reader/writer parameters; affected tests are green.
 - **Done:** fixed in `30005be`: the six messages use single spaces and the transport doc names `reader`/`writer`; the grep over message strings is clean
+
+---
+
+### [x] R1 — Cross-cutting code review round (Phase 34) — 🟡
+- **Location:** whole workspace (review only — findings become BACKLOG items; fixes only via the inline-fix lane or packaged follow-ups)
+- **Problem:** Thirty-plus phases of feature work have never had a deliberate cross-cutting review pass; the per-phase gates verify the canonical set, but nobody has walked the LESSONS checklist across module boundaries since the driver model, the capability vocabulary and the CSV driver landed.
+- **Approach:** One review phase before publishing (Phase 34), ordered per `docs/LESSONS.md`: (1) storage & drivers — security self-review (LESSONS #7: crafted `.mdb`/`.accdb`/`.csv` against the parsers), error precision and locatability (LESSONS #4), clean-room spot check (LESSONS #12); (2) core — dispatch/journal/capability-gate consistency, event/snapshot shape stability; (3) UI — paint-code discipline (no logic in paint), i18n parity, affordance coverage; (4) public API surface audit for Phase 31 (every `pub` item that would be published: needed, documented, semver-sane). Findings are triaged in-phase: Low-class ≤10-liners via the inline-fix lane (with F-retrospectives), everything else packaged.
+- **Acceptance:** Every LESSONS checklist item walked with a written verdict; findings triaged (fixed inline or BACKLOG items with locations + acceptance criteria); no HIGH finding left unassigned; canonical verification set green.
+- **Done:** completed by phase 34 (checkpoint `eb2a03d`): storage/drivers, core, UI and public-API reviews walked the LESSONS checklist with written verdicts; 34 findings filed; all three HIGH fixed in-phase (H46 `0dd8d43`, H47 `e138361`, H48 `c50c248`), plus 16 other items; canonical verification set green (fmt/clippy/tests/coverage 95.03%/file-size/doc gate); remaining findings packaged with locations and acceptance criteria
+
+---
+
+### [x] T6 — Semantic-Conformance-Hinweise fürs Code-Review (Phase 34) — 🔵
+- **Location:** Review-Ziele: `crates/datacraft-core/src/expr/` (coerce/funcs), `query_engine.rs`, `sql_engine.rs` + Shadow-SQLite-Materialisierung; Referenz-Oberflächen: Expression-Service, QBE-Engine, SQL-Fenster
+- **Hinweis 1 — Currency/Präzision:** Shadow-SQLite hält Currency als REAL → `SUM`/`AVG` über Money rundet binär statt auf 4 Dezimalstellen. Spot-Check: SUM über 3 Cent-Beträge, Multiplikation Geld×Zahl.
+- **Hinweis 2 — Kollation:** SQLite `BINARY` ≠ Access kulturabhängig (ä/ö/ü/ß, case-insensitiv) in ORDER BY/WHERE/Vergleichen. Spot-Check: Sortiere [Ärger, Ass, Berg], Filter `Name = 'müller'` case-insensitiv.
+- **Hinweis 3 — Datum:** SQLite hat keinen DATE-Typ → Literale `#…#`, `Datum + 1`, Komponenten-/Format-Funktionen über Text-Realität. Spot-Check: Datum+1, Jahresfilter, Format „Langes Datum".
+- **Hinweis 4 — LIKE-Wildcards:** Access `* ? # [..]` vs SQL `% _` im SQL-Fenster — Übersetzung oder dokumentierte Einzäunung. Spot-Check: `LIKE 'B*'` in QBE und im SQL-Fenster.
+- **Hinweis 5 — Promotion/Overflow:** Int-Overflow, Mixed-Type-Promotion-Matrix (Tiefe von `coerce.rs`). Spot-Check: 32767+1, Int×Int, Text+Zahl.
+- **Hinweis 6 — NULL-Kanten:** `NOT IN` mit NULL, `Nz()`-Rückgabetypen, IIf-Zweig-Auswertung. Spot-Check: je ein Fall pro Kante.
+- **Hinweis 7 — Multivalue-Prädikate im SQL-Pfad:** Attachment-/Multivalue-Felder in SQL → mögliche stille Leerergebnisse. Spot-Check: WHERE über Multivalue-Spalte.
+- **Acceptance:** Jeder Cluster mit 3–5 Vektoren gegen alle drei Oberflächen gespielt; Divergenzen werden Findings (→ 34.5 Triage) oder bewusst eingezäunt/dokumentiert; Ergebnis landet als Folge-Items bzw. in TESTING/FORMAT-JET-Doku.
+- **Done:** completed in step 34.7 (checkpoint `eb2a03d`): all seven clusters played against the expression service, QBE engine and shadow SQL engine; NULL semantics conformant; divergences filed as M35 (Format named pictures), M36 (SQL dialect fence), M37 (QBE criteria fence) and L22 (positional projection); evidence summarized in the phase 34 verification line
