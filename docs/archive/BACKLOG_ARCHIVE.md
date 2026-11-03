@@ -1179,3 +1179,12 @@
 - **Approach:** Probe enforcement right after `set_readonly(true)`: open the scratch copy for append; if that succeeds (non-enforcing/privileged environment), skip the test with a printed reason instead of asserting a premise the platform does not provide. The contract stays fully exercised on enforcing platforms (Windows dev, ubuntu 24.04, macOS).
 - **Acceptance:** The test passes (or skips with the printed reason) on both enforcing and non-enforcing runners; CI on `main` is green again; the fixture-independent failure class is documented in the test comment.
 - **Done:** fixed in `a5f1499`: enforcement probe after set_readonly(true); the contract skips with a printed reason on privileged runners (ubuntu-26.04) and runs fully on enforcing platforms; CI evidence run 41720944080
+
+---
+
+### [x] F9 — Inline fix: H47's atomic write silently lifted the read-only-file protection on POSIX — 🟢
+- **Location:** `crates/datacraft-core/src/atomic_write.rs` (`write_replacing`)
+- **Problem:** Found while diagnosing the ubuntu CI failures of runs 41720944080/41723789200 (step 37.6): H47 (step 34.5) moved the Jet write-through to the sibling-temp + rename atomic write, and POSIX rename needs only write access to the directory - a read-only-flagged database file was silently replaced, lifting the protection `writes_to_a_read_only_copy_fail_precisely_and_leave_it_intact` pins. The last green ubuntu run predates H47 (41368763401, Nov 2 00:44); the regression hid under the L10 macOS-cancel noise. The earlier T8 probe-skip diagnosis (privileged runners) was wrong and reverted - the refusal is enforced in code, not skipped in the test.
+- **Fix:** `write_replacing` refuses a read-only target on every platform before writing the temp file; missing targets proceed (no flag to honor). Windows behavior unchanged (rename-replace already honored the flag).
+- **Committed:** fixed in `f787997`; RED evidence = the ubuntu failures of today's CI runs.
+- **Done:** fixed in `f787997`; RED evidence = the ubuntu CI failures of run 41720944080/41723789200 (jet_port_writes.rs readonly contract); supersedes the T8 probe-skip approach (T8 archive note) - the refusal lives in write_replacing, the test passes everywhere
