@@ -161,7 +161,10 @@ fn the_sqlite_backend_creates_an_openable_database() {
     let opened = port.open(&path, None).expect("reopen the fresh database");
     assert_eq!(opened.format, DatabaseFormat::Sqlite);
     assert!(port.tables().is_empty());
-    let _ = std::fs::remove_file(&path);
+    // Windows cannot delete a file with a live SQLite handle: close first,
+    // otherwise every run leaves a scratch file behind (F5).
+    port.close();
+    std::fs::remove_file(&path).expect("remove the scratch database");
 }
 
 #[test]

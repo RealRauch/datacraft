@@ -11,6 +11,23 @@
 > documentation distributed with MDB Tools (`HACKING` — documentation file,
 > not code; section "Text Data Type" for compression).
 
+## External references (surveyed 2026-11-03)
+
+| Source | Kind | Use | Limits |
+| --- | --- | --- | --- |
+| [The Unofficial MDB Guide](http://jabakobob.net/mdb/) | Public reverse-engineering notes | Primary external cross-check for page 0, TDEF pages and data pages | Self-described work in progress; no writer, catalog or VBA facts |
+| [MDB Tools `HACKING.md`](https://github.com/mdbtools/mdbtools/blob/dev/HACKING.md) | Public format documentation (not code) | Broadest classic reference for pages, TDEF, row layout, indexes and usage maps | Type table is incomplete (no `0x11`); usage-map reading is byte-wise and wrong for the type-1 form (see "Usage maps"); the *code* is off-limits by clean-room rule |
+| [LoC FDD000462](https://www.loc.gov/preservation/digital/formats/fdd/fdd000462.shtml) / [FDD000463](https://www.loc.gov/preservation/digital/formats/fdd/fdd000463.shtml) | Registry metadata | Signatures, version family, citations | No on-disk layout detail; cites the same two sources |
+| [Just Solve the File Format Problem](http://fileformats.archiveteam.org/wiki/Access) | Wiki index | Header offset facts, links | Secondary, not evidence |
+| `mkopa/ms-mdb`, docs.fileformat.com, file-extensions.com | Summaries | Orientation only | Derivative of the two primary sources; the `[MS-ACE]` spec link found on some sites is dead — no public Microsoft file-format specification exists |
+| Jackcess (`jahlborn/jackcess`) | Reference implementation and fixture generator | Fixtures pinned in `docs/FIXTURE-SOURCES.md`; black-box output only | Java source is an implementation, not a specification: reading it for format facts would breach the clean-room rule |
+
+Microsoft publishes no specification for the Jet/ACE on-disk layout;
+`[MS-OVBA]` covers only the VBA compression used by the project stream (see
+"VBA project extraction"). Every fact in this file therefore stands on public
+documentation plus black-box verification against the pinned fixtures — never
+on implementation source.
+
 ## File header (page 0)
 
 | Field | Offset | Size | Value / meaning |

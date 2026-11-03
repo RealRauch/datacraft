@@ -137,3 +137,20 @@ fn creating_from_a_template_leaves_an_open_database_untouched() {
         "the port session must not be replaced by the template materialization"
     );
 }
+
+/// A failing creation reports the port reason and leaves no database.
+#[test]
+fn a_failing_creation_reports_the_port_reason() {
+    let mut port = MockPort::new();
+    port.with_write_failure("disk full");
+    let mut core = Core::new(Box::new(port));
+    let events = core.dispatch(Command::CreateDatabaseFromTemplate {
+        path: scratch("failing.mdb"),
+        template: "blank".into(),
+    });
+    match events.first() {
+        Some(Event::Failed { reason }) => assert!(reason.contains("disk full"), "{reason}"),
+        other => panic!("expected Failed, got {other:?}"),
+    }
+    assert!(core.inspect().database.is_none());
+}

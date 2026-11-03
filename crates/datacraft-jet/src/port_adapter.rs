@@ -169,9 +169,7 @@ impl StoragePort for Jet4Port {
             }),
             // `DatabaseFormat` is non_exhaustive (M32): a family this build
             // does not know is refused precisely.
-            other => Err(PortError::Unsupported {
-                reason: format!("the Jet backend does not create {other:?} databases"),
-            }),
+            other => Err(unknown_format(other)),
         }
     }
 
@@ -445,3 +443,11 @@ fn collect_tables(
 #[cfg(test)]
 #[path = "port_adapter_tests.rs"]
 mod tests;
+
+/// Precise refusal for a format family this build does not know (the
+/// `DatabaseFormat` vocabulary is non_exhaustive, M32).
+fn unknown_format(format: DatabaseFormat) -> PortError {
+    PortError::Unsupported {
+        reason: format!("the Jet backend does not create {format:?} databases"),
+    }
+}

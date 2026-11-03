@@ -195,11 +195,7 @@ impl Jet4Writer {
                 }
                 RowChange::Identity
             }
-            other => {
-                return Err(StorageError::Unsupported {
-                    reason: format!("schema change {other:?} is not supported by the Jet writer"),
-                });
-            }
+            other => return Err(unsupported_change(other)),
         };
 
         let mut updated = build_table_def(
@@ -266,4 +262,12 @@ fn column_index(columns: &[JetColumn], field: &str) -> Result<usize, StorageErro
             table: "alter table".to_owned(),
             detail: format!("field {field:?} not found"),
         })
+}
+
+/// Precise refusal for a schema change this writer does not know (the
+/// `SchemaChange` vocabulary is non_exhaustive, M32).
+fn unsupported_change(change: &SchemaChange) -> StorageError {
+    StorageError::Unsupported {
+        reason: format!("schema change {change:?} is not supported by the Jet writer"),
+    }
 }

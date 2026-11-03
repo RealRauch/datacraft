@@ -52,3 +52,14 @@ fn creating_writes_a_new_file_and_refuses_an_existing_target() {
     assert_eq!(err.kind(), std::io::ErrorKind::AlreadyExists);
     assert_eq!(std::fs::read(&path).expect("read"), b"data");
 }
+
+#[test]
+fn a_failed_rename_keeps_the_target_and_removes_the_temp() {
+    // A directory at the target path cannot be replaced by a file rename.
+    let path = scratch("rename");
+    std::fs::create_dir_all(path.join("keep")).expect("make the target a directory");
+    let err = atomic_write::write_replacing(&path, b"new").expect_err("rename must fail");
+    assert!(!err.to_string().is_empty());
+    assert!(path.is_dir(), "the original target must stay untouched");
+    assert!(!temp_of(&path).exists(), "the temp file must be cleaned up");
+}
