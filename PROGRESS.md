@@ -263,7 +263,7 @@ before the tag.
 | 36.6 | M24: tri-state Boolean NULL decision | ✅ |
 | 36.7 | Phase 36 Quality Gate Review | ✅ |
 | 37.1 | Replacement fixture: object inventory and creation recipe (H50) | ✅ |
-| 37.2 | Replacement fixture: create, hash-pin, port the suites, retire Northwind (H50) | ⬜ |
+| 37.2 | Replacement fixture: create, hash-pin, port the suites, retire Northwind (H50) | ✅ |
 | 37.3 | Fixture rebuild tooling: SaveAsText exports and COM builder (L21) | ⬜ |
 | 37.4 | Public-release readiness: licenses, fixture attribution, repo settings (H49) | ⬜ |
 | 37.5 | Pre-public history rewrite and verification (M34) | ⬜ |
