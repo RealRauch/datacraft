@@ -14,7 +14,13 @@ the versions it compiles against exist on the registry:
    `default = on`.
 2. `datacraft-jet` — clean-room pure-Rust Jet/ACE backend. Declares
    `datacraft-core` with `default-features = false`: the crate is C-free by
-   construction (no rusqlite in its dependency graph).
+   construction (no rusqlite in its dependency graph). Two surfaces are
+   public and semver-covered: the port-facing API (`Jet4Port`,
+   `StorageError`, the `types` vocabulary) and the raw format layer under
+   `datacraft_jet::jet` (readers, writers, page/TDEF/row helpers), which
+   exists for consumers that need format-level access and for the crate's
+   integration tests. The raw layer follows the same semver rules; a
+   refactor of its signatures is a minor bump pre-1.0.
 3. `datacraft-sqlite` — SQLite backend (rusqlite, statically bundled).
 4. `datacraft-csv` — CSV directory driver (ADR-7 out-of-tree proof).
 5. `datacraft-storage` — driver composite (format-detecting registry plus the
