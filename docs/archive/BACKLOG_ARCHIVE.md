@@ -958,3 +958,12 @@
 - **Approach:** Issue `ROLLBACK` on every error path (mirror `relationships.rs::rebuild`) and/or run the DDL through a `rusqlite::Transaction` so the error closes it. Ensure `self.tables` only changes after a successful commit. An index-name scheme that cannot collide (or a pre-flight existence check) removes the typical trigger.
 - **Acceptance:** A failing table creation leaves no open transaction and no visible table; the next create/insert on the same port succeeds; a RED test reproduces the collision case and a GREEN test pins the recovery.
 - **Done:** fixed in `e1b18c2` (RED `47ef985`): the error path of the DDL batch issues ROLLBACK, the connection stays usable and the half-created table is gone
+
+---
+
+### [x] M27 — CreateDatabaseFromTemplate steals the open database's port session — 🟡
+- **Location:** `crates/datacraft-core/src/database.rs:182-235` (`create_database_from_template`, `materialize_template_tables`).
+- **Problem:** The command is documented as independent of the open database, but it materializes the template through `self.port` — the same composite session that serves the open database. With a database open, `port.open(template_path)` replaces the session and the final `port.close()` leaves the port unattached while `state.database` still says a database is open. Every subsequent read/write on the open database then fails with "no database is open", and the tabs show stale data.
+- **Approach:** Materialize through a throwaway port instance (the `DetectingPort::create_database` path already builds fresh driver instances) or snapshot the session/state and restore it exactly. The command must not touch the live session.
+- **Acceptance:** `CreateDatabaseFromTemplate` with a database open leaves that database fully usable (read, write, snapshot unchanged apart from the creation event); test over the bus with a real fixture.
+- **Done:** fixed in `4da8d63` (RED `618f720`): the command is refused while a database is open ("close the open database …"), so the live port session can never be replaced; a later fresh-session API can lift the restriction
