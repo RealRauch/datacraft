@@ -84,12 +84,6 @@
 - **Approach:** Detect `AUTOINCREMENT` on the primary-key column's definition (token-aware, or via `PRAGMA table_info` + the DDL segment belonging to the PK column), and strip a trailing `(…)` before the marker-type comparison. Affinity fallbacks stay unchanged.
 - **Acceptance:** A DDL mentioning the word outside the PK column does not create an AutoNumber; `DATETIME(6)` maps to `DateTime` (and `CURRENCY(10)` to `Currency`); unit tests pin both directions, real fixture catalogs unchanged.
 
-### [ ] L17 — Native query flavor renders as a Rust Debug name — 🟢
-- **Location:** `crates/datacraft-ui/src/qbe.rs:201` (`let kind = format!("{:?}", native.kind)`), rendered at `:235-243`.
-- **Problem:** The native-query flavor is rendered from the Rust `Debug` name ("Select", "Crosstab", "MakeTable", …) inside an otherwise translated sentence. In German the line reads "Select — read-only (MSysQueries)"; renaming the enum variant would silently change user-visible text. The i18n parity scanner cannot see it because it is not a `t()` key.
-- **Approach:** Add a `NativeQueryKind` label function in the UI (match every variant to a `t()` key), mirroring `labels::field_kind_label`; keep the wire enum untouched (ADR-4).
-- **Acceptance:** Every native query flavor renders from the catalog in both languages; the German catalog gains the entries and the parity test stays green.
-
 ### [ ] L18 — Design-time schema edits are not capability-gated in the UI — 🟢
 - **Location:** `crates/datacraft-ui/src/design.rs:111-168` (Add Field / Rename / Delete / Required are always enabled), `crates/datacraft-core/src/availability.rs` (`DisabledReason` has no `AlterTables` variant and no affordance id).
 - **Problem:** The design view offers schema edits regardless of the driver's `alter_table` capability. SQLite reports `alter_table=false`, so every click there produces a `Failed` toast ("unsupported: the sqlite driver cannot alter the schema for this source") instead of a disabled control with the reason — the affordance vocabulary covers create/drop/write/relationships/passwords but not alter. The backstage "Create Database" button is likewise enabled from the selected format rather than `create_database`.
@@ -242,3 +236,4 @@
 - L20 — Core public surface: empty public modules and an undocumented MockPort API — done (fixed in `7ee7954`: the impl-only modules are private, and PUBLISHING documents MockPort as a supported testing surface (not a production backend))
 - M32 — Wire vocabularies beyond M22 lack non_exhaustive — done (fixed in `011bc76`: Event, DisabledReason, DatabaseFormat and SchemaChange are non_exhaustive; Jet and UI wildcards answer precise/localized fallbacks; PUBLISHING lists the vocabulary and states the read-only snapshot contract)
 - M33 — datacraft-jet publishes its raw format layer without a stability contract — done (decided in `c1d0223`: the raw `datacraft_jet::jet` layer is a deliberately supported, semver-covered surface (needed by consumers and the integration tests); PUBLISHING names both surfaces explicitly)
+- L17 — Native query flavor renders as a Rust Debug name — done (fixed in `8095d68` (RED `e9a1c26`): all nine native query flavors render through labels::native_query_kind_label with German catalog entries; the parity test verifies coverage)

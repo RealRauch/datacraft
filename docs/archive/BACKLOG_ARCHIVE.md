@@ -1057,3 +1057,12 @@
 - **Approach:** Decide and document: either keep the raw layer as a deliberately public low-level API (state it in PUBLISHING, keep it documented and semver-covered) or hide it behind a `#[doc(hidden)]`/feature-gated `internals` module used only by the test targets. The port-facing API stays the supported contract either way.
 - **Acceptance:** `docs/PUBLISHING.md` names the supported surface of `datacraft-jet`; docs.rs shows the supported API as primary; integration tests keep compiling without a behaviour change; the decision is recorded (ADR-7 addendum).
 - **Done:** decided in `c1d0223`: the raw `datacraft_jet::jet` layer is a deliberately supported, semver-covered surface (needed by consumers and the integration tests); PUBLISHING names both surfaces explicitly
+
+---
+
+### [x] L17 — Native query flavor renders as a Rust Debug name — 🟢
+- **Location:** `crates/datacraft-ui/src/qbe.rs:201` (`let kind = format!("{:?}", native.kind)`), rendered at `:235-243`.
+- **Problem:** The native-query flavor is rendered from the Rust `Debug` name ("Select", "Crosstab", "MakeTable", …) inside an otherwise translated sentence. In German the line reads "Select — read-only (MSysQueries)"; renaming the enum variant would silently change user-visible text. The i18n parity scanner cannot see it because it is not a `t()` key.
+- **Approach:** Add a `NativeQueryKind` label function in the UI (match every variant to a `t()` key), mirroring `labels::field_kind_label`; keep the wire enum untouched (ADR-4).
+- **Acceptance:** Every native query flavor renders from the catalog in both languages; the German catalog gains the entries and the parity test stays green.
+- **Done:** fixed in `8095d68` (RED `e9a1c26`): all nine native query flavors render through labels::native_query_kind_label with German catalog entries; the parity test verifies coverage
