@@ -20,6 +20,18 @@ fn temp_path(path: &Path) -> PathBuf {
 /// A failure while writing the temp leaves the target untouched and removes
 /// the temp; a failure while renaming keeps the target and removes the temp.
 pub fn write_replacing(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    // A read-only target must refuse the replacement on every platform:
+    // POSIX rename only needs write access to the directory, so without
+    // this check the read-only flag would silently lose its protection
+    // for files written by the Jet write-through (T8 root cause, F9).
+    // Windows rename-replace enforces the flag itself; a missing target
+    // has no flag and proceeds.
+    if std::fs::metadata(path)
+        .map(|metadata| metadata.permissions().readonly())
+        .unwrap_or(false)
+    {
+        return Err(std::io::Error::other("target file is read-only"));
+    }
     let temp = temp_path(path);
     if let Err(error) = std::fs::write(&temp, bytes) {
         let _ = std::fs::remove_file(&temp);

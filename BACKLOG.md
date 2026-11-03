@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T22:38
+# BACKLOG.md — Open items (As of: 2026-11-03T23:03
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -111,9 +111,9 @@
 
 ### [ ] L10 — CI: macOS jobs infra-cancelled — rerun for a fully green run — 🟢
 - **Location:** `.github/workflows/ci.yml` (macos-latest matrix entries), GitHub runner capacity/billing (account side)
-- **Problem:** Since 2026-11-03 ~14:00 UTC every `Tests (macos-latest)` and `Oracle (mdb-tools cross-check) (macos-latest)` job is cancelled in the runner queue after exactly 15m01s with no logs (five consecutive attempts across runs 41645734997/41653027497/41666011189, including two explicit reruns). Earlier the same day both macOS jobs ran green (oracle 28s, tests 1m25s). All non-macOS jobs are green; the macOS suite is the same code that passes on ubuntu/windows, and the ubuntu oracle covers the mdbtools cross-check.
-- **Approach:** No repository change — retry `gh run rerun --failed` when GitHub macOS runner capacity/billing recovers (check account Settings → Billing → Actions minutes: the macOS 10× multiplier is the prime suspect). Optionally consider moving the oracle job to ubuntu-only (it already carries the mdbtools cross-check) if macOS capacity stays scarce.
-- **Acceptance:** A CI run on `main` completes with the macOS jobs green (or the oracle matrix consciously narrowed with a documented decision); nothing in the repo changes until then.
+- **Problem:** Since 2026-11-03 ~14:00 UTC every `Tests (macos-latest)` and `Oracle (mdb-tools cross-check) (macos-latest)` job was cancelled in the runner queue after ~15m with no logs (five consecutive attempts, plus both phase-37 runs cancelling macOS via fail-fast). Ubuntu additionally carried a real failure hidden in that noise: H47's atomic write had silently lifted the read-only-file protection on POSIX (F9).
+- **Decision (2026-11-03, narrowed-matrix variant of this item's acceptance):** macOS is temporarily removed from both CI matrices (test + oracle) with an in-file comment naming this item; `release.yml` still builds and smokes the macOS artifacts, so the compatibility matrix keeps its macOS claim. Re-admission is tracked as item L25.
+- **Acceptance:** A CI run on `main` completes green on the narrowed matrix (ubuntu/windows) with the narrowing documented in-file and in the archives; nothing else changes.
 
 ### [ ] L13 — SQLite affinity edge cases: AUTOINCREMENT substring and parameterized type names — 🟢
 - **Location:** `crates/datacraft-sqlite/src/mapping.rs:224` (`autoincrement` detected by uppercasing the whole `CREATE TABLE` text and searching for the substring `AUTOINCREMENT`), `:279` (marker types compared by exact uppercase name).
@@ -144,6 +144,12 @@
 - **Problem:** `cargo package --list` warns "manifest has no documentation, homepage or repository" for the published crates (found in step 37.4 while verifying the packaged license files). crates.io shows empty repository/docs links for such packages; the release checklist's dry-run step would surface it too late.
 - **Approach:** Set `description`, `repository` and `homepage` (workspace inheritance or per crate) on the six published crates; `documentation` follows the docs.rs default unless a distinct target is wanted. Cargo.toml changes are Medium-class - one per-occurrence release when picked up, ideally before the first public tag (fits the 37.6 release checklist step).
 - **Acceptance:** `cargo package --list` reports no metadata warnings for the published crates; crates.io preview (dry-run) carries description/repository links.
+
+### [ ] L25 — Re-admit macOS to the CI matrices when runner capacity recovers — 🟢
+- **Location:** `.github/workflows/ci.yml` (test + oracle matrices, macos-latest removed 2026-11-03 per L10)
+- **Problem:** macOS runners infra-cancelled every job after ~15m (L10). The temporary narrowing removed macOS from CI; the release.yml build matrix still covers macOS artifacts with the packaged smoke, but macOS unit tests and the mdbtools oracle cross-check are no longer exercised per push.
+- **Approach:** When GitHub macOS runner capacity/billing recovers (check Settings → Billing → Actions minutes; the macOS 10x multiplier is the prime suspect), re-add `macos-latest` to both matrices, drop the L10 comments, and confirm one fully green run. High-class CI change: one per-occurrence release.
+- **Acceptance:** `macos-latest` back in both matrices; a CI run on `main` completes with the macOS jobs green (not cancelled); the in-file L10 comments removed.
 
 ---
 

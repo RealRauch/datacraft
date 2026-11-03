@@ -47,7 +47,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # macos-latest temporarily removed (L10 decision 2026-11-03): the
+        # macOS runner queue cancelled every job after ~15m with no logs;
+        # re-admitted by item L25 when runner capacity recovers. The
+        # release.yml build matrix still covers macOS for artifacts.
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - run: cargo test --workspace --all-features
@@ -67,7 +71,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # macos-latest temporarily removed (L10 decision 2026-11-03, see the
+        # test job); re-admitted by item L25 when runner capacity recovers.
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     env:
       DATACRAFT_ORACLE_MDB: fixtures/testV2000.mdb,fixtures/testV2007.accdb,fixtures/testV2010.accdb,fixtures/attachmentsV2016.accdb
