@@ -96,14 +96,14 @@ impl FileHeader {
         if is_ace && matches!(version, JET3_VERSION | JET4_VERSION) {
             return Err(StorageError::Unsupported {
                 reason: format!(
-                    "ACE product string with Jet format version 0x{version:08x} is not a                      supported combination"
+                    "ACE product string with Jet format version 0x{version:08x} is not a supported combination"
                 ),
             });
         }
         if is_jet && matches!(version, ACE_2007_VERSION | ACE_2010_VERSION) {
             return Err(StorageError::Unsupported {
                 reason: format!(
-                    "Jet product string with ACE format version 0x{version:08x} is not a                      supported combination"
+                    "Jet product string with ACE format version 0x{version:08x} is not a supported combination"
                 ),
             });
         }

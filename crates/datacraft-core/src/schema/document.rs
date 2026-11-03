@@ -136,7 +136,7 @@ impl SchemaDocument {
             else {
                 return Err(SchemaError::InvalidProperty {
                     detail: format!(
-                        "the sidecar table {:?} is not in the database — properties were not                          applied",
+                        "the sidecar table {:?} is not in the database — properties were not applied",
                         source.name
                     ),
                 });
@@ -149,7 +149,7 @@ impl SchemaDocument {
                 else {
                     return Err(SchemaError::InvalidProperty {
                         detail: format!(
-                            "the sidecar field {:?}.{:?} is not in the database — properties were                              not applied",
+                            "the sidecar field {:?}.{:?} is not in the database — properties were not applied",
                             source.name, source_field.name
                         ),
                     });

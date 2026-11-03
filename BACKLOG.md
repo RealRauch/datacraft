@@ -90,35 +90,11 @@
 - **Approach:** Replace each run with a single space and restore the two parameter names in the doc comment; no wording changes otherwise. If any test asserts on the exact string, update it in the same step.
 - **Acceptance:** `grep -nE '[a-z] {2,}[a-z]'` over the message strings returns only intentional formatting; the transport doc comment names its reader/writer parameters; affected tests are green.
 
-### [ ] L12 — CSV create_table skips TableDef validation — 🟢
-- **Location:** `crates/datacraft-csv/src/lib.rs:138-158` (`create_table`).
-- **Problem:** The Jet and SQLite backends call `TableDef::validate()` before creating a table; the CSV driver writes the header row without it. A definition with an empty or duplicate field name therefore creates a table whose header cannot be read back unambiguously (the open path rejects an empty header cell, so the table becomes unopenable).
-- **Approach:** Call `definition.validate()` like the other drivers and map the error to `PortError::WriteFailed` with the table name, keeping the existing file-name check.
-- **Acceptance:** A CSV `create_table` with an invalid definition fails before any file is written and the directory still opens; test pins both the rejection and the unchanged valid path.
-
 ### [ ] L13 — SQLite affinity edge cases: AUTOINCREMENT substring and parameterized type names — 🟢
 - **Location:** `crates/datacraft-sqlite/src/mapping.rs:224` (`autoincrement` detected by uppercasing the whole `CREATE TABLE` text and searching for the substring `AUTOINCREMENT`), `:279` (marker types compared by exact uppercase name).
 - **Problem:** Two affinity edge cases misclassify schemas. A table whose DDL mentions `AUTOINCREMENT` anywhere (a column default, a quoted name) turns every `INTEGER PRIMARY KEY` into an AutoNumber and rejects user values on write. Conversely a declared type with a length/precision suffix (`DATETIME(6)`, `CURRENCY(10)`) misses the marker match and falls through to `Decimal`.
 - **Approach:** Detect `AUTOINCREMENT` on the primary-key column's definition (token-aware, or via `PRAGMA table_info` + the DDL segment belonging to the PK column), and strip a trailing `(…)` before the marker-type comparison. Affinity fallbacks stay unchanged.
 - **Acceptance:** A DDL mentioning the word outside the PK column does not create an AutoNumber; `DATETIME(6)` maps to `DateTime` (and `CURRENCY(10)` to `Currency`); unit tests pin both directions, real fixture catalogs unchanged.
-
-### [ ] L14 — Capability gates missing on the journal and template commands — 🟢
-- **Location:** `crates/datacraft-core/src/journal.rs` (`preview_write`, `apply_write`, `rollback_write` check `atomic_batch` but not `write_rows`), `crates/datacraft-core/src/database.rs:182` (`create_database_from_template` checks no `create_database` capability, unlike `create_database`).
-- **Problem:** ADR-7 states the dispatcher refuses a command whose capability is `No` *before* the port is called. On a read-only source the journal commands still preview/apply down to the port, which then answers its own "read-only" wording instead of the stable capability reason; a composed driver that cannot create databases would still be asked to. The gate coverage is inconsistent rather than absent (the single-row commands, relationships, schema and password commands all gate).
-- **Approach:** Add the `write_rows` gate to the journal commands and the `create_database` gate to the template command, using the existing `DriverCapabilities::unsupported` wording; extend the capability contract tests to assert every write-shaped command is gated.
-- **Acceptance:** On a driver with `write_rows=false`, `PreviewWrite`/`ApplyWrite`/`RollbackWrite` answer the capability reason without touching the port; the template command does the same for `create_database=false`; the capability suite pins the complete set.
-
-### [ ] L15 — Undo history is cleared even when the barrier command fails — 🟢
-- **Location:** `crates/datacraft-core/src/core.rs:198-321` (`dispatch` calls `clear_history` after every command matched by `clears_history`, regardless of the outcome).
-- **Problem:** The barrier fires on failed commands too. A rejected `CreateTable` (invalid schema), a `CreateDatabase`/`OpenDatabase` that cannot proceed, a wrong `ApplyWrite` token or a failed `RollbackWrite` all erase the still-valid undo/redo stack of the open database — the user loses undo over a command that changed nothing.
-- **Approach:** Apply the barrier only when the dispatch produced a state change (e.g. `!matches!(events.as_slice(), [Event::Failed { .. }])`, or an explicit success flag from the handler). The barrier semantics for successful schema/batch/lifecycle commands stay unchanged.
-- **Acceptance:** A failed barrier-class command leaves `undo_depth`/`redo_depth` unchanged; successful commands still clear both; tests pin both directions.
-
-### [ ] L16 — DropTable leaves relationships that reference the dropped table — 🟢
-- **Location:** `crates/datacraft-core/src/database.rs:438-442` (`drop_table` prunes `db.relationships` by `rel.table` only).
-- **Problem:** Only relationships whose *child* table was dropped are removed. Relationships where the dropped table is the *referenced* parent stay in the snapshot and point at a table that no longer exists, so the relationship mapper renders a dangling edge until the database is reopened (the Jet catalog also keeps the MSysRelationships row unless the driver prunes it).
-- **Approach:** Prune both sides (`rel.table` and `rel.related_table`), and let the driver delete the matching MSysRelationships rows on drop if it does not already.
-- **Acceptance:** Dropping a parent table removes every relationship that references it from `state.relationships`/the snapshot; the mapper shows no dangling edge; test over the bus.
 
 ### [ ] L17 — Native query flavor renders as a Rust Debug name — 🟢
 - **Location:** `crates/datacraft-ui/src/qbe.rs:201` (`let kind = format!("{:?}", native.kind)`), rendered at `:235-243`.
@@ -282,3 +258,7 @@
 - M27 — CreateDatabaseFromTemplate steals the open database's port session — done (fixed in `4da8d63` (RED `618f720`): the command is refused while a database is open ("close the open database …"), so the live port session can never be replaced; a later fresh-session API can lift the restriction)
 - M28 — Non-finite Jet floats break JSON-RPC serialization — done (fixed in `9e9bc56` (RED `1637690`): Single/Double cells with NaN or Infinity answer a precise Corrupt error naming the column; the read path now enforces the same finite-float rule as the write path, so no non-finite value can reach serde_json)
 - M26 — Crafted memo and VBA lengths drive unchecked allocations — done (fixed in `e47edbe`: memo-chain capacity capped by the input size, VBA chunk limit enforced per token; existing hostile-length suites pin the error behavior (the bound itself is not observable))
+- L12 — CSV create_table skips TableDef validation — done (fixed in `9d4d865` (RED `788f739`): CSV create_table validates the definition before writing; an invalid header leaves no file and the directory still opens)
+- L14 — Capability gates missing on the journal and template commands — done (fixed in `9d4d865` (RED `788f739`): preview/apply/rollback gate on write_rows and template creation on create_database, all before the port; the capability reason is the stable reply)
+- L15 — Undo history is cleared even when the barrier command fails — done (fixed in `9d4d865` (RED `788f739`): the undo barrier fires only when dispatch produced no failure event, so a rejected barrier command keeps the history)
+- L16 — DropTable leaves relationships that reference the dropped table — done (fixed in `9d4d865` (RED `788f739`): DropTable prunes relationships whose child or parent is the dropped table, so the snapshot carries no dangling edge)

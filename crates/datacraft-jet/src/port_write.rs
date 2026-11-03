@@ -171,7 +171,7 @@ pub(crate) fn to_storage_values_for_restore(
             if !valid {
                 return Err(PortError::WriteFailed {
                     detail: format!(
-                        "field {:?}: a restored AutoNumber needs its original engine-assigned                          value",
+                        "field {:?}: a restored AutoNumber needs its original engine-assigned value",
                         field.name
                     ),
                 });

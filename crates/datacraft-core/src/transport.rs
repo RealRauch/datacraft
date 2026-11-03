@@ -86,8 +86,8 @@ fn render(value: Value) -> String {
     value.to_string()
 }
 
-/// Serves line-delimited JSON-RPC requests from , writing one
-/// response line per request to  (flushed immediately). Blank
+/// Serves line-delimited JSON-RPC requests from `reader`, writing one
+/// response line per request to `writer` (flushed immediately). Blank
 /// lines are skipped silently; EOF ends the session. The MCP endpoint
 /// (decision default 8) is exactly this loop over stdin/stdout.
 pub fn serve(reader: &mut dyn std::io::BufRead, writer: &mut dyn std::io::Write, core: &mut Core) {

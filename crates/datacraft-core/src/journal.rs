@@ -234,7 +234,7 @@ pub fn to_row_write_ops(ops: &[WriteOp]) -> Vec<RowWriteOp> {
 fn atomic_batch_reason(db: &crate::state::DatabaseState, ops: usize) -> Option<String> {
     (!db.capabilities.atomic_batch && ops > 1).then(|| {
         format!(
-            "unsupported: the {} driver applies journal batches one operation at a time — a              multi-op batch would not be atomic (split it into single-operation batches)",
+            "unsupported: the {} driver applies journal batches one operation at a time — a multi-op batch would not be atomic (split it into single-operation batches)",
             db.driver
         )
     })

@@ -985,3 +985,39 @@
 - **Approach:** Bound the pre-allocation by evidence (`min(total_len, file.len())` or no reservation at all) and enforce the per-chunk output limit inside the token loop (check `out.len() - chunk_start <= MAX_CHUNK` before each copy). No behavior change for valid files.
 - **Acceptance:** A crafted memo length allocates at most the file-backed amount and still yields the existing precise error; a crafted VBA chunk never exceeds one 4096-byte chunk of intermediate output; tests pin both bounds.
 - **Done:** fixed in `e47edbe`: memo-chain capacity capped by the input size, VBA chunk limit enforced per token; existing hostile-length suites pin the error behavior (the bound itself is not observable)
+
+---
+
+### [x] L12 — CSV create_table skips TableDef validation — 🟢
+- **Location:** `crates/datacraft-csv/src/lib.rs:138-158` (`create_table`).
+- **Problem:** The Jet and SQLite backends call `TableDef::validate()` before creating a table; the CSV driver writes the header row without it. A definition with an empty or duplicate field name therefore creates a table whose header cannot be read back unambiguously (the open path rejects an empty header cell, so the table becomes unopenable).
+- **Approach:** Call `definition.validate()` like the other drivers and map the error to `PortError::WriteFailed` with the table name, keeping the existing file-name check.
+- **Acceptance:** A CSV `create_table` with an invalid definition fails before any file is written and the directory still opens; test pins both the rejection and the unchanged valid path.
+- **Done:** fixed in `9d4d865` (RED `788f739`): CSV create_table validates the definition before writing; an invalid header leaves no file and the directory still opens
+
+---
+
+### [x] L14 — Capability gates missing on the journal and template commands — 🟢
+- **Location:** `crates/datacraft-core/src/journal.rs` (`preview_write`, `apply_write`, `rollback_write` check `atomic_batch` but not `write_rows`), `crates/datacraft-core/src/database.rs:182` (`create_database_from_template` checks no `create_database` capability, unlike `create_database`).
+- **Problem:** ADR-7 states the dispatcher refuses a command whose capability is `No` *before* the port is called. On a read-only source the journal commands still preview/apply down to the port, which then answers its own "read-only" wording instead of the stable capability reason; a composed driver that cannot create databases would still be asked to. The gate coverage is inconsistent rather than absent (the single-row commands, relationships, schema and password commands all gate).
+- **Approach:** Add the `write_rows` gate to the journal commands and the `create_database` gate to the template command, using the existing `DriverCapabilities::unsupported` wording; extend the capability contract tests to assert every write-shaped command is gated.
+- **Acceptance:** On a driver with `write_rows=false`, `PreviewWrite`/`ApplyWrite`/`RollbackWrite` answer the capability reason without touching the port; the template command does the same for `create_database=false`; the capability suite pins the complete set.
+- **Done:** fixed in `9d4d865` (RED `788f739`): preview/apply/rollback gate on write_rows and template creation on create_database, all before the port; the capability reason is the stable reply
+
+---
+
+### [x] L15 — Undo history is cleared even when the barrier command fails — 🟢
+- **Location:** `crates/datacraft-core/src/core.rs:198-321` (`dispatch` calls `clear_history` after every command matched by `clears_history`, regardless of the outcome).
+- **Problem:** The barrier fires on failed commands too. A rejected `CreateTable` (invalid schema), a `CreateDatabase`/`OpenDatabase` that cannot proceed, a wrong `ApplyWrite` token or a failed `RollbackWrite` all erase the still-valid undo/redo stack of the open database — the user loses undo over a command that changed nothing.
+- **Approach:** Apply the barrier only when the dispatch produced a state change (e.g. `!matches!(events.as_slice(), [Event::Failed { .. }])`, or an explicit success flag from the handler). The barrier semantics for successful schema/batch/lifecycle commands stay unchanged.
+- **Acceptance:** A failed barrier-class command leaves `undo_depth`/`redo_depth` unchanged; successful commands still clear both; tests pin both directions.
+- **Done:** fixed in `9d4d865` (RED `788f739`): the undo barrier fires only when dispatch produced no failure event, so a rejected barrier command keeps the history
+
+---
+
+### [x] L16 — DropTable leaves relationships that reference the dropped table — 🟢
+- **Location:** `crates/datacraft-core/src/database.rs:438-442` (`drop_table` prunes `db.relationships` by `rel.table` only).
+- **Problem:** Only relationships whose *child* table was dropped are removed. Relationships where the dropped table is the *referenced* parent stay in the snapshot and point at a table that no longer exists, so the relationship mapper renders a dangling edge until the database is reopened (the Jet catalog also keeps the MSysRelationships row unless the driver prunes it).
+- **Approach:** Prune both sides (`rel.table` and `rel.related_table`), and let the driver delete the matching MSysRelationships rows on drop if it does not already.
+- **Acceptance:** Dropping a parent table removes every relationship that references it from `state.relationships`/the snapshot; the mapper shows no dangling edge; test over the bus.
+- **Done:** fixed in `9d4d865` (RED `788f739`): DropTable prunes relationships whose child or parent is the dropped table, so the snapshot carries no dangling edge
