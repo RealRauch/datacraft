@@ -850,3 +850,12 @@
 - **Approach:** Tag-triggered release workflow (mirror of the CI gates): build `datacraft`, `datacraft-cli` and `datacraft-mcp` for Windows/macOS/Linux (rusqlite statically bundled), archives with sha256 checksums + third-party notices. Post-Phase-30 additions (ADR-7): the composed binaries bundle the CSV driver through the composite fallback, so the per-artifact smoke also opens a throwaway CSV directory headlessly (the driver set is proven inside the artifact), and the notices name the `csv` crate.
 - **Acceptance:** The workflow file lints (YAML/Actions conventions like ci.yml); the local release smoke opens `testV2000.mdb` headless *and* a CSV directory; the tag policy is documented; no binary lives in the repo.
 - **Done:** done in `7ba87f1` + `d3a008c` (steps 26.1/26.2) — release.yml matrix/packaging/per-artifact smoke/checksums, draft-release publishing via gh, PLAYBOOK §9 tag policy; local packaged smoke green on windows (jet fixture, samples demo, csv directory)
+
+---
+
+### [x] M21 — Retire the vestigial StorageEngine trait (ADR-7 single seam) — 🟡
+- **Location:** `crates/datacraft-storage/src/engine.rs`, `crates/datacraft-storage/src/mock.rs` (`InMemoryEngine`), `crates/datacraft-storage/tests/engine_boundary.rs`; `docs/ARCHITECTURE.md` §6 (already annotated as the historical record)
+- **Problem:** ADR-7 made the core-owned `StoragePort` the single driver seam; the Phase-2 `StorageEngine` trait survives with one mock implementor and pins an outdated contract (Jet3-unaware, no capabilities, no create/drop/alter surface) right next to the real one — two seams confuse contributors and the public library story (M19).
+- **Approach:** Port the still-valuable contract assertions of `engine_boundary.rs` onto the port layer (they fold into the existing driver-capability invariants), then remove the trait, the mock and the boundary suite. NOTE: deleting an existing test suite is a **High-class gate** (PLAYBOOK §0.5) — package with an explicit human release; coverage must not drop (the ported assertions keep the lines covered).
+- **Acceptance:** One seam only (`StoragePort`); the boundary contract lives in port-level invariants; coverage ≥ 95 % holds; ARCHITECTURE §6 cites the removal; canonical verification set green.
+- **Done:** done in `45a852d` + `44b1fff` (step 31.1) — trait/mock/boundary suite removed after porting the contract to tests/port_contract.rs (Jet4 + SQLite cross-driver); coverage >= 95 held; ARCHITECTURE §6 cites the removal; finding M24 (tri-state Boolean NULL) filed from the porting run
