@@ -363,6 +363,21 @@ impl App {
         self.design_selection.insert(tab_id, field_index);
     }
 
+    /// Table whose rows a tab renders: its own name for table tabs, the
+    /// bound source for form tabs; `None` for every other kind.
+    fn bound_table(&self, tab: &datacraft_core::snapshot::TabSnapshot) -> Option<String> {
+        if tab.object_kind == "form" {
+            return self
+                .snapshot
+                .database
+                .as_ref()
+                .and_then(|db| db.forms.iter().find(|form| form.name == tab.object_name))
+                .map(|form| form.source.to_lowercase())
+                .filter(|source| !source.is_empty());
+        }
+        (tab.object_kind == "table").then(|| tab.object_name.to_lowercase())
+    }
+
     /// Loads rows for every open table tab and drops caches after
     /// database/table changes.
     fn maintain_caches(&mut self, events: &[Event]) {
@@ -409,22 +424,31 @@ impl App {
         }) {
             self.results.clear();
         }
-        // Inserted rows invalidate exactly the open datasheet tabs of their
-        // table; the reload loop below repopulates the cache.
-        let inserted: Vec<String> = events
+        // Every row-mutating event invalidates the caches of the tabs it
+        // affects: table tabs by name, form tabs by their bound source
+        // (M29). The reload loop below repopulates them from the port.
+        let mutated: Vec<String> = events
             .iter()
-            .filter_map(|e| match e {
-                Event::RowInserted { table } => Some(table.to_lowercase()),
+            .filter_map(|event| match event {
+                Event::RowInserted { table }
+                | Event::RowUpdated { table, .. }
+                | Event::RowDeleted { table, .. }
+                | Event::Undone { table }
+                | Event::Redone { table }
+                | Event::TableAltered { table, .. }
+                | Event::WriteApplied { table, .. }
+                | Event::WriteRolledBack { table } => Some(table.to_lowercase()),
                 _ => None,
             })
             .collect();
-        if !inserted.is_empty() {
+        if !mutated.is_empty() {
             let stale: Vec<TabId> = self
                 .snapshot
                 .tabs
                 .iter()
                 .filter(|tab| {
-                    tab.object_kind == "table" && inserted.contains(&tab.object_name.to_lowercase())
+                    self.bound_table(tab)
+                        .is_some_and(|table| mutated.contains(&table))
                 })
                 .map(|tab| tab.id)
                 .collect();
