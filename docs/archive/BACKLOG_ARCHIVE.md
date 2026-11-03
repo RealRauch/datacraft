@@ -895,3 +895,12 @@
 - **Approach:** Behavioral edge suites for csv (arity/out-of-range/batch-failure/drop/write-failure paths) and for the detecting registry (sniff rejections, fallback chain, session routing); a real-subprocess E2E for the mcp binary (spawn, inspect over stdin, open a CSV directory — the `cli_process`/T4 pattern); the 11-line composition root counts against the gate like `datacraft-cli`'s (TESTING.md §3 documents it "none"-style — no exclusion, no ci.yml change).
 - **Acceptance:** csv and detecting ≥ 95 % lines in the CI lcov with the mcp bin counted; a fully green CI run on `main` pins the acceptance.
 - **Done:** done in steps 36.1-36.3 (`dbb3ae8`, `3e68e2f`, `8d3e348`) — csv 66.8% -> 96.6%, detecting 80.7% -> 96.9%, mcp bin covered by the subprocess suite (100% locally; counted without exclusion per the human's call); CI run 41653027497 fully green including the coverage gate
+
+---
+
+### [x] M23 — Registered drivers visible in the snapshot — 🟡
+- **Location:** `crates/datacraft-core/src/snapshot.rs` (`UiStateSnapshot`), `crates/datacraft-storage/src/detecting.rs` (registry introspection)
+- **Problem:** Agents can discover templates in the snapshot, but not *which* drivers the composed binary can open — they learn a source family only by attempting to open it and reading the failure. The registry exists (built-in probes plus `with_fallback`); only the projection is missing.
+- **Approach:** The composite exposes its driver set — driver id, display format, offline capability summary — for the built-ins and any registered fallbacks; the snapshot carries it additively next to `templates`. No UI surface is mandated; CLI/MCP agents read it over the wire and can pre-flight an open against the reported families.
+- **Acceptance:** `inspect()` on a composed binary lists jet, sqlite and csv with ids and formats; the wire change is additive; the driver capability invariants are unaffected; canonical verification set green.
+- **Done:** done in `c4bb804` (step 36.4) — DriverInfo + driver_inventory()/source_format() vocabulary, inventory fixed at Core::new, composite lists built-ins + fallback; the real mcp binary lists jet/sqlite/csv over the wire (pinned by mcp_process.rs); wire change additive, capability invariants unaffected
