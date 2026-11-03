@@ -232,7 +232,7 @@
 | 33.1 | Journal batches gate on the atomic_batch capability (M20) | ✅ |
 | 33.2 | Phase 33 Quality Gate Review | ✅ |
 | 31.1 | Retire the vestigial StorageEngine trait (M21, High gate: test suite ported) | ✅ |
-| 31.2 | Crate split: datacraft-jet + datacraft-sqlite (M19) | ⬜ |
+| 31.2 | Crate split: datacraft-jet + datacraft-sqlite (M19) | 🔄 |
 | 31.3 | Standalone datacraft-mcp binary crate (M19) | ⬜ |
 | 31.4 | Publishing: Semver/MSRV/changelog policy, crates.io order (M19) | ⬜ |
 | 31.5 | Phase 31 Quality Gate Review | ⬜ |
