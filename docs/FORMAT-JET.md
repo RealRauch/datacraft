@@ -240,6 +240,18 @@ Evidence (hex study on both fixture variants, hashes per
   contracts in `ace_writer.rs`, port/wire/CLI write-through in
   `ace_port_writes.rs` / `server_e2e_ace.rs`; office-encrypted ACCDB
   answers `Unsupported` at the reader and writer boundary).
+- **Tri-state Yes/No boundary (2026-11-03 — BACKLOG M24 decision):** Jet
+  Yes/No columns have no row storage of their own — the value *is* the
+  null-mask bit (see "Rows (Jet4)"), so NULL is **not representable** and
+  a decoded row always reads `false` or `true`. The verified knowledge
+  base documents no second-bit mechanism for tri-state booleans (clean
+  room: no encoding beyond the documented model), so the domain's
+  `Boolean { tri_state: true }` keeps working for creation — the shipped
+  samples and templates use it — and for reading, but **writing NULL to a
+  tri-state Boolean answers a precise `Unsupported` naming the column and
+  the boundary**. SQLite honours tri-state NULL; the cross-driver
+  difference is deliberate and documented here and in the csv/jet crate
+  docs. `tests/jet_row_writes.rs` pins the message.
 
 ## Usage maps (writer — verified 2026-11-01, step 10.1)
 

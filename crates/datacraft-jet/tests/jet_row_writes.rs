@@ -381,3 +381,54 @@ fn autonumber_values_are_written_by_an_update() {
     assert_eq!(rows[0][0], FieldValue::Integer(1));
     assert_eq!(rows[0][1], FieldValue::Text("renamed".into()));
 }
+
+/// Tri-state Yes/No boundary (step 36.6, item M24; FORMAT-JET "Domain
+/// mapping"): Jet Yes/No is one mask bit — NULL is not representable, so
+/// writing it answers a precise `Unsupported` naming the column and the
+/// boundary, while true/false keep working across a reopen.
+#[test]
+fn a_tri_state_boolean_null_names_the_jet_boundary() {
+    let scratch = Scratch(scratch_copy("tristate.mdb"));
+    let mut port = opened(&scratch.0);
+    let flags = TableDef::new(
+        "Flags",
+        vec![
+            FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
+            FieldDef::new("active", FieldKind::Boolean { tri_state: true }),
+        ],
+    );
+    port.create_table(&flags)
+        .expect("create the tri-state table");
+
+    let error = port
+        .insert_row("Flags", &[FieldValue::Integer(1), FieldValue::Null])
+        .expect_err("a tri-state NULL must be refused");
+    let message = error.to_string();
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+    assert!(message.contains("active"), "the column is named: {message}");
+    assert!(
+        message.contains("one bit"),
+        "the boundary is named: {message}"
+    );
+    assert!(
+        message.contains("cannot represent NULL"),
+        "the consequence is named: {message}"
+    );
+
+    // true/false keep working and survive a reopen (false decodes false).
+    port.insert_row(
+        "Flags",
+        &[FieldValue::Integer(1), FieldValue::Boolean(true)],
+    )
+    .expect("write true");
+    port.insert_row(
+        "Flags",
+        &[FieldValue::Integer(2), FieldValue::Boolean(false)],
+    )
+    .expect("write false");
+    port.close();
+    let reopened = opened(&scratch.0);
+    let rows = read_all(&reopened, "Flags");
+    assert_eq!(rows[0][1], FieldValue::Boolean(true));
+    assert_eq!(rows[1][1], FieldValue::Boolean(false));
+}

@@ -255,5 +255,5 @@
 | 36.3 | MCP subprocess E2E + registry row (T7) — push checkpoint, green CI | ✅ |
 | 36.4 | M23: registered drivers visible in the snapshot | ✅ |
 | 36.5 | L7: CSV type inference | ✅ |
-| 36.6 | M24: tri-state Boolean NULL decision | ⬜ |
+| 36.6 | M24: tri-state Boolean NULL decision | 🔄 |
 | 36.7 | Phase 36 Quality Gate Review | ⬜ |

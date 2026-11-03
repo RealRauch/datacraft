@@ -60,12 +60,25 @@ pub fn encode_row(values: &[StorageValue], def: &JetTableDef) -> Result<Vec<u8>,
     for (col, value) in def.columns.iter().zip(values) {
         let id = col.column_id as usize;
         if col.data_type == JetType::Bool {
-            // The boolean value IS the mask bit.
-            let StorageValue::Bit(bit) = value else {
-                return Err(type_error(col, value));
-            };
-            if *bit {
-                mask[id / 8] |= 1 << (id % 8);
+            // The boolean value IS the mask bit — NULL is not representable
+            // (M24 boundary, documented in FORMAT-JET "Domain mapping").
+            match value {
+                StorageValue::Bit(bit) => {
+                    if *bit {
+                        mask[id / 8] |= 1 << (id % 8);
+                    }
+                }
+                StorageValue::Null => {
+                    return Err(StorageError::Unsupported {
+                        reason: format!(
+                            "column {} ({}) is a Jet Yes/No column: Jet stores one bit and \
+                             cannot represent NULL (a decoded NULL reads false) — write \
+                             true/false or declare the column non-tri-state",
+                            col.name, col.column_id
+                        ),
+                    });
+                }
+                other => return Err(type_error(col, other)),
             }
             continue;
         }
