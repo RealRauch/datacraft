@@ -9,14 +9,14 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 26 — Distribution & Release
+### Phase 26 — Distribution & Release *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
 - **26.1 Release-Workflow: Matrix, Checksums, Notices (M13)**
 - **26.2 Release-Smoke + Tag-Politik (M13)**
 - **26.3 Phase 26 Quality Gate Review**
-### Phase 31 — Engine Publishing
+### Phase 31 — Engine Publishing *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
@@ -25,7 +25,7 @@
 - **31.3 Standalone datacraft-mcp binary crate (M19)**
 - **31.4 Publishing: Semver/MSRV/changelog policy, crates.io order (M19)**
 - **31.5 Phase 31 Quality Gate Review**
-### Phase 34 — Cross-Cutting Code Review
+### Phase 34 — Cross-Cutting Code Review *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
@@ -36,7 +36,7 @@
 - **34.5 Finding triage + fix window (R1)**
 - **34.6 Phase 34 Quality Gate Review**
 - **34.7 Semantic-Conformance-Spot-Checks (T6)**
-### Phase 35 — Documentation Sweep
+### Phase 35 — Documentation Sweep *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
