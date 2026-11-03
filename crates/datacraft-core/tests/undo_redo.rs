@@ -164,3 +164,29 @@ fn undo_and_redo_need_an_open_database() {
     let reason = failure_reason(&core.dispatch(Command::Redo));
     assert!(reason.contains("no database"), "{reason}");
 }
+
+/// L15 regression: a barrier command that failed changed nothing, so it
+/// must not erase the still-valid undo history.
+#[test]
+fn failed_barrier_commands_keep_the_undo_history() {
+    let mut core = core();
+    insert(&mut core, "first");
+    assert_eq!(core.inspect().undo_depth, 1);
+
+    let duplicate = TableDef::new(
+        "Notes",
+        vec![FieldDef::new("body", FieldKind::Text { max_len: 40 })],
+    );
+    let events = core.dispatch(Command::CreateTable {
+        definition: duplicate,
+    });
+    assert!(
+        failure_reason(&events).contains("duplicate"),
+        "{events:?}"
+    );
+    assert_eq!(
+        core.inspect().undo_depth,
+        1,
+        "a failed table creation must not clear the undo stack"
+    );
+}

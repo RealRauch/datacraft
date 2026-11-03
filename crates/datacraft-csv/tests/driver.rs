@@ -234,3 +234,33 @@ fn csv_rejects_hostile_names_and_ragged_rows() {
     assert!(error.to_string().contains("ragged"), "{error}");
     let _ = std::fs::remove_file(scratch.0.join("ragged.csv"));
 }
+
+/// L12 regression: an invalid definition is refused before any file is
+/// written (the Jet and SQLite drivers already validate).
+#[test]
+fn create_table_validates_the_definition_before_writing() {
+    let scratch = csv_database();
+    let mut port = CsvPort::new();
+    port.open(&scratch.0, None).expect("open the directory");
+    let invalid = TableDef::new(
+        "dupes",
+        vec![
+            FieldDef::new("a", FieldKind::Text { max_len: 10 }),
+            FieldDef::new("A", FieldKind::Text { max_len: 10 }),
+        ],
+    );
+    let err = port
+        .create_table(&invalid)
+        .expect_err("duplicate field names must be refused");
+    assert!(
+        err.to_string().to_lowercase().contains("duplicate"),
+        "{err}"
+    );
+    assert!(
+        !scratch.0.join("dupes.csv").exists(),
+        "no file may be written before validation"
+    );
+    let mut reopened = CsvPort::new();
+    reopened.open(&scratch.0, None).expect("directory still opens");
+    assert_eq!(reopened.tables().len(), 1);
+}

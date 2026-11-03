@@ -277,3 +277,48 @@ fn a_delete_port_failure_is_reported() {
     }));
     assert!(reason.contains("disk full"), "{reason}");
 }
+
+/// L16 regression: dropping a referenced parent table removes the
+/// relationships that point at it (no dangling edges in the snapshot).
+#[test]
+fn dropping_a_parent_table_prunes_inbound_relationships() {
+    let customers = TableDef::new(
+        "Customers",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
+    let orders = TableDef::new(
+        "Orders",
+        vec![FieldDef::new(
+            "customer_id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
+    let mut port = MockPort::with_tables(vec![customers, orders]);
+    port.with_capabilities(DriverCapabilities {
+        relationships: Support::Yes,
+        drop_table: true,
+        ..DriverCapabilities::full()
+    });
+    port.with_relationships(vec![relationship()]);
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    let events = core.dispatch(Command::DropTable {
+        table: "Customers".into(),
+    });
+    assert!(
+        matches!(events.last(), Some(Event::TableDropped { .. })),
+        "{events:?}"
+    );
+    let db = core.inspect().database.expect("database stays open");
+    assert!(
+        db.relationships.is_empty(),
+        "a dropped parent must not leave a dangling relationship: {:?}",
+        db.relationships
+    );
+}

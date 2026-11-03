@@ -97,3 +97,56 @@ fn multi_op_previews_require_an_atomic_driver() {
         "{events:?}"
     );
 }
+
+/// L14 regression: the journal commands honour the driver's write
+/// capability before touching the port (ADR-7).
+#[test]
+fn the_journal_requires_the_write_capability() {
+    use datacraft_core::port::DriverCapabilities;
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_capabilities(DriverCapabilities {
+        write_rows: false,
+        atomic_batch: true,
+        ..DriverCapabilities::full()
+    });
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "memory.mock".into(),
+        password: None,
+    });
+    let reason = failure(&core.dispatch(Command::PreviewWrite {
+        table: "Customers".to_owned(),
+        ops: vec![WriteOp::Update {
+            row: 0,
+            values: vec![
+                FieldValue::Null,
+                FieldValue::Text("Ada L.".into()),
+                FieldValue::Float(1.75),
+            ],
+        }],
+    }));
+    assert!(reason.contains("cannot write rows"), "{reason}");
+    let reason = failure(&core.dispatch(Command::ApplyWrite { token: 1 }));
+    assert!(reason.contains("cannot write rows"), "{reason}");
+    let reason = failure(&core.dispatch(Command::RollbackWrite { token: 1 }));
+    assert!(reason.contains("cannot write rows"), "{reason}");
+}
+
+/// L14 regression: template creation honours the create-database
+/// capability before the port is asked.
+#[test]
+fn template_creation_requires_the_create_capability() {
+    use datacraft_core::port::DriverCapabilities;
+    let mut port = MockPort::new();
+    port.with_capabilities(DriverCapabilities {
+        create_database: false,
+        ..DriverCapabilities::full()
+    });
+    let mut core = Core::new(Box::new(port));
+    let events = core.dispatch(Command::CreateDatabaseFromTemplate {
+        path: "template-l14.mdb".into(),
+        template: "blank".into(),
+    });
+    let reason = failure(&events);
+    assert!(reason.contains("cannot create database files"), "{reason}");
+}
