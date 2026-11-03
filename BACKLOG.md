@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T19:58
+# BACKLOG.md — Open items (As of: 2026-11-03T20:46
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -72,6 +72,18 @@
 - **Approach:** Make the parser recognize the unsupported Access forms (`Like`, `Between … And`, `In (…)`, `Is Null`) and answer a precise `BadLiteral`/unsupported reason, implement `Like` via the expression service's matcher where the column is text, and document the case/multivalue fence (or route multivalue criteria through a membership predicate).
 - **Acceptance:** `Like "B*"` matches (or is rejected precisely — no silent 0 rows); unsupported forms never degrade to equality; the case-sensitivity and multivalue rules are stated in FORMAT-JET/README and pinned by tests.
 
+### [ ] M38 — Datasheet keyboard navigation (record cursor via arrow keys, Home/End, PgUp/PgDn) — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (body cells are painted hover-only, accessibility via `ui.interact` + `WidgetInfo` around lines 341-349), the UI-side record cursor `crates/datacraft-ui/src/app.rs:60` (`record_cursor: HashMap<TabId, usize>` — deliberately no core command), scroll/hit-test math in `crates/datacraft-core/src/grid.rs` (`clamp_scroll`, `visible_row_range`).
+- **Problem:** The datasheet is pointer-only: painted body cells respond to hover and click, but no keyboard interaction moves the record cursor. Access datasheets are keyboard-first (arrow keys, Home/End, PgUp/PgDn). The headless egui_kittest suite cannot exercise record navigation without synthesizing clicks.
+- **Approach:** Give the grid a focusable state and route key events to the existing UI-side cursor (no new core command — the cursor is presentation state). Scroll-follow math lands as pure functions in core `grid.rs` next to `clamp_scroll` (e.g. `ensure_row_visible`) so it stays unit-testable, and the headless kittest asserts the cursor through `UiStateSnapshot` JSON.
+- **Acceptance:** Arrow keys, Home/End and PgUp/PgDn move the record cursor with the virtualized scroll window following; the grid math is unit-tested as pure functions in core; a kittest pins the navigation via snapshot JSON; the 500-line gate is respected (`datasheet.rs` stands at 477 lines — split the module first if needed).
+
+### [ ] M39 — Datasheet freeze columns (horizontal body scrolling as prerequisite) — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (`grid_ui` x-offset accumulation around lines 276-284, `header_ui` context menu), per-tab column widths in `crates/datacraft-ui/src/app/grid_state.rs`, hit-test/span math in `crates/datacraft-core/src/grid.rs` (`column_at_x`, `column_span_x`, `effective_widths`).
+- **Problem:** Access datasheets can freeze leading columns so they stay visible during horizontal scrolling; the DataCraft grid has neither freeze nor horizontal body scrolling (only the new-record row scrolls horizontally today).
+- **Approach:** Two stages: (1) horizontal body scrolling — widths are already per-tab session state shared by header, body and new-record row; (2) a frozen-column count per tab plus pure frozen-pane placement math in core `grid.rs` (own implementation of the quadrant idea GridCraft uses; no code or dependency from it), surfaced through header freeze/unfreeze context-menu actions.
+- **Acceptance:** Frozen columns stay pinned during horizontal scrolling in header and body; all placement math is pure core functions, unit-tested; a kittest snapshot pins the frozen/visible split; no per-frame allocations on the hot path.
+
 ---
 
 ## 🟢 LOW
@@ -119,6 +131,12 @@
 - **Problem:** A `QueryDef` whose field list is a subset or reordered silently projects the wrong columns: the header names come from the grid entries but the values come from the same positional index of the source row. Every in-tree caller builds the full grid in source order, so it works today, but the documented contract says names are source fields and an out-of-tree client can be silently wrong.
 - **Approach:** Either resolve every column by name (whitelist) and reject duplicates/unknowns, or document and validate the positional contract (field count equals the source count, names in source order) with a precise error.
 - **Acceptance:** A subset/reordered definition cannot silently project the wrong values; the chosen contract is documented on `QueryDef`/`QbeField` and pinned by a test.
+
+### [ ] L23 — Datasheet in-place cell editing of existing rows — 🟢
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (existing rows are painted strings; only the new-record row hosts real widgets, `new_row_ui` from line 99), write commands already exist in the vocabulary: `crates/datacraft-core/src/command.rs:135` (`InsertRow`) and `:144` (`UpdateRow`).
+- **Problem:** Cells of existing rows cannot be edited in place; edits have to go through other paths. Access edits datasheet cells directly. The write path itself is already landed (Jet4 update/delete, ACCDB write-through), so this is a presentation-layer gap only.
+- **Approach:** Swap the painted cell for a real widget on the active cell (the in-cell editor idea GridCraft implements in its `editor.rs`; own implementation, no borrowed code), commit through exactly one `UpdateRow` dispatch, surface failures precisely (M31 pattern — never swallow), Enter/Escape semantics building on the keyboard-navigation item M38.
+- **Acceptance:** Editing an existing cell dispatches exactly one `UpdateRow`, updates the presentation cache, shows a precise error on failure; a kittest drives an edit end-to-end; canonical verification set green.
 
 ---
 
