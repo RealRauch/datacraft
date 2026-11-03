@@ -18,12 +18,6 @@
 
 > No open items.
 
-### [ ] H47 — Database and sidecar writes replace the live file non-atomically — 🟠
-- **Location:** `crates/datacraft-jet/src/port_adapter.rs:395` (`with_writer`), `crates/datacraft-jet/src/jet/create.rs:90` and `:200` (fresh/template materialization), `crates/datacraft-core/src/forms.rs:246` and `crates/datacraft-core/src/schema/document.rs:206` (sidecar saves).
-- **Problem:** Every ordinary write persists the whole database (or the sidecar) with `std::fs::write`, which truncates the live file before writing the new bytes. A crash, power loss or full disk in that window leaves a truncated database/sidecar; the password path already solves the same problem with a sibling temp file renamed over the target (`port_adapter/password.rs::write_replacing`), and the UI settings store follows the same pattern. `create_jet4_file` likewise leaves a partial file when its direct write fails (only the template materializer removes it).
-- **Approach:** Reuse the settings/password pattern for every persistence step: write a sibling temp file, flush, rename over the target, remove the temp on failure. Keep the produced bytes identical (no format change); document the guarantee in FORMAT-JET next to the password rewrite note.
-- **Acceptance:** A failed or interrupted persistence leaves the original database/sidecar byte-identical (tested by injecting a write failure or by asserting the temp/rename sequence); created files never survive as partials; the canonical verification set stays green and `jet_writer_roundtrip`/`ace_writer` byte comparisons are unchanged.
-
 ---
 
 ## 🟡 MEDIUM
@@ -307,3 +301,4 @@
 - M24 — Jet writer cannot encode tri-state Boolean NULL — done (decided 2026-11-03 (step 36.6, `de1feb4`): option B2 — the verified knowledge base documents no second-bit tri-state encoding (option A = clean-room violation), a creation-time rejection would break the pinned H44 samples/templates (option B1); creation and reading keep working, the NULL write answers a precise boundary message naming column/consequence/alternative; documented in FORMAT-JET 'Domain mapping', pinned by jet_row_writes; SQLite keeps tri-state NULL — the cross-driver difference is deliberate and documented)
 - H46 — Jet read/write paths panic on crafted structures instead of answering a precise error — done (fixed in `0dd8d43` (RED `dfe2fe0`): per-type widths in decode_bytes, checked var-table ranges in the memo probe, checked LVAL/map slices, column-id mask validation and u16 eod guard in encode_row, checked free-map window growth; ACE offset coordinates stay permissive (legacy bits on real pages) and the consumers bound them)
 - H48 — Stale write journals survive the database lifecycle and can write into the next database — done (fixed in `c50c248` (RED `4d5db2e`): open/close clear pending_write and last_applied; a stale token answers the precise "no pending/applied journal" failure and leaves the reopened database untouched)
+- H47 — Database and sidecar writes replace the live file non-atomically — done (fixed in `e138361` (RED `0a37cb1`): datacraft_core::atomic_write (sibling-temp replace, exclusive create) used by the Jet write-through, file/template creation, Save-As, password change and both sidecar saves; a failed replace leaves the live file byte-identical and a failed create leaves no partial)
