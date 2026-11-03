@@ -128,7 +128,91 @@ Northwind 2007.accdb`, commit `master`, downloaded 2026-11-01). It carries
 queries — the only pinned fixture with a non-empty VBA project. Its hashes and
 provenance are in `fixtures/manifest`; the CI fixtures job verifies them
 offline. The repository has no license file; treat the file as reference test
-data, reference the repo, and do not relicense it.
+data, reference the repo, and do not relicense it. **Retired by H50 —
+replaced by the self-created fixture documented below; removal happens in
+step 37.2.**
+
+### Replacement fixture: inventory and creation recipe (H50, step 37.1)
+
+`northwind2007.accdb` is scheduled for retirement: it is the only committed
+fixture from a source without a license file, and publishing the repository
+would redistribute it. H50 replaces it with a self-created ACE database,
+authored by DataCraft contributors with the local Microsoft Access
+installation (Microsoft 365, build `16.0.20527.20112`, Windows-1252 project
+code page, German locale). Target file: `fixtures/programmability.accdb`;
+the pin row and provenance line land in `fixtures/manifest` when the file
+is committed (step 37.2). Creation always runs in a scratch directory —
+never on an existing fixture — and the finished file is never reopened in
+Access after it is committed.
+
+**Object inventory** (domain: warehouse/inventory sample, all content
+self-authored):
+
+| Object | Kind | Exercises |
+|---|---|---|
+| `Categories` | table | lookup parent |
+| `Suppliers` | table | non-ASCII names (`Südmetall GmbH`, `Öresund Components`) |
+| `Warehouse Items` | table | PK + FKs, Currency, Memo (LVAL), Yes/No, NULLs, **multi-value field `Tags`** plus the Access-generated `f_…` backing tables |
+| `Tags` | table | multi-value row source |
+| `Stock Movements` | table | DateTime predicates, LEFT/RIGHT join operand |
+| `Staff Permissions` | table | string-literal reference target for the VBA analysis |
+| `Items In Stock` | query | WHERE (attr 8) + ORDER BY (attr 11) |
+| `Stock By Category` | query | GROUP BY (attr 9) + HAVING (attr 10) |
+| `Items With Suppliers` | query | inner join (attr 7 flag 1) |
+| `Items Without Movements` | query | left join (attr 7 flag 2) |
+| `Suppliers Without Items` | query | right join (attr 7 flag 3) |
+| `Movements In Range` | query | PARAMETERS (attr 2) |
+| `Distinct Categories` | query | select-type bits (attr 1: DISTINCT) |
+| `Top Items In Stock` | query | select-type bits (attr 1: TOP) |
+| `Tagged Items` | query | multi-value expansion — the confirmed source of MSysQueries attribute 12 (precise `Unsupported`) |
+| `Open Item Browser` | macro | readable arguments (OpenForm names, MsgBox expression); no `AutoExec`, no destructive actions |
+| `Refresh Stock Views` | macro | OpenQuery / ApplyFilter / GoToControl arguments |
+| `InventoryHelpers` | VBA standard | `Option Compare Database`, `Enum`, repeated long identifiers as copy-token fodder, non-ASCII literals |
+| `QueryHelpers` | VBA standard | SQL literals (`SELECT …`), `DLookup("…", "Staff Permissions", …)` table reference |
+| `ArchiveExporter` | VBA standard | qualified calls into `QueryHelpers` |
+| `TaskRunner`, `AuditRecorder` | VBA class | both class kinds |
+| Form `Items Browser` | form + module | `Form_Items Browser` code-behind |
+| Form `Movement Editor` | form + module | qualified call `QueryHelpers.BuildItemFilter` (analysis edge) |
+| Form `Category Picker` | form, no module | macro target |
+| Report `Stock Summary` | report + module | `Report_Stock Summary` code-behind |
+
+**Creation recipe** (scripted builder; prerequisites: Windows with the
+Access build above; the installed build keeps `AccessVBOM` unset, so every
+object-text import goes through `SaveAsText`/`LoadFromText` — no Trust
+Center change):
+
+1. Scratch directory outside the repository; `Access.Application` COM
+   automation with `AutomationSecurity` forced to disable macros (the
+   fixture defines no `AutoExec` anyway).
+2. `NewCurrentDatabase "<scratch>/programmability.accdb"`.
+3. Tables through `CurrentDb.Execute` DDL (`CREATE TABLE` with `COUNTER`
+   primary keys and `FOREIGN KEY` constraints); rows through `INSERT`
+   statements — deterministic, self-authored content.
+4. Multi-value field `Tags`: DAO property append (`DisplayControl`,
+   `RowSourceType`, `RowSource`, `AllowMultipleValues`) on the existing
+   `Warehouse Items` column; Access creates the backing complex-value
+   tables on save. Fallback if the property path misbehaves: table design
+   view (GUI), then save.
+5. Queries through `db.CreateQueryDef` with the SQL above.
+6. Forms, reports, macros and modules through `LoadFromText` from
+   versioned object-text sources (formalized under `tools/fixture-build/`
+   by L21). If module import requires the VBOM trust on this build, fall
+   back to typing the module source in the VBA editor (GUI) — the stored
+   result is identical.
+7. `Compact`, `CloseCurrentDatabase`, `Quit` — no `MSACCESS.EXE` process
+   or `.laccdb` lock file left behind.
+8. Verify with the datacraft decoder before committing: VBA extraction
+   (module list, order, source), macro inventory, `native_queries()`
+   answers the precise attribute-12 `Unsupported`, the four
+   programmability suites decode the file.
+9. Pin: sha256 into `fixtures/manifest` with provenance "created with
+   Microsoft Access 16.0.20527.20112 on <date> by DataCraft
+   contributors"; the suites and README counts move to the new file and
+   `northwind2007.accdb` is removed (step 37.2).
+
+Empirical values (macro argument strings, module storage order, the exact
+attribute set) are read off the built file and pinned in the ported suites —
+the recipe fixes the object set, not the binary layout.
 
 The three ACE fixtures are pinned as `fixtures/testV2007.accdb`,
 `fixtures/testV2010.accdb` and `fixtures/attachmentsV2016.accdb` (hashes and
