@@ -94,3 +94,24 @@ is a decision, not an oversight; revisit only if a library consumer appears.
    packaged smoke, collects sha256 checksums and drafts the GitHub release;
    a human reviews and publishes the draft (PLAYBOOK §9).
 7. Re-verify the README compatibility matrix and date-stamp it.
+
+## Repository settings (before the visibility switch)
+
+Recorded decisions (H49, step 37.4). These are GitHub-side settings; they are
+applied when the repository goes public — **after** the history rewrite
+(M34, which needs force-push) and only on a green CI `main` including macOS
+(L10):
+
+| Setting | Decision | Notes |
+| --- | --- | --- |
+| Secret scanning | enable, with push protection | blocks committing credentials; no secrets exist in the rewritten history |
+| Dependabot alerts | enable | dependency alerts for the Cargo/Actions ecosystems |
+| Dependabot version updates | deferred | needs a `.github/dependabot.yml`; decide when the first dependency bump cadence is wanted (High-class CI change, separate release) |
+| Branch protection on `main` | enable after M34: required checks = Formatting, Lints, Tests (matrix), Fixture pin integrity, Oracle, Coverage gate, Hygiene gates; require branches up to date; no force pushes afterwards | the CI job names come from `.github/workflows/ci.yml` |
+| Issue templates | deferred | plain issues suffice for the initial public phase; templates are a later, independent change |
+| `GITHUB_TOKEN` permissions | leave the workflow-declared scopes (`release.yml` needs `contents: write` for the draft release) | no organization-level broad grants |
+| Forks / releases / clones | verify zero before the switch | the history rewrite (M34) is only valid while nothing external references the old history |
+
+Order of operations at release time: M34 rewrite → force-push → verify
+canonical set + fixture hash gate → apply branch protection → flip
+visibility → tag the first public release per the checklist above.
