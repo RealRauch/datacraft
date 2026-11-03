@@ -31,6 +31,22 @@ published package. The notable components:
 
 Both fonts are embedded unmodified and remain under their original licenses.
 
+## In-code icon glyphs adapted from the Crafting Apps
+
+The backstage/chrome nav glyphs (`crates/datacraft-ui/src/icons/nav.rs`) are
+adapted from the in-code icon sets of the sibling Crafting Apps
+([GridCraft](https://github.com/storytold/gridcraft) and
+[WordCraft](https://github.com/storytold/wordcraft)). Both projects
+dual-license their code under MIT OR Apache-2.0 — the same license DataCraft
+carries — and describe their generated-in-code art as original contributor
+work (their `ATTRIBUTION.md`); the upstream copyright is the GridCraft and
+WordCraft contributors. Coordinates were re-expressed in this dispatcher's
+normalized grammar; no asset files are copied.
+
+| Component | License | Notes |
+| --- | --- | --- |
+| Crafting Apps icon grammar (GridCraft / WordCraft) | MIT OR Apache-2.0 | 12 backstage/chrome nav glyphs, redrawn in-code |
+
 ## Committed test fixtures (repository test evidence, not shipped)
 
 The databases under `fixtures/` are commit-time test evidence for the parser

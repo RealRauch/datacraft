@@ -271,8 +271,10 @@ defaults/captions is a separate, deferred storage-format item
   zero-copy row slices, columnar value cache — the GridCraft philosophy.
 - Target: 60 FPS with million-row virtual scrolling; no per-frame allocations
   on the hot path (reuse `Vec`/`String` buffers).
-- Original iconography: egui `Painter` vector primitives and an embedded
-  open-source glyph set — no Microsoft assets (Principle 2).
+- In-code iconography: egui `Painter` vector primitives; the backstage/chrome
+  nav glyphs adapt the sibling Crafting Apps' in-code set (GridCraft/WordCraft,
+  MIT OR Apache-2.0, attributed in `THIRD-PARTY-NOTICES.md`) — no Microsoft
+  assets (Principle 2).
 
 ## 9. Test strategy
 

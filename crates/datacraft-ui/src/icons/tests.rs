@@ -70,10 +70,7 @@ fn every_object_kind_has_an_icon() {
 /// Every backstage/chrome nav glyph (step 38.1, item M40) resolves to an icon.
 #[test]
 fn every_backstage_nav_glyph_has_an_icon() {
-    for name in [
-        "back", "home", "new", "open", "info", "save", "save_as", "print", "export", "close",
-        "account", "options",
-    ] {
+    for name in NAV_GLYPHS {
         let (dispatched, shapes) = paint_once(name);
         assert!(dispatched, "nav glyph {:?} has no icon", name);
         assert!(shapes > 0, "nav glyph {:?} paints nothing", name);
