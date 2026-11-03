@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T19:02
+# BACKLOG.md — Open items (As of: 2026-11-03T19:05
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -24,11 +24,17 @@
 - **Approach:** Validate where the untrusted number enters the structure: per-type minimum lengths (or checked accessors) in `decode_fixed`/`decode_bytes`; overflow-slot bounds in both `DataPage` decoders (central fix for the LVAL and map-row consumers); `end <= row.len()` before the memo flags in `has_external_long_value`; `mask.get_mut` plus an `eod` range check in `encode_row`; `checked_sub` for the map window. Add an evil-input case per construction (Guid with `len != 16`, zero-length `Byte`, wide var-table gap, overflow-flagged LVAL/map slot, free map starting above EOF, non-dense column ids during alter).
 - **Acceptance:** Every listed construction returns `StorageError::Corrupt`/`Unsupported` instead of panicking; the regression cases live in `crates/datacraft-jet/tests/jet_evil_inputs.rs` (and the writer suites where the write path is required); canonical verification set green.
 
-### [ ] H47 — Jet row writes replace the live database non-atomically — 🟠
-- **Location:** `crates/datacraft-jet/src/port_adapter.rs:395` (`with_writer`), `crates/datacraft-jet/src/jet/create.rs:90` and `:200` (fresh/template materialization).
-- **Problem:** Every ordinary write persists the whole database with `std::fs::write`, which truncates the live file before writing the new bytes. A crash, power loss or full disk in that window leaves a truncated database; the password path already solves the same problem with a sibling temp file renamed over the target (`port_adapter/password.rs::write_replacing`). `create_jet4_file` likewise leaves a partial file when its direct write fails (only the template materializer removes it).
+### [ ] H47 — Database and sidecar writes replace the live file non-atomically — 🟠
+- **Location:** `crates/datacraft-jet/src/port_adapter.rs:395` (`with_writer`), `crates/datacraft-jet/src/jet/create.rs:90` and `:200` (fresh/template materialization), `crates/datacraft-core/src/forms.rs:246` and `crates/datacraft-core/src/schema/document.rs:206` (sidecar saves).
+- **Problem:** Every ordinary write persists the whole database (or the sidecar) with `std::fs::write`, which truncates the live file before writing the new bytes. A crash, power loss or full disk in that window leaves a truncated database/sidecar; the password path already solves the same problem with a sibling temp file renamed over the target (`port_adapter/password.rs::write_replacing`), and the UI settings store follows the same pattern. `create_jet4_file` likewise leaves a partial file when its direct write fails (only the template materializer removes it).
 - **Approach:** Reuse the settings/password pattern for every persistence step: write a sibling temp file, flush, rename over the target, remove the temp on failure. Keep the produced bytes identical (no format change); document the guarantee in FORMAT-JET next to the password rewrite note.
-- **Acceptance:** A failed or interrupted persistence leaves the original database byte-identical (tested by injecting a write failure or by asserting the temp/rename sequence); created files never survive as partials; the canonical verification set stays green and `jet_writer_roundtrip`/`ace_writer` byte comparisons are unchanged.
+- **Acceptance:** A failed or interrupted persistence leaves the original database/sidecar byte-identical (tested by injecting a write failure or by asserting the temp/rename sequence); created files never survive as partials; the canonical verification set stays green and `jet_writer_roundtrip`/`ace_writer` byte comparisons are unchanged.
+
+### [ ] H48 — Stale write journals survive the database lifecycle and can write into the next database — 🟠
+- **Location:** `crates/datacraft-core/src/state.rs:41-45` (`next_write_token`, `pending_write`, `last_applied` live in `AppState`), `crates/datacraft-core/src/database.rs` (`open_database`/`close_database` do not touch them), `crates/datacraft-core/src/journal.rs` (`apply_write`/`rollback_write`/`discard_write`).
+- **Problem:** A previewed or applied journal outlives the database it belongs to. Close database A after applying a batch, open database B, then dispatch `RollbackWrite` with A's token (tokens are sequential and the UI state keeps the last one): the inverse operations are written into B's same-named table, because `last_applied.token` still matches and no lifecycle check exists. `ApplyWrite` has the same hole: a preview computed on A re-applies to B when the re-preview diff happens to match (e.g. both tables are empty). The undo/redo stacks are correctly per-`DatabaseState`, which makes the journal's app-level lifetime the odd one out.
+- **Approach:** Clear `pending_write` and `last_applied` in `open_database` and `close_database` (a journal never survives its database), mirroring the per-database undo stacks. Optionally also store the database name/path in the journal and reject a token whose origin differs, as defence in depth.
+- **Acceptance:** A journal applied on A cannot be applied, rolled back or discarded after B is opened — the command answers a precise `Failed` ("no pending/applied journal") and B's rows are unchanged; RED/GREEN test over the bus with two databases.
 
 ---
 
@@ -60,6 +66,18 @@
 - **Approach:** Bound the pre-allocation by evidence (`min(total_len, file.len())` or no reservation at all) and enforce the per-chunk output limit inside the token loop (check `out.len() - chunk_start <= MAX_CHUNK` before each copy). No behavior change for valid files.
 - **Acceptance:** A crafted memo length allocates at most the file-backed amount and still yields the existing precise error; a crafted VBA chunk never exceeds one 4096-byte chunk of intermediate output; tests pin both bounds.
 
+### [ ] M27 — CreateDatabaseFromTemplate steals the open database's port session — 🟡
+- **Location:** `crates/datacraft-core/src/database.rs:182-235` (`create_database_from_template`, `materialize_template_tables`).
+- **Problem:** The command is documented as independent of the open database, but it materializes the template through `self.port` — the same composite session that serves the open database. With a database open, `port.open(template_path)` replaces the session and the final `port.close()` leaves the port unattached while `state.database` still says a database is open. Every subsequent read/write on the open database then fails with "no database is open", and the tabs show stale data.
+- **Approach:** Materialize through a throwaway port instance (the `DetectingPort::create_database` path already builds fresh driver instances) or snapshot the session/state and restore it exactly. The command must not touch the live session.
+- **Acceptance:** `CreateDatabaseFromTemplate` with a database open leaves that database fully usable (read, write, snapshot unchanged apart from the creation event); test over the bus with a real fixture.
+
+### [ ] M28 — Non-finite Jet floats break JSON-RPC serialization — 🟡
+- **Location:** `crates/datacraft-core/src/transport.rs:45` (`serde_json::to_value(core.inspect()).unwrap_or_default()`), `:65-68` (`json!({ "events": events, … })`), `crates/datacraft-jet/src/jet/row.rs` (Jet `Double`/`Float` decode into `FieldValue::Float` without a finite check).
+- **Problem:** Jet can store NaN/Infinity bit patterns; the reader maps them verbatim. `serde_json` cannot represent non-finite floats, and `json!` unwraps its conversion (`serde_json::to_value(&value).unwrap()`), so an event carrying such a value — e.g. `WritePreviewed.changes[].before` after previewing an update of a row read from a crafted `.mdb` — panics the JSON-RPC handler and kills the MCP/CLI server. The `inspect` path does not panic but silently substitutes `null` for the whole snapshot (`unwrap_or_default`), which is error swallowing in the style of LESSONS #4.
+- **Approach:** Decide the domain rule once: either reject non-finite floats at the Jet mapping boundary with a precise `Corrupt` (Access itself cannot meaningfully store them) or render them as a defined representation (`null`/text) before serialization. Make the codec fallible and answer a JSON-RPC error instead of `unwrap`/`unwrap_or_default`.
+- **Acceptance:** A row containing a NaN/Infinity double can be read, previewed and serialized without a panic; the snapshot is never silently replaced by `null`; test with a hand-built float bit pattern through `transport.rs`.
+
 ---
 
 ## 🟢 LOW
@@ -84,11 +102,11 @@
 - **Approach:** No repository change — retry `gh run rerun --failed` when GitHub macOS runner capacity/billing recovers (check account Settings → Billing → Actions minutes: the macOS 10× multiplier is the prime suspect). Optionally consider moving the oracle job to ubuntu-only (it already carries the mdbtools cross-check) if macOS capacity stays scarce.
 - **Acceptance:** A CI run on `main` completes with the macOS jobs green (or the oracle matrix consciously narrowed with a documented decision); nothing in the repo changes until then.
 
-### [ ] L11 — Anomalous whitespace runs in six user-facing messages — 🟢
-- **Location:** `crates/datacraft-core/src/journal.rs:237`, `crates/datacraft-core/src/schema/document.rs:139` and `:152`, `crates/datacraft-jet/src/port_write.rs:174`, `crates/datacraft-jet/src/jet/header.rs:99` and `:106`.
-- **Problem:** Six user-facing messages carry long runs of spaces mid-sentence (e.g. "engine-assigned                          value", "is not a                      supported combination"). They render as gaps in toasts/errors and look like a botched mechanical replacement (LESSONS #8), not like deliberate formatting.
-- **Approach:** Replace each run with a single space; no text content changes otherwise. If any test asserts on the exact string, update it in the same step.
-- **Acceptance:** `grep -nE '[a-z] {2,}[a-z]'` over the message strings returns only intentional formatting; affected tests (journal/document/writer message assertions) are green.
+### [ ] L11 — Mechanical-edit artifacts in messages and a doc comment — 🟢
+- **Location:** `crates/datacraft-core/src/journal.rs:237`, `crates/datacraft-core/src/schema/document.rs:139` and `:152`, `crates/datacraft-jet/src/port_write.rs:174`, `crates/datacraft-jet/src/jet/header.rs:99` and `:106` (long space runs); `crates/datacraft-core/src/transport.rs:89-90` (doc comment lost its parameter names: "requests from , writing … to  (flushed …)").
+- **Problem:** Six user-facing messages carry long runs of spaces mid-sentence (e.g. "engine-assigned                          value", "is not a                      supported combination"), and one public doc comment lost two identifiers. All are leftovers of a mechanical edit (LESSONS #8): they render as gaps in toasts/errors and read as broken documentation.
+- **Approach:** Replace each run with a single space and restore the two parameter names in the doc comment; no wording changes otherwise. If any test asserts on the exact string, update it in the same step.
+- **Acceptance:** `grep -nE '[a-z] {2,}[a-z]'` over the message strings returns only intentional formatting; the transport doc comment names its reader/writer parameters; affected tests are green.
 
 ### [ ] L12 — CSV create_table skips TableDef validation — 🟢
 - **Location:** `crates/datacraft-csv/src/lib.rs:138-158` (`create_table`).
@@ -101,6 +119,24 @@
 - **Problem:** Two affinity edge cases misclassify schemas. A table whose DDL mentions `AUTOINCREMENT` anywhere (a column default, a quoted name) turns every `INTEGER PRIMARY KEY` into an AutoNumber and rejects user values on write. Conversely a declared type with a length/precision suffix (`DATETIME(6)`, `CURRENCY(10)`) misses the marker match and falls through to `Decimal`.
 - **Approach:** Detect `AUTOINCREMENT` on the primary-key column's definition (token-aware, or via `PRAGMA table_info` + the DDL segment belonging to the PK column), and strip a trailing `(…)` before the marker-type comparison. Affinity fallbacks stay unchanged.
 - **Acceptance:** A DDL mentioning the word outside the PK column does not create an AutoNumber; `DATETIME(6)` maps to `DateTime` (and `CURRENCY(10)` to `Currency`); unit tests pin both directions, real fixture catalogs unchanged.
+
+### [ ] L14 — Capability gates missing on the journal and template commands — 🟢
+- **Location:** `crates/datacraft-core/src/journal.rs` (`preview_write`, `apply_write`, `rollback_write` check `atomic_batch` but not `write_rows`), `crates/datacraft-core/src/database.rs:182` (`create_database_from_template` checks no `create_database` capability, unlike `create_database`).
+- **Problem:** ADR-7 states the dispatcher refuses a command whose capability is `No` *before* the port is called. On a read-only source the journal commands still preview/apply down to the port, which then answers its own "read-only" wording instead of the stable capability reason; a composed driver that cannot create databases would still be asked to. The gate coverage is inconsistent rather than absent (the single-row commands, relationships, schema and password commands all gate).
+- **Approach:** Add the `write_rows` gate to the journal commands and the `create_database` gate to the template command, using the existing `DriverCapabilities::unsupported` wording; extend the capability contract tests to assert every write-shaped command is gated.
+- **Acceptance:** On a driver with `write_rows=false`, `PreviewWrite`/`ApplyWrite`/`RollbackWrite` answer the capability reason without touching the port; the template command does the same for `create_database=false`; the capability suite pins the complete set.
+
+### [ ] L15 — Undo history is cleared even when the barrier command fails — 🟢
+- **Location:** `crates/datacraft-core/src/core.rs:198-321` (`dispatch` calls `clear_history` after every command matched by `clears_history`, regardless of the outcome).
+- **Problem:** The barrier fires on failed commands too. A rejected `CreateTable` (invalid schema), a `CreateDatabase`/`OpenDatabase` that cannot proceed, a wrong `ApplyWrite` token or a failed `RollbackWrite` all erase the still-valid undo/redo stack of the open database — the user loses undo over a command that changed nothing.
+- **Approach:** Apply the barrier only when the dispatch produced a state change (e.g. `!matches!(events.as_slice(), [Event::Failed { .. }])`, or an explicit success flag from the handler). The barrier semantics for successful schema/batch/lifecycle commands stay unchanged.
+- **Acceptance:** A failed barrier-class command leaves `undo_depth`/`redo_depth` unchanged; successful commands still clear both; tests pin both directions.
+
+### [ ] L16 — DropTable leaves relationships that reference the dropped table — 🟢
+- **Location:** `crates/datacraft-core/src/database.rs:438-442` (`drop_table` prunes `db.relationships` by `rel.table` only).
+- **Problem:** Only relationships whose *child* table was dropped are removed. Relationships where the dropped table is the *referenced* parent stay in the snapshot and point at a table that no longer exists, so the relationship mapper renders a dangling edge until the database is reopened (the Jet catalog also keeps the MSysRelationships row unless the driver prunes it).
+- **Approach:** Prune both sides (`rel.table` and `rel.related_table`), and let the driver delete the matching MSysRelationships rows on drop if it does not already.
+- **Acceptance:** Dropping a parent table removes every relationship that references it from `state.relationships`/the snapshot; the mapper shows no dangling edge; test over the bus.
 
 ---
 
