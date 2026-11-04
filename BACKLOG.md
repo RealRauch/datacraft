@@ -66,12 +66,6 @@
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
 
-### [ ] M51 — Pin cargo-llvm-cov in the CI coverage job (High gate, released) — 🟡
-- **Location:** `.github/workflows/ci.yml` coverage job (`taiki-e/install-action@v2`, `tool: cargo-llvm-cov` unpinned — installs @latest on every run)
-- **Problem:** The coverage job installs cargo-llvm-cov unpinned, so a new upstream release can move the gate number without any code change — the exact failure class the workflow already survived once (run 41727473021: the tool's embedded threshold diverged from its own lcov export, which is why the gate was moved to an explicit lcov evaluation). The local runs stand at 0.9.1 (verified identical to the current latest, so today the numbers only differ by MSVC/linux target attribution — T9); pinning removes the remaining drift axis before it bites. **High-class content gate (AGENTS §3, CI workflows): explicit human release granted in this session (2026-11-04).**
-- **Approach:** Pin the install-action tool to the local version (`tool: cargo-llvm-cov@0.9.1`) and update the job comment to state the pin policy: bump deliberately together with the local toolchain/dev setup, never passively via @latest. The lcov-based gate evaluation stays unchanged.
-- **Acceptance:** ci.yml coverage job installs `cargo-llvm-cov@0.9.1`; the comment records the deliberate-bump policy; the workflow lints (yaml valid, job shape unchanged); a CI run on main stays green.
-
 ---
 
 ## 🟢 LOW
@@ -289,3 +283,4 @@
 - M44 — Datasheet row deletion: no GUI path for DeleteRow — done (88df660)
 - L23 — Datasheet in-place cell editing of existing rows — done (8e28ef9)
 - T9 — Coverage gap audit: contract tests for locally uncovered edge paths (MSVC attribution) — done (b83ffe1)
+- M51 — Pin cargo-llvm-cov in the CI coverage job (High gate, released) — done (1a769e2)

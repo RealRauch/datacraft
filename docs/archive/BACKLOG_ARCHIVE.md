@@ -1315,3 +1315,12 @@
 - **Approach:** Audit the locally uncovered lines against their branches; write contract/unit tests for the highest-value, purely-testable paths (expression coercion and formatting edges, port helpers, undo redo-edge branches, schema display paths, grid fallback, qbe/present/nav pins). Re-run the local llvm-cov until the MSVC-attributed rate clears 95% with margin. No production-code changes — tests only; anything a test cannot reach without contriving becomes a documented accepted line, not a skipped gate.
 - **Acceptance:** Local canonical llvm-cov run (MSVC attribution) reports ≥ 95% line coverage; every new test asserts real behavior (no gate-gaming trivial calls); canonical verification set green.
 - **Done:** b83ffe1
+
+---
+
+### [x] M51 — Pin cargo-llvm-cov in the CI coverage job (High gate, released) — 🟡
+- **Location:** `.github/workflows/ci.yml` coverage job (`taiki-e/install-action@v2`, `tool: cargo-llvm-cov` unpinned — installs @latest on every run)
+- **Problem:** The coverage job installs cargo-llvm-cov unpinned, so a new upstream release can move the gate number without any code change — the exact failure class the workflow already survived once (run 41727473021: the tool's embedded threshold diverged from its own lcov export, which is why the gate was moved to an explicit lcov evaluation). The local runs stand at 0.9.1 (verified identical to the current latest, so today the numbers only differ by MSVC/linux target attribution — T9); pinning removes the remaining drift axis before it bites. **High-class content gate (AGENTS §3, CI workflows): explicit human release granted in this session (2026-11-04).**
+- **Approach:** Pin the install-action tool to the local version (`tool: cargo-llvm-cov@0.9.1`) and update the job comment to state the pin policy: bump deliberately together with the local toolchain/dev setup, never passively via @latest. The lcov-based gate evaluation stays unchanged.
+- **Acceptance:** ci.yml coverage job installs `cargo-llvm-cov@0.9.1`; the comment records the deliberate-bump policy; the workflow lints (yaml valid, job shape unchanged); a CI run on main stays green.
+- **Done:** 1a769e2
