@@ -260,6 +260,6 @@
 | 38.5 | Phase 38 Quality Gate Review | ✅ |
 | 39.1 | M35: named date pictures render corrupted text | ✅ |
 | 39.2 | M36: SQL window dialect divergences are silent | ✅ |
-| 39.3 | M37: QBE criteria silently misread unsupported Access forms | ⬜ |
+| 39.3 | M37: QBE criteria silently misread unsupported Access forms | ✅ |
 | 39.4 | M31: presentation cache loads swallow read errors | ⬜ |
 | 39.5 | Phase 39 Quality Gate Review | ⬜ |

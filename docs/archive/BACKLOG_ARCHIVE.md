@@ -1252,3 +1252,12 @@
 - **Approach:** Decide the fence explicitly: document the SQL window as SQLite semantics (README + window hint) with a currency display rule (scale division) and an overflow guard, or add a thin translation layer for `#date#` literals and Access wildcards. Whichever way, the four cases become tests so the behavior cannot drift.
 - **Acceptance:** The README/window states the SQL dialect fence; Currency columns display scaled values (or the raw scale is called out in the UI); the date-literal, wildcard and overflow cases are pinned by tests; no silent empty/overflow result remains undocumented.
 - **Done:** done in `c6ae98b` (RED `1131819`) — SQLite-semantics fence documented (module/README/window hint), Currency unscaled, the four divergences test-pinned
+
+---
+
+### [x] M37 — QBE criteria silently misread unsupported Access forms — 🟡
+- **Location:** `crates/datacraft-core/src/query_criteria.rs` (`parse_predicate` only understands `= <> < <= > >=` and falls back to equality), `query_engine.rs` (comparison by `FieldValue` order).
+- **Problem:** The QBE criteria grammar is a documented subset but silently misreads Access syntax outside it: `Like "B*"` becomes an equality against the literal text `Like "B*"` (0 rows, no error) instead of matching or rejecting; text comparison is case-sensitive (Access `Option Compare Database` is not); a MultiValue column is compared against its joined display text (`tags = "red"` works only for single-value cells). Users get plausible-but-wrong empty/partial result sets.
+- **Approach:** Make the parser recognize the unsupported Access forms (`Like`, `Between … And`, `In (…)`, `Is Null`) and answer a precise `BadLiteral`/unsupported reason, implement `Like` via the expression service's matcher where the column is text, and document the case/multivalue fence (or route multivalue criteria through a membership predicate).
+- **Acceptance:** `Like "B*"` matches (or is rejected precisely — no silent 0 rows); unsupported forms never degrade to equality; the case-sensitivity and multivalue rules are stated in FORMAT-JET/README and pinned by tests.
+- **Done:** done in `53d6e07` (RED `a394792`) — Like via the Access-wildcard matcher, precise unsupported reasons for the other forms, case fence documented

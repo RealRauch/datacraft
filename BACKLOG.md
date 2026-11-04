@@ -36,12 +36,6 @@
 - **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
 - **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
 
-### [ ] M37 — QBE criteria silently misread unsupported Access forms — 🟡
-- **Location:** `crates/datacraft-core/src/query_criteria.rs` (`parse_predicate` only understands `= <> < <= > >=` and falls back to equality), `query_engine.rs` (comparison by `FieldValue` order).
-- **Problem:** The QBE criteria grammar is a documented subset but silently misreads Access syntax outside it: `Like "B*"` becomes an equality against the literal text `Like "B*"` (0 rows, no error) instead of matching or rejecting; text comparison is case-sensitive (Access `Option Compare Database` is not); a MultiValue column is compared against its joined display text (`tags = "red"` works only for single-value cells). Users get plausible-but-wrong empty/partial result sets.
-- **Approach:** Make the parser recognize the unsupported Access forms (`Like`, `Between … And`, `In (…)`, `Is Null`) and answer a precise `BadLiteral`/unsupported reason, implement `Like` via the expression service's matcher where the column is text, and document the case/multivalue fence (or route multivalue criteria through a membership predicate).
-- **Acceptance:** `Like "B*"` matches (or is rejected precisely — no silent 0 rows); unsupported forms never degrade to equality; the case-sensitivity and multivalue rules are stated in FORMAT-JET/README and pinned by tests.
-
 ### [ ] M38 — Datasheet keyboard navigation (record cursor via arrow keys, Home/End, PgUp/PgDn) — 🟡
 - **Location:** `crates/datacraft-ui/src/datasheet.rs` (body cells are painted hover-only, accessibility via `ui.interact` + `WidgetInfo` around lines 341-349), the UI-side record cursor `crates/datacraft-ui/src/app.rs:60` (`record_cursor: HashMap<TabId, usize>` — deliberately no core command), scroll/hit-test math in `crates/datacraft-core/src/grid.rs` (`clamp_scroll`, `visible_row_range`).
 - **Problem:** The datasheet is pointer-only: painted body cells respond to hover and click, but no keyboard interaction moves the record cursor. Access datasheets are keyboard-first (arrow keys, Home/End, PgUp/PgDn). The headless egui_kittest suite cannot exercise record navigation without synthesizing clicks.
@@ -264,3 +258,4 @@
 - M42 — Window chrome polish pass: ribbon hierarchy, spacing rhythm, surface consistency — done (closed 2026-11-04 (step 38.4) — the audit found the chrome token-clean (no drift to fix, no before/after changes); the subjective polish pass is deferred until the human reviews the restyled build)
 - M35 — Format named date pictures render corrupted text — done (done in `d682223` (RED `717eceb`) — named pictures resolve for every family, deterministic English date/time shapes, precise unsupported-picture errors)
 - M36 — SQL window dialect divergences are silent (currency scale, date literals, wildcards, overflow) — done (done in `c6ae98b` (RED `1131819`) — SQLite-semantics fence documented (module/README/window hint), Currency unscaled, the four divergences test-pinned)
+- M37 — QBE criteria silently misread unsupported Access forms — done (done in `53d6e07` (RED `a394792`) — Like via the Access-wildcard matcher, precise unsupported reasons for the other forms, case fence documented)
