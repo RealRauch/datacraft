@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-04T01:31
+# BACKLOG.md — Open items (As of: 2026-11-04T15:37
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -75,8 +75,14 @@
 ### [ ] M49 — Ribbon placeholders "Table Design"/"Import File" contradict reality — 🟡
 - **Location:** `crates/datacraft-core/src/ribbon.rs` (`table_design` → `DisabledIn { phase: "Phase 6" }`, `import_file` → `DisabledIn { phase: "Phase 9" }`), rendering in `crates/datacraft-ui/src/ribbon.rs:141-143` ("arrives in {phase}")
 - **Problem:** Both buttons render as placeholders for phases that are long past (the project stands at phase 39): the table design view exists (nav pane → Design → `OpenObjectInMode`), and "Import File" (import into the open database) does not exist at all — CSV directories open through the backstage folder dialog instead. The ribbon claims a future for one shipped feature and one unplanned one (found in the command/GUI parity audit 2026-11-04).
-- **Approach:** Decide per button: (1) `table_design` either activates the design flow for a selected/created table or is removed from the Create tab; (2) `import_file` either becomes a real import feature (needs its own decision item) or is removed in favour of the backstage CSV open path. Update the core ribbon model and the seam test accordingly; no stale phase labels remain anywhere.
-- **Acceptance:** No ribbon action claims a phase that has passed; every Create/External Data button either dispatches a command through `command_for` or is gone; kittest/snapshot pins updated; canonical verification set green.
+- **Approach (decided 2026-11-04):** (1) `table_design` activates the existing design flow for a selected/created table — the feature is shipped, the button dispatches through `command_for`; (2) `import_file` stays as a button but renders an honest disabled state with a planned-feature reason (no phase claim) — the feature itself is planned as M50. Update the core ribbon model and the seam test accordingly; no stale phase labels remain anywhere.
+- **Acceptance:** No ribbon action claims a phase that has passed; every Create/External Data button either dispatches a command through `command_for` or shows an honest disabled reason (planned feature, not a past phase); kittest/snapshot pins updated; canonical verification set green.
+
+### [ ] M50 — Import File: import an external file as new tables into the open database — 🟡
+- **Location:** `crates/datacraft-core/src/ribbon.rs` (`import_file` action, decided 2026-11-04 to keep the button with an honest disabled state until this exists), `crates/datacraft-ui/src/ribbon.rs`, External Data ribbon group; the backstage CSV open path (ADR-7) is the model to follow
+- **Problem:** DataCraft has no path that imports an external file's content as new tables into the currently open database (Jet4/SQLite). CSV directories open only as a read-only driver source through the backstage folder dialog. The ribbon's "Import File" button today claims a "Phase 9" future that has passed; the decision (M49) keeps the button visible but honestly disabled until this feature is built, so it needs a real item to drive it.
+- **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
+- **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
 
 ---
 
@@ -111,8 +117,8 @@
 ### [ ] L22 — QBE projection is positional while field names document source columns — 🟢
 - **Location:** `crates/datacraft-core/src/query_engine.rs:73-88` (projection uses the field's position in `def.fields`, while `parse_predicates`/`sort_rows` resolve `QbeField.name` against the table), `crates/datacraft-core/src/qbe.rs` (`QbeField.name` documented as "source field name").
 - **Problem:** A `QueryDef` whose field list is a subset or reordered silently projects the wrong columns: the header names come from the grid entries but the values come from the same positional index of the source row. Every in-tree caller builds the full grid in source order, so it works today, but the documented contract says names are source fields and an out-of-tree client can be silently wrong.
-- **Approach:** Either resolve every column by name (whitelist) and reject duplicates/unknowns, or document and validate the positional contract (field count equals the source count, names in source order) with a precise error.
-- **Acceptance:** A subset/reordered definition cannot silently project the wrong values; the chosen contract is documented on `QueryDef`/`QbeField` and pinned by a test.
+- **Approach (decided 2026-11-04: by-name resolution):** Resolve every projection column by name through the schema whitelist; reject duplicate and unknown field names with a precise, locatable error. Update the `QueryDef`/`QbeField` docs to state the by-name contract explicitly.
+- **Acceptance:** A subset/reordered definition projects exactly the named columns; duplicate or unknown names fail loudly instead of silently mis-projecting; the by-name contract is documented on `QueryDef`/`QbeField` and pinned by tests.
 
 ### [ ] L23 — Datasheet in-place cell editing of existing rows — 🟢
 - **Location:** `crates/datacraft-ui/src/datasheet.rs` (existing rows are painted strings; only the new-record row hosts real widgets, `new_row_ui` from line 99), write commands already exist in the vocabulary: `crates/datacraft-core/src/command.rs:135` (`InsertRow`) and `:144` (`UpdateRow`).
