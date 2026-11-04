@@ -59,6 +59,7 @@ pub fn paint(
         "table_design" => data::table_design(painter, rect, ink, accent),
         "query_design" | "query" => data::query(painter, rect, ink, accent),
         "query_sql" => data::sql(painter, rect, ink, accent),
+        "query_expression" => data::expression(painter, rect, ink, accent),
         "view_mode" => data::view_mode(painter, rect, ink, accent),
         "relationships" => data::relationships(painter, rect, ink, accent),
         "form_design" | "form" => objects::form(painter, rect, ink, accent),

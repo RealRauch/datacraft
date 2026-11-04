@@ -205,11 +205,18 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
                 RibbonGroup {
                     id: "queries",
                     label: "Queries",
-                    actions: vec![RibbonAction {
-                        id: "query_sql",
-                        label: "SQL",
-                        state: ActionState::Enabled,
-                    }],
+                    actions: vec![
+                        RibbonAction {
+                            id: "query_sql",
+                            label: "SQL",
+                            state: ActionState::Enabled,
+                        },
+                        RibbonAction {
+                            id: "query_expression",
+                            label: "Expression",
+                            state: ActionState::Enabled,
+                        },
+                    ],
                 },
             ],
         },

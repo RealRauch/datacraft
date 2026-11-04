@@ -311,6 +311,11 @@ pub enum Event {
         /// Openness after the toggle.
         open: bool,
     },
+    /// The expression window was toggled (step 41.2, item M46).
+    ExpressionWindowToggled {
+        /// Openness after the toggle.
+        open: bool,
+    },
     /// A SQL statement ran successfully (step 13.3, H37); the result data
     /// is fetched via `Core::run_sql`/the cached result.
     SqlRan {

@@ -218,6 +218,12 @@ impl Core {
                     open: self.state.sql_window_open,
                 }]
             }
+            Command::ToggleExpressionWindow => {
+                self.state.expression_window_open = !self.state.expression_window_open;
+                vec![Event::ExpressionWindowToggled {
+                    open: self.state.expression_window_open,
+                }]
+            }
             Command::RunSql { sql } => self.run_sql_command(&sql),
             Command::RunExpression {
                 context,

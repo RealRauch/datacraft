@@ -276,6 +276,7 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
             path: app.sidecar_path.clone().into(),
         }),
         "query_sql" => Some(Command::ToggleSqlWindow),
+        "query_expression" => Some(Command::ToggleExpressionWindow),
         "query_design" => Some(Command::CreateQuery {
             name: next_query_name(app),
         }),

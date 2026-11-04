@@ -67,6 +67,14 @@ pub struct App {
     sql_text: String,
     /// Reason of the last failed SQL run (the window renders it).
     sql_error: Option<String>,
+    /// Expression window editor text (presentation state; the expression
+    /// runs through the command bus, step 41.2).
+    expression_text: String,
+    /// Display form of the last successful expression run (the window
+    /// renders it, step 41.2).
+    expression_output: Option<String>,
+    /// Reason of the last failed expression run (the window renders it).
+    expression_error: Option<String>,
     /// Reason of the last failed command (status bar).
     pub(crate) last_error: Option<String>,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
@@ -155,6 +163,9 @@ impl App {
             design_rename: HashMap::new(),
             sql_text: "SELECT 1 AS one;".to_owned(),
             sql_error: None,
+            expression_text: String::new(),
+            expression_output: None,
+            expression_error: None,
             last_error: None,
             last_notice: None,
             sidecar_path: String::new(),
@@ -251,6 +262,44 @@ impl App {
     /// Result of the last successful SQL run (rendered by the window).
     pub fn sql_result(&self) -> Option<&datacraft_core::sql_engine::SqlResult> {
         self.core.sql_result()
+    }
+
+    /// Expression window editor text.
+    pub fn expression_text(&self) -> &str {
+        &self.expression_text
+    }
+
+    /// Replaces the expression editor text.
+    pub fn set_expression_text(&mut self, text: impl Into<String>) {
+        self.expression_text = text.into();
+    }
+
+    /// Runs the editor's expression through the bus without row context
+    /// and caches the outcome (step 41.2, item M46).
+    pub fn run_expression(&mut self) {
+        let events = self.dispatch(Command::RunExpression {
+            context: None,
+            expression: self.expression_text.clone(),
+        });
+        self.expression_output = None;
+        self.expression_error = None;
+        for event in events {
+            match event {
+                Event::ExpressionEvaluated { result } => self.expression_output = Some(result),
+                Event::Failed { reason } => self.expression_error = Some(reason),
+                _ => {}
+            }
+        }
+    }
+
+    /// Display form of the last successful expression run.
+    pub fn expression_output(&self) -> Option<&str> {
+        self.expression_output.as_deref()
+    }
+
+    /// Precise reason of the last failed expression run.
+    pub fn expression_error(&self) -> Option<&str> {
+        self.expression_error.as_deref()
     }
 
     /// Precise reason of the last failed SQL run.

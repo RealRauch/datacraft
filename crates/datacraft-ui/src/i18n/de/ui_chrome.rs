@@ -124,6 +124,11 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Freeze Fields", "Felder fixieren"),
     ("Unfreeze All Fields", "Fixierung aufheben"),
     ("Delete Record", "Datensatz löschen"),
+    ("Expression", "Ausdruck"),
+    (
+        "evaluates over an empty scope (no row context)",
+        "wertet ohne Zeilenkontext aus (leerer Gültigkeitsbereich)",
+    ),
     ("Statement", "Anweisung"),
     ("Subform", "Unterformular"),
     ("Switch view", "Ansicht wechseln"),

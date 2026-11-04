@@ -89,6 +89,23 @@ pub(super) fn sql(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Col
     );
 }
 
+/// Expression: an `f` glyph (ink) beside an accent `x` — the fx shorthand
+/// for an evaluated expression (step 41.2).
+pub(super) fn expression(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {
+    let stroke = Stroke::new(1.6, ink);
+    polyline(
+        painter,
+        rect,
+        &[(0.46, 0.18), (0.34, 0.18), (0.28, 0.82)],
+        stroke,
+        false,
+    );
+    line(painter, rect, (0.16, 0.40), (0.42, 0.40), stroke);
+    let accent = Stroke::new(1.6, accent);
+    line(painter, rect, (0.56, 0.32), (0.88, 0.70), accent);
+    line(painter, rect, (0.88, 0.32), (0.56, 0.70), accent);
+}
+
 /// View switch: a datasheet grid beside a design frame, joined by an
 /// accent rule (the Views split-button, step 21.1).
 pub(super) fn view_mode(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {

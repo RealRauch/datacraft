@@ -240,6 +240,8 @@ pub enum Command {
     },
     /// Shows or hides the SQL window (step 13.3, H37).
     ToggleSqlWindow,
+    /// Shows or hides the expression window (step 41.2, item M46).
+    ToggleExpressionWindow,
     /// Runs exactly one SELECT/WITH statement over the loaded tables in a
     /// throwaway in-memory SQLite database (step 13.3, H37).
     RunSql {

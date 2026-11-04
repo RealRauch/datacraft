@@ -29,6 +29,8 @@ pub struct UiStateSnapshot {
     pub relationship_mapper_open: bool,
     /// Whether the SQL window is open (step 13.3, H37).
     pub sql_window_open: bool,
+    /// Whether the expression window is open (step 41.2, item M46).
+    pub expression_window_open: bool,
     /// The shipped database templates (phase 29, item H44) — the registry
     /// behind `CreateDatabaseFromTemplate`, visible to every client.
     pub templates: Vec<crate::templates::TemplateSummary>,
@@ -285,6 +287,7 @@ impl UiStateSnapshot {
             active_tab: state.active_tab,
             relationship_mapper_open: state.relationship_mapper_open,
             sql_window_open: state.sql_window_open,
+            expression_window_open: state.expression_window_open,
             undo_depth: state.database.as_ref().map_or(0, |db| db.undo.len()),
             redo_depth: state.database.as_ref().map_or(0, |db| db.redo.len()),
         }
