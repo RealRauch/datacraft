@@ -45,6 +45,9 @@ pub mod ids {
     pub const NAV_DELETE: &str = "nav.delete";
     /// Datasheet new-record row.
     pub const NEW_RECORD: &str = "datasheet.new_record";
+    /// Datasheet record deletion (row context menu / Del key, step 40.3,
+    /// item M44).
+    pub const DELETE_RECORD: &str = "datasheet.delete_record";
     /// Backstage Save ▸ Save a copy (step 27.2, M14).
     pub const SAVE_AS: &str = "backstage.save_as";
     /// Backstage Save ▸ Change password (step 27.2, M14).
@@ -63,6 +66,7 @@ pub fn affordances(caps: &DriverCapabilities) -> BTreeMap<String, DisabledReason
     }
     if !caps.write_rows {
         map.insert(ids::NEW_RECORD.to_owned(), DisabledReason::WriteRows);
+        map.insert(ids::DELETE_RECORD.to_owned(), DisabledReason::WriteRows);
     }
     if caps.relationships == Support::No {
         map.insert(

@@ -64,3 +64,10 @@ pub(crate) fn nav_target(
         NavIntent::PageDown => (cursor + page).min(last),
     }
 }
+
+/// The Del key seen this frame (the selected record's deletion intent,
+/// step 40.3, item M44), consumed so no other handler reacts to it twice.
+pub(crate) fn read_delete_key(ui: &egui::Ui) -> bool {
+    ui.ctx()
+        .input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Delete))
+}

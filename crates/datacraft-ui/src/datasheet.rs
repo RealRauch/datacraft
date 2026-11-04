@@ -65,10 +65,18 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let sorts = vec![SortOrder::None; columns.len()];
     let mut widths = app.column_widths(tab.id, columns.len());
     let frozen = datacraft_core::grid::effective_frozen(app.frozen_columns(tab.id), columns.len());
+    let delete_reason = crate::availability::restricted(
+        app.snapshot(),
+        datacraft_core::availability::ids::DELETE_RECORD,
+    )
+    .copied();
     let mut selected = None;
+    let mut freeze_intent: Option<usize> = None;
+    let mut delete_intent: Option<usize> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
-        let mut on_freeze = |count: usize| app.set_frozen_columns(tab.id, count);
+        let mut on_freeze = |count: usize| freeze_intent = Some(count);
+        let mut on_delete = |row: usize| delete_intent = Some(row);
         grid_ui(
             ui,
             Grid {
@@ -80,11 +88,29 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 sort_orders: &sorts,
                 id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
                 frozen,
+                delete_reason,
             },
             &mut on_select,
             None,
             Some(&mut on_freeze),
+            Some(&mut on_delete),
         );
+    }
+    if let Some(count) = freeze_intent {
+        app.set_frozen_columns(tab.id, count);
+    }
+    if let Some(row) = delete_intent {
+        // Destructive-action confirmation through the dialog seam (step
+        // 38.3, item M43); native dialogs speak the OS language.
+        if app.dialogs.confirm(
+            "Delete Record",
+            "This permanently deletes the selected record from the database. Delete it?",
+        ) {
+            app.dispatch(Command::DeleteRow {
+                table: tab.object_name.clone(),
+                row,
+            });
+        }
     }
     app.set_column_widths(tab.id, widths.clone());
     if let Some(row) = selected {
@@ -212,10 +238,12 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 sort_orders: &sort_orders,
                 id_salt: format!("query.grid.{}", tab.ui_test_id),
                 frozen,
+                delete_reason: None,
             },
             &mut on_select,
             sort,
             Some(&mut on_freeze),
+            None,
         );
     }
     app.set_column_widths(tab.id, widths);

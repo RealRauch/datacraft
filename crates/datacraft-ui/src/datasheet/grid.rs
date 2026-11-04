@@ -12,13 +12,14 @@
 
 use eframe::egui;
 
+use datacraft_core::availability::DisabledReason;
 use datacraft_core::grid::{
     DEFAULT_COLUMN_WIDTH, GridMetrics, clamp_scroll_x, ensure_row_visible, frozen_column_x,
     frozen_width, resize_column, scrolled_column_x, visible_scrolled_range,
 };
 use datacraft_core::qbe::SortOrder;
 
-use super::nav::{nav_target, read_nav_intent};
+use super::nav::{nav_target, read_delete_key, read_nav_intent};
 use crate::i18n::t;
 use crate::theme::tokens;
 
@@ -31,7 +32,8 @@ const HANDLE_WIDTH: f32 = 5.0;
 /// header's drag handles and written back by the caller. `id_salt` names
 /// the grid's focus anchor (keyboard navigation, step 40.1, item M38) and
 /// must be unique per rendered grid; `frozen` is the effective count of
-/// frozen leading columns (step 40.2, item M39).
+/// frozen leading columns (step 40.2, item M39); `delete_reason` restricts
+/// the record-deletion affordance for the open source (step 40.3, M44).
 pub(crate) struct Grid<'a> {
     pub metrics: GridMetrics,
     pub columns: &'a [String],
@@ -41,6 +43,7 @@ pub(crate) struct Grid<'a> {
     pub sort_orders: &'a [SortOrder],
     pub id_salt: String,
     pub frozen: usize,
+    pub delete_reason: Option<DisabledReason>,
 }
 
 /// The header's scroll mirror and its callbacks (bundled to keep the
@@ -66,13 +69,18 @@ struct HeaderPass<'sort, 'freeze> {
 /// the virtualized window follows the cursor — plus freeze columns (step
 /// 40.2, item M39): leading columns stay pinned in header and body while
 /// the rest scrolls horizontally; the header context menu freezes and
-/// unfreezes through `on_freeze` (the count, 0 = unfreeze).
+/// unfreezes through `on_freeze` (the count, 0 = unfreeze). Record
+/// deletion (step 40.3, item M44): the row selector's context menu offers
+/// "Delete Record" — or a capability-disabled reason — and the Del key
+/// deletes the selected record; both report through `on_delete` (the
+/// zero-based live-row index) after the caller's own confirmation.
 pub(crate) fn grid_ui(
     ui: &mut egui::Ui,
     grid: Grid<'_>,
     on_select: &mut dyn FnMut(usize),
     on_sort: Option<&mut dyn FnMut(usize, SortOrder)>,
     on_freeze: Option<&mut dyn FnMut(usize)>,
+    mut on_delete: Option<&mut dyn FnMut(usize)>,
 ) {
     let Grid {
         metrics,
@@ -83,6 +91,7 @@ pub(crate) fn grid_ui(
         sort_orders,
         id_salt,
         frozen,
+        delete_reason,
     } = grid;
     let frozen = frozen.min(widths.len());
     // Navigation gate: the grid reacts when its focus anchor holds focus
@@ -120,6 +129,10 @@ pub(crate) fn grid_ui(
     let viewport_height = (ui.available_height() - metrics.header_height).max(metrics.row_height);
     let follow_target =
         intent.map(|intent| nav_target(intent, cursor, body.len(), viewport_height, &metrics));
+    // Del on the selected record is a deletion intent, not a cursor move —
+    // it only fires for capable sources (step 40.3, item M44).
+    let delete_intent =
+        wants_nav && delete_reason.is_none() && read_delete_key(ui) && !body.is_empty();
 
     // The header trails the body's live horizontal offset by one frame:
     // the body scroll area is the single scroll source, the header only
@@ -143,6 +156,7 @@ pub(crate) fn grid_ui(
     let font = egui::TextStyle::Body.resolve(ui.style());
     let tokens = tokens(ui.visuals());
     let mut clicked_row = None;
+    let mut delete_row: Option<usize> = delete_intent.then(|| cursor.min(body.len() - 1));
     // Deterministic id of the body scroll area (`id_salt` below) — the row
     // painting reads the live horizontal offset from its state. The area
     // hashes its `IdSalt` through `make_persistent_id`, so the same
@@ -224,6 +238,21 @@ pub(crate) fn grid_ui(
                 if selector.clicked() {
                     clicked_row = Some(row_idx);
                 }
+                // The record menu (step 40.3, item M44): the deletion
+                // affordance reports the row through `on_delete`; for
+                // restricted sources it renders disabled with the reason.
+                selector.context_menu(|ui| match delete_reason {
+                    Some(reason) => {
+                        ui.add_enabled(false, egui::Button::new(t("Delete Record")))
+                            .on_hover_text(crate::availability::reason_text(&reason));
+                    }
+                    None => {
+                        if ui.button(t("Delete Record")).clicked() {
+                            delete_row = Some(row_idx);
+                            ui.close();
+                        }
+                    }
+                });
                 // Painted cell: AccessKit label for the headless suite
                 // (step 23.2, T5) plus the ink hairline separator.
                 let paint_cell = |ui: &mut egui::Ui, x: f32, col: usize, text: &str| {
@@ -304,6 +333,11 @@ pub(crate) fn grid_ui(
     }
     if let Some(row) = clicked_row.or(follow_target) {
         on_select(row);
+    }
+    if let Some(row) = delete_row
+        && let Some(callback) = on_delete.as_mut()
+    {
+        callback(row);
     }
 }
 
