@@ -1306,3 +1306,12 @@
 - **Approach:** Swap the painted cell for a real widget on the active cell (the in-cell editor idea GridCraft implements in its `editor.rs`; own implementation, no borrowed code), commit through exactly one `UpdateRow` dispatch, surface failures precisely (M31 pattern — never swallow), Enter/Escape semantics building on the keyboard-navigation item M38.
 - **Acceptance:** Editing an existing cell dispatches exactly one `UpdateRow`, updates the presentation cache, shows a precise error on failure; a kittest drives an edit end-to-end; canonical verification set green.
 - **Done:** 8e28ef9
+
+---
+
+### [x] T9 — Coverage gap audit: contract tests for locally uncovered edge paths (MSVC attribution) — 🔵
+- **Location:** local Windows llvm-cov lcov (599 uncovered lines, of which 27 are the accepted bin roots per TESTING.md §3 exceptions #2/#3); largest testable blocks: `expr/coerce.rs` (40), `port_adapter.rs` (27), `jet3.rs` (23), `expr/format.rs` (15), `port.rs` (15), `undo.rs` (8), plus single-line pins like `grid.rs:113` (`column_span_x` out-of-range fallback) and `qbe.rs:115-121`, `present.rs:129-130`, `nav.rs:27-28`
+- **Problem:** The local Windows coverage (94.88%) sits 22 hit-lines under the 95% gate while CI ubuntu-latest passes (~96.4%). Root cause is target attribution: MSVC vs linux-gnu codegen maps coverage regions differently for identical source (verified: same cargo-llvm-cov 0.9.1 on both, same pinned toolchain, same exclusions, same gate math). Every error/edge branch those lines guard is a real behavior the suite should pin anyway (LESSONS A1: realistic/evil inputs) — closing them is worth doing for its own sake, and as a side effect makes the local number independent of attribution drift.
+- **Approach:** Audit the locally uncovered lines against their branches; write contract/unit tests for the highest-value, purely-testable paths (expression coercion and formatting edges, port helpers, undo redo-edge branches, schema display paths, grid fallback, qbe/present/nav pins). Re-run the local llvm-cov until the MSVC-attributed rate clears 95% with margin. No production-code changes — tests only; anything a test cannot reach without contriving becomes a documented accepted line, not a skipped gate.
+- **Acceptance:** Local canonical llvm-cov run (MSVC attribution) reports ≥ 95% line coverage; every new test asserts real behavior (no gate-gaming trivial calls); canonical verification set green.
+- **Done:** b83ffe1
