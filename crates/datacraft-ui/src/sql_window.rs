@@ -81,6 +81,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         cursor: 0,
                         widths: &mut widths,
                         sort_orders: &sorts,
+                        id_salt: "sql.grid".to_owned(),
                     },
                     &mut |_row: usize| {},
                     None,

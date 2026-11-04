@@ -25,6 +25,7 @@ use crate::labels::value_label;
 use crate::theme::tokens;
 
 mod grid;
+mod nav;
 
 use grid::SELECTOR_WIDTH;
 pub(crate) use grid::{Grid, grid_ui};
@@ -75,6 +76,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 cursor,
                 widths: &mut widths,
                 sort_orders: &sorts,
+                id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
             },
             &mut on_select,
             None,
@@ -202,6 +204,7 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 cursor,
                 widths: &mut widths,
                 sort_orders: &sort_orders,
+                id_salt: format!("query.grid.{}", tab.ui_test_id),
             },
             &mut on_select,
             sort,

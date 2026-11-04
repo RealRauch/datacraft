@@ -56,6 +56,36 @@ pub fn clamp_scroll(
     scroll_y.clamp(0.0, max)
 }
 
+/// Adjusts a scroll offset so that row `row` lands inside the visible
+/// window of a viewport `viewport_height` tall (step 40.1, item M38):
+/// minimal scroll up for rows above the window, minimal scroll down for
+/// rows below it, pinned at both ends by [`clamp_scroll`]. A row already
+/// inside the window leaves the offset untouched.
+pub fn ensure_row_visible(
+    scroll_y: f32,
+    viewport_height: f32,
+    row: usize,
+    row_count: usize,
+    metrics: &GridMetrics,
+) -> f32 {
+    let top = row as f32 * metrics.row_height;
+    let bottom = top + metrics.row_height;
+    let target = if top < scroll_y {
+        top
+    } else if bottom > scroll_y + viewport_height {
+        bottom - viewport_height
+    } else {
+        scroll_y
+    };
+    clamp_scroll(target, viewport_height, row_count, metrics)
+}
+
+/// Whole rows one PageUp/PageDown jump covers (step 40.1, item M38): the
+/// viewport height in rows, never collapsing below one row.
+pub fn page_rows(viewport_height: f32, metrics: &GridMetrics) -> usize {
+    ((viewport_height / metrics.row_height).floor() as usize).max(1)
+}
+
 /// Column hit test: the column whose span contains `x`, or `None` past the
 /// last column. Zero-width leading columns are skipped naturally.
 pub fn column_at_x(x: f32, widths: &[f32]) -> Option<usize> {
