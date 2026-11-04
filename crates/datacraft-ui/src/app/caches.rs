@@ -63,6 +63,10 @@ impl App {
             self.new_row.clear();
             self.column_widths.clear();
         }
+        if events.iter().any(|e| matches!(e, Event::DatabaseClosed)) {
+            self.vba_analysis = None;
+            self.vba_analysis_error = None;
+        }
         if events.iter().any(|e| {
             matches!(
                 e,

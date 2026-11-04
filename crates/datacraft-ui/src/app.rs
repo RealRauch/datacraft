@@ -117,6 +117,11 @@ pub struct App {
     /// Draft of the relationship-create form while the mapper pane's
     /// form is open (`None` hides it, step 41.1, item M45).
     pub(crate) relationship_draft: Option<crate::relationships::RelationshipDraft>,
+    /// Cached static VBA analysis (the viewer's right pane renders it,
+    /// step 41.3, item M47).
+    pub(crate) vba_analysis: Option<datacraft_core::vba_analysis::VbaAnalysis>,
+    /// Reason of the last failed analysis run (the viewer renders it).
+    pub(crate) vba_analysis_error: Option<String>,
     /// UI-owned settings (ADR-5); persisted only when a path is attached.
     pub(crate) settings: crate::settings::Settings,
     /// Path of `ui.json`; `None` keeps settings session-only (tests).
@@ -183,6 +188,8 @@ impl App {
             password_prompt: None,
             vba_search: String::new(),
             relationship_draft: None,
+            vba_analysis: None,
+            vba_analysis_error: None,
             settings: crate::settings::Settings::default(),
             settings_path: None,
             position_rescued: false,
@@ -344,6 +351,32 @@ impl App {
     /// step 17.2).
     pub fn vba_module(&self, name: &str) -> Option<&datacraft_core::vba::VbaModule> {
         self.core.vba_module(name)
+    }
+
+    /// Runs the static VBA analysis through the bus (`AnalyzeVba`) and
+    /// caches the outcome (step 41.3, item M47).
+    pub fn run_vba_analysis(&mut self) {
+        let events = self.dispatch(Command::AnalyzeVba);
+        self.vba_analysis = None;
+        self.vba_analysis_error = None;
+        for event in events {
+            match event {
+                Event::VbaAnalyzed { analysis } => self.vba_analysis = Some(analysis),
+                Event::Failed { reason } => self.vba_analysis_error = Some(reason),
+                _ => {}
+            }
+        }
+    }
+
+    /// Cached static VBA analysis of the open project.
+    pub fn vba_analysis(&self) -> Option<&datacraft_core::vba_analysis::VbaAnalysis> {
+        self.vba_analysis.as_ref()
+    }
+
+    /// Reason of the last failed analysis run (defensive: the bus may
+    /// answer a failure for a stale snapshot).
+    pub fn vba_analysis_error(&self) -> Option<&str> {
+        self.vba_analysis_error.as_deref()
     }
 
     /// Current runtime record of a form tab (defaults to the first).
