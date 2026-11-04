@@ -1270,3 +1270,12 @@
 - **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
 - **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
 - **Done:** done in `a4b3fc9` (RED `ac929e7`) — per-tab localized load failures surface in the datasheet and query views and retry on the next pass
+
+---
+
+### [x] M38 — Datasheet keyboard navigation (record cursor via arrow keys, Home/End, PgUp/PgDn) — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (body cells are painted hover-only, accessibility via `ui.interact` + `WidgetInfo` around lines 341-349), the UI-side record cursor `crates/datacraft-ui/src/app.rs:60` (`record_cursor: HashMap<TabId, usize>` — deliberately no core command), scroll/hit-test math in `crates/datacraft-core/src/grid.rs` (`clamp_scroll`, `visible_row_range`).
+- **Problem:** The datasheet is pointer-only: painted body cells respond to hover and click, but no keyboard interaction moves the record cursor. Access datasheets are keyboard-first (arrow keys, Home/End, PgUp/PgDn). The headless egui_kittest suite cannot exercise record navigation without synthesizing clicks.
+- **Approach:** Give the grid a focusable state and route key events to the existing UI-side cursor (no new core command — the cursor is presentation state). Scroll-follow math lands as pure functions in core `grid.rs` next to `clamp_scroll` (e.g. `ensure_row_visible`) so it stays unit-testable, and the headless kittest asserts the cursor through `UiStateSnapshot` JSON.
+- **Acceptance:** Arrow keys, Home/End and PgUp/PgDn move the record cursor with the virtualized scroll window following; the grid math is unit-tested as pure functions in core; a kittest pins the navigation via snapshot JSON; the 500-line gate is respected (`datasheet.rs` stands at 477 lines — split the module first if needed).
+- **Done:** 46369e8

@@ -284,8 +284,8 @@
 | 39.3 | M37: QBE criteria silently misread unsupported Access forms | ✅ |
 | 39.4 | M31: presentation cache loads swallow read errors | ✅ |
 | 39.5 | Phase 39 Quality Gate Review | ✅ |
-| 40.1 | Datasheet keyboard navigation: record cursor via arrow keys, Home/End, PgUp/PgDn (M38) | ⬜ |
-| 40.2 | Datasheet horizontal body scrolling + freeze columns (M39) | ⬜ |
+| 40.1 | Datasheet keyboard navigation: record cursor via arrow keys, Home/End, PgUp/PgDn (M38) | ✅ |
+| 40.2 | Datasheet horizontal body scrolling + freeze columns (M39) | 🔄 |
 | 40.3 | Datasheet row deletion GUI path (M44) | ⬜ |
 | 40.4 | Datasheet in-place cell editing of existing rows (L23) | ⬜ |
 | 40.5 | Phase 40 Quality Gate Review | ⬜ |
