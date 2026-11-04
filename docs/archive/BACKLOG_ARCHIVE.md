@@ -1333,3 +1333,12 @@
 - **Approach:** Add create/delete affordances to the mapper pane — table/column pickers from the snapshot for creation, a delete action per listed relationship — dispatching the existing commands; respect the `relationships` capability affordance id (already in `availability.rs`) with localized disabled reasons.
 - **Acceptance:** Create and delete flows dispatch exactly one command each over the real write path; capability-disabled rendering on CSV is pinned by a kittest; canonical verification set green.
 - **Done:** done in `f331afe` (RED `2aaa13a`) — step 41.1: mapper create form (four schema pickers) + per-row delete, one command each; availability ids relationships.create/delete gate on != Yes; full() reference set corrected to relationships: Yes
+
+---
+
+### [x] M46 — Expression service has no GUI surface (RunExpression) — 🟡
+- **Location:** `crates/datacraft-core/src/command.rs` (`RunExpression` — H41, dispatched by CLI/MCP only), UI has no evaluator view (grep audit 2026-11-04)
+- **Problem:** The expression service is a shipped feature (evaluator suite, defaults/rules wiring, report bands), but the GUI cannot evaluate an expression: agents get it over the bus, humans have no window anywhere.
+- **Approach:** An Access-like expression window (document tab or pane) with one text field dispatching `RunExpression` without row context (row context can follow later), rendering the result value or the precise failure in the status bar; entry point on the Database Tools ribbon group next to SQL.
+- **Acceptance:** Results and failures from the GUI arrive over the bus (`RunExpression` → result/error rendering); a kittest pins both renderings; canonical verification set green.
+- **Done:** done in `0fdb340` (RED `3e1750c`) — step 41.2: Database Tools > Expression window dispatching RunExpression without row context, result/failure rendering kittest-pinned; row-context evaluation stays a documented follow-up

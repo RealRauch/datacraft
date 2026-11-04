@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-04T22:37
+# BACKLOG.md — Open items (As of: 2026-11-05T00:39
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -29,12 +29,6 @@
 - **Problem:** The documentation has drifted across phases 10-30: the entry points an agent or contributor reads first (AGENTS.md, README architecture) describe a four-crate workspace, ARCHITECTURE carries stale milestone and mapping sections, and the driver model (ADR-7) is documented in the ADR but not in the navigation docs. A release must not ship with entry-point docs that contradict the repository.
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
-
-### [ ] M46 — Expression service has no GUI surface (RunExpression) — 🟡
-- **Location:** `crates/datacraft-core/src/command.rs` (`RunExpression` — H41, dispatched by CLI/MCP only), UI has no evaluator view (grep audit 2026-11-04)
-- **Problem:** The expression service is a shipped feature (evaluator suite, defaults/rules wiring, report bands), but the GUI cannot evaluate an expression: agents get it over the bus, humans have no window anywhere.
-- **Approach:** An Access-like expression window (document tab or pane) with one text field dispatching `RunExpression` without row context (row context can follow later), rendering the result value or the precise failure in the status bar; entry point on the Database Tools ribbon group next to SQL.
-- **Acceptance:** Results and failures from the GUI arrive over the bus (`RunExpression` → result/error rendering); a kittest pins both renderings; canonical verification set green.
 
 ### [ ] M47 — VBA static analysis has no viewer (AnalyzeVba) — 🟡
 - **Location:** `crates/datacraft-core/src/vba_analysis.rs` + `Event::VbaAnalyzed` (`event.rs:325`), `crates/datacraft-ui/src/vba_viewer.rs` (source viewer only — no frontend dispatches `AnalyzeVba`, the event is ignored)
@@ -113,6 +107,12 @@
 - **Problem:** The journaled batch-write commands have no GUI path, while the GUI writes immediately through the row commands with Undo/Redo (separate history in `undo.rs`, item U14 — not the journal tokens). That split is intentional — Access-like immediate datasheet writes for humans, preview/apply batches for agents — but nothing records it, so the next GUI-parity audit flags it again (found in the command/GUI parity audit 2026-11-04; decision made in the same session).
 - **Approach:** One docs-only pass: state in the four command doc comments and the ARCHITECTURE command vocabulary that the batch is the headless affordance and the GUI's equivalence is Insert/Update/Delete + Undo/Redo. No behavior change, no new command.
 - **Acceptance:** The four command doc comments and the ARCHITECTURE section state the headless-only role of the batch flow; docs-only change; canonical verification set green.
+
+### [ ] L27 — Expression window: row-context evaluation for RunExpression — 🟢
+- **Location:** `crates/datacraft-ui/src/expression_window.rs` (editor dispatches `RunExpression { context: None }` only), `crates/datacraft-core/src/field_expressions.rs` (`run_expression` already supports `Some(ExpressionContext { table, row })`)
+- **Problem:** The expression window evaluates over an empty scope only. The core supports a row context (table + zero-based live-row index) — CLI/MCP agents can address it, but the window has no table/row picker, so GUI users cannot evaluate field expressions against a record (documented follow-up when M46 landed, step 41.2).
+- **Approach:** Add an optional row-context picker to the expression window (table + row selector fed from the snapshot), dispatching `RunExpression` with `Some(ExpressionContext)` when set; keep the contextless evaluation as the default state.
+- **Acceptance:** Picking a table and row makes the window evaluate against that record (field names resolve); clearing the picker returns to the empty scope; a kittest pins one contextual run; canonical verification set green.
 
 ---
 
@@ -279,3 +279,4 @@
 - T9 — Coverage gap audit: contract tests for locally uncovered edge paths (MSVC attribution) — done (b83ffe1)
 - M51 — Pin cargo-llvm-cov in the CI coverage job (High gate, released) — done (1a769e2)
 - M45 — Relationship mapper: create/delete relationships are headless-only — done (done in `f331afe` (RED `2aaa13a`) — step 41.1: mapper create form (four schema pickers) + per-row delete, one command each; availability ids relationships.create/delete gate on != Yes; full() reference set corrected to relationships: Yes)
+- M46 — Expression service has no GUI surface (RunExpression) — done (done in `0fdb340` (RED `3e1750c`) — step 41.2: Database Tools > Expression window dispatching RunExpression without row context, result/failure rendering kittest-pinned; row-context evaluation stays a documented follow-up)
