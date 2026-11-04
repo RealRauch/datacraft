@@ -508,3 +508,16 @@ before the tag.
 - **38.4 Window chrome polish pass: ribbon hierarchy, spacing, surfaces (M42)**
 - **38.5 Phase 38 Quality Gate Review**
 **Verification:** Canonical set on the final tree: fmt green, clippy -D warnings green, 143 workspace test suites green, file-size gate green, docs_validate clean. llvm-cov exits 1 locally at 94.82% lines — the documented Windows skew (runner-conditional skips landed in phase 37; all phase-38 code sits in the coverage-excluded UI crate and moves the number not at all); CI ubuntu-latest is the binding gate per AGENTS §4 and runs on the next push. README/NOTICES updated per step (icon attribution, backstage grammar, dialog seam).
+
+---
+
+### Phase 39 — Release correctness bugs
+
+**Scope (Steps):**
+
+- **39.1 M35: named date pictures render corrupted text**
+- **39.2 M36: SQL window dialect divergences are silent**
+- **39.3 M37: QBE criteria silently misread unsupported Access forms**
+- **39.4 M31: presentation cache loads swallow read errors**
+- **39.5 Phase 39 Quality Gate Review**
+**Verification:** Canonical set on the final tree: fmt green, clippy -D warnings green, 144 workspace test suites green, file-size gate green, docs_validate clean. llvm-cov exits 1 locally at the documented 94.82% Windows baseline (all phase-39 code sits in the covered core crate and the number did not move from the phase-37 baseline; runner-conditional skips skew the local run) — CI ubuntu is the binding gate per AGENTS §4. Commit hygiene note: a4b3fc9 captured only a formatting fix; 33a82b8 landed the M31 implementation files as an immediate fix-forward (no amend).
