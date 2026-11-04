@@ -30,12 +30,6 @@
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
 
-### [ ] M39 — Datasheet freeze columns (horizontal body scrolling as prerequisite) — 🟡
-- **Location:** `crates/datacraft-ui/src/datasheet.rs` (`grid_ui` x-offset accumulation around lines 276-284, `header_ui` context menu), per-tab column widths in `crates/datacraft-ui/src/app/grid_state.rs`, hit-test/span math in `crates/datacraft-core/src/grid.rs` (`column_at_x`, `column_span_x`, `effective_widths`).
-- **Problem:** Access datasheets can freeze leading columns so they stay visible during horizontal scrolling; the DataCraft grid has neither freeze nor horizontal body scrolling (only the new-record row scrolls horizontally today).
-- **Approach:** Two stages: (1) horizontal body scrolling — widths are already per-tab session state shared by header, body and new-record row; (2) a frozen-column count per tab plus pure frozen-pane placement math in core `grid.rs` (own implementation of the quadrant idea GridCraft uses; no code or dependency from it), surfaced through header freeze/unfreeze context-menu actions.
-- **Acceptance:** Frozen columns stay pinned during horizontal scrolling in header and body; all placement math is pure core functions, unit-tested; a kittest snapshot pins the frozen/visible split; no per-frame allocations on the hot path.
-
 ### [ ] M44 — Datasheet row deletion: no GUI path for DeleteRow — 🟡
 - **Location:** `crates/datacraft-ui/src/datasheet.rs` (body rows are painted hover-only; no context menu, no Del key), `crates/datacraft-core/src/command.rs` (`DeleteRow` — dispatched by CLI/MCP only)
 - **Problem:** A GUI user cannot delete an existing row anywhere: the datasheet offers no row context menu or delete key, and no other view dispatches `DeleteRow`. Access datasheets delete via Del key / row context menu. The write path itself is already landed (Jet4/SQLite row delete), so this is a presentation-layer gap — the companion to L23, which covers in-place editing only (found in the command/GUI parity audit 2026-11-04).
@@ -297,3 +291,4 @@
 - M37 — QBE criteria silently misread unsupported Access forms — done (done in `53d6e07` (RED `a394792`) — Like via the Access-wildcard matcher, precise unsupported reasons for the other forms, case fence documented)
 - M31 — Presentation cache loads swallow read errors — done (done in `a4b3fc9` (RED `ac929e7`) — per-tab localized load failures surface in the datasheet and query views and retry on the next pass)
 - M38 — Datasheet keyboard navigation (record cursor via arrow keys, Home/End, PgUp/PgDn) — done (46369e8)
+- M39 — Datasheet freeze columns (horizontal body scrolling as prerequisite) — done (8f3d433)

@@ -1279,3 +1279,12 @@
 - **Approach:** Give the grid a focusable state and route key events to the existing UI-side cursor (no new core command — the cursor is presentation state). Scroll-follow math lands as pure functions in core `grid.rs` next to `clamp_scroll` (e.g. `ensure_row_visible`) so it stays unit-testable, and the headless kittest asserts the cursor through `UiStateSnapshot` JSON.
 - **Acceptance:** Arrow keys, Home/End and PgUp/PgDn move the record cursor with the virtualized scroll window following; the grid math is unit-tested as pure functions in core; a kittest pins the navigation via snapshot JSON; the 500-line gate is respected (`datasheet.rs` stands at 477 lines — split the module first if needed).
 - **Done:** 46369e8
+
+---
+
+### [x] M39 — Datasheet freeze columns (horizontal body scrolling as prerequisite) — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (`grid_ui` x-offset accumulation around lines 276-284, `header_ui` context menu), per-tab column widths in `crates/datacraft-ui/src/app/grid_state.rs`, hit-test/span math in `crates/datacraft-core/src/grid.rs` (`column_at_x`, `column_span_x`, `effective_widths`).
+- **Problem:** Access datasheets can freeze leading columns so they stay visible during horizontal scrolling; the DataCraft grid has neither freeze nor horizontal body scrolling (only the new-record row scrolls horizontally today).
+- **Approach:** Two stages: (1) horizontal body scrolling — widths are already per-tab session state shared by header, body and new-record row; (2) a frozen-column count per tab plus pure frozen-pane placement math in core `grid.rs` (own implementation of the quadrant idea GridCraft uses; no code or dependency from it), surfaced through header freeze/unfreeze context-menu actions.
+- **Acceptance:** Frozen columns stay pinned during horizontal scrolling in header and body; all placement math is pure core functions, unit-tested; a kittest snapshot pins the frozen/visible split; no per-frame allocations on the hot path.
+- **Done:** 8f3d433
