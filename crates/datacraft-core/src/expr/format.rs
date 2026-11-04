@@ -398,4 +398,65 @@ mod tests {
     fn text(value: &str) -> FieldValue {
         FieldValue::Text(value.to_owned())
     }
+
+    /// Every named picture resolves for a plain numeric value — the
+    /// dispatch table covers date/time/number spellings (M35).
+    #[test]
+    fn named_pictures_cover_the_dispatch_table() {
+        let value = FieldValue::Float(45_000.75);
+        for picture in [
+            "general number",
+            "general date",
+            "fixed",
+            "standard",
+            "percent",
+            "short date",
+            "medium date",
+            "long date",
+            "long time",
+            "medium time",
+        ] {
+            let result = format_value(&value, &text(picture), "Format")
+                .unwrap_or_else(|e| panic!("{picture} must format: {e}"));
+            assert!(
+                matches!(result, FieldValue::Text(ref rendered) if !rendered.is_empty()),
+                "{picture} renders non-empty text, got {result:?}"
+            );
+        }
+    }
+
+    /// Numeric value views: text coerces, currency and decimal enter the
+    /// tower, non-numeric families refuse precisely.
+    #[test]
+    fn numeric_view_covers_text_currency_decimal_and_refusals() {
+        assert_eq!(
+            format_value(&text("12.5"), &text("fixed"), "Format"),
+            Ok(FieldValue::Text("12.50".to_owned()))
+        );
+        assert_eq!(
+            format_value(&FieldValue::Currency(50_000), &text("fixed"), "Format"),
+            Ok(FieldValue::Text("5.00".to_owned()))
+        );
+        assert_eq!(
+            format_value(&FieldValue::Decimal(125), &text("fixed"), "Format"),
+            Ok(FieldValue::Text("125.00".to_owned()))
+        );
+        let error = format_value(&FieldValue::Guid([0; 16]), &text("fixed"), "Format")
+            .expect_err("guids do not format as numbers");
+        assert!(error.to_string().contains("cannot format"), "{error}");
+    }
+
+    /// A time past the last whole second of a day rolls over into the
+    /// next day's 00:00 instead of leaking second 86400.
+    #[test]
+    fn time_rolls_over_rounded_seconds() {
+        assert_eq!(
+            format_value(
+                &FieldValue::Float(1.999_999_999_9),
+                &text("long time"),
+                "Format"
+            ),
+            Ok(FieldValue::Text("12:00:00 AM".to_owned()))
+        );
+    }
 }

@@ -247,4 +247,38 @@ mod tests {
         );
         assert_eq!(eval_ok("1 Is Not Null", &scope), FieldValue::Boolean(true));
     }
+
+    /// Power overflow fails precisely, and the compare arms cover the
+    /// full operator set over cross-family numerics.
+    #[test]
+    fn power_overflow_and_compare_arms_are_precise() {
+        let error = super::super::parse("10 ^ 10000")
+            .and_then(|expr| expr.evaluate(&Scope::new()))
+            .expect_err("power overflow must fail");
+        assert!(error.to_string().contains("not finite"), "{error}");
+
+        let scope = Scope::new();
+        assert_eq!(eval_ok("2 <= 2.0", &scope), FieldValue::Boolean(true));
+        assert_eq!(eval_ok("2 >= 2.0", &scope), FieldValue::Boolean(true));
+        assert_eq!(eval_ok("3 < 2", &scope), FieldValue::Boolean(false));
+        assert_eq!(eval_ok("3 > 2", &scope), FieldValue::Boolean(true));
+        // Cross-family comparisons fall back to the float tower for the
+        // strict ordering arms as well.
+        assert_eq!(eval_ok("2.5 < '3'", &scope), FieldValue::Boolean(true));
+    }
+
+    /// Like with a non-text pattern refuses precisely; Null patterns
+    /// propagate.
+    #[test]
+    fn like_patterns_must_be_text_and_null_propagates() {
+        let error = super::super::parse("1 Like 2")
+            .and_then(|expr| expr.evaluate(&Scope::new()))
+            .expect_err("numeric patterns refuse");
+        assert!(error.to_string().contains("must be text"), "{error}");
+        assert_eq!(eval_ok("Null Like 'a'", &Scope::new()), FieldValue::Null);
+        assert_eq!(
+            eval_ok("'abc' Like 'a*'", &Scope::new()),
+            FieldValue::Boolean(true)
+        );
+    }
 }

@@ -133,3 +133,26 @@ pub(crate) fn validate_object_name(name: &str) -> Result<(), SchemaError> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::schema::NumericKind;
+
+    use super::{FieldKind, TableDef};
+
+    /// The Access-style default table is one ID long integer plus one
+    /// short-text field — the new-table flow's shape.
+    #[test]
+    fn access_default_is_id_plus_one_text_field() {
+        let table = TableDef::access_default("New");
+        assert_eq!(table.name, "New");
+        assert_eq!(table.fields.len(), 2);
+        assert_eq!(table.fields[0].name, "ID");
+        assert_eq!(
+            table.fields[0].kind,
+            FieldKind::Number(NumericKind::LongInteger)
+        );
+        assert_eq!(table.fields[1].name, "Field1");
+        assert_eq!(table.fields[1].kind, FieldKind::Text { max_len: 255 });
+    }
+}

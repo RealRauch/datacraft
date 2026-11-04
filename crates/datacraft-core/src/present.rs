@@ -176,3 +176,20 @@ pub fn control_kind_display(kind: &crate::form::ControlKind) -> &'static str {
         crate::form::ControlKind::SubForm { .. } => "Subform",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The minutes-to-next-day rollover keeps the wall clock exact even
+    /// for float days that round into the next whole day. The OLE epoch
+    /// is 1899-12-30.
+    #[test]
+    fn ole_datetime_rolls_over_rounded_minutes() {
+        // 1.99999… days rounds to 1440 minutes on OLE day 1 → next day
+        // 00:00 (1900-01-01, since OLE day 1 is 1899-12-31).
+        assert_eq!(display_ole_datetime(1.999_999_999_9), "1900-01-01 00:00");
+        // Half a day stays on its own day.
+        assert_eq!(display_ole_datetime(0.5), "1899-12-30 12:00");
+    }
+}

@@ -129,3 +129,86 @@ fn validation_failures_are_precise_and_leave_state_untouched() {
     assert!(unknown_table.contains("not found"), "{unknown_table}");
     assert_eq!(fields(&core), ["id", "note"]);
 }
+
+/// The alter gate answers precisely when no database is open and when
+/// the driver lacks the capability (phase 30, M17).
+#[test]
+fn alter_table_gates_are_precise() {
+    let mut closed = Core::new(Box::new(MockPort::with_tables(vec![TableDef::new(
+        "T",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    )])));
+    let events = closed.dispatch(Command::AddField {
+        table: "T".to_owned(),
+        field: FieldDef::new("extra", FieldKind::Text { max_len: 5 }),
+    });
+    let reason = events
+        .iter()
+        .find_map(|event| match event {
+            Event::Failed { reason } => Some(reason.clone()),
+            _ => None,
+        })
+        .expect("closed core refuses");
+    assert!(reason.contains("no database is open"), "{reason}");
+
+    let mut caps = datacraft_core::port::DriverCapabilities::full();
+    caps.alter_table = false;
+    let mut port = MockPort::with_tables(vec![TableDef::new(
+        "T",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    )]);
+    port.with_capabilities(caps);
+    let mut restricted = Core::new(Box::new(port));
+    restricted.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+        password: None,
+    });
+    let events = restricted.dispatch(Command::AddField {
+        table: "T".to_owned(),
+        field: FieldDef::new("extra", FieldKind::Text { max_len: 5 }),
+    });
+    let reason = events
+        .iter()
+        .find_map(|event| match event {
+            Event::Failed { reason } => Some(reason.clone()),
+            _ => None,
+        })
+        .expect("restricted core refuses");
+    assert!(reason.contains("cannot alter the schema"), "{reason}");
+}
+
+/// DeleteRow on an out-of-range index answers precisely instead of
+/// panicking or silently succeeding.
+#[test]
+fn delete_row_out_of_range_is_reported() {
+    let table = TableDef::new(
+        "T",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
+    let mut core = Core::new(Box::new(MockPort::with_tables(vec![table])));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+        password: None,
+    });
+    let events = core.dispatch(Command::DeleteRow {
+        table: "T".to_owned(),
+        row: 9,
+    });
+    let reason = events
+        .iter()
+        .find_map(|event| match event {
+            Event::Failed { reason } => Some(reason.clone()),
+            _ => None,
+        })
+        .expect("out of range refuses");
+    assert!(reason.contains("out of range"), "{reason}");
+}

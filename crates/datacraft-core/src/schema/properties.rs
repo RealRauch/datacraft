@@ -112,3 +112,47 @@ impl FieldProperties {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Calculated fields compute their own values: they refuse AutoNumber
+    /// kinds and take no default value.
+    #[test]
+    fn calculated_refuses_autonumber_and_default_values() {
+        let calculated = FieldProperties {
+            calculated: Some("[Price]*[Qty]".to_owned()),
+            ..FieldProperties::default()
+        };
+        let reason = calculated
+            .validate_for(&FieldKind::AutoNumber(crate::schema::AutoKind::LongInteger))
+            .expect_err("calculated refuses AutoNumber");
+        assert!(
+            reason
+                .to_string()
+                .contains("calculated applies only to data fields"),
+            "{reason}"
+        );
+        let with_default = FieldProperties {
+            calculated: Some("[Price]*[Qty]".to_owned()),
+            default_value: Some("0".to_owned()),
+            ..FieldProperties::default()
+        };
+        let reason = with_default
+            .validate_for(&FieldKind::Text { max_len: 50 })
+            .expect_err("calculated refuses default values");
+        assert!(
+            reason
+                .to_string()
+                .contains("computes its own values and takes no default"),
+            "{reason}"
+        );
+        assert!(
+            calculated
+                .validate_for(&FieldKind::Text { max_len: 50 })
+                .is_ok(),
+            "a plain calculated data field validates"
+        );
+    }
+}

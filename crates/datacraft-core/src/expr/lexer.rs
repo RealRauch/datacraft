@@ -354,4 +354,12 @@ mod tests {
         assert!(lex("#2025-01-05").is_err());
         assert!(lex("[open").is_err());
     }
+
+    /// An integer literal that no longer fits i64 fails precisely at the
+    /// lex stage.
+    #[test]
+    fn oversized_integer_literals_fail_precisely() {
+        let error = lex("9223372036854775808").expect_err("2^63 does not fit i64");
+        assert!(error.to_string().contains("exceeds 64 bits"), "{error}");
+    }
 }

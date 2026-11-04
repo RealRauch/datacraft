@@ -50,3 +50,35 @@ pub fn sort_entries(entries: &mut [(String, ObjectKind)], order: NavSortOrder) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The type rank orders every object kind, including the last two
+    /// ranks (macros and modules) that the pane shows after reports.
+    #[test]
+    fn sort_entries_ranks_every_kind() {
+        let mut entries = vec![
+            ("zap".to_owned(), ObjectKind::Module),
+            ("mac".to_owned(), ObjectKind::Macro),
+            ("tab".to_owned(), ObjectKind::Table),
+            ("frm".to_owned(), ObjectKind::Form),
+            ("rpt".to_owned(), ObjectKind::Report),
+            ("qry".to_owned(), ObjectKind::Query),
+        ];
+        sort_entries(&mut entries, NavSortOrder::Type);
+        let kinds: Vec<ObjectKind> = entries.into_iter().map(|(_, kind)| kind).collect();
+        assert_eq!(
+            kinds,
+            vec![
+                ObjectKind::Table,
+                ObjectKind::Query,
+                ObjectKind::Form,
+                ObjectKind::Report,
+                ObjectKind::Macro,
+                ObjectKind::Module,
+            ]
+        );
+    }
+}

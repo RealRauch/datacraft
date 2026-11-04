@@ -375,4 +375,31 @@ mod tests {
         );
         assert!(def.set_cell(QbeRow::Sort, 0, QbeValue::Bool(true)).is_err());
     }
+
+    /// The Field row names one source field: renaming a column to
+    /// another column's name (case-insensitive) and out-of-range columns
+    /// fail precisely; renaming itself is always allowed.
+    #[test]
+    fn field_row_rejects_duplicate_names_and_out_of_range_columns() {
+        let mut def = QueryDef::new("q", "t");
+        def.fields.push(field("a"));
+        def.fields.push(field("b"));
+        assert_eq!(
+            def.set_cell(QbeRow::Field, 0, QbeValue::Text("B".into())),
+            Err(QueryError::DuplicateField { field: "B".into() })
+        );
+        assert_eq!(
+            def.set_cell(QbeRow::Field, 5, QbeValue::Text("c".into())),
+            Err(QueryError::InvalidCell {
+                detail: "columns extend one at a time".to_owned(),
+            })
+        );
+        assert_eq!(
+            def.set_cell(QbeRow::Field, 0, QbeValue::Text("A".into())),
+            Ok(()),
+            "renaming a column to its own name (case-insensitive) is not a duplicate"
+        );
+        assert_eq!(def.fields[0].name, "A");
+        assert_eq!(def.fields[1].name, "b");
+    }
 }

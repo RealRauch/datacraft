@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{RowRange, StoragePort};
-use datacraft_core::schema::{FieldKind, NumericKind};
+use datacraft_core::schema::{FieldKind, FieldValue, NumericKind};
 use datacraft_csv::CsvPort;
 
 fn scratch_path(stem: &str) -> PathBuf {
@@ -167,4 +167,42 @@ fn inference_is_stable_across_reopens() {
     reopened.open(&scratch.0, None).expect("reopen");
     assert_eq!(kinds_of(&reopened), first, "stable across opens");
     assert_eq!(first, vec![long_integer()]);
+}
+
+/// A row shorter than the header is rejected at parse time with the
+/// precise row number — ragged records never reach inference.
+#[test]
+fn ragged_rows_fail_at_open_with_the_row_number() {
+    let scratch = Scratch(scratch_path("db"));
+    std::fs::create_dir_all(&scratch.0).expect("create the directory");
+    std::fs::write(scratch.0.join("data.csv"), "a,b\n1\n").expect("write the csv text");
+    let mut port = CsvPort::new();
+    let error = port
+        .open(&scratch.0, None)
+        .expect_err("ragged records refuse");
+    assert!(error.to_string().contains("row 2"), "{error}");
+}
+
+/// Doubled quotes inside a quoted cell are the escape for a literal
+/// quote — both inference (quoting pins text) and reading keep it.
+#[test]
+fn doubled_quotes_escape_a_literal_quote() {
+    let (_scratch, port) = opened_with("a\n\"say \"\"hi\"\"\"\n");
+    let rows = port
+        .read_rows("data", RowRange { start: 0, len: 10 })
+        .expect("rows");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0][0], FieldValue::Text("say \"hi\"".to_owned()));
+    assert_eq!(kinds_of(&port), vec![short_text()]);
+}
+
+/// A file without the trailing newline still yields its final row.
+#[test]
+fn a_file_without_trailing_newline_keeps_its_last_row() {
+    let (_scratch, port) = opened_with("a\n1\n2");
+    let rows = port
+        .read_rows("data", RowRange { start: 0, len: 10 })
+        .expect("rows");
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1][0], FieldValue::Text("2".to_owned()));
 }

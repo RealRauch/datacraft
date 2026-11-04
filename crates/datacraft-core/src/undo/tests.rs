@@ -135,3 +135,81 @@ fn a_failed_read_back_clears_the_insert_history() {
         "without the read-back image the history degrades to empty"
     );
 }
+
+/// Redo replays the stored redo image and moves the entry back onto the
+/// undo stack — the second half of the history cycle.
+#[test]
+fn a_redo_rewrites_the_row_and_moves_the_entry_back() {
+    let mut core = notes_core();
+    core.dispatch(Command::InsertRow {
+        table: "Notes".to_owned(),
+        values: vec![FieldValue::Text("alpha".into())],
+    });
+    core.dispatch(Command::Undo);
+    assert_eq!(core.inspect().undo_depth, 0);
+    assert_eq!(core.inspect().redo_depth, 1);
+    let events = core.dispatch(Command::Redo);
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, Event::Redone { .. })),
+        "{events:?}"
+    );
+    assert_eq!(core.inspect().undo_depth, 1);
+    assert_eq!(core.inspect().redo_depth, 0);
+}
+
+/// Both stacks trim at MAX_HISTORY: the oldest entry falls off.
+#[test]
+fn history_trims_at_the_max_depth() {
+    let mut core = notes_core();
+    for index in 0..(super::MAX_HISTORY + 2) {
+        core.dispatch(Command::InsertRow {
+            table: "Notes".to_owned(),
+            values: vec![FieldValue::Text(format!("n{index}"))],
+        });
+    }
+    assert_eq!(
+        core.inspect().undo_depth,
+        super::MAX_HISTORY,
+        "the undo stack never grows past MAX_HISTORY"
+    );
+    // Undo everything that survived, then replay it: the redo→undo move
+    // trims its own stack the same way.
+    for _ in 0..super::MAX_HISTORY {
+        core.dispatch(Command::Undo);
+    }
+    assert_eq!(core.inspect().redo_depth, super::MAX_HISTORY);
+    for _ in 0..super::MAX_HISTORY {
+        core.dispatch(Command::Redo);
+    }
+    assert_eq!(core.inspect().undo_depth, super::MAX_HISTORY);
+}
+
+/// A history operation that cannot apply keeps its entry retryable —
+/// the stack did not change, so the next attempt retries the same image.
+/// The redo direction re-pushes onto the redo stack the same way.
+#[test]
+fn a_refused_redo_keeps_its_entry_retryable() {
+    let mut core = notes_core();
+    core.state
+        .database
+        .as_mut()
+        .expect("database open")
+        .redo
+        .push(HistoryEntry {
+            table: "Notes".to_owned(),
+            undo: Vec::new(),
+            redo: vec![HistoryOp::Update {
+                from: vec![FieldValue::Text("ghost".into())],
+                to: vec![FieldValue::Text("other".into())],
+            }],
+        });
+    let reason = failure(&core.dispatch(Command::Redo));
+    assert!(reason.contains("stale"), "{reason}");
+    assert_eq!(
+        core.inspect().redo_depth,
+        1,
+        "the refused entry stays on the redo stack for a retry"
+    );
+}

@@ -421,4 +421,26 @@ mod tests {
         let error = parse("#2025-13-40#").expect_err("invalid date must fail");
         assert!(error.to_string().contains("date literal"));
     }
+
+    /// A bare `.` expects a field name right after it; bracket names are
+    /// accepted the same as identifiers.
+    #[test]
+    fn dotted_field_access_takes_ident_or_bracket_names() {
+        assert!(matches!(
+            parse_ok("[Customers].[name]"),
+            Expression::Field { .. }
+        ));
+        let error = parse("[Customers].").expect_err("bare dot must fail");
+        assert!(error.to_string().contains("field name"), "{error}");
+    }
+
+    /// Multi-argument calls parse every argument through the same
+    /// expression grammar (instr takes two to three arguments).
+    #[test]
+    fn calls_parse_every_comma_separated_argument() {
+        assert!(matches!(
+            parse_ok("instr(1, \"abc\", 2)"),
+            Expression::Call { name, .. } if name == "instr"
+        ));
+    }
 }

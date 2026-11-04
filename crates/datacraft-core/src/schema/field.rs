@@ -434,4 +434,24 @@ mod coverage_tests {
             .expect_err("wrong value type");
         assert!(error.to_string().contains("memo") || error.to_string().contains("integer"));
     }
+
+    /// Range diagnostics name the violated kind, and complex fields
+    /// accept nothing but complex values.
+    #[test]
+    fn range_diagnostics_name_the_kind_and_complex_refuses_scalars() {
+        let error = FieldKind::Number(NumericKind::LongInteger)
+            .validate_value(&FieldValue::Integer(1 << 40))
+            .expect_err("out of range");
+        assert!(error.to_string().contains("long integer"), "{error}");
+
+        let error = FieldKind::Number(NumericKind::Byte)
+            .validate_value(&FieldValue::Integer(300))
+            .expect_err("out of range");
+        assert!(error.to_string().contains("byte"), "{error}");
+
+        let error = FieldKind::Complex
+            .validate_value(&FieldValue::Integer(1))
+            .expect_err("scalars do not satisfy complex fields");
+        assert!(error.to_string().contains("complex"), "{error}");
+    }
 }
