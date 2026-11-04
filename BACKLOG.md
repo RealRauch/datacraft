@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-04T15:37
+# BACKLOG.md — Open items (As of: 2026-11-04T22:37
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -66,6 +66,12 @@
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
 
+### [ ] M51 — Pin cargo-llvm-cov in the CI coverage job (High gate, released) — 🟡
+- **Location:** `.github/workflows/ci.yml` coverage job (`taiki-e/install-action@v2`, `tool: cargo-llvm-cov` unpinned — installs @latest on every run)
+- **Problem:** The coverage job installs cargo-llvm-cov unpinned, so a new upstream release can move the gate number without any code change — the exact failure class the workflow already survived once (run 41727473021: the tool's embedded threshold diverged from its own lcov export, which is why the gate was moved to an explicit lcov evaluation). The local runs stand at 0.9.1 (verified identical to the current latest, so today the numbers only differ by MSVC/linux target attribution — T9); pinning removes the remaining drift axis before it bites. **High-class content gate (AGENTS §3, CI workflows): explicit human release granted in this session (2026-11-04).**
+- **Approach:** Pin the install-action tool to the local version (`tool: cargo-llvm-cov@0.9.1`) and update the job comment to state the pin policy: bump deliberately together with the local toolchain/dev setup, never passively via @latest. The lcov-based gate evaluation stays unchanged.
+- **Acceptance:** ci.yml coverage job installs `cargo-llvm-cov@0.9.1`; the comment records the deliberate-bump policy; the workflow lints (yaml valid, job shape unchanged); a CI run on main stays green.
+
 ---
 
 ## 🟢 LOW
@@ -125,6 +131,12 @@
 ## 🔵 TEST GAPS
 
 > No open items.
+
+### [ ] T9 — Coverage gap audit: contract tests for locally uncovered edge paths (MSVC attribution) — 🔵
+- **Location:** local Windows llvm-cov lcov (599 uncovered lines, of which 27 are the accepted bin roots per TESTING.md §3 exceptions #2/#3); largest testable blocks: `expr/coerce.rs` (40), `port_adapter.rs` (27), `jet3.rs` (23), `expr/format.rs` (15), `port.rs` (15), `undo.rs` (8), plus single-line pins like `grid.rs:113` (`column_span_x` out-of-range fallback) and `qbe.rs:115-121`, `present.rs:129-130`, `nav.rs:27-28`
+- **Problem:** The local Windows coverage (94.88%) sits 22 hit-lines under the 95% gate while CI ubuntu-latest passes (~96.4%). Root cause is target attribution: MSVC vs linux-gnu codegen maps coverage regions differently for identical source (verified: same cargo-llvm-cov 0.9.1 on both, same pinned toolchain, same exclusions, same gate math). Every error/edge branch those lines guard is a real behavior the suite should pin anyway (LESSONS A1: realistic/evil inputs) — closing them is worth doing for its own sake, and as a side effect makes the local number independent of attribution drift.
+- **Approach:** Audit the locally uncovered lines against their branches; write contract/unit tests for the highest-value, purely-testable paths (expression coercion and formatting edges, port helpers, undo redo-edge branches, schema display paths, grid fallback, qbe/present/nav pins). Re-run the local llvm-cov until the MSVC-attributed rate clears 95% with margin. No production-code changes — tests only; anything a test cannot reach without contriving becomes a documented accepted line, not a skipped gate.
+- **Acceptance:** Local canonical llvm-cov run (MSVC attribution) reports ≥ 95% line coverage; every new test asserts real behavior (no gate-gaming trivial calls); canonical verification set green.
 
 ---
 
