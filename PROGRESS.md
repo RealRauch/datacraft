@@ -17,16 +17,7 @@
 - **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
-### Phase 40 — Datasheet Interaction
-
-**Scope (Steps):**
-
-- **40.1 Datasheet keyboard navigation: record cursor via arrow keys, Home/End, PgUp/PgDn (M38)**
-- **40.2 Datasheet horizontal body scrolling + freeze columns (M39)**
-- **40.3 Datasheet row deletion GUI path (M44)**
-- **40.4 Datasheet in-place cell editing of existing rows (L23)**
-- **40.5 Phase 40 Quality Gate Review**
-### Phase 41 — GUI Parity: Surface the Headless Commands
+### Phase 41 — GUI Parity: Surface the Headless Commands *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
@@ -36,7 +27,7 @@
 - **41.4 Report designer grouping picker (M48)**
 - **41.5 Ribbon truth pass: activate Table Design, honest Import File state (M49)**
 - **41.6 Phase 41 Quality Gate Review**
-### Phase 42 — Core Correctness
+### Phase 42 — Core Correctness *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
 
@@ -288,7 +279,7 @@
 | 40.2 | Datasheet horizontal body scrolling + freeze columns (M39) | ✅ |
 | 40.3 | Datasheet row deletion GUI path (M44) | ✅ |
 | 40.4 | Datasheet in-place cell editing of existing rows (L23) | ✅ |
-| 40.5 | Phase 40 Quality Gate Review | 🔄 |
+| 40.5 | Phase 40 Quality Gate Review | ✅ |
 | 41.1 | Relationship mapper: create/delete affordances (M45) | ⬜ |
 | 41.2 | Expression window for RunExpression (M46) | ⬜ |
 | 41.3 | VBA static analysis viewer for AnalyzeVba (M47) | ⬜ |

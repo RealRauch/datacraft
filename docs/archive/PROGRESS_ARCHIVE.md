@@ -521,3 +521,16 @@ before the tag.
 - **39.4 M31: presentation cache loads swallow read errors**
 - **39.5 Phase 39 Quality Gate Review**
 **Verification:** Canonical set on the final tree: fmt green, clippy -D warnings green, 144 workspace test suites green, file-size gate green, docs_validate clean. llvm-cov exits 1 locally at the documented 94.82% Windows baseline (all phase-39 code sits in the covered core crate and the number did not move from the phase-37 baseline; runner-conditional skips skew the local run) — CI ubuntu is the binding gate per AGENTS §4. Commit hygiene note: a4b3fc9 captured only a formatting fix; 33a82b8 landed the M31 implementation files as an immediate fix-forward (no amend).
+
+---
+
+### Phase 40 — Datasheet Interaction
+
+**Scope (Steps):**
+
+- **40.1 Datasheet keyboard navigation: record cursor via arrow keys, Home/End, PgUp/PgDn (M38)**
+- **40.2 Datasheet horizontal body scrolling + freeze columns (M39)**
+- **40.3 Datasheet row deletion GUI path (M44)**
+- **40.4 Datasheet in-place cell editing of existing rows (L23)**
+- **40.5 Phase 40 Quality Gate Review**
+**Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 148 workspace test suites, file-size gate, no hygiene markers. Local Windows llvm-cov is 94.88% (informational only; CI ubuntu-latest is the binding gate per AGENTS §4) — the sole uncovered core line is the pre-existing column_span_x out-of-range fallback (grid.rs:113), all step 40.1-40.4 code is fully covered. Phase deliverables: M38 keyboard record navigation with scroll-follow core math (46369e8), M39 freeze columns + horizontal body scrolling (8f3d433), M44 confirmed DeleteRow via context menu and Del key (88df660), L23 in-place cell editor committing exactly one UpdateRow (8e28ef9).
