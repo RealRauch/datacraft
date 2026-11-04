@@ -1,5 +1,6 @@
 ---
 source: crates/datacraft-ui/tests/ui_kittest.rs
+assertion_line: 251
 expression: tree_dump(&harness)
 ---
 Window|SQL|
@@ -12,6 +13,9 @@ TextRun||SELECT 1 AS one;
 Button|Run|
 Label||one SELECT/WITH statement · read-only
 TextRun||one SELECT/WITH statement · read-only
+Label||SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, integer overflow promotes to REAL
+TextRun||SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, 
+TextRun||integer overflow promotes to REAL
 Splitter|Resize window right edge|
 Splitter|Resize window left edge|
 Splitter|Resize window bottom edge|

@@ -188,6 +188,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "one SELECT/WITH statement · read-only",
         "eine SELECT/WITH-Anweisung · schreibgeschützt",
     ),
+    (
+        "SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, integer overflow promotes to REAL",
+        "SQLite-Semantik: Währung unskaliert, LIKE mit % Jokerzeichen, Textliterale treffen nie auf numerische Spalten, Ganzzahl-Überlauf wird zu REAL",
+    ),
     ("password", "Kennwort"),
     ("path to .datacraft", "Pfad zur .datacraft-Datei"),
     ("path to .mdb", "Pfad zur .mdb-Datei"),

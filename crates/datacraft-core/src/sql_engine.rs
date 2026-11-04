@@ -11,6 +11,13 @@
 //! The engine sits behind the `sql-engine` feature (`rusqlite` is optional
 //! in `datacraft-core`, step 31.2 / M19): the result types live in
 //! [`crate::sql_types`] so the state and the wire vocabulary stay C-free.
+//!
+//! Dialect fence (step 39.2, item M36): the window speaks SQLite semantics,
+//! documented, never silently Access-shaped — Currency materializes
+//! unscaled REAL (fractions are binary approximations), a text literal
+//! never matches the numeric DateTime column (REAL sorts before TEXT),
+//! `LIKE` uses the SQLite `%` wildcards, and integer overflow promotes to
+//! REAL. All four cases are pinned by tests in this module.
 
 use rusqlite::Connection;
 use rusqlite::types::ValueRef;
@@ -131,9 +138,12 @@ fn affinity(kind: &FieldKind) -> &'static str {
         FieldKind::Text { .. } | FieldKind::Memo => "TEXT",
         FieldKind::Number(NumericKind::Byte | NumericKind::Integer | NumericKind::LongInteger)
         | FieldKind::AutoNumber(AutoKind::LongInteger | AutoKind::ReplicationId)
-        | FieldKind::Boolean { .. }
-        | FieldKind::Currency => "INTEGER",
-        FieldKind::Number(NumericKind::Single | NumericKind::Double)
+        | FieldKind::Boolean { .. } => "INTEGER",
+        // Currency materializes unscaled REAL (step 39.2, item M36) — the
+        // file backends' scaled INTEGER marker would leak the ×10000 scale
+        // into every aggregate; fractional cents are REAL approximations.
+        FieldKind::Currency
+        | FieldKind::Number(NumericKind::Single | NumericKind::Double)
         | FieldKind::DateTime
         | FieldKind::Number(NumericKind::Decimal { .. }) => "REAL",
         // Complex cells are materialized as their joined display text
@@ -151,7 +161,9 @@ fn sql_value(kind: &FieldKind, value: &FieldValue) -> rusqlite::types::Value {
         FieldValue::Boolean(b) => Sql::Integer(i64::from(*b)),
         FieldValue::Integer(i) => Sql::Integer(*i),
         FieldValue::Float(f) => Sql::Real(*f),
-        FieldValue::Currency(c) => Sql::Integer(*c),
+        // Unscaled per the M36 fence — the scaled marker would leak into
+        // every aggregate (SUM(amount) showed 8230000, not 823.0).
+        FieldValue::Currency(c) => Sql::Real(*c as f64 / 10_000.0),
         FieldValue::DateTime(days) => Sql::Real(*days),
         FieldValue::Decimal(scaled) => {
             let scale = match kind {
@@ -252,8 +264,14 @@ mod tests {
     /// 8230000 instead of 823.0).
     #[test]
     fn currency_materializes_unscaled() {
-        assert_eq!(one_value("SELECT SUM(amount) FROM Orders"), FieldValue::Float(723.0));
-        assert_eq!(one_value("SELECT amount FROM Orders"), FieldValue::Float(723.0));
+        assert_eq!(
+            one_value("SELECT SUM(amount) FROM Orders"),
+            FieldValue::Float(823.0)
+        );
+        assert_eq!(
+            one_value("SELECT amount FROM Orders WHERE city = 'Berlin'"),
+            FieldValue::Float(723.0)
+        );
     }
 
     /// Step 39.2 (item M36): the SQLite ordering fence is pinned — a text
@@ -306,6 +324,7 @@ mod tests {
             affinity(&FieldKind::Number(NumericKind::LongInteger)),
             "INTEGER"
         );
+        assert_eq!(affinity(&FieldKind::Currency), "REAL");
         assert_eq!(
             affinity(&FieldKind::Number(NumericKind::Decimal {
                 precision: 10,

@@ -59,6 +59,9 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                 }
                 ui.weak(t("one SELECT/WITH statement · read-only"));
             });
+            ui.weak(t(
+                "SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, integer overflow promotes to REAL",
+            ));
             if let Some(reason) = &error {
                 ui.colored_label(tokens.danger, reason);
             }
