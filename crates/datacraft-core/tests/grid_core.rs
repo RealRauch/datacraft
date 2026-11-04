@@ -6,9 +6,54 @@
 
 use datacraft_core::grid::{
     DEFAULT_COLUMN_WIDTH, GridMetrics, MIN_COLUMN_WIDTH, clamp_scroll, column_at_x, column_span_x,
-    effective_widths, resize_column, resize_handle_at, visible_row_range,
+    effective_widths, ensure_row_visible, page_rows, resize_column, resize_handle_at,
+    visible_row_range,
 };
 use proptest::prelude::*;
+
+#[test]
+fn scroll_follow_keeps_a_visible_row_in_place() {
+    let metrics = GridMetrics::default();
+    // Row 5 spans 110..132 px; a window starting at 88 px sees it whole.
+    assert_eq!(ensure_row_visible(88.0, 400.0, 5, 1_000, &metrics), 88.0);
+}
+
+#[test]
+fn scroll_follow_moves_up_for_rows_above_the_window() {
+    let metrics = GridMetrics::default();
+    // Row 2 starts at 44 px, above a window at 220 px: the window jumps up.
+    assert_eq!(ensure_row_visible(220.0, 400.0, 2, 1_000, &metrics), 44.0);
+}
+
+#[test]
+fn scroll_follow_moves_down_for_rows_below_the_window() {
+    let metrics = GridMetrics::default();
+    // Row 60 ends at 1_364 px, below a 400 px window at 0 px: minimal
+    // scroll brings its bottom edge to the viewport bottom.
+    assert_eq!(ensure_row_visible(0.0, 400.0, 60, 1_000, &metrics), 942.0);
+}
+
+#[test]
+fn scroll_follow_clamps_at_both_scroll_ends() {
+    let metrics = GridMetrics::default();
+    // End key on the last row pins the window to the content end.
+    assert_eq!(ensure_row_visible(0.0, 400.0, 999, 1_000, &metrics), 21_600.0);
+    // Home key on the first row can never go negative.
+    assert_eq!(ensure_row_visible(500.0, 400.0, 0, 1_000, &metrics), 0.0);
+    // Clamped again on a second pass: follow is a fixpoint.
+    let once = ensure_row_visible(0.0, 400.0, 999, 1_000, &metrics);
+    assert_eq!(ensure_row_visible(once, 400.0, 999, 1_000, &metrics), once);
+}
+
+#[test]
+fn page_rows_spans_the_viewport_and_never_collapses() {
+    let metrics = GridMetrics::default();
+    // 400 px viewport, 22 px rows -> 18 whole rows per page jump.
+    assert_eq!(page_rows(400.0, &metrics), 18);
+    // A tiny viewport still moves at least one row.
+    assert_eq!(page_rows(10.0, &metrics), 1);
+    assert_eq!(page_rows(0.0, &metrics), 1);
+}
 
 #[test]
 fn empty_grids_show_nothing() {
@@ -156,5 +201,29 @@ proptest! {
         prop_assert!(clamped >= 0.0);
         let content = rows as f32 * metrics.row_height;
         prop_assert!(clamped <= (content - viewport).max(0.0));
+    }
+
+    /// Scroll follow always leaves the target row inside the visible
+    /// window (when the row fits the viewport) and yields a clamped,
+    /// idempotent offset — step 40.1, item M38.
+    #[test]
+    fn scroll_follow_places_the_row_inside_the_window(
+        scroll_y in -1_000.0f32..1_000_000.0,
+        viewport in 44.0f32..4_000.0,
+        rows in 1usize..10_000,
+        row in 0usize..10_000,
+    ) {
+        prop_assume!(row < rows, "the UI never navigates past the last row");
+        let metrics = GridMetrics::default();
+        let followed = ensure_row_visible(scroll_y, viewport, row, rows, &metrics);
+        prop_assert_eq!(clamp_scroll(followed, viewport, rows, &metrics), followed);
+        let top = row as f32 * metrics.row_height;
+        let bottom = top + metrics.row_height;
+        prop_assert!(followed <= top, "window starts past the row top");
+        prop_assert!(
+            bottom <= followed + viewport + 0.01,
+            "row bottom {bottom} falls below the window end {}",
+            followed + viewport
+        );
     }
 }

@@ -61,6 +61,33 @@ fn app_with_table_tab() -> (App, TabId) {
     (app, tab)
 }
 
+/// App with the Customers tab open over `rows` records (keyboard
+/// navigation, step 40.1, item M38). Names carry their index so the
+/// headless suite can address cells by label.
+fn multi_row_table_app(rows: usize) -> (App, TabId) {
+    let data: Vec<Vec<datacraft_core::schema::FieldValue>> = (0..rows)
+        .map(|index| {
+            vec![
+                datacraft_core::schema::FieldValue::Integer(index as i64),
+                datacraft_core::schema::FieldValue::Text(format!("alpha{index}")),
+            ]
+        })
+        .collect();
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_row_data("Customers", data);
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Customers",
+    )));
+    let tab = app.snapshot().tabs[0].id;
+    (app, tab)
+}
+
 /// Semantic tree dump: role + label + value + disabled state of every
 /// labelled node, in traversal order. Deterministic across DPI and fonts.
 fn tree_dump<State>(harness: &Harness<'_, State>) -> String {
@@ -145,6 +172,72 @@ fn datasheet_exposes_its_cells_as_labels() {
     assert!(cell.width() > 0.0, "the cell has a painted rect");
     let count = harness.get_by_label_contains("row").rect();
     assert!(count.width() > 0.0, "the row-count label renders");
+}
+
+/// Keyboard record navigation (step 40.1, item M38): clicking a row
+/// selector anchors the grid, then the navigation keys move the record
+/// cursor — clamped at both ends, with the home/end jumps Access
+/// datasheets provide. Assertions stay on the presentation cursor; the
+/// scroll-follow math is pinned by the core contract suite.
+#[test]
+fn navigation_keys_move_the_record_cursor_from_the_row_selector() {
+    let (app, tab) = multi_row_table_app(6);
+    let mut harness = datasheet_harness(app);
+    harness.run();
+    assert_eq!(harness.state().record_cursor(tab), 0);
+
+    // Clicking the third record's selector selects it and anchors the grid.
+    harness.get_by_label("     3").click();
+    harness.run();
+    assert_eq!(harness.state().record_cursor(tab), 2);
+
+    harness.key_press(egui::Key::ArrowDown);
+    harness.run();
+    assert_eq!(harness.state().record_cursor(tab), 3);
+
+    harness.key_press(egui::Key::ArrowUp);
+    harness.run();
+    assert_eq!(harness.state().record_cursor(tab), 2);
+
+    harness.key_press(egui::Key::Home);
+    harness.run();
+    assert_eq!(harness.state().record_cursor(tab), 0);
+
+    harness.key_press(egui::Key::End);
+    harness.run();
+    assert_eq!(harness.state().record_cursor(tab), 5);
+
+    // One row past the end clamps to the last record.
+    harness.key_press(egui::Key::ArrowDown);
+    harness.run();
+    assert_eq!(harness.state().record_cursor(tab), 5);
+}
+
+/// Hovering the grid also arms the navigation keys (step 40.1, item M38),
+/// and PageDown jumps by the viewport. No click happened before, so this
+/// pins the pointer gate.
+#[test]
+fn hovering_the_grid_arms_page_and_arrow_navigation() {
+    let (app, tab) = multi_row_table_app(30);
+    let mut harness = datasheet_harness(app);
+    harness.run();
+
+    let cell = harness.get_by_label("alpha4").rect();
+    harness.hover_at(cell.center());
+    harness.run();
+
+    harness.key_press(egui::Key::PageDown);
+    harness.run();
+    let after_page = harness.state().record_cursor(tab);
+    assert!(after_page > 4, "PageDown jumped forward, got {after_page}");
+
+    harness.key_press(egui::Key::ArrowUp);
+    harness.run();
+    assert_eq!(
+        harness.state().record_cursor(tab),
+        after_page - 1,
+        "ArrowUp walks back exactly one record"
+    );
 }
 
 #[test]
