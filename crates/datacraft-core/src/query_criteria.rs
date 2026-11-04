@@ -17,6 +17,10 @@ pub(crate) enum Predicate {
     LessEqual(FieldValue),
     Greater(FieldValue),
     GreaterEqual(FieldValue),
+    /// Access `Like` on a text column — matched through the expression
+    /// service's Access-wildcard matcher, case-insensitively (step 39.3,
+    /// item M37).
+    Like(String),
 }
 
 impl Predicate {
@@ -24,6 +28,23 @@ impl Predicate {
     /// use EXISTS semantics: the predicate holds when at least one
     /// sub-record's scalar satisfies it (step 16.1, M4).
     pub(crate) fn matches(&self, value: &FieldValue) -> bool {
+        if let FieldValue::Complex(records) = value {
+            return records
+                .iter()
+                .filter_map(|record| record.scalar())
+                .any(|scalar| self.matches_scalar(scalar));
+        }
+        self.matches_scalar(value)
+    }
+
+    /// Scalar evaluation shared by plain and complex cells.
+    fn matches_scalar(&self, value: &FieldValue) -> bool {
+        if matches!(value, FieldValue::Null | FieldValue::Guid(_)) {
+            return false;
+        }
+        if let Predicate::Like(pattern) = self {
+            return crate::expr::like::matches(&crate::present::display_value(value), pattern);
+        }
         let literal = match self {
             Predicate::Equal(v)
             | Predicate::NotEqual(v)
@@ -31,21 +52,8 @@ impl Predicate {
             | Predicate::LessEqual(v)
             | Predicate::Greater(v)
             | Predicate::GreaterEqual(v) => v,
+            Predicate::Like(_) => unreachable!("handled above"),
         };
-        if let FieldValue::Complex(records) = value {
-            return records
-                .iter()
-                .filter_map(|record| record.scalar())
-                .any(|scalar| self.matches_scalar(scalar, literal));
-        }
-        self.matches_scalar(value, literal)
-    }
-
-    /// Scalar comparison shared by plain and complex cells.
-    fn matches_scalar(&self, value: &FieldValue, literal: &FieldValue) -> bool {
-        if matches!(value, FieldValue::Null | FieldValue::Guid(_)) {
-            return false;
-        }
         let Some(ordering) = compare(value, literal) else {
             return false;
         };
@@ -56,6 +64,7 @@ impl Predicate {
             Predicate::LessEqual(_) => ordering != std::cmp::Ordering::Greater,
             Predicate::Greater(_) => ordering == std::cmp::Ordering::Greater,
             Predicate::GreaterEqual(_) => ordering != std::cmp::Ordering::Less,
+            Predicate::Like(_) => unreachable!("handled above"),
         }
     }
 }
@@ -76,13 +85,39 @@ pub(crate) fn compare(a: &FieldValue, b: &FieldValue) -> Option<std::cmp::Orderi
     }
 }
 
-/// literal per the column kind. A plain value means equality.
+/// literal per the column kind. A plain value means equality. The Access
+/// forms outside the typed subset are recognized and answered precisely —
+/// they never degrade to an equality fallback (step 39.3, item M37).
 pub(crate) fn parse_predicate(
     text: &str,
     field: &str,
     column: &FieldDef,
 ) -> Result<Predicate, EngineError> {
     let trimmed = text.trim();
+    let lowercase = trimmed.to_lowercase();
+    if let Some(pattern) = like_pattern(trimmed, &lowercase) {
+        return like_predicate(pattern, field, column);
+    }
+    const UNSUPPORTED_FORMS: [&str; 6] = [
+        "between ",
+        "in (",
+        "in(",
+        "is null",
+        "is not null",
+        "not like ",
+    ];
+    if UNSUPPORTED_FORMS
+        .iter()
+        .any(|form| lowercase.starts_with(form))
+    {
+        return Err(EngineError::BadLiteral {
+            field: field.to_owned(),
+            criteria: text.to_owned(),
+            detail: "this Access criteria form is recognized but outside the \
+                     supported subset (=, <>, <, <=, >, >=, Like)"
+                .to_owned(),
+        });
+    }
     let (operator, literal) = if let Some(rest) = trimmed.strip_prefix("<>") {
         ("<>", rest)
     } else if let Some(rest) = trimmed.strip_prefix("<=") {
@@ -111,6 +146,41 @@ pub(crate) fn parse_predicate(
         ">" => Predicate::Greater(value),
         _ => Predicate::GreaterEqual(value),
     })
+}
+
+/// `Like "pattern"` with a case-insensitive keyword — the pattern argument
+/// stays as written; `None` when the criteria is not a Like form.
+fn like_pattern<'a>(trimmed: &'a str, lowercase: &str) -> Option<&'a str> {
+    if !lowercase.starts_with("like ") {
+        return None;
+    }
+    let argument = trimmed[5..].trim();
+    let pattern = argument
+        .strip_prefix('"')
+        .and_then(|rest| rest.strip_suffix('"'))?;
+    Some(pattern)
+}
+
+/// Like is a text-column form; on text and text-element multi-value columns
+/// it matches through the expression service's Access-wildcard matcher
+/// (case-insensitive, `Option Compare Database` semantics).
+fn like_predicate(pattern: &str, field: &str, column: &FieldDef) -> Result<Predicate, EngineError> {
+    fn is_text(kind: &FieldKind) -> bool {
+        matches!(kind, FieldKind::Text { .. } | FieldKind::Memo)
+    }
+    let supported = is_text(&column.kind)
+        || matches!(&column.kind, FieldKind::MultiValue(multi) if is_text(&multi.element_kind()));
+    if !supported {
+        return Err(EngineError::BadLiteral {
+            field: field.to_owned(),
+            criteria: format!("Like \"{pattern}\""),
+            detail: format!(
+                "Like is only supported on text columns, not on {}",
+                crate::present::field_kind_display(&column.kind)
+            ),
+        });
+    }
+    Ok(Predicate::Like(pattern.to_owned()))
 }
 
 /// Coerces a literal to the column kind (Access-like wording accepted).
@@ -344,8 +414,7 @@ mod tests {
             "B* matches Berlin"
         );
         assert!(!predicate.matches(&FieldValue::Text("Hamburg".into())));
-        let predicate =
-            parse_predicate("like \"hamburg\"", "v", column).expect("like parses");
+        let predicate = parse_predicate("like \"hamburg\"", "v", column).expect("like parses");
         assert!(
             predicate.matches(&FieldValue::Text("Hamburg".into())),
             "the keyword and the pattern are case-insensitive"
@@ -363,7 +432,12 @@ mod tests {
         for criteria in ["Between 1 And 5", "In (1, 2)", "Is Null", "Not Like \"B*\""] {
             let error = parse_predicate(criteria, "v", column)
                 .expect_err("recognized Access forms never degrade to equality");
-            assert!(error.to_string().contains(criteria), "{criteria}: {error}");
+            let rendered = error.to_string();
+            assert!(
+                rendered.contains("outside the supported subset")
+                    && rendered.contains(&format!("{criteria:?}")),
+                "{criteria}: {rendered}"
+            );
         }
     }
 

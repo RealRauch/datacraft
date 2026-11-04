@@ -30,7 +30,7 @@ mod eval;
 mod format;
 mod funcs;
 mod lexer;
-mod like;
+pub(crate) mod like;
 mod parser;
 
 use crate::schema::FieldValue;

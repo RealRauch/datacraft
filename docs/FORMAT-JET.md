@@ -547,6 +547,14 @@ Verified against `fixtures/complexDataV2007.accdb` (jackcess V2007) and
   use **EXISTS semantics** — a row matches when at least one element
   satisfies the predicate (for `<>`: at least one element differs). Criteria
   on attachment/version-history columns stay a precise `Unsupported`.
+- **QBE criteria forms (2026-11-04, step 39.3, item M37):** the supported
+  subset is `= <> < <= > >=` plus `Like "pattern"` on text columns (Access
+  wildcards `* ? # […]`, matched case-insensitively through the expression
+  service's matcher, including text-element multi-value columns). `Between …
+  And`, `In (…)`, `Is [Not] Null` and `Not Like` are recognized and answer a
+  precise unsupported reason — they never degrade to an equality against the
+  literal criteria text. Text equality compares case-sensitively (byte
+  order), unlike Access's `Option Compare Database`.
 - **SQL shadow engine:** complex cells materialize as their display text
   (documented lossiness; the in-memory SQLite database has no complex type).
 - **Writes:** complex columns are read-only (a precise `Unsupported` on
