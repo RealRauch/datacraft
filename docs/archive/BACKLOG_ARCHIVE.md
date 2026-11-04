@@ -1243,3 +1243,12 @@
 - **Approach:** Resolve named pictures first (case-insensitive) for every value family, including DateTime; implement the Access `Long Date`/`Short Date`/`Medium Date`/`Long Time`/`Medium Time` pictures through the existing date formatting, and answer a precise runtime error for an unknown named picture instead of falling into the token heuristic.
 - **Acceptance:** `Format(#2024-01-15#, "General Date"|"Long Date"|"Short Date")` renders real date text; token pictures keep their current output; an unknown named picture errors precisely; tests pin both families.
 - **Done:** done in `d682223` (RED `717eceb`) — named pictures resolve for every family, deterministic English date/time shapes, precise unsupported-picture errors
+
+---
+
+### [x] M36 — SQL window dialect divergences are silent (currency scale, date literals, wildcards, overflow) — 🟡
+- **Location:** `crates/datacraft-core/src/sql_engine.rs` (`affinity`, `sql_value`, `to_field_value`), the SQL window (`crates/datacraft-ui/src/sql_window.rs`) and the shadow materialization.
+- **Problem:** The SQL window speaks SQLite, not Access SQL, and four divergences are silent (verified in the T6 spot checks): Currency is materialized as its scaled INTEGER and displayed raw (`SUM(amount)` → `7230000`, not `723.00`); comparing a DateTime column with a text literal (`stamp >= '2024-01-01'`) returns 0 rows because SQLite orders REAL before TEXT; `LIKE 'B*'` returns 0 rows (Access wildcards vs `%`); `9223372036854775807 + 1` promotes to REAL (`9223372036854776000`) without warning.
+- **Approach:** Decide the fence explicitly: document the SQL window as SQLite semantics (README + window hint) with a currency display rule (scale division) and an overflow guard, or add a thin translation layer for `#date#` literals and Access wildcards. Whichever way, the four cases become tests so the behavior cannot drift.
+- **Acceptance:** The README/window states the SQL dialect fence; Currency columns display scaled values (or the raw scale is called out in the UI); the date-literal, wildcard and overflow cases are pinned by tests; no silent empty/overflow result remains undocumented.
+- **Done:** done in `c6ae98b` (RED `1131819`) — SQLite-semantics fence documented (module/README/window hint), Currency unscaled, the four divergences test-pinned

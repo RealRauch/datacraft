@@ -36,12 +36,6 @@
 - **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
 - **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
 
-### [ ] M36 — SQL window dialect divergences are silent (currency scale, date literals, wildcards, overflow) — 🟡
-- **Location:** `crates/datacraft-core/src/sql_engine.rs` (`affinity`, `sql_value`, `to_field_value`), the SQL window (`crates/datacraft-ui/src/sql_window.rs`) and the shadow materialization.
-- **Problem:** The SQL window speaks SQLite, not Access SQL, and four divergences are silent (verified in the T6 spot checks): Currency is materialized as its scaled INTEGER and displayed raw (`SUM(amount)` → `7230000`, not `723.00`); comparing a DateTime column with a text literal (`stamp >= '2024-01-01'`) returns 0 rows because SQLite orders REAL before TEXT; `LIKE 'B*'` returns 0 rows (Access wildcards vs `%`); `9223372036854775807 + 1` promotes to REAL (`9223372036854776000`) without warning.
-- **Approach:** Decide the fence explicitly: document the SQL window as SQLite semantics (README + window hint) with a currency display rule (scale division) and an overflow guard, or add a thin translation layer for `#date#` literals and Access wildcards. Whichever way, the four cases become tests so the behavior cannot drift.
-- **Acceptance:** The README/window states the SQL dialect fence; Currency columns display scaled values (or the raw scale is called out in the UI); the date-literal, wildcard and overflow cases are pinned by tests; no silent empty/overflow result remains undocumented.
-
 ### [ ] M37 — QBE criteria silently misread unsupported Access forms — 🟡
 - **Location:** `crates/datacraft-core/src/query_criteria.rs` (`parse_predicate` only understands `= <> < <= > >=` and falls back to equality), `query_engine.rs` (comparison by `FieldValue` order).
 - **Problem:** The QBE criteria grammar is a documented subset but silently misreads Access syntax outside it: `Like "B*"` becomes an equality against the literal text `Like "B*"` (0 rows, no error) instead of matching or rejecting; text comparison is case-sensitive (Access `Option Compare Database` is not); a MultiValue column is compared against its joined display text (`tags = "red"` works only for single-value cells). Users get plausible-but-wrong empty/partial result sets.
@@ -269,3 +263,4 @@
 - M43 — Native file and message dialogs where sensible (rfd behind a UI seam) — done (done in `6a7c97e` (RED `6c1f26d`) — rfd 0.17 behind the DialogHost seam; browse pickers on Open/New/Save, native confirmations gate delete and Save-Copy overwrite)
 - M42 — Window chrome polish pass: ribbon hierarchy, spacing rhythm, surface consistency — done (closed 2026-11-04 (step 38.4) — the audit found the chrome token-clean (no drift to fix, no before/after changes); the subjective polish pass is deferred until the human reviews the restyled build)
 - M35 — Format named date pictures render corrupted text — done (done in `d682223` (RED `717eceb`) — named pictures resolve for every family, deterministic English date/time shapes, precise unsupported-picture errors)
+- M36 — SQL window dialect divergences are silent (currency scale, date literals, wildcards, overflow) — done (done in `c6ae98b` (RED `1131819`) — SQLite-semantics fence documented (module/README/window hint), Currency unscaled, the four divergences test-pinned)
