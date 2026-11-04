@@ -207,11 +207,96 @@ fn quote_ident(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schema::{FieldDef, TableDef};
 
     #[test]
     fn quoting_escapes_embedded_double_quotes() {
         assert_eq!(quote_ident("plain"), "\"plain\"");
         assert_eq!(quote_ident("we\"ird"), "\"we\"\"ird\"");
+    }
+
+    /// Step 39.2 (item M36): the dialect fixture — a Currency column, a
+    /// DateTime column and a text column.
+    fn source() -> Source {
+        let definition = TableDef::new(
+            "Orders",
+            vec![
+                FieldDef::new("amount", FieldKind::Currency),
+                FieldDef::new("stamp", FieldKind::DateTime),
+                FieldDef::new("city", FieldKind::Text { max_len: 50 }),
+            ],
+        );
+        let rows = vec![
+            vec![
+                FieldValue::Currency(7_230_000),
+                FieldValue::DateTime(45_292.0),
+                FieldValue::Text("Berlin".to_owned()),
+            ],
+            vec![
+                FieldValue::Currency(1_000_000),
+                FieldValue::DateTime(45_662.0),
+                FieldValue::Text("Hamburg".to_owned()),
+            ],
+        ];
+        (definition, rows)
+    }
+
+    fn one_value(sql: &str) -> FieldValue {
+        let result = run_sql(sql, &[source()]).expect("the statement runs");
+        assert_eq!(result.rows.len(), 1, "{sql}");
+        result.rows[0][0].clone()
+    }
+
+    /// Step 39.2 (item M36): Currency materializes unscaled — the scaled
+    /// INTEGER storage leaked into every aggregate (`SUM(amount)` showed
+    /// 8230000 instead of 823.0).
+    #[test]
+    fn currency_materializes_unscaled() {
+        assert_eq!(one_value("SELECT SUM(amount) FROM Orders"), FieldValue::Float(723.0));
+        assert_eq!(one_value("SELECT amount FROM Orders"), FieldValue::Float(723.0));
+    }
+
+    /// Step 39.2 (item M36): the SQLite ordering fence is pinned — a text
+    /// literal never matches the numeric DateTime column (REAL sorts before
+    /// TEXT), numeric literals do.
+    #[test]
+    fn text_literals_compare_as_text_per_sqlite_ordering() {
+        assert_eq!(
+            one_value("SELECT COUNT(*) FROM Orders WHERE stamp >= '2024-01-01'"),
+            FieldValue::Integer(0),
+            "text vs REAL is the documented SQLite fence, not silent Access luck"
+        );
+        assert_eq!(
+            one_value("SELECT COUNT(*) FROM Orders WHERE stamp >= 45292"),
+            FieldValue::Integer(2),
+            "numeric comparisons work"
+        );
+    }
+
+    /// Step 39.2 (item M36): LIKE speaks SQLite wildcards — `%` matches,
+    /// the Access `*` does not (documented fence, never silent Access luck).
+    #[test]
+    fn like_uses_sqlite_wildcards() {
+        assert_eq!(
+            one_value("SELECT COUNT(*) FROM Orders WHERE city LIKE 'B*'"),
+            FieldValue::Integer(0),
+            "Access star is a literal under SQLite semantics"
+        );
+        assert_eq!(
+            one_value("SELECT COUNT(*) FROM Orders WHERE city LIKE 'B%'"),
+            FieldValue::Integer(1)
+        );
+    }
+
+    /// Step 39.2 (item M36): integer overflow promotes to REAL exactly like
+    /// SQLite — pinned so the promotion stays documented behavior.
+    #[test]
+    fn integer_overflow_promotes_to_real() {
+        assert_eq!(
+            one_value("SELECT 9223372036854775807 + 1"),
+            FieldValue::Float(9.223_372_036_854_776e18),
+            "SQLite promotes the overflowing sum to REAL"
+        );
     }
 
     #[test]
