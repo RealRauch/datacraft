@@ -1288,3 +1288,12 @@
 - **Approach:** Two stages: (1) horizontal body scrolling — widths are already per-tab session state shared by header, body and new-record row; (2) a frozen-column count per tab plus pure frozen-pane placement math in core `grid.rs` (own implementation of the quadrant idea GridCraft uses; no code or dependency from it), surfaced through header freeze/unfreeze context-menu actions.
 - **Acceptance:** Frozen columns stay pinned during horizontal scrolling in header and body; all placement math is pure core functions, unit-tested; a kittest snapshot pins the frozen/visible split; no per-frame allocations on the hot path.
 - **Done:** 8f3d433
+
+---
+
+### [x] M44 — Datasheet row deletion: no GUI path for DeleteRow — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (body rows are painted hover-only; no context menu, no Del key), `crates/datacraft-core/src/command.rs` (`DeleteRow` — dispatched by CLI/MCP only)
+- **Problem:** A GUI user cannot delete an existing row anywhere: the datasheet offers no row context menu or delete key, and no other view dispatches `DeleteRow`. Access datasheets delete via Del key / row context menu. The write path itself is already landed (Jet4/SQLite row delete), so this is a presentation-layer gap — the companion to L23, which covers in-place editing only (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** Row context menu (or Del key on the selected record) dispatching exactly one `DeleteRow` with the current record-cursor index, destructive-action confirmation through the native confirm dialog (M43 pattern), precise failure in the status bar; the affordance is capability-gated like the new-record row.
+- **Acceptance:** Deleting a row from the GUI is exactly one `DeleteRow` dispatch over the real write path; confirmation and capability-disabled states pinned by a kittest; canonical verification set green.
+- **Done:** 88df660

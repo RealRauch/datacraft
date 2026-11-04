@@ -30,12 +30,6 @@
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
 
-### [ ] M44 — Datasheet row deletion: no GUI path for DeleteRow — 🟡
-- **Location:** `crates/datacraft-ui/src/datasheet.rs` (body rows are painted hover-only; no context menu, no Del key), `crates/datacraft-core/src/command.rs` (`DeleteRow` — dispatched by CLI/MCP only)
-- **Problem:** A GUI user cannot delete an existing row anywhere: the datasheet offers no row context menu or delete key, and no other view dispatches `DeleteRow`. Access datasheets delete via Del key / row context menu. The write path itself is already landed (Jet4/SQLite row delete), so this is a presentation-layer gap — the companion to L23, which covers in-place editing only (found in the command/GUI parity audit 2026-11-04).
-- **Approach:** Row context menu (or Del key on the selected record) dispatching exactly one `DeleteRow` with the current record-cursor index, destructive-action confirmation through the native confirm dialog (M43 pattern), precise failure in the status bar; the affordance is capability-gated like the new-record row.
-- **Acceptance:** Deleting a row from the GUI is exactly one `DeleteRow` dispatch over the real write path; confirmation and capability-disabled states pinned by a kittest; canonical verification set green.
-
 ### [ ] M45 — Relationship mapper: create/delete relationships are headless-only — 🟡
 - **Location:** `crates/datacraft-ui/src/relationships.rs` (read-only listing pane), `crates/datacraft-core/src/command.rs` (`CreateRelationship`/`DeleteRelationship` — M16 done, Jet/SQLite report `relationships: Yes`)
 - **Problem:** The mapper pane lists relationships but offers no way to create or delete one; the commands and capabilities exist since M16, so a GUI user of a fully capable driver is locked out of a shipped feature — it is reachable headless only (found in the command/GUI parity audit 2026-11-04).
@@ -292,3 +286,4 @@
 - M31 — Presentation cache loads swallow read errors — done (done in `a4b3fc9` (RED `ac929e7`) — per-tab localized load failures surface in the datasheet and query views and retry on the next pass)
 - M38 — Datasheet keyboard navigation (record cursor via arrow keys, Home/End, PgUp/PgDn) — done (46369e8)
 - M39 — Datasheet freeze columns (horizontal body scrolling as prerequisite) — done (8f3d433)
+- M44 — Datasheet row deletion: no GUI path for DeleteRow — done (88df660)
