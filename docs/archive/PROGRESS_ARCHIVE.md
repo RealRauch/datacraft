@@ -534,3 +534,14 @@ before the tag.
 - **40.4 Datasheet in-place cell editing of existing rows (L23)**
 - **40.5 Phase 40 Quality Gate Review**
 **Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 148 workspace test suites, file-size gate, no hygiene markers. Local Windows llvm-cov is 94.88% (informational only; CI ubuntu-latest is the binding gate per AGENTS §4) — the sole uncovered core line is the pre-existing column_span_x out-of-range fallback (grid.rs:113), all step 40.1-40.4 code is fully covered. Phase deliverables: M38 keyboard record navigation with scroll-follow core math (46369e8), M39 freeze columns + horizontal body scrolling (8f3d433), M44 confirmed DeleteRow via context menu and Del key (88df660), L23 in-place cell editor committing exactly one UpdateRow (8e28ef9).
+
+---
+
+### Phase 43 — Coverage Parity
+
+**Scope (Steps):**
+
+- **43.1 Coverage gap audit: contract tests for locally uncovered edge paths (T9)**
+- **43.2 Pin cargo-llvm-cov@0.9.1 in the CI coverage job (M51, High gate: released)**
+- **43.3 Phase 43 Quality Gate Review**
+**Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 148 workspace test suites, file-size gate, hygiene clean, and the local Windows coverage gate (95.0032%, MSVC attribution) now passes with --fail-under-lines 95. Deliverables: T9 edge-path pins across expr/undo/port/qbe/present/nav/schema/alter/csv with TESTING.md exception #4 documenting the defensive/unreachable arms and the MSVC-vs-linux attribution residue (b83ffe1); M51 pinned cargo-llvm-cov@0.9.1 in the CI coverage job with the deliberate-bump policy (1a769e2, High gate released in-session).
