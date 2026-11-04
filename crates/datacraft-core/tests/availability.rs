@@ -98,6 +98,48 @@ fn full_capabilities_leave_the_availability_map_empty() {
     assert!(db.availability.is_empty());
 }
 
+/// The relationship *write* affordances gate on `Support::Yes` — the
+/// dispatch gate refuses anything less, so a read-only surface must not
+/// advertise creatable relationships while the viewer affordance (the
+/// `relationships` id) stays enabled for it.
+#[test]
+fn relationship_write_affordances_gate_on_support_yes() {
+    let mut caps = DriverCapabilities::full();
+    caps.relationships = Support::ReadOnly;
+    let db = core_with(caps).inspect().database.expect("database open");
+    for id in ["relationships.create", "relationships.delete"] {
+        assert_eq!(
+            db.availability.get(id),
+            Some(&datacraft_core::availability::DisabledReason::NoRelationships),
+            "affordance {id:?} must be disabled for a read-only surface"
+        );
+    }
+    assert!(
+        !db.availability.contains_key("relationships"),
+        "the viewer affordance stays enabled for a read-only surface"
+    );
+
+    let mut caps = DriverCapabilities::full();
+    caps.relationships = Support::No;
+    let db = core_with(caps).inspect().database.expect("database open");
+    for id in [
+        "relationships",
+        "relationships.create",
+        "relationships.delete",
+    ] {
+        assert_eq!(
+            db.availability.get(id),
+            Some(&datacraft_core::availability::DisabledReason::NoRelationships),
+            "affordance {id:?} must be disabled for a No surface"
+        );
+    }
+
+    let mut caps = DriverCapabilities::full();
+    caps.relationships = Support::Yes;
+    let db = core_with(caps).inspect().database.expect("database open");
+    assert!(db.availability.is_empty(), "{:?}", db.availability);
+}
+
 /// The reasons spell deterministically on the wire so agents key on
 /// stable JSON, not prose.
 #[test]
