@@ -1261,3 +1261,12 @@
 - **Approach:** Make the parser recognize the unsupported Access forms (`Like`, `Between … And`, `In (…)`, `Is Null`) and answer a precise `BadLiteral`/unsupported reason, implement `Like` via the expression service's matcher where the column is text, and document the case/multivalue fence (or route multivalue criteria through a membership predicate).
 - **Acceptance:** `Like "B*"` matches (or is rejected precisely — no silent 0 rows); unsupported forms never degrade to equality; the case-sensitivity and multivalue rules are stated in FORMAT-JET/README and pinned by tests.
 - **Done:** done in `53d6e07` (RED `a394792`) — Like via the Access-wildcard matcher, precise unsupported reasons for the other forms, case fence documented
+
+---
+
+### [x] M31 — Presentation cache loads swallow read errors — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs:462-470` (`if let Ok(rows) = self.core.read_rows(…)`) and `:489-495` (`if let Ok(result) = self.core.run_query(…)`), rendered by `crates/datacraft-ui/src/datasheet.rs:59-61` ("Loading rows…").
+- **Problem:** A failing row read or query run is discarded: the cache stays empty and the datasheet displays "Loading rows…" forever, with no reason anywhere. LESSONS #4 forbids silent swallowing — the other command paths surface failures in the status bar, this one does not.
+- **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
+- **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
+- **Done:** done in `a4b3fc9` (RED `ac929e7`) — per-tab localized load failures surface in the datasheet and query views and retry on the next pass

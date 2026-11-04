@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-03T23:04
+# BACKLOG.md — Open items (As of: 2026-11-04T01:31
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -30,12 +30,6 @@
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
 
-### [ ] M31 — Presentation cache loads swallow read errors — 🟡
-- **Location:** `crates/datacraft-ui/src/app.rs:462-470` (`if let Ok(rows) = self.core.read_rows(…)`) and `:489-495` (`if let Ok(result) = self.core.run_query(…)`), rendered by `crates/datacraft-ui/src/datasheet.rs:59-61` ("Loading rows…").
-- **Problem:** A failing row read or query run is discarded: the cache stays empty and the datasheet displays "Loading rows…" forever, with no reason anywhere. LESSONS #4 forbids silent swallowing — the other command paths surface failures in the status bar, this one does not.
-- **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
-- **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
-
 ### [ ] M38 — Datasheet keyboard navigation (record cursor via arrow keys, Home/End, PgUp/PgDn) — 🟡
 - **Location:** `crates/datacraft-ui/src/datasheet.rs` (body cells are painted hover-only, accessibility via `ui.interact` + `WidgetInfo` around lines 341-349), the UI-side record cursor `crates/datacraft-ui/src/app.rs:60` (`record_cursor: HashMap<TabId, usize>` — deliberately no core command), scroll/hit-test math in `crates/datacraft-core/src/grid.rs` (`clamp_scroll`, `visible_row_range`).
 - **Problem:** The datasheet is pointer-only: painted body cells respond to hover and click, but no keyboard interaction moves the record cursor. Access datasheets are keyboard-first (arrow keys, Home/End, PgUp/PgDn). The headless egui_kittest suite cannot exercise record navigation without synthesizing clicks.
@@ -47,6 +41,42 @@
 - **Problem:** Access datasheets can freeze leading columns so they stay visible during horizontal scrolling; the DataCraft grid has neither freeze nor horizontal body scrolling (only the new-record row scrolls horizontally today).
 - **Approach:** Two stages: (1) horizontal body scrolling — widths are already per-tab session state shared by header, body and new-record row; (2) a frozen-column count per tab plus pure frozen-pane placement math in core `grid.rs` (own implementation of the quadrant idea GridCraft uses; no code or dependency from it), surfaced through header freeze/unfreeze context-menu actions.
 - **Acceptance:** Frozen columns stay pinned during horizontal scrolling in header and body; all placement math is pure core functions, unit-tested; a kittest snapshot pins the frozen/visible split; no per-frame allocations on the hot path.
+
+### [ ] M44 — Datasheet row deletion: no GUI path for DeleteRow — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (body rows are painted hover-only; no context menu, no Del key), `crates/datacraft-core/src/command.rs` (`DeleteRow` — dispatched by CLI/MCP only)
+- **Problem:** A GUI user cannot delete an existing row anywhere: the datasheet offers no row context menu or delete key, and no other view dispatches `DeleteRow`. Access datasheets delete via Del key / row context menu. The write path itself is already landed (Jet4/SQLite row delete), so this is a presentation-layer gap — the companion to L23, which covers in-place editing only (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** Row context menu (or Del key on the selected record) dispatching exactly one `DeleteRow` with the current record-cursor index, destructive-action confirmation through the native confirm dialog (M43 pattern), precise failure in the status bar; the affordance is capability-gated like the new-record row.
+- **Acceptance:** Deleting a row from the GUI is exactly one `DeleteRow` dispatch over the real write path; confirmation and capability-disabled states pinned by a kittest; canonical verification set green.
+
+### [ ] M45 — Relationship mapper: create/delete relationships are headless-only — 🟡
+- **Location:** `crates/datacraft-ui/src/relationships.rs` (read-only listing pane), `crates/datacraft-core/src/command.rs` (`CreateRelationship`/`DeleteRelationship` — M16 done, Jet/SQLite report `relationships: Yes`)
+- **Problem:** The mapper pane lists relationships but offers no way to create or delete one; the commands and capabilities exist since M16, so a GUI user of a fully capable driver is locked out of a shipped feature — it is reachable headless only (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** Add create/delete affordances to the mapper pane — table/column pickers from the snapshot for creation, a delete action per listed relationship — dispatching the existing commands; respect the `relationships` capability affordance id (already in `availability.rs`) with localized disabled reasons.
+- **Acceptance:** Create and delete flows dispatch exactly one command each over the real write path; capability-disabled rendering on CSV is pinned by a kittest; canonical verification set green.
+
+### [ ] M46 — Expression service has no GUI surface (RunExpression) — 🟡
+- **Location:** `crates/datacraft-core/src/command.rs` (`RunExpression` — H41, dispatched by CLI/MCP only), UI has no evaluator view (grep audit 2026-11-04)
+- **Problem:** The expression service is a shipped feature (evaluator suite, defaults/rules wiring, report bands), but the GUI cannot evaluate an expression: agents get it over the bus, humans have no window anywhere.
+- **Approach:** An Access-like expression window (document tab or pane) with one text field dispatching `RunExpression` without row context (row context can follow later), rendering the result value or the precise failure in the status bar; entry point on the Database Tools ribbon group next to SQL.
+- **Acceptance:** Results and failures from the GUI arrive over the bus (`RunExpression` → result/error rendering); a kittest pins both renderings; canonical verification set green.
+
+### [ ] M47 — VBA static analysis has no viewer (AnalyzeVba) — 🟡
+- **Location:** `crates/datacraft-core/src/vba_analysis.rs` + `Event::VbaAnalyzed` (`event.rs:325`), `crates/datacraft-ui/src/vba_viewer.rs` (source viewer only — no frontend dispatches `AnalyzeVba`, the event is ignored)
+- **Problem:** Step 17.3 shipped the static analysis (call graph, embedded SQL, table/query references, unused modules), but `AnalyzeVba` is dispatched by no client except CLI/MCP and the UI never shows the results; the feature is invisible to GUI users (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** An analysis view in or next to the VBA viewer that dispatches `AnalyzeVba` once on demand and renders the returned `VbaAnalysis` sections (per-module call graph, SQL statements, references, unused modules) as read-only lists; keep ADR-2 (static analysis only, no execution).
+- **Acceptance:** The GUI shows all analysis sections for an open VBA project; a kittest on the programmability fixture pins the rendering; canonical verification set green.
+
+### [ ] M48 — Report designer cannot set grouping (SetReportGrouping) — 🟡
+- **Location:** `crates/datacraft-ui/src/report_design.rs` (dispatches only `SetReportControlRect`/`DeleteReportControl`), `crates/datacraft-core/src/reports.rs:241` (`set_report_grouping`), `command.rs` (`SetReportGrouping` — headless only)
+- **Problem:** The report preview renders group header/footer bands, but the designer offers no control to set or clear a report's grouping field, so GUI users cannot produce grouped reports; only CLI/MCP can (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** A grouping picker in the report designer listing the record source's fields plus a "no grouping" entry, dispatching one `SetReportGrouping` per change; the preview re-renders the bands from the refreshed snapshot.
+- **Acceptance:** Setting and clearing the grouping from the designer updates the preview bands over the bus; a kittest pins both directions; canonical verification set green.
+
+### [ ] M49 — Ribbon placeholders "Table Design"/"Import File" contradict reality — 🟡
+- **Location:** `crates/datacraft-core/src/ribbon.rs` (`table_design` → `DisabledIn { phase: "Phase 6" }`, `import_file` → `DisabledIn { phase: "Phase 9" }`), rendering in `crates/datacraft-ui/src/ribbon.rs:141-143` ("arrives in {phase}")
+- **Problem:** Both buttons render as placeholders for phases that are long past (the project stands at phase 39): the table design view exists (nav pane → Design → `OpenObjectInMode`), and "Import File" (import into the open database) does not exist at all — CSV directories open through the backstage folder dialog instead. The ribbon claims a future for one shipped feature and one unplanned one (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** Decide per button: (1) `table_design` either activates the design flow for a selected/created table or is removed from the Create tab; (2) `import_file` either becomes a real import feature (needs its own decision item) or is removed in favour of the backstage CSV open path. Update the core ribbon model and the seam test accordingly; no stale phase labels remain anywhere.
+- **Acceptance:** No ribbon action claims a phase that has passed; every Create/External Data button either dispatches a command through `command_for` or is gone; kittest/snapshot pins updated; canonical verification set green.
 
 ---
 
@@ -90,17 +120,23 @@
 - **Approach:** Swap the painted cell for a real widget on the active cell (the in-cell editor idea GridCraft implements in its `editor.rs`; own implementation, no borrowed code), commit through exactly one `UpdateRow` dispatch, surface failures precisely (M31 pattern — never swallow), Enter/Escape semantics building on the keyboard-navigation item M38.
 - **Acceptance:** Editing an existing cell dispatches exactly one `UpdateRow`, updates the presentation cache, shows a precise error on failure; a kittest drives an edit end-to-end; canonical verification set green.
 
-### [ ] L24 — Publish metadata: description/repository/homepage for the published crates — 🟢
-- **Location:** `crates/*/Cargo.toml` (`[package]` metadata), `docs/PUBLISHING.md` release checklist step 4
-- **Problem:** `cargo package --list` warns "manifest has no documentation, homepage or repository" for the published crates (found in step 37.4 while verifying the packaged license files). crates.io shows empty repository/docs links for such packages; the release checklist's dry-run step would surface it too late.
-- **Approach:** Set `description`, `repository` and `homepage` (workspace inheritance or per crate) on the six published crates; `documentation` follows the docs.rs default unless a distinct target is wanted. Cargo.toml changes are Medium-class - one per-occurrence release when picked up, ideally before the first public tag (fits the 37.6 release checklist step).
-- **Acceptance:** `cargo package --list` reports no metadata warnings for the published crates; crates.io preview (dry-run) carries description/repository links.
+### [ ] L24 — Publish metadata: repository and readme for the published crates — 🟢
+- **Location:** `Cargo.toml` (`[workspace.package]`), `crates/*/Cargo.toml` (`[package]` metadata), `docs/PUBLISHING.md` release checklist step 4
+- **Problem:** `cargo package --list` warns "manifest has no documentation, homepage or repository" for the published crates (found in step 37.4 while verifying the packaged license files). crates.io shows empty repository/docs links for such packages; the release checklist's dry-run step would surface it too late. The per-crate `description` fields have landed since (the family stands unpublished at `0.1.0`); `repository` and the `readme` field are still missing everywhere — without `readme`, the crates.io pages render no README at all.
+- **Approach:** Set `repository = "https://github.com/RealRauch/datacraft"` and wire `readme` to the root `README.md` in `[workspace.package]` (inherited per crate, or a per-crate relative path if cargo's readme-path inheritance rules require it) on the six published crates. **No `homepage` — decided 2026-11-04:** the warning accepts any one of documentation/homepage/repository, `repository` alone silences it, docs.rs auto-fills `documentation`, and without a real project site a homepage would only duplicate the repo URL; revisit if a project site ever exists. Cargo.toml changes are Medium-class - one per-occurrence release when picked up, ideally before the first public tag.
+- **Acceptance:** `cargo package --list` reports no metadata warnings for the published crates; crates.io preview (dry-run) carries description/repository links and renders the README.
 
 ### [ ] L25 — Re-admit macOS to the CI matrices when runner capacity recovers — 🟢
 - **Location:** `.github/workflows/ci.yml` (test + oracle matrices, macos-latest removed 2026-11-03 per L10)
 - **Problem:** macOS runners infra-cancelled every job after ~15m (L10). The temporary narrowing removed macOS from CI; the release.yml build matrix still covers macOS artifacts with the packaged smoke, but macOS unit tests and the mdbtools oracle cross-check are no longer exercised per push.
 - **Approach:** When GitHub macOS runner capacity/billing recovers (check Settings → Billing → Actions minutes; the macOS 10x multiplier is the prime suspect), re-add `macos-latest` to both matrices, drop the L10 comments, and confirm one fully green run. High-class CI change: one per-occurrence release.
 - **Acceptance:** `macos-latest` back in both matrices; a CI run on `main` completes with the macOS jobs green (not cancelled); the in-file L10 comments removed.
+
+### [ ] L26 — Document the journal batch commands as headless-only — 🟢
+- **Location:** `crates/datacraft-core/src/command.rs` (`PreviewWrite`/`ApplyWrite`/`RollbackWrite`/`DiscardWrite` doc comments), `docs/ARCHITECTURE.md` (command-vocabulary section)
+- **Problem:** The journaled batch-write commands have no GUI path, while the GUI writes immediately through the row commands with Undo/Redo (separate history in `undo.rs`, item U14 — not the journal tokens). That split is intentional — Access-like immediate datasheet writes for humans, preview/apply batches for agents — but nothing records it, so the next GUI-parity audit flags it again (found in the command/GUI parity audit 2026-11-04; decision made in the same session).
+- **Approach:** One docs-only pass: state in the four command doc comments and the ARCHITECTURE command vocabulary that the batch is the headless affordance and the GUI's equivalence is Insert/Update/Delete + Undo/Redo. No behavior change, no new command.
+- **Acceptance:** The four command doc comments and the ARCHITECTURE section state the headless-only role of the batch flow; docs-only change; canonical verification set green.
 
 ---
 
@@ -259,3 +295,4 @@
 - M35 — Format named date pictures render corrupted text — done (done in `d682223` (RED `717eceb`) — named pictures resolve for every family, deterministic English date/time shapes, precise unsupported-picture errors)
 - M36 — SQL window dialect divergences are silent (currency scale, date literals, wildcards, overflow) — done (done in `c6ae98b` (RED `1131819`) — SQLite-semantics fence documented (module/README/window hint), Currency unscaled, the four divergences test-pinned)
 - M37 — QBE criteria silently misread unsupported Access forms — done (done in `53d6e07` (RED `a394792`) — Like via the Access-wildcard matcher, precise unsupported reasons for the other forms, case fence documented)
+- M31 — Presentation cache loads swallow read errors — done (done in `a4b3fc9` (RED `ac929e7`) — per-tab localized load failures surface in the datasheet and query views and retry on the next pass)
