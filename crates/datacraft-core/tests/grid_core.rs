@@ -5,11 +5,82 @@
 //! identically in both views. No window needed to test any of this.
 
 use datacraft_core::grid::{
-    DEFAULT_COLUMN_WIDTH, GridMetrics, MIN_COLUMN_WIDTH, clamp_scroll, column_at_x, column_span_x,
-    effective_widths, ensure_row_visible, page_rows, resize_column, resize_handle_at,
-    visible_row_range,
+    DEFAULT_COLUMN_WIDTH, GridMetrics, MIN_COLUMN_WIDTH, clamp_scroll, clamp_scroll_x,
+    column_at_x, column_span_x, effective_frozen, effective_widths, ensure_row_visible,
+    frozen_column_x, frozen_width, page_rows, resize_column, resize_handle_at,
+    scrolled_column_x, visible_row_range, visible_scrolled_range,
 };
 use proptest::prelude::*;
+
+fn four_columns() -> Vec<f32> {
+    vec![140.0, 140.0, 140.0, 140.0]
+}
+
+#[test]
+fn frozen_width_sums_the_leading_columns() {
+    let widths = four_columns();
+    assert_eq!(frozen_width(&widths, 0), 0.0);
+    assert_eq!(frozen_width(&widths, 1), 140.0);
+    assert_eq!(frozen_width(&widths, 2), 280.0);
+    assert_eq!(frozen_width(&widths, 9), 560.0, "past the end pins all");
+    assert_eq!(frozen_width(&[], 3), 0.0);
+}
+
+#[test]
+fn frozen_columns_stay_pinned_at_the_pane_origin() {
+    let widths = four_columns();
+    // A frozen column's x rides WITH the scroll compensation: it renders
+    // at the same viewport position whatever the scroll offset is.
+    assert_eq!(frozen_column_x(0, &widths, 60.0), 60.0);
+    assert_eq!(frozen_column_x(0, &widths, 208.0), 208.0);
+    assert_eq!(frozen_column_x(1, &widths, 60.0), 200.0);
+}
+
+#[test]
+fn scrolled_columns_shift_against_the_scroll() {
+    let widths = four_columns();
+    // x relative to the scrolled pane's origin (behind the frozen span):
+    // unscrolled the first scrolled column sits at 0.
+    assert_eq!(scrolled_column_x(1, &widths, 1, 0.0), 0.0);
+    // Scrolling right by 60 px pushes it 60 px out of the pane.
+    assert_eq!(scrolled_column_x(1, &widths, 1, 60.0), -60.0);
+    assert_eq!(scrolled_column_x(3, &widths, 1, 60.0), 220.0);
+    assert_eq!(scrolled_column_x(3, &widths, 2, 0.0), 140.0);
+}
+
+#[test]
+fn horizontal_scroll_clamps_to_the_content() {
+    assert_eq!(clamp_scroll_x(-50.0, 560.0, 400.0), 0.0);
+    assert_eq!(clamp_scroll_x(300.0, 560.0, 400.0), 160.0);
+    // Content narrower than the viewport never scrolls.
+    assert_eq!(clamp_scroll_x(100.0, 300.0, 400.0), 0.0);
+    let once = clamp_scroll_x(300.0, 560.0, 400.0);
+    assert_eq!(clamp_scroll_x(once, 560.0, 400.0), once);
+}
+
+#[test]
+fn visible_scrolled_window_covers_the_viewport() {
+    let widths = four_columns();
+    // Window [0, 400) behind a frozen column sees columns 1..3 (the third
+    // one partially at its right edge).
+    assert_eq!(visible_scrolled_range(0.0, 400.0, &widths, 1), 1..4);
+    // Window [60, 460) still starts at column 1 and includes column 3.
+    assert_eq!(visible_scrolled_range(60.0, 400.0, &widths, 1), 1..4);
+    // Scrolled to 300 px only the last column remains.
+    assert_eq!(visible_scrolled_range(300.0, 400.0, &widths, 1), 3..4);
+    // Nothing frozen -> the full width is the scrolled pane.
+    assert_eq!(visible_scrolled_range(0.0, 400.0, &widths, 0), 0..3);
+    assert_eq!(visible_scrolled_range(0.0, 400.0, &[], 0), 0..0);
+}
+
+#[test]
+fn effective_frozen_never_freezes_every_column() {
+    assert_eq!(effective_frozen(0, 4), 0);
+    assert_eq!(effective_frozen(2, 4), 2);
+    assert_eq!(effective_frozen(4, 4), 3, "one column stays scrollable");
+    assert_eq!(effective_frozen(9, 1), 0);
+    assert_eq!(effective_frozen(3, 0), 0);
+}
 
 #[test]
 fn scroll_follow_keeps_a_visible_row_in_place() {
@@ -37,7 +108,10 @@ fn scroll_follow_moves_down_for_rows_below_the_window() {
 fn scroll_follow_clamps_at_both_scroll_ends() {
     let metrics = GridMetrics::default();
     // End key on the last row pins the window to the content end.
-    assert_eq!(ensure_row_visible(0.0, 400.0, 999, 1_000, &metrics), 21_600.0);
+    assert_eq!(
+        ensure_row_visible(0.0, 400.0, 999, 1_000, &metrics),
+        21_600.0
+    );
     // Home key on the first row can never go negative.
     assert_eq!(ensure_row_visible(500.0, 400.0, 0, 1_000, &metrics), 0.0);
     // Clamped again on a second pass: follow is a fixpoint.
