@@ -1,14 +1,43 @@
-//! The `Format` engine of the expression service (step 15.1, item H41).
+//! The `Format` engine of the expression service (step 15.1, item H41;
+//! named date pictures step 39.1, item M35).
 //!
 //! Documented subset: named pictures `General Number`, `General Date`,
-//! `Fixed`, `Standard`, `Percent`; numeric pictures with `0`/`#`
+//! `Long Date`, `Medium Date`, `Short Date`, `Long Time`, `Medium Time`,
+//! `Fixed`, `Standard`, `Percent` — the date/time shapes are deterministic
+//! English (`Short Date` `mm/dd/yyyy`, `Medium Date` `dd-mmm-yy`,
+//! `Long Date` `Weekday, Month D, YYYY`, `Long Time` `h:nn:ss AM/PM`,
+//! `Medium Time` `h:nn AM/PM`), because the engine is locale-free
+//! (deterministic values, LESSONS #6); numeric pictures with `0`/`#`
 //! placeholders, thousands separator and `%` suffix; date pictures with
 //! `yyyy yy mm m dd d hh h nn n ss s` tokens. Numeric rounding is half
-//! away from zero (VBA `Format`); `Null` renders as the empty string.
+//! away from zero (VBA `Format`); `Null` renders as the empty string;
+//! a word picture outside the named table answers a precise error instead
+//! of falling into the token heuristic.
 
 use super::ExprError;
 use super::coerce::{display, parse_num_text, runtime};
 use crate::schema::FieldValue;
+
+/// The named pictures of the documented subset, matched case-insensitively
+/// and resolved for every value family (step 39.1, item M35).
+const NAMED_PICTURES: [&str; 10] = [
+    "general number",
+    "general date",
+    "long date",
+    "medium date",
+    "short date",
+    "long time",
+    "medium time",
+    "fixed",
+    "standard",
+    "percent",
+];
+
+/// The alphabetic tokens of the date-picture grammar; any other letter run
+/// makes a picture unsupported.
+const DATE_TOKENS: [&str; 12] = [
+    "yyyy", "yy", "mm", "dd", "hh", "nn", "ss", "m", "d", "h", "n", "s",
+];
 
 /// Entry point of the dispatch table (`format`).
 pub(crate) fn format_value(
@@ -25,29 +54,64 @@ pub(crate) fn format_value(
     if matches!(value, FieldValue::Null) {
         return Ok(FieldValue::Text(String::new()));
     }
-    Ok(FieldValue::Text(match value {
-        FieldValue::DateTime(days) => format_date(*days, pattern),
-        value => match pattern.to_lowercase().as_str() {
-            "general number" => return Ok(FieldValue::Text(display(value))),
-            "general date" => {
-                return Ok(FieldValue::Text(crate::present::display_ole_datetime(
-                    numeric_f64(value, name)?,
-                )));
-            }
+    let picture = pattern.to_lowercase();
+    // Named pictures resolve first, for every value family — including
+    // DateTime, which previously never reached the named table (M35).
+    if NAMED_PICTURES.contains(&picture.as_str()) {
+        return Ok(FieldValue::Text(match picture.as_str() {
+            "general number" => display(value),
+            "general date" => crate::present::display_ole_datetime(numeric_f64(value, name)?),
             "fixed" => format_number(numeric_f64(value, name)?, 2, false, false),
             "standard" => format_number(numeric_f64(value, name)?, 2, true, false),
             "percent" => format_number(numeric_f64(value, name)? * 100.0, 2, false, true),
-            picture if looks_like_date_picture(picture) => {
-                format_date(numeric_f64(value, name)?, pattern)
+            "short date" => format_date(numeric_f64(value, name)?, "mm/dd/yyyy"),
+            "medium date" => {
+                let (year, month, day, _, _) = ole_components(numeric_f64(value, name)?);
+                format!("{day:02}-{}-{:02}", month_abbreviation(month), year % 100)
             }
-            picture => format_number(
+            "long date" => format_long_date(numeric_f64(value, name)?),
+            "long time" => format_time(numeric_f64(value, name)?, true),
+            "medium time" => format_time(numeric_f64(value, name)?, false),
+            _ => unreachable!("the NAMED_PICTURES table is exhaustive"),
+        }));
+    }
+    // A letter run that is not a date token is a word picture outside the
+    // subset (`Currency`, `AM/PM`, …) — precise error, never token garbage.
+    if !is_token_picture(&picture) {
+        return Err(runtime(format!(
+            "{name} does not support the picture {pattern:?}; the documented \
+             subset is the named pictures plus the date/numeric token pictures"
+        )));
+    }
+    Ok(FieldValue::Text(match value {
+        FieldValue::DateTime(days) => format_date(*days, pattern),
+        value => match looks_like_date_picture(&picture) {
+            true => format_date(numeric_f64(value, name)?, pattern),
+            false => format_number(
                 numeric_f64(value, name)?,
-                decimals_of(picture),
+                decimals_of(&picture),
                 picture.contains(','),
                 false,
             ),
         },
     }))
+}
+
+/// Whether every alphabetic run of `picture` is one of the documented date
+/// tokens (`d.m.yy` yes, `AM/PM` no).
+fn is_token_picture(picture: &str) -> bool {
+    let mut run = String::new();
+    for character in picture.chars().chain(std::iter::once(' ')) {
+        if character.is_ascii_alphabetic() {
+            run.push(character);
+        } else if !run.is_empty() {
+            if !DATE_TOKENS.contains(&run.as_str()) {
+                return false;
+            }
+            run.clear();
+        }
+    }
+    true
 }
 
 /// Numeric pictures carry at least one `0`/`#` placeholder.
@@ -173,6 +237,72 @@ pub(crate) fn ole_components(days: f64) -> (u32, u32, u32, u32, u32) {
     )
 }
 
+/// English month names for the named date pictures (the engine is
+/// locale-free; LESSONS #6).
+const MONTHS: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
+
+/// English weekday names, indexed with `OLE day 0 (1899-12-30) = Saturday`.
+const WEEKDAYS: [&str; 7] = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+];
+
+/// The three-letter month abbreviation of `month` (1-based).
+fn month_abbreviation(month: u32) -> &'static str {
+    &MONTHS[(month - 1) as usize][..3]
+}
+
+/// Access `Long Date`: `Weekday, Month D, YYYY` (deterministic English).
+fn format_long_date(days: f64) -> String {
+    let (year, month, day, _, _) = ole_components(days);
+    let weekday = WEEKDAYS[(days.floor() as i64 + 6).rem_euclid(7) as usize];
+    format!("{weekday}, {} {day}, {year}", MONTHS[(month - 1) as usize])
+}
+
+/// Access `Long Time` (`h:nn:ss AM/PM`) and `Medium Time` (`h:nn AM/PM`),
+/// deterministic English with a 12-hour clock.
+fn format_time(days: f64, seconds: bool) -> String {
+    let whole = days.floor();
+    let mut secs = ((days - whole) * 86_400.0).round() as i64;
+    if secs >= 86_400 {
+        secs -= 86_400;
+    }
+    let (hour, minute, second) = (
+        (secs / 3_600) as u32,
+        ((secs % 3_600) / 60) as u32,
+        (secs % 60) as u32,
+    );
+    let (clock, suffix) = match hour {
+        0 => (12, "AM"),
+        1..=11 => (hour, "AM"),
+        12 => (12, "PM"),
+        _ => (hour - 12, "PM"),
+    };
+    if seconds {
+        format!("{clock}:{minute:02}:{second:02} {suffix}")
+    } else {
+        format!("{clock}:{minute:02} {suffix}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -245,8 +375,12 @@ mod tests {
     /// case-insensitively.
     #[test]
     fn named_pictures_are_case_insensitive() {
-        let short = format_value(&FieldValue::DateTime(45_662.0), &text("SHORT DATE"), "Format")
-            .expect("the picture match is case-insensitive");
+        let short = format_value(
+            &FieldValue::DateTime(45_662.0),
+            &text("SHORT DATE"),
+            "Format",
+        )
+        .expect("the picture match is case-insensitive");
         assert_eq!(short, FieldValue::Text("01/05/2025".into()));
     }
 
