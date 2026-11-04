@@ -88,6 +88,10 @@ pub struct App {
     pub(crate) last_notice: Option<String>,
     /// Buffered cells of the datasheet's new-record row per table tab.
     new_row: HashMap<TabId, Vec<String>>,
+    /// The armed in-place cell editor per table tab (step 40.4, L23):
+    /// (row, col) plus the editable buffer; absent while no cell is
+    /// being edited.
+    cell_edit: HashMap<TabId, (usize, usize, String)>,
     /// Per-tab column widths of the datasheet (presentation state; the
     /// resize math lives in core `grid`, step 21.4).
     column_widths: HashMap<TabId, Vec<f32>>,
@@ -158,6 +162,7 @@ impl App {
             save_as_password: String::new(),
             change_password: String::new(),
             new_row: HashMap::new(),
+            cell_edit: HashMap::new(),
             column_widths: HashMap::new(),
             frozen_columns: HashMap::new(),
             sql_column_widths: Vec::new(),
@@ -207,11 +212,13 @@ impl App {
         events
     }
 
-    /// Esc: drops the buffered new-record cells of the active tab and
-    /// closes the password prompt (step 21.8, U12).
+    /// Esc: drops the buffered new-record cells and the in-place cell
+    /// editor of the active tab and closes the password prompt (step
+    /// 21.8, U12; cell editor step 40.4, L23).
     pub fn cancel_edit(&mut self) {
         if let Some(tab_id) = self.snapshot.active_tab {
             self.new_row.remove(&tab_id);
+            self.cell_edit.remove(&tab_id);
         }
         self.password_prompt = None;
     }

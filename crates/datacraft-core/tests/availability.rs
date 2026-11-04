@@ -70,6 +70,10 @@ fn restricted_capabilities_disable_the_matching_affordances() {
                 datacraft_core::availability::DisabledReason::WriteRows,
             ),
             (
+                "datasheet.edit_record".to_owned(),
+                datacraft_core::availability::DisabledReason::WriteRows,
+            ),
+            (
                 "relationships".to_owned(),
                 datacraft_core::availability::DisabledReason::NoRelationships,
             ),

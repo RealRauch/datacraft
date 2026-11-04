@@ -49,6 +49,24 @@ impl App {
         self.new_row.remove(&tab_id);
     }
 
+    /// The armed in-place cell editor of a datasheet tab: (row, col) and
+    /// the editable buffer, or `None` while no cell is being edited (step
+    /// 40.4, L23).
+    pub fn cell_edit_parts(&mut self, tab_id: TabId) -> Option<(usize, usize, &mut String)> {
+        let (row, col, buffer) = self.cell_edit.get_mut(&tab_id)?;
+        Some((*row, *col, buffer))
+    }
+
+    /// Arms the in-place editor on one cell with the given buffer.
+    pub fn arm_cell_edit(&mut self, tab_id: TabId, row: usize, col: usize, buffer: String) {
+        self.cell_edit.insert(tab_id, (row, col, buffer));
+    }
+
+    /// Closes the in-place editor of a datasheet tab (commit or cancel).
+    pub fn close_cell_edit(&mut self, tab_id: TabId) {
+        self.cell_edit.remove(&tab_id);
+    }
+
     /// Effective column widths of a datasheet tab: the session's resized
     /// widths padded/truncated to the current column count (step 21.4).
     pub fn column_widths(&self, tab_id: TabId, columns: usize) -> Vec<f32> {

@@ -25,10 +25,11 @@ use crate::labels::value_label;
 use crate::theme::tokens;
 
 mod grid;
+mod header;
 mod nav;
 
 use grid::SELECTOR_WIDTH;
-pub(crate) use grid::{Grid, grid_ui};
+pub(crate) use grid::{CellEditSlot, EditIntent, Grid, grid_ui};
 
 /// Renders the datasheet of one table tab.
 pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
@@ -70,13 +71,24 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         datacraft_core::availability::ids::DELETE_RECORD,
     )
     .copied();
+    let edit_restricted = crate::availability::restricted(
+        app.snapshot(),
+        datacraft_core::availability::ids::EDIT_RECORD,
+    )
+    .is_some();
+    // The armed editor's buffer is mutably borrowed for the grid pass;
+    // its intents apply afterwards (the borrow ends with the call).
+    let editor = app.cell_edit_parts(tab.id);
+    let edit = editor.map(|(row, col, buffer)| CellEditSlot { row, col, buffer });
     let mut selected = None;
     let mut freeze_intent: Option<usize> = None;
     let mut delete_intent: Option<usize> = None;
+    let mut pending_edit: Option<EditIntent> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
         let mut on_freeze = |count: usize| freeze_intent = Some(count);
         let mut on_delete = |row: usize| delete_intent = Some(row);
+        let mut on_edit = |intent: EditIntent| pending_edit = Some(intent);
         grid_ui(
             ui,
             Grid {
@@ -89,15 +101,28 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
                 frozen,
                 delete_reason,
+                edit,
+                edit_restricted,
             },
             &mut on_select,
             None,
             Some(&mut on_freeze),
             Some(&mut on_delete),
+            Some(&mut on_edit),
         );
     }
     if let Some(count) = freeze_intent {
         app.set_frozen_columns(tab.id, count);
+    }
+    match pending_edit {
+        Some(EditIntent::Start { row, col }) => {
+            app.start_cell_edit(tab.id, row, col);
+        }
+        Some(EditIntent::Commit { row, col }) => {
+            app.commit_cell_edit(tab.id, &tab.object_name, row, col);
+        }
+        Some(EditIntent::Cancel) => app.cancel_cell_edit(tab.id),
+        None => {}
     }
     if let Some(row) = delete_intent {
         // Destructive-action confirmation through the dialog seam (step
@@ -239,10 +264,13 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 id_salt: format!("query.grid.{}", tab.ui_test_id),
                 frozen,
                 delete_reason: None,
+                edit: None,
+                edit_restricted: true,
             },
             &mut on_select,
             sort,
             Some(&mut on_freeze),
+            None,
             None,
         );
     }

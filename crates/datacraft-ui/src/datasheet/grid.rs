@@ -15,25 +15,26 @@ use eframe::egui;
 use datacraft_core::availability::DisabledReason;
 use datacraft_core::grid::{
     DEFAULT_COLUMN_WIDTH, GridMetrics, clamp_scroll_x, ensure_row_visible, frozen_column_x,
-    frozen_width, resize_column, scrolled_column_x, visible_scrolled_range,
+    frozen_width, scrolled_column_x, visible_scrolled_range,
 };
 use datacraft_core::qbe::SortOrder;
 
+use super::header::{HeaderPass, header_ui};
 use super::nav::{nav_target, read_delete_key, read_nav_intent};
 use crate::i18n::t;
 use crate::theme::tokens;
 
 /// Width of the row-selector column (Access's record selector).
 pub(super) const SELECTOR_WIDTH: f32 = 48.0;
-/// Width of a column-separator drag handle.
-const HANDLE_WIDTH: f32 = 5.0;
 
 /// Everything one grid pass needs; the widths are mutated in place by the
 /// header's drag handles and written back by the caller. `id_salt` names
 /// the grid's focus anchor (keyboard navigation, step 40.1, item M38) and
 /// must be unique per rendered grid; `frozen` is the effective count of
 /// frozen leading columns (step 40.2, item M39); `delete_reason` restricts
-/// the record-deletion affordance for the open source (step 40.3, M44).
+/// the record-deletion affordance for the open source (step 40.3, M44);
+/// `edit` is the armed in-place cell editor (step 40.4, L23) and
+/// `edit_restricted` keeps the cells inert on sources that cannot write.
 pub(crate) struct Grid<'a> {
     pub metrics: GridMetrics,
     pub columns: &'a [String],
@@ -44,21 +45,27 @@ pub(crate) struct Grid<'a> {
     pub id_salt: String,
     pub frozen: usize,
     pub delete_reason: Option<DisabledReason>,
+    pub edit: Option<CellEditSlot<'a>>,
+    pub edit_restricted: bool,
 }
 
-/// The header's scroll mirror and its callbacks (bundled to keep the
-/// paint function's argument count at the lint limit): `scroll_x` is the
-/// body's horizontal offset mirrored one frame later, `frozen` the
-/// effective frozen-column count, `band_width` the viewport-bounded band
-/// width (the band must never widen its container — that would defeat the
-/// body's horizontal scroll); `sort` writes the QBE sort cell, `freeze`
-/// sets the frozen count (0 = unfreeze all).
-struct HeaderPass<'sort, 'freeze> {
-    scroll_x: f32,
-    frozen: usize,
-    band_width: f32,
-    sort: Option<&'sort mut dyn FnMut(usize, SortOrder)>,
-    freeze: Option<&'freeze mut dyn FnMut(usize)>,
+/// The armed in-place cell editor (step 40.4, item L23): the cell being
+/// edited and its buffer, owned by the tab's presentation state.
+pub(crate) struct CellEditSlot<'a> {
+    pub row: usize,
+    pub col: usize,
+    pub buffer: &'a mut String,
+}
+
+/// One cell-editing intent reported by [`grid_ui`] to the caller.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum EditIntent {
+    /// The clicked cell of the selected record arms the editor.
+    Start { row: usize, col: usize },
+    /// Enter or a click-away commits the buffer for the cell.
+    Commit { row: usize, col: usize },
+    /// Escape discards the buffer.
+    Cancel,
 }
 
 /// The shared Access grid: teal header band with resize handles and sort
@@ -74,6 +81,11 @@ struct HeaderPass<'sort, 'freeze> {
 /// "Delete Record" — or a capability-disabled reason — and the Del key
 /// deletes the selected record; both report through `on_delete` (the
 /// zero-based live-row index) after the caller's own confirmation.
+/// In-place cell editing (step 40.4, item L23): a click into a cell of
+/// the selected record arms an in-cell editor ([`EditIntent::Start`]),
+/// Enter or a click-away commits ([`EditIntent::Commit`]), Escape
+/// discards ([`EditIntent::Cancel`]); restricted sources keep the cells
+/// inert.
 pub(crate) fn grid_ui(
     ui: &mut egui::Ui,
     grid: Grid<'_>,
@@ -81,6 +93,7 @@ pub(crate) fn grid_ui(
     on_sort: Option<&mut dyn FnMut(usize, SortOrder)>,
     on_freeze: Option<&mut dyn FnMut(usize)>,
     mut on_delete: Option<&mut dyn FnMut(usize)>,
+    mut on_edit: Option<&mut dyn FnMut(EditIntent)>,
 ) {
     let Grid {
         metrics,
@@ -92,7 +105,10 @@ pub(crate) fn grid_ui(
         id_salt,
         frozen,
         delete_reason,
+        edit,
+        edit_restricted,
     } = grid;
+    let mut edit = edit;
     let frozen = frozen.min(widths.len());
     // Navigation gate: the grid reacts when its focus anchor holds focus
     // (a row-selector click arms it) or when the pointer hovers it —
@@ -157,6 +173,7 @@ pub(crate) fn grid_ui(
     let tokens = tokens(ui.visuals());
     let mut clicked_row = None;
     let mut delete_row: Option<usize> = delete_intent.then(|| cursor.min(body.len() - 1));
+    let mut edit_intent: Option<EditIntent> = None;
     // Deterministic id of the body scroll area (`id_salt` below) — the row
     // painting reads the live horizontal offset from its state. The area
     // hashes its `IdSalt` through `make_persistent_id`, so the same
@@ -254,8 +271,12 @@ pub(crate) fn grid_ui(
                     }
                 });
                 // Painted cell: AccessKit label for the headless suite
-                // (step 23.2, T5) plus the ink hairline separator.
-                let paint_cell = |ui: &mut egui::Ui, x: f32, col: usize, text: &str| {
+                // (step 23.2, T5) plus the ink hairline separator. On an
+                // editable source the cell also senses clicks: clicking a
+                // cell selects its record, and clicking one of the
+                // selected record arms the in-place editor (step 40.4,
+                // L23). The edited cell renders a real TextEdit instead.
+                let mut cell_ui = |ui: &mut egui::Ui, x: f32, col: usize, text: &str| {
                     let cell = egui::Rect::from_min_size(
                         origin + egui::vec2(x, 0.0),
                         egui::vec2(
@@ -266,6 +287,65 @@ pub(crate) fn grid_ui(
                             row_h,
                         ),
                     );
+                    let editing_here =
+                        matches!(edit.as_ref(), Some(slot) if slot.row == row_idx && slot.col == col);
+                    if editing_here {
+                        let Some(slot) = edit.as_mut() else {
+                            return;
+                        };
+                        let editor_id = ui.scope_id().with(("editor", row_idx, col));
+                        let is_new = ui.ctx().read_response(editor_id).is_none();
+                        let width = widths_read
+                            .get(col)
+                            .copied()
+                            .unwrap_or(DEFAULT_COLUMN_WIDTH);
+                        let response = ui.put(
+                            cell,
+                            egui::TextEdit::singleline(slot.buffer)
+                                .id(editor_id)
+                                .desired_width(width)
+                                .font(egui::TextStyle::Body)
+                                // The column name doubles as the editor's
+                                // accessible name (the new-record row's
+                                // pattern) — the suite asserts on it.
+                                .hint_text(
+                                    columns.get(col).map(String::as_str).unwrap_or_default(),
+                                ),
+                        );
+                        if is_new {
+                            response.request_focus();
+                        }
+                        let (enter, esc) = ui.input(|i| {
+                            (
+                                i.key_pressed(egui::Key::Enter),
+                                i.key_pressed(egui::Key::Escape),
+                            )
+                        });
+                        if response.has_focus() && (enter || esc) {
+                            edit_intent = Some(if esc {
+                                EditIntent::Cancel
+                            } else {
+                                EditIntent::Commit {
+                                    row: row_idx,
+                                    col,
+                                }
+                            });
+                        } else if response.lost_focus() {
+                            // Focus dropped without a key this frame
+                            // (click-away): Escape drops focus in the
+                            // same frame it is pressed, so `esc` still
+                            // separates cancel from commit.
+                            edit_intent = Some(if esc {
+                                EditIntent::Cancel
+                            } else {
+                                EditIntent::Commit {
+                                    row: row_idx,
+                                    col,
+                                }
+                            });
+                        }
+                        return;
+                    }
                     ui.painter_at(cell).text(
                         cell.left_center() + egui::vec2(4.0, 0.0),
                         egui::Align2::LEFT_CENTER,
@@ -273,20 +353,37 @@ pub(crate) fn grid_ui(
                         font.clone(),
                         tokens.text,
                     );
+                    let sense = if edit_restricted {
+                        egui::Sense::hover()
+                    } else {
+                        egui::Sense::click()
+                    };
                     let cell_id = ui.scope_id().with(("cell", row_idx, col));
-                    ui.interact(cell, cell_id, egui::Sense::hover())
-                        .widget_info(|| {
-                            egui::WidgetInfo::labeled(egui::Role::Label, true, text.to_owned())
-                        });
+                    let response = ui.interact(cell, cell_id, sense);
+                    response.widget_info(|| {
+                        egui::WidgetInfo::labeled(egui::Role::Label, true, text.to_owned())
+                    });
                     ui.painter().line_segment(
                         [egui::pos2(cell.right(), cell.top()), cell.right_bottom()],
                         egui::Stroke::new(1.0, tokens.border),
                     );
+                    if response.clicked() {
+                        clicked_row = Some(row_idx);
+                        if is_cursor
+                            && edit.is_none()
+                            && !edit_restricted
+                        {
+                            edit_intent = Some(EditIntent::Start {
+                                row: row_idx,
+                                col,
+                            });
+                        }
+                    }
                 };
                 let row = &body[row_idx];
                 for col in 0..frozen {
                     let Some(text) = row.get(col) else { continue };
-                    paint_cell(
+                    cell_ui(
                         ui,
                         SELECTOR_WIDTH + frozen_column_x(col, widths_read, scroll_x),
                         col,
@@ -295,7 +392,7 @@ pub(crate) fn grid_ui(
                 }
                 for col in visible_scrolled_range(scroll_x, body_viewport, widths_read, frozen) {
                     let Some(text) = row.get(col) else { continue };
-                    paint_cell(
+                    cell_ui(
                         ui,
                         SELECTOR_WIDTH
                             + frozen_total
@@ -339,143 +436,9 @@ pub(crate) fn grid_ui(
     {
         callback(row);
     }
-}
-
-/// Header band: accent fill, column names with sort indicators, resize
-/// handles on every right edge, the sort affordances and the freeze
-/// actions (header context menu). Painted over one full-width band; the
-/// cells sit at computed positions — frozen ones pinned, scrolled ones
-/// offset against `pass.scroll_x` (the body's offset, mirrored one frame
-/// later).
-fn header_ui(
-    ui: &mut egui::Ui,
-    metrics: &GridMetrics,
-    columns: &[String],
-    widths: &mut [f32],
-    sort_orders: &[SortOrder],
-    pass: &mut HeaderPass<'_, '_>,
-) {
-    let tokens = tokens(ui.visuals());
-    let font = egui::TextStyle::Body.resolve(ui.style());
-    let scroll_x = pass.scroll_x;
-    let frozen = pass.frozen;
-    let sortable = pass.sort.is_some();
-    let frozen_total = frozen_width(widths, frozen);
-    let band_h = metrics.header_height;
-    let mut pending_sort: Option<(usize, SortOrder)> = None;
-    let mut pending_freeze: Option<usize> = None;
-    // The band is viewport-bounded, never content-sized: a content-sized
-    // band would widen the container ui and defeat the body's horizontal
-    // scroll. Cells beyond the band are painted clipped.
-    let band_width = pass.band_width.max(SELECTOR_WIDTH);
-    let (band, _) = ui.allocate_exact_size(egui::vec2(band_width, band_h), egui::Sense::hover());
-    let origin = band.left_top();
-    let sel_rect = egui::Rect::from_min_size(
-        origin + egui::vec2(scroll_x, 0.0),
-        egui::vec2(SELECTOR_WIDTH, band_h),
-    );
-    ui.painter().rect_filled(sel_rect, 0.0, tokens.accent_fill);
-    for (col, name) in columns.iter().enumerate() {
-        let width = widths.get(col).copied().unwrap_or(DEFAULT_COLUMN_WIDTH);
-        let x = if col < frozen {
-            SELECTOR_WIDTH + frozen_column_x(col, widths, 0.0)
-        } else {
-            SELECTOR_WIDTH + frozen_total + scrolled_column_x(col, widths, frozen, scroll_x)
-        };
-        let cell_width = (width - HANDLE_WIDTH).max(1.0);
-        let cell_rect =
-            egui::Rect::from_min_size(origin + egui::vec2(x, 0.0), egui::vec2(cell_width, band_h));
-        // Click sense so the context menu (freeze actions) opens on every
-        // grid; on sortable grids the click also toggles the sort.
-        let sense = egui::Sense::click();
-        let cell_id = ui.scope_id().with(("header", col));
-        let response = ui.interact(cell_rect, cell_id, sense);
-        ui.painter().rect_filled(cell_rect, 0.0, tokens.accent_fill);
-        let order = sort_orders.get(col).copied().unwrap_or_default();
-        ui.painter().text(
-            cell_rect.left_center() + egui::vec2(4.0, 0.0),
-            egui::Align2::LEFT_CENTER,
-            name,
-            font.clone(),
-            tokens.on_accent,
-        );
-        // Sort caret: painted, not a font glyph (Inter has no U+25B2).
-        if order != SortOrder::None {
-            let cx = cell_rect.right() - 9.0;
-            let cy = cell_rect.center().y;
-            let points = if order == SortOrder::Ascending {
-                vec![
-                    egui::pos2(cx, cy - 3.5),
-                    egui::pos2(cx - 4.0, cy + 2.5),
-                    egui::pos2(cx + 4.0, cy + 2.5),
-                ]
-            } else {
-                vec![
-                    egui::pos2(cx, cy + 3.5),
-                    egui::pos2(cx - 4.0, cy - 2.5),
-                    egui::pos2(cx + 4.0, cy - 2.5),
-                ]
-            };
-            ui.painter().add(egui::Shape::convex_polygon(
-                points,
-                tokens.on_accent,
-                egui::Stroke::NONE,
-            ));
-        }
-        response.context_menu(|ui| {
-            if sortable {
-                for target in [SortOrder::Ascending, SortOrder::Descending, SortOrder::None] {
-                    let text = match target {
-                        SortOrder::Ascending => t("Sort Ascending"),
-                        SortOrder::Descending => t("Sort Descending"),
-                        SortOrder::None => t("Clear Sort"),
-                    };
-                    if ui.selectable_label(order == target, text).clicked() {
-                        pending_sort = Some((col, target));
-                        ui.close();
-                    }
-                }
-            }
-            if col >= frozen && ui.selectable_label(false, t("Freeze Fields")).clicked() {
-                pending_freeze = Some(col + 1);
-                ui.close();
-            }
-            if frozen > 0
-                && ui
-                    .selectable_label(false, t("Unfreeze All Fields"))
-                    .clicked()
-            {
-                pending_freeze = Some(0);
-                ui.close();
-            }
-        });
-        let handle_rect = egui::Rect::from_min_size(
-            origin + egui::vec2(x + cell_width, 0.0),
-            egui::vec2(HANDLE_WIDTH, band_h),
-        );
-        let handle_id = ui.scope_id().with(("handle", col));
-        let drag = ui.interact(handle_rect, handle_id, egui::Sense::drag());
-        if drag.hovered() || drag.dragged() {
-            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
-        }
-        if drag.dragged()
-            && let Some(width) = widths.get_mut(col)
-        {
-            *width = resize_column(*width, drag.drag_delta().x);
-        }
-        ui.painter().line_segment(
-            [handle_rect.left_top(), handle_rect.left_bottom()],
-            egui::Stroke::new(1.0, tokens.border),
-        );
-    }
-    if let Some((col, order)) = pending_sort
-        && let Some(callback) = pass.sort.as_mut()
+    if let Some(intent) = edit_intent
+        && let Some(callback) = on_edit.as_mut()
     {
-        callback(col, order);
-    }
-    if let Some(count) = pending_freeze
-        && let Some(callback) = pass.freeze.as_mut()
-    {
-        callback(count);
+        callback(intent);
     }
 }

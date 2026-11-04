@@ -65,12 +65,12 @@ fn edit_harness(app: App) -> Harness<'static, App> {
     )
 }
 
-/// Selects record `row` (1-based selector label) and arms the editor on
-/// the second click into its name cell.
+/// Selects the record at zero-based `row` and arms the editor on the
+/// second click into its name cell (the selector label is row + 1).
 fn arm_editor(harness: &mut Harness<'static, App>, row: usize) {
-    harness.get_by_label(&format!("{row:>6}")).click();
+    harness.get_by_label(&format!("{:>6}", row + 1)).click();
     harness.run();
-    harness.get_by_label(&format!("alpha{}", row - 1)).click();
+    harness.get_by_label(&format!("alpha{row}")).click();
     harness.run();
 }
 
@@ -113,14 +113,16 @@ fn editing_a_cell_commits_one_update_row() {
         harness.state().last_error().is_none(),
         "a valid edit leaves no failure behind"
     );
-    let labels: Vec<String> = harness
+    // Cell text rides the AccessKit value (the painted label's info);
+    // assert the committed text is on the grid.
+    let values: Vec<String> = harness
         .root()
         .children_recursive()
-        .map(|node| node.accesskit_node().label().unwrap_or_default().to_owned())
+        .map(|node| node.accesskit_node().value().unwrap_or_default().to_owned())
         .collect();
     assert!(
-        labels.iter().any(|label| label == "alpha2X"),
-        "the datasheet paints the committed text: {labels:?}"
+        values.iter().any(|value| value == "alpha2X"),
+        "the datasheet paints the committed text: {values:?}"
     );
 }
 
@@ -245,12 +247,14 @@ fn read_only_sources_never_arm_the_cell_editor() {
         "a read-only source never edits through the cell"
     );
     assert_eq!(harness.state().snapshot().undo_depth, 0);
+    // An armed editor is a TextInput widget; the painted cells are
+    // Labels and never appear as one.
     let editors: Vec<String> = harness
         .root()
         .children_recursive()
         .filter_map(|node| {
             let n = node.accesskit_node();
-            (!n.value().unwrap_or_default().is_empty())
+            (format!("{:?}", n.role()) == "TextInput" && !n.is_disabled())
                 .then(|| n.value().unwrap_or_default().to_owned())
         })
         .collect();

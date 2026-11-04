@@ -206,6 +206,104 @@ impl App {
         }
     }
 
+    /// Arms the datasheet's in-place cell editor on one cell of a table
+    /// tab with the cell's current display text (step 40.4, item L23).
+    /// A no-op for restricted sources — the grid never arms there.
+    pub fn start_cell_edit(&mut self, tab_id: TabId, row: usize, col: usize) {
+        if crate::availability::restricted(
+            self.snapshot(),
+            datacraft_core::availability::ids::EDIT_RECORD,
+        )
+        .is_some()
+        {
+            return;
+        }
+        let buffer = self
+            .rows_for(tab_id)
+            .and_then(|rows| rows.get(row))
+            .and_then(|values| values.get(col))
+            .map(crate::labels::value_label)
+            .unwrap_or_default();
+        self.arm_cell_edit(tab_id, row, col, buffer);
+    }
+
+    /// Commits the armed in-place editor (step 40.4, item L23): the
+    /// buffer is parsed against the field's kind, then exactly one
+    /// `UpdateRow` dispatch writes the full positional value list. A
+    /// parse failure keeps the editor armed with the buffer intact and
+    /// reports the precise reason; a dispatch failure reports through
+    /// the status bar and closes the editor.
+    pub fn commit_cell_edit(&mut self, tab_id: TabId, table: &str, row: usize, col: usize) {
+        let Some((_, _, buffer)) = self.cell_edit_parts(tab_id) else {
+            return;
+        };
+        let text = buffer.clone();
+        let parsed = self.table_definition(table).map(|definition| {
+            (
+                definition.name.clone(),
+                definition.fields.get(col).map(|field| {
+                    datacraft_core::row_edit::parse_value(&field.kind, &text)
+                        .map_err(|reason| format!("field {:?}: {reason}", field.name))
+                }),
+                definition.fields.len(),
+            )
+        });
+        let Some((canonical, parsed, arity)) = parsed else {
+            self.last_error = Some(tr(
+                "table {table} not found",
+                &[("table", &format!("{table:?}"))],
+            ));
+            return;
+        };
+        let value = match parsed {
+            Some(Ok(value)) => value,
+            Some(Err(reason)) => {
+                self.last_error = Some(reason);
+                return;
+            }
+            None => {
+                self.last_error = Some(format!(
+                    "field index {col} is out of range ({arity} fields)"
+                ));
+                return;
+            }
+        };
+        let values = match self.rows_for(tab_id).and_then(|rows| rows.get(row)) {
+            Some(row_values) => {
+                let mut values = row_values.clone();
+                if col >= values.len() {
+                    self.last_error = Some(format!(
+                        "field index {col} is out of range ({arity} fields)"
+                    ));
+                    return;
+                }
+                values[col] = value;
+                values
+            }
+            None => {
+                self.last_error = Some(format!("row {row} no longer exists in {canonical:?}"));
+                return;
+            }
+        };
+        let events = self.dispatch(Command::UpdateRow {
+            table: canonical,
+            row,
+            values,
+        });
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::RowUpdated { .. }))
+        {
+            self.close_cell_edit(tab_id);
+        }
+    }
+
+    /// Closes the armed in-place editor without committing (Esc / the
+    /// grid's cancel intent).
+    pub fn cancel_cell_edit(&mut self, tab_id: TabId) {
+        self.close_cell_edit(tab_id);
+    }
+
     /// Reason of the last failed command (status bar).
     pub fn last_error(&self) -> Option<&str> {
         self.last_error.as_deref()
