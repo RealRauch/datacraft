@@ -1234,3 +1234,12 @@
 - **Approach:** One audit-driven polish pass over the shell regions against the Phase-20 token grammar: align paddings, radii and typography rungs per region, refine the painted ribbon buttons and badges (hover/active/checked depth without breaking the neutral-chrome rule), consistent group separators and spacing rhythm in ribbon, nav pane and status bar; reuse M40 glyphs where they fit. Record before/after screenshots per the Phase-20 gate pattern (`docs/phase-*/`).
 - **Acceptance:** Region-by-region before/after screenshots recorded; kittest semantic snapshots regenerated where the tree changes; no token/contrast regression (existing theme tests stay green); canonical verification set green; every `.rs` file < 500 lines.
 - **Done:** closed 2026-11-04 (step 38.4) — the audit found the chrome token-clean (no drift to fix, no before/after changes); the subjective polish pass is deferred until the human reviews the restyled build
+
+---
+
+### [x] M35 — Format named date pictures render corrupted text — 🟡
+- **Location:** `crates/datacraft-core/src/expr/format.rs` (`format_value`: the `FieldValue::DateTime` arm calls `format_date` before the named-picture match; `looks_like_date_picture` accepts "Long Date" etc. as token pictures).
+- **Problem:** `Format(DateTime, "General Date")` — documented as supported — renders garbage (`ge0eral 15ate`) because the DateTime arm never reaches the named-picture table. Every other named picture (`Long Date`, `Short Date`, `Medium Date`, `Long Time`, …) is likewise interpreted as a token picture and produces corrupted text (`lo0g 15ate`, `00ort 15ate`) instead of a precise error. Token pictures (`"yyyy-mm-dd"`) work.
+- **Approach:** Resolve named pictures first (case-insensitive) for every value family, including DateTime; implement the Access `Long Date`/`Short Date`/`Medium Date`/`Long Time`/`Medium Time` pictures through the existing date formatting, and answer a precise runtime error for an unknown named picture instead of falling into the token heuristic.
+- **Acceptance:** `Format(#2024-01-15#, "General Date"|"Long Date"|"Short Date")` renders real date text; token pictures keep their current output; an unknown named picture errors precisely; tests pin both families.
+- **Done:** done in `d682223` (RED `717eceb`) — named pictures resolve for every family, deterministic English date/time shapes, precise unsupported-picture errors

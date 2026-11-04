@@ -36,12 +36,6 @@
 - **Approach:** Store the failure reason per tab (or in `last_error`) and render it in place of the loading text; retry when the next mutation pass runs.
 - **Acceptance:** A port read failure shows a precise, localized reason in the affected view instead of an endless loading state; kittest with a failing mock port pins it.
 
-### [ ] M35 — Format named date pictures render corrupted text — 🟡
-- **Location:** `crates/datacraft-core/src/expr/format.rs` (`format_value`: the `FieldValue::DateTime` arm calls `format_date` before the named-picture match; `looks_like_date_picture` accepts "Long Date" etc. as token pictures).
-- **Problem:** `Format(DateTime, "General Date")` — documented as supported — renders garbage (`ge0eral 15ate`) because the DateTime arm never reaches the named-picture table. Every other named picture (`Long Date`, `Short Date`, `Medium Date`, `Long Time`, …) is likewise interpreted as a token picture and produces corrupted text (`lo0g 15ate`, `00ort 15ate`) instead of a precise error. Token pictures (`"yyyy-mm-dd"`) work.
-- **Approach:** Resolve named pictures first (case-insensitive) for every value family, including DateTime; implement the Access `Long Date`/`Short Date`/`Medium Date`/`Long Time`/`Medium Time` pictures through the existing date formatting, and answer a precise runtime error for an unknown named picture instead of falling into the token heuristic.
-- **Acceptance:** `Format(#2024-01-15#, "General Date"|"Long Date"|"Short Date")` renders real date text; token pictures keep their current output; an unknown named picture errors precisely; tests pin both families.
-
 ### [ ] M36 — SQL window dialect divergences are silent (currency scale, date literals, wildcards, overflow) — 🟡
 - **Location:** `crates/datacraft-core/src/sql_engine.rs` (`affinity`, `sql_value`, `to_field_value`), the SQL window (`crates/datacraft-ui/src/sql_window.rs`) and the shadow materialization.
 - **Problem:** The SQL window speaks SQLite, not Access SQL, and four divergences are silent (verified in the T6 spot checks): Currency is materialized as its scaled INTEGER and displayed raw (`SUM(amount)` → `7230000`, not `723.00`); comparing a DateTime column with a text literal (`stamp >= '2024-01-01'`) returns 0 rows because SQLite orders REAL before TEXT; `LIKE 'B*'` returns 0 rows (Access wildcards vs `%`); `9223372036854775807 + 1` promotes to REAL (`9223372036854776000`) without warning.
@@ -274,3 +268,4 @@
 - M41 — Backstage restyle: Excel-style full-height accent sidebar, cards, recent metadata — done (done in `3566391` (RED `8be40fb`) — Excel-style backstage chrome (sidebar/cards/recent stamps) on the token system, split into nav/pages/recent)
 - M43 — Native file and message dialogs where sensible (rfd behind a UI seam) — done (done in `6a7c97e` (RED `6c1f26d`) — rfd 0.17 behind the DialogHost seam; browse pickers on Open/New/Save, native confirmations gate delete and Save-Copy overwrite)
 - M42 — Window chrome polish pass: ribbon hierarchy, spacing rhythm, surface consistency — done (closed 2026-11-04 (step 38.4) — the audit found the chrome token-clean (no drift to fix, no before/after changes); the subjective polish pass is deferred until the human reviews the restyled build)
+- M35 — Format named date pictures render corrupted text — done (done in `d682223` (RED `717eceb`) — named pictures resolve for every family, deterministic English date/time shapes, precise unsupported-picture errors)

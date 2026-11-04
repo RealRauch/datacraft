@@ -17,6 +17,16 @@
 - **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
+### Phase 39 — Release correctness bugs
+
+**Scope (Steps):**
+
+- **39.1 M35: named date pictures render corrupted text**
+- **39.2 M36: SQL window dialect divergences are silent**
+- **39.3 M37: QBE criteria silently misread unsupported Access forms**
+- **39.4 M31: presentation cache loads swallow read errors**
+- **39.5 Phase 39 Quality Gate Review**
+
 
 
 
@@ -248,3 +258,8 @@
 | 38.3 | Native file and message dialogs behind a UI seam (M43; rfd needs its own release) | ✅ |
 | 38.4 | Window chrome polish pass: ribbon hierarchy, spacing, surfaces (M42) | ✅ |
 | 38.5 | Phase 38 Quality Gate Review | ✅ |
+| 39.1 | M35: named date pictures render corrupted text | ✅ |
+| 39.2 | M36: SQL window dialect divergences are silent | ⬜ |
+| 39.3 | M37: QBE criteria silently misread unsupported Access forms | ⬜ |
+| 39.4 | M31: presentation cache loads swallow read errors | ⬜ |
+| 39.5 | Phase 39 Quality Gate Review | ⬜ |
