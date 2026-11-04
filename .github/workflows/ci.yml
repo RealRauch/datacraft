@@ -95,17 +95,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rustup component add llvm-tools-preview
+      # Pinned (M51, step 43.2): a new upstream release must never move the
+      # gate number without a code change. Bump deliberately, together with
+      # the local dev setup — never passively via @latest.
       - uses: taiki-e/install-action@v2
         with:
-          tool: cargo-llvm-cov
+          tool: cargo-llvm-cov@0.9.1
       # --exclude datacraft-ui: registered coverage exception #1 (docs/TESTING.md §3)
       - run: cargo llvm-cov --workspace --exclude datacraft-ui --lcov --output-path lcov.info
       # The 95 % line gate is evaluated explicitly from the exported lcov
       # (identical definition to the local canonical set) instead of
-      # --fail-under-lines: the tool is installed @latest and its embedded
-      # threshold check diverged from its own lcov export (run 41727473021
-      # exported 96.42 % yet exited 1), so the gate must not depend on the
-      # tool's version.
+      # --fail-under-lines: the tool's embedded threshold check diverged
+      # from its own lcov export (run 41727473021 exported 96.42 % yet
+      # exited 1), so the gate must not depend on the tool's version.
       - name: Line coverage gate (>= 95 %)
         run: |
           python3 - <<'PY'
