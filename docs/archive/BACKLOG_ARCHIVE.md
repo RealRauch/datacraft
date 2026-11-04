@@ -1297,3 +1297,12 @@
 - **Approach:** Row context menu (or Del key on the selected record) dispatching exactly one `DeleteRow` with the current record-cursor index, destructive-action confirmation through the native confirm dialog (M43 pattern), precise failure in the status bar; the affordance is capability-gated like the new-record row.
 - **Acceptance:** Deleting a row from the GUI is exactly one `DeleteRow` dispatch over the real write path; confirmation and capability-disabled states pinned by a kittest; canonical verification set green.
 - **Done:** 88df660
+
+---
+
+### [x] L23 — Datasheet in-place cell editing of existing rows — 🟢
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (existing rows are painted strings; only the new-record row hosts real widgets, `new_row_ui` from line 99), write commands already exist in the vocabulary: `crates/datacraft-core/src/command.rs:135` (`InsertRow`) and `:144` (`UpdateRow`).
+- **Problem:** Cells of existing rows cannot be edited in place; edits have to go through other paths. Access edits datasheet cells directly. The write path itself is already landed (Jet4 update/delete, ACCDB write-through), so this is a presentation-layer gap only.
+- **Approach:** Swap the painted cell for a real widget on the active cell (the in-cell editor idea GridCraft implements in its `editor.rs`; own implementation, no borrowed code), commit through exactly one `UpdateRow` dispatch, surface failures precisely (M31 pattern — never swallow), Enter/Escape semantics building on the keyboard-navigation item M38.
+- **Acceptance:** Editing an existing cell dispatches exactly one `UpdateRow`, updates the presentation cache, shows a precise error on failure; a kittest drives an edit end-to-end; canonical verification set green.
+- **Done:** 8e28ef9

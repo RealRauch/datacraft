@@ -102,12 +102,6 @@
 - **Approach (decided 2026-11-04: by-name resolution):** Resolve every projection column by name through the schema whitelist; reject duplicate and unknown field names with a precise, locatable error. Update the `QueryDef`/`QbeField` docs to state the by-name contract explicitly.
 - **Acceptance:** A subset/reordered definition projects exactly the named columns; duplicate or unknown names fail loudly instead of silently mis-projecting; the by-name contract is documented on `QueryDef`/`QbeField` and pinned by tests.
 
-### [ ] L23 — Datasheet in-place cell editing of existing rows — 🟢
-- **Location:** `crates/datacraft-ui/src/datasheet.rs` (existing rows are painted strings; only the new-record row hosts real widgets, `new_row_ui` from line 99), write commands already exist in the vocabulary: `crates/datacraft-core/src/command.rs:135` (`InsertRow`) and `:144` (`UpdateRow`).
-- **Problem:** Cells of existing rows cannot be edited in place; edits have to go through other paths. Access edits datasheet cells directly. The write path itself is already landed (Jet4 update/delete, ACCDB write-through), so this is a presentation-layer gap only.
-- **Approach:** Swap the painted cell for a real widget on the active cell (the in-cell editor idea GridCraft implements in its `editor.rs`; own implementation, no borrowed code), commit through exactly one `UpdateRow` dispatch, surface failures precisely (M31 pattern — never swallow), Enter/Escape semantics building on the keyboard-navigation item M38.
-- **Acceptance:** Editing an existing cell dispatches exactly one `UpdateRow`, updates the presentation cache, shows a precise error on failure; a kittest drives an edit end-to-end; canonical verification set green.
-
 ### [ ] L24 — Publish metadata: repository and readme for the published crates — 🟢
 - **Location:** `Cargo.toml` (`[workspace.package]`), `crates/*/Cargo.toml` (`[package]` metadata), `docs/PUBLISHING.md` release checklist step 4
 - **Problem:** `cargo package --list` warns "manifest has no documentation, homepage or repository" for the published crates (found in step 37.4 while verifying the packaged license files). crates.io shows empty repository/docs links for such packages; the release checklist's dry-run step would surface it too late. The per-crate `description` fields have landed since (the family stands unpublished at `0.1.0`); `repository` and the `readme` field are still missing everywhere — without `readme`, the crates.io pages render no README at all.
@@ -287,3 +281,4 @@
 - M38 — Datasheet keyboard navigation (record cursor via arrow keys, Home/End, PgUp/PgDn) — done (46369e8)
 - M39 — Datasheet freeze columns (horizontal body scrolling as prerequisite) — done (8f3d433)
 - M44 — Datasheet row deletion: no GUI path for DeleteRow — done (88df660)
+- L23 — Datasheet in-place cell editing of existing rows — done (8e28ef9)
