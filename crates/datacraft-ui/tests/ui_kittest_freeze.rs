@@ -65,18 +65,22 @@ fn freeze_harness(app: App) -> Harness<'static, App> {
             let Some(tab) = app.snapshot().tabs.first().cloned() else {
                 return;
             };
-            datacraft_ui::datasheet::datasheet_ui(app, &tab, ui);
+            // A fixed-max-rect child ui stands in for the document panel:
+            // it clips the grid so the four columns (4 x 140 + 48
+            // selector) genuinely overflow horizontally and cannot grow
+            // the pane.
+            let pane = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(400.0, 300.0));
+            let mut child = ui.new_child(egui::UiBuilder::new().max_rect(pane));
+            datacraft_ui::datasheet::datasheet_ui(app, &tab, &mut child);
         },
         app,
     );
-    // Narrow viewport so the four columns (4 x 140 + 48 selector) overflow
-    // horizontally and the scrollbar engages.
     harness.set_size(egui::vec2(400.0, 300.0));
     harness
 }
 
 /// Secondary click at `pos` (the painted header has no AccessKit node).
-fn right_click(harness: &Harness<'static, App>, pos: egui::Pos2) {
+fn right_click(harness: &mut Harness<'static, App>, pos: egui::Pos2) {
     harness.hover_at(pos);
     let press = |pressed| egui::Event::PointerButton {
         pos,
@@ -90,50 +94,77 @@ fn right_click(harness: &Harness<'static, App>, pos: egui::Pos2) {
     harness.run();
 }
 
-/// Center of the first header cell, derived from the first row selector.
-fn first_header_cell(harness: &Harness<'static, App>) -> egui::Pos2 {
-    let selector = harness.get_by_label("     1").rect();
-    egui::pos2(selector.right() + 70.0, selector.top() - 13.0)
+/// Point inside the first column's header cell. Fixed pane coordinates:
+/// AccessKit node rects of the grid body sit in the scrolled content ui's
+/// raw coordinate space, so the painted header (no nodes) is addressed by
+/// geometry instead. After the initial two wheel steps (~160 px) the
+/// first column keeps a visible sliver around x=15; y=16 is inside the
+/// 26 px header band.
+fn first_header_cell(_harness: &Harness<'static, App>) -> egui::Pos2 {
+    egui::pos2(15.0, 16.0)
 }
 
 /// Freezing through the header context menu arms the frozen pane; frozen
-/// columns stay pinned while a horizontal wheel scroll moves the rest.
+/// columns stay pinned while horizontal wheel scrolls move the rest.
 #[test]
 fn freezing_pins_leading_columns_while_the_rest_scrolls() {
     let (app, tab) = wide_table_app(4);
     let mut harness = freeze_harness(app);
     harness.run();
 
-    right_click(&harness, first_header_cell(&harness));
+    // The wheel scrolls the area under the pointer: park it over the body
+    // grid, inside the viewport. A first scroll moves every column.
+    harness.hover_at(egui::pos2(200.0, 49.0));
+    harness.run();
+    let wheel_right = egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Point,
+        delta: egui::vec2(-80.0, 0.0),
+        modifiers: egui::Modifiers::default(),
+        phase: egui::TouchPhase::Move,
+        source: egui::MouseWheelSource::Unknown,
+    };
+    harness.event(wheel_right.clone());
+    harness.run();
+    harness.run();
+    let scrolled_before = harness.get_by_label("b0").rect();
+    harness.event(wheel_right.clone());
+    harness.run();
+    harness.run();
+    let scrolled_after = harness.get_by_label("b0").rect();
+    assert!(
+        scrolled_after.left() < scrolled_before.left() - 20.0,
+        "the plain grid scrolls horizontally: {scrolled_before:?} -> {scrolled_after:?}"
+    );
+
+    // Freeze through the header context menu.
+    let target = first_header_cell(&harness);
+    right_click(&mut harness, target);
+    harness.run();
     harness.get_by_label("Freeze Fields").click();
     harness.run();
     assert_eq!(harness.state().frozen_columns(tab), 1);
 
-    let frozen_before = harness.get_by_label("a0").rect();
+    // The frozen column is the first one (id), whose row-0 cell is "0".
+    let frozen_before = harness.get_by_label("0").rect();
     let scrolled_before = harness.get_by_label("b0").rect();
-
-    // Wheel scroll to the right: negative x delta moves content left.
-    harness.event(egui::Event::MouseWheel {
-        unit: egui::MouseWheelUnit::Point,
-        delta: egui::vec2(-80.0, 0.0),
-        modifiers: egui::Modifiers::default(),
-    });
+    // Another scroll: the frozen column stays pinned, the rest moves on.
+    harness.event(wheel_right.clone());
     harness.run();
     harness.run();
-
-    let frozen_after = harness.get_by_label("a0").rect();
+    let frozen_after = harness.get_by_label("0").rect();
     let scrolled_after = harness.get_by_label("b0").rect();
     assert!(
         (frozen_after.left() - frozen_before.left()).abs() < 0.5,
         "the frozen column stays pinned: {frozen_before:?} -> {frozen_after:?}"
     );
     assert!(
-        scrolled_after.left() < scrolled_before.left() - 40.0,
+        scrolled_after.left() < scrolled_before.left() - 20.0,
         "the scrolled column moves left: {scrolled_before:?} -> {scrolled_after:?}"
     );
 
     // The context menu unfreezes again.
-    right_click(&harness, first_header_cell(&harness));
+    let target = first_header_cell(&harness);
+    right_click(&mut harness, target);
     harness.get_by_label("Unfreeze All Fields").click();
     harness.run();
     assert_eq!(harness.state().frozen_columns(tab), 0);

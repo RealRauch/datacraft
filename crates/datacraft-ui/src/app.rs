@@ -91,6 +91,9 @@ pub struct App {
     /// Per-tab column widths of the datasheet (presentation state; the
     /// resize math lives in core `grid`, step 21.4).
     column_widths: HashMap<TabId, Vec<f32>>,
+    /// Per-tab count of frozen leading datasheet columns (presentation
+    /// state; the freeze placement math lives in core `grid`, step 40.2).
+    frozen_columns: HashMap<TabId, usize>,
     /// Column widths of the SQL window's result grid (step 21.4).
     sql_column_widths: Vec<f32>,
     /// Open database-password prompt (step 16.2, M5; the state and paint
@@ -156,6 +159,7 @@ impl App {
             change_password: String::new(),
             new_row: HashMap::new(),
             column_widths: HashMap::new(),
+            frozen_columns: HashMap::new(),
             sql_column_widths: Vec::new(),
             password_prompt: None,
             vba_search: String::new(),

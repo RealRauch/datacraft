@@ -69,6 +69,17 @@ impl App {
         self.column_widths.insert(tab_id, widths);
     }
 
+    /// Frozen leading columns of a datasheet tab (defaults to none; step
+    /// 40.2, item M39).
+    pub fn frozen_columns(&self, tab_id: TabId) -> usize {
+        self.frozen_columns.get(&tab_id).copied().unwrap_or(0)
+    }
+
+    /// Sets the frozen leading columns of a datasheet tab (0 = unfreeze).
+    pub fn set_frozen_columns(&mut self, tab_id: TabId, count: usize) {
+        self.frozen_columns.insert(tab_id, count);
+    }
+
     /// Effective column widths of the SQL window's result grid.
     pub fn sql_column_widths(&self, columns: usize) -> Vec<f32> {
         datacraft_core::grid::effective_widths(

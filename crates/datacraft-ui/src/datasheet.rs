@@ -64,9 +64,11 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let row_count = body.len();
     let sorts = vec![SortOrder::None; columns.len()];
     let mut widths = app.column_widths(tab.id, columns.len());
+    let frozen = datacraft_core::grid::effective_frozen(app.frozen_columns(tab.id), columns.len());
     let mut selected = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
+        let mut on_freeze = |count: usize| app.set_frozen_columns(tab.id, count);
         grid_ui(
             ui,
             Grid {
@@ -77,9 +79,11 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 widths: &mut widths,
                 sort_orders: &sorts,
                 id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
+                frozen,
             },
             &mut on_select,
             None,
+            Some(&mut on_freeze),
         );
     }
     app.set_column_widths(tab.id, widths.clone());
@@ -181,10 +185,12 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let row_count = body.len();
     let (sort_orders, field_indices) = query_sort_state(app, &tab.object_name, columns.len());
     let mut widths = app.column_widths(tab.id, columns.len());
+    let frozen = datacraft_core::grid::effective_frozen(app.frozen_columns(tab.id), columns.len());
     let mut selected = None;
     let mut sort_intent: Option<(usize, SortOrder)> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
+        let mut on_freeze = |count: usize| app.set_frozen_columns(tab.id, count);
         let mut on_sort = |column: usize, order: SortOrder| {
             if let Some(field) = field_indices.get(column) {
                 sort_intent = Some((*field, order));
@@ -205,9 +211,11 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 widths: &mut widths,
                 sort_orders: &sort_orders,
                 id_salt: format!("query.grid.{}", tab.ui_test_id),
+                frozen,
             },
             &mut on_select,
             sort,
+            Some(&mut on_freeze),
         );
     }
     app.set_column_widths(tab.id, widths);

@@ -113,6 +113,64 @@ pub fn column_span_x(col: usize, widths: &[f32]) -> (f32, f32) {
     (acc, 0.0)
 }
 
+/// Total width of the leading `frozen` columns — the pinned pane's width
+/// (step 40.2, item M39).
+pub fn frozen_width(widths: &[f32], frozen: usize) -> f32 {
+    widths.iter().take(frozen).sum()
+}
+
+/// Placement x of frozen column `col` relative to the pane's content
+/// origin (step 40.2, item M39): the scroll compensation rides WITH the
+/// offset, so the column renders at the same viewport position whatever
+/// the scroll offset is.
+pub fn frozen_column_x(col: usize, widths: &[f32], scroll_x: f32) -> f32 {
+    column_span_x(col, widths).0 + scroll_x
+}
+
+/// Placement x of scrolled column `col` (only valid for `col >= frozen`)
+/// relative to the scrolled pane's origin behind the frozen span (step
+/// 40.2, item M39): the offset rides AGAINST the scroll, so the column
+/// moves left as the pane scrolls right.
+pub fn scrolled_column_x(col: usize, widths: &[f32], frozen: usize, scroll_x: f32) -> f32 {
+    let (acc, _) = column_span_x(col, widths);
+    let (frozen_acc, _) = column_span_x(frozen, widths);
+    acc - frozen_acc - scroll_x
+}
+
+/// Clamps a horizontal scroll offset to the content width: never
+/// negative, never past the content; content narrower than the viewport
+/// does not scroll (step 40.2, item M39).
+pub fn clamp_scroll_x(scroll_x: f32, content_width: f32, viewport_width: f32) -> f32 {
+    let max = (content_width - viewport_width).max(0.0);
+    scroll_x.clamp(0.0, max)
+}
+
+/// The scrolled columns that intersect a viewport `viewport_width` wide
+/// at `scroll_x`: the inclusive window of columns to paint behind the
+/// frozen span (step 40.2, item M39). Fully and partially visible
+/// columns are included; columns scrolled out on either side are not.
+pub fn visible_scrolled_range(
+    scroll_x: f32,
+    viewport_width: f32,
+    widths: &[f32],
+    frozen: usize,
+) -> std::ops::Range<usize> {
+    let pane = widths.len().min(frozen)..widths.len();
+    let scrolled = &widths[pane.start..];
+    let first = column_at_x(scroll_x, scrolled).unwrap_or(scrolled.len());
+    let content_right = scrolled.iter().sum::<f32>();
+    let probe = (scroll_x + viewport_width).min(content_right) - 0.5;
+    let end = column_at_x(probe, scrolled).map_or(scrolled.len(), |col| col + 1);
+    pane.start + first..pane.start + end.max(first)
+}
+
+/// Effective frozen-column count: the session value clamped so at most
+/// `columns - 1` columns freeze — one column always stays scrollable —
+/// and nothing freezes on an empty grid (step 40.2, item M39).
+pub fn effective_frozen(stored: usize, columns: usize) -> usize {
+    stored.min(columns.saturating_sub(1))
+}
+
 /// Default width of a datasheet column in points (step 21.4, item U8).
 pub const DEFAULT_COLUMN_WIDTH: f32 = 140.0;
 /// Smallest width a column can be dragged to — still wide enough to show

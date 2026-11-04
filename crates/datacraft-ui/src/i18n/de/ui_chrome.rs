@@ -121,6 +121,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Sort Descending", "Absteigend sortieren"),
     ("Sort by Name", "Nach Name sortieren"),
     ("Sort by Type", "Nach Typ sortieren"),
+    ("Freeze Fields", "Felder fixieren"),
+    ("Unfreeze All Fields", "Fixierung aufheben"),
     ("Statement", "Anweisung"),
     ("Subform", "Unterformular"),
     ("Switch view", "Ansicht wechseln"),
