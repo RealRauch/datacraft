@@ -41,6 +41,7 @@ impl App {
         for tab_id in closed {
             self.rows.remove(&tab_id);
             self.results.remove(&tab_id);
+            self.load_errors.remove(&tab_id);
             self.new_row.remove(&tab_id);
             self.column_widths.remove(&tab_id);
             self.previews.remove(&tab_id);
@@ -132,14 +133,28 @@ impl App {
             else {
                 continue;
             };
-            if let Ok(rows) = self.core.read_rows(
+            match self.core.read_rows(
                 &definition.name,
                 RowRange {
                     start: 0,
                     len: usize::MAX,
                 },
             ) {
-                self.rows.insert(tab.id, rows);
+                Ok(rows) => {
+                    self.rows.insert(tab.id, rows);
+                    self.load_errors.remove(&tab.id);
+                }
+                Err(error) => {
+                    // Surfaced in place of the endless loading state
+                    // (step 39.4, item M31); the next pass retries.
+                    self.load_errors.insert(
+                        tab.id,
+                        crate::i18n::tr(
+                            "Rows could not be loaded: {reason}",
+                            &[("reason", &error.to_string())],
+                        ),
+                    );
+                }
             }
         }
         // Report previews refresh with every mutation pass — design edits
@@ -163,8 +178,22 @@ impl App {
             if self.results.contains_key(&tab_id) {
                 continue;
             }
-            if let Ok(result) = self.core.run_query(&name) {
-                self.results.insert(tab_id, result);
+            match self.core.run_query(&name) {
+                Ok(result) => {
+                    self.results.insert(tab_id, result);
+                    self.load_errors.remove(&tab_id);
+                }
+                Err(error) => {
+                    // Surfaced in place of the empty "no runnable result"
+                    // state (step 39.4, item M31); the next pass retries.
+                    self.load_errors.insert(
+                        tab_id,
+                        crate::i18n::tr(
+                            "The query could not be run: {reason}",
+                            &[("reason", &error.to_string())],
+                        ),
+                    );
+                }
             }
         }
     }

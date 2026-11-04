@@ -97,6 +97,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Report: {name}", "Bericht: {name}"),
     ("Required", "Erforderlich"),
     (
+        "Rows could not be loaded: {reason}",
+        "Zeilen konnten nicht geladen werden: {reason}",
+    ),
+    (
         "Run failed — see the status line",
         "Ausführung fehlgeschlagen — siehe Statuszeile",
     ),
@@ -123,6 +127,10 @@ pub static TABLE: &[(&str, &str)] = &[
     (
         "The open database has no VBA project.",
         "Die geöffnete Datenbank enthält kein VBA-Projekt.",
+    ),
+    (
+        "The query could not be run: {reason}",
+        "Die Abfrage konnte nicht ausgeführt werden: {reason}",
     ),
     (
         "The query produced no runnable result yet.",

@@ -7,12 +7,15 @@ use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 fn customers() -> TableDef {
     TableDef::new(
         "Customers",
-        vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))],
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
     )
 }
 

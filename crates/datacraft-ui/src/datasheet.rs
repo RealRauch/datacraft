@@ -57,7 +57,13 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         return;
     };
     let Some(rows) = app.rows_for(tab.id) else {
-        ui.label(t("Loading rows…"));
+        // A failed load surfaces its reason (step 39.4, item M31); without
+        // one the cache is still on its first pass.
+        if let Some(reason) = app.load_error(tab.id) {
+            ui.colored_label(tokens(ui.visuals()).danger, reason.to_owned());
+        } else {
+            ui.label(t("Loading rows…"));
+        }
         return;
     };
     let cursor = app.record_cursor(tab.id);
@@ -164,7 +170,14 @@ fn new_row_ui(
 /// exactly one `SetQbeCell` per action (step 21.4).
 pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let Some(result) = app.results_for(tab.id) else {
-        ui.centered_and_justified(|ui| ui.weak(t("The query produced no runnable result yet.")));
+        // A failed run surfaces its reason (step 39.4, item M31).
+        if let Some(reason) = app.load_error(tab.id) {
+            ui.colored_label(tokens(ui.visuals()).danger, reason.to_owned());
+        } else {
+            ui.centered_and_justified(|ui| {
+                ui.weak(t("The query produced no runnable result yet."))
+            });
+        }
         return;
     };
     let cursor = app.record_cursor(tab.id);

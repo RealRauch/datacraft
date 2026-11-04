@@ -22,6 +22,14 @@ impl App {
         self.results.get(&tab_id)
     }
 
+    /// The localized load failure of one tab's presentation cache, if the
+    /// last load attempt failed (step 39.4, item M31 — the reason renders
+    /// in place of the endless loading state and clears on the next
+    /// successful pass).
+    pub(crate) fn load_error(&self, tab_id: TabId) -> Option<&str> {
+        self.load_errors.get(&tab_id).map(String::as_str)
+    }
+
     /// Buffered cells of a datasheet's new-record row, padded to the
     /// table's column count (step 11.7).
     pub fn new_row_cells(&self, tab_id: TabId, columns: usize) -> Vec<String> {

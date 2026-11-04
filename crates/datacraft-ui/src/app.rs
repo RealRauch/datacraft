@@ -105,6 +105,10 @@ pub struct App {
     pub(crate) settings_path: Option<std::path::PathBuf>,
     /// Whether the restored window position was already checked (step 22.2).
     pub(crate) position_rescued: bool,
+    /// Localized load failures per tab (step 39.4, item M31): rendered in
+    /// place of the endless loading state, cleared on the next successful
+    /// load pass.
+    pub(crate) load_errors: HashMap<TabId, String>,
     /// The dialog seam: platform dialogs in the binary, scripted in the
     /// headless suite (step 38.3, item M43).
     pub(crate) dialogs: Box<dyn crate::dialogs::DialogHost>,
@@ -133,6 +137,7 @@ impl App {
             preview_page: HashMap::new(),
             previews: HashMap::new(),
             record_cursor: HashMap::new(),
+            load_errors: HashMap::new(),
             drags: HashMap::new(),
             form_record: HashMap::new(),
             design_selection: HashMap::new(),
