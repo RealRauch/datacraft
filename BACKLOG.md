@@ -30,12 +30,6 @@
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
 
-### [ ] M47 — VBA static analysis has no viewer (AnalyzeVba) — 🟡
-- **Location:** `crates/datacraft-core/src/vba_analysis.rs` + `Event::VbaAnalyzed` (`event.rs:325`), `crates/datacraft-ui/src/vba_viewer.rs` (source viewer only — no frontend dispatches `AnalyzeVba`, the event is ignored)
-- **Problem:** Step 17.3 shipped the static analysis (call graph, embedded SQL, table/query references, unused modules), but `AnalyzeVba` is dispatched by no client except CLI/MCP and the UI never shows the results; the feature is invisible to GUI users (found in the command/GUI parity audit 2026-11-04).
-- **Approach:** An analysis view in or next to the VBA viewer that dispatches `AnalyzeVba` once on demand and renders the returned `VbaAnalysis` sections (per-module call graph, SQL statements, references, unused modules) as read-only lists; keep ADR-2 (static analysis only, no execution).
-- **Acceptance:** The GUI shows all analysis sections for an open VBA project; a kittest on the programmability fixture pins the rendering; canonical verification set green.
-
 ### [ ] M48 — Report designer cannot set grouping (SetReportGrouping) — 🟡
 - **Location:** `crates/datacraft-ui/src/report_design.rs` (dispatches only `SetReportControlRect`/`DeleteReportControl`), `crates/datacraft-core/src/reports.rs:241` (`set_report_grouping`), `command.rs` (`SetReportGrouping` — headless only)
 - **Problem:** The report preview renders group header/footer bands, but the designer offers no control to set or clear a report's grouping field, so GUI users cannot produce grouped reports; only CLI/MCP can (found in the command/GUI parity audit 2026-11-04).
@@ -280,3 +274,4 @@
 - M51 — Pin cargo-llvm-cov in the CI coverage job (High gate, released) — done (1a769e2)
 - M45 — Relationship mapper: create/delete relationships are headless-only — done (done in `f331afe` (RED `2aaa13a`) — step 41.1: mapper create form (four schema pickers) + per-row delete, one command each; availability ids relationships.create/delete gate on != Yes; full() reference set corrected to relationships: Yes)
 - M46 — Expression service has no GUI surface (RunExpression) — done (done in `0fdb340` (RED `3e1750c`) — step 41.2: Database Tools > Expression window dispatching RunExpression without row context, result/failure rendering kittest-pinned; row-context evaluation stays a documented follow-up)
+- M47 — VBA static analysis has no viewer (AnalyzeVba) — done (done in `8c6c689` (RED `af03bed`) — step 41.3: viewer Analyze affordance dispatching AnalyzeVba, right pane renders all five VbaAnalysis sections read-only (ADR-2 kept); kittest over fixture-shaped MockPort content (dependency direction: the ui crate cannot decode the accdb fixture))

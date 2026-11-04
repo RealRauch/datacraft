@@ -1342,3 +1342,12 @@
 - **Approach:** An Access-like expression window (document tab or pane) with one text field dispatching `RunExpression` without row context (row context can follow later), rendering the result value or the precise failure in the status bar; entry point on the Database Tools ribbon group next to SQL.
 - **Acceptance:** Results and failures from the GUI arrive over the bus (`RunExpression` → result/error rendering); a kittest pins both renderings; canonical verification set green.
 - **Done:** done in `0fdb340` (RED `3e1750c`) — step 41.2: Database Tools > Expression window dispatching RunExpression without row context, result/failure rendering kittest-pinned; row-context evaluation stays a documented follow-up
+
+---
+
+### [x] M47 — VBA static analysis has no viewer (AnalyzeVba) — 🟡
+- **Location:** `crates/datacraft-core/src/vba_analysis.rs` + `Event::VbaAnalyzed` (`event.rs:325`), `crates/datacraft-ui/src/vba_viewer.rs` (source viewer only — no frontend dispatches `AnalyzeVba`, the event is ignored)
+- **Problem:** Step 17.3 shipped the static analysis (call graph, embedded SQL, table/query references, unused modules), but `AnalyzeVba` is dispatched by no client except CLI/MCP and the UI never shows the results; the feature is invisible to GUI users (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** An analysis view in or next to the VBA viewer that dispatches `AnalyzeVba` once on demand and renders the returned `VbaAnalysis` sections (per-module call graph, SQL statements, references, unused modules) as read-only lists; keep ADR-2 (static analysis only, no execution).
+- **Acceptance:** The GUI shows all analysis sections for an open VBA project; a kittest on the programmability fixture pins the rendering; canonical verification set green.
+- **Done:** done in `8c6c689` (RED `af03bed`) — step 41.3: viewer Analyze affordance dispatching AnalyzeVba, right pane renders all five VbaAnalysis sections read-only (ADR-2 kept); kittest over fixture-shaped MockPort content (dependency direction: the ui crate cannot decode the accdb fixture)
