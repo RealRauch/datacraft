@@ -5,10 +5,10 @@
 //! identically in both views. No window needed to test any of this.
 
 use datacraft_core::grid::{
-    DEFAULT_COLUMN_WIDTH, GridMetrics, MIN_COLUMN_WIDTH, clamp_scroll, clamp_scroll_x,
-    column_at_x, column_span_x, effective_frozen, effective_widths, ensure_row_visible,
-    frozen_column_x, frozen_width, page_rows, resize_column, resize_handle_at,
-    scrolled_column_x, visible_row_range, visible_scrolled_range,
+    DEFAULT_COLUMN_WIDTH, GridMetrics, MIN_COLUMN_WIDTH, clamp_scroll, clamp_scroll_x, column_at_x,
+    column_span_x, effective_frozen, effective_widths, ensure_row_visible, frozen_column_x,
+    frozen_width, page_rows, resize_column, resize_handle_at, scrolled_column_x, visible_row_range,
+    visible_scrolled_range,
 };
 use proptest::prelude::*;
 
