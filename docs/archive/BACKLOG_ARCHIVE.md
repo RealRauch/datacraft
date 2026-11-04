@@ -1324,3 +1324,12 @@
 - **Approach:** Pin the install-action tool to the local version (`tool: cargo-llvm-cov@0.9.1`) and update the job comment to state the pin policy: bump deliberately together with the local toolchain/dev setup, never passively via @latest. The lcov-based gate evaluation stays unchanged.
 - **Acceptance:** ci.yml coverage job installs `cargo-llvm-cov@0.9.1`; the comment records the deliberate-bump policy; the workflow lints (yaml valid, job shape unchanged); a CI run on main stays green.
 - **Done:** 1a769e2
+
+---
+
+### [x] M45 — Relationship mapper: create/delete relationships are headless-only — 🟡
+- **Location:** `crates/datacraft-ui/src/relationships.rs` (read-only listing pane), `crates/datacraft-core/src/command.rs` (`CreateRelationship`/`DeleteRelationship` — M16 done, Jet/SQLite report `relationships: Yes`)
+- **Problem:** The mapper pane lists relationships but offers no way to create or delete one; the commands and capabilities exist since M16, so a GUI user of a fully capable driver is locked out of a shipped feature — it is reachable headless only (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** Add create/delete affordances to the mapper pane — table/column pickers from the snapshot for creation, a delete action per listed relationship — dispatching the existing commands; respect the `relationships` capability affordance id (already in `availability.rs`) with localized disabled reasons.
+- **Acceptance:** Create and delete flows dispatch exactly one command each over the real write path; capability-disabled rendering on CSV is pinned by a kittest; canonical verification set green.
+- **Done:** done in `f331afe` (RED `2aaa13a`) — step 41.1: mapper create form (four schema pickers) + per-row delete, one command each; availability ids relationships.create/delete gate on != Yes; full() reference set corrected to relationships: Yes

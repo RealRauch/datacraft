@@ -281,7 +281,7 @@
 | 40.3 | Datasheet row deletion GUI path (M44) | ✅ |
 | 40.4 | Datasheet in-place cell editing of existing rows (L23) | ✅ |
 | 40.5 | Phase 40 Quality Gate Review | ✅ |
-| 41.1 | Relationship mapper: create/delete affordances (M45) | ⬜ |
+| 41.1 | Relationship mapper: create/delete affordances (M45) | ✅ |
 | 41.2 | Expression window for RunExpression (M46) | ⬜ |
 | 41.3 | VBA static analysis viewer for AnalyzeVba (M47) | ⬜ |
 | 41.4 | Report designer grouping picker (M48) | ⬜ |

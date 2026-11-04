@@ -30,12 +30,6 @@
 - **Approach:** One sweep phase right before the release (Phase 35), after Phase 31 freezes the crate structure: (1) AGENTS.md + README architecture/diagrams reflect the real crate graph; (2) ARCHITECTURE §5/§6/§13 rewritten to the current truth (preview sections replaced or explicitly dated); (3) FORMAT-JET gains the CSV driver section, TESTING taxonomy matches the live suites; README compatibility matrix re-verified date-stamped. Append-only archives stay untouched; every claimed number is checked against the code.
 - **Acceptance:** No tracked doc contradicts the repository state (crate lists, phase mappings, remaining-work claims); the compatibility matrix is date-accurate; a fresh-contributor walkthrough (clone → read AGENTS/README → build → open a CSV directory) works without hitting stale guidance; canonical verification set green.
 
-### [ ] M45 — Relationship mapper: create/delete relationships are headless-only — 🟡
-- **Location:** `crates/datacraft-ui/src/relationships.rs` (read-only listing pane), `crates/datacraft-core/src/command.rs` (`CreateRelationship`/`DeleteRelationship` — M16 done, Jet/SQLite report `relationships: Yes`)
-- **Problem:** The mapper pane lists relationships but offers no way to create or delete one; the commands and capabilities exist since M16, so a GUI user of a fully capable driver is locked out of a shipped feature — it is reachable headless only (found in the command/GUI parity audit 2026-11-04).
-- **Approach:** Add create/delete affordances to the mapper pane — table/column pickers from the snapshot for creation, a delete action per listed relationship — dispatching the existing commands; respect the `relationships` capability affordance id (already in `availability.rs`) with localized disabled reasons.
-- **Acceptance:** Create and delete flows dispatch exactly one command each over the real write path; capability-disabled rendering on CSV is pinned by a kittest; canonical verification set green.
-
 ### [ ] M46 — Expression service has no GUI surface (RunExpression) — 🟡
 - **Location:** `crates/datacraft-core/src/command.rs` (`RunExpression` — H41, dispatched by CLI/MCP only), UI has no evaluator view (grep audit 2026-11-04)
 - **Problem:** The expression service is a shipped feature (evaluator suite, defaults/rules wiring, report bands), but the GUI cannot evaluate an expression: agents get it over the bus, humans have no window anywhere.
@@ -284,3 +278,4 @@
 - L23 — Datasheet in-place cell editing of existing rows — done (8e28ef9)
 - T9 — Coverage gap audit: contract tests for locally uncovered edge paths (MSVC attribution) — done (b83ffe1)
 - M51 — Pin cargo-llvm-cov in the CI coverage job (High gate, released) — done (1a769e2)
+- M45 — Relationship mapper: create/delete relationships are headless-only — done (done in `f331afe` (RED `2aaa13a`) — step 41.1: mapper create form (four schema pickers) + per-row delete, one command each; availability ids relationships.create/delete gate on != Yes; full() reference set corrected to relationships: Yes)
