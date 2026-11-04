@@ -330,4 +330,69 @@ mod tests {
         let auto = kind_of("a", FieldKind::AutoNumber(AutoKind::ReplicationId));
         assert!(coerce("x", &auto.fields[0].kind).is_err());
     }
+
+    /// Step 39.3 (item M37): `Like` criteria work on text columns through
+    /// the expression matcher (Access wildcards, case-insensitive) instead
+    /// of degrading to an equality against the literal criteria text.
+    #[test]
+    fn like_criteria_match_access_patterns() {
+        let text = kind_of("s", FieldKind::Text { max_len: 50 });
+        let column = &text.fields[0];
+        let predicate = parse_predicate("Like \"B*\"", "v", column).expect("Like parses");
+        assert!(
+            predicate.matches(&FieldValue::Text("Berlin".into())),
+            "B* matches Berlin"
+        );
+        assert!(!predicate.matches(&FieldValue::Text("Hamburg".into())));
+        let predicate =
+            parse_predicate("like \"hamburg\"", "v", column).expect("like parses");
+        assert!(
+            predicate.matches(&FieldValue::Text("Hamburg".into())),
+            "the keyword and the pattern are case-insensitive"
+        );
+    }
+
+    /// Step 39.3 (item M37): the other Access criteria forms are recognized
+    /// and answer a precise error — on text columns they previously
+    /// degraded to an equality against the literal criteria text (silent
+    /// 0 rows).
+    #[test]
+    fn unsupported_access_forms_error_precisely() {
+        let text = kind_of("s", FieldKind::Text { max_len: 50 });
+        let column = &text.fields[0];
+        for criteria in ["Between 1 And 5", "In (1, 2)", "Is Null", "Not Like \"B*\""] {
+            let error = parse_predicate(criteria, "v", column)
+                .expect_err("recognized Access forms never degrade to equality");
+            assert!(error.to_string().contains(criteria), "{criteria}: {error}");
+        }
+    }
+
+    /// Step 39.3 (item M37): Like is a text-column form — other families
+    /// answer a precise reason instead of a coercion failure.
+    #[test]
+    fn like_on_non_text_columns_error_precisely() {
+        let numbers = kind_of("i", FieldKind::Number(NumericKind::LongInteger));
+        let error = parse_predicate("Like \"B*\"", "v", &numbers.fields[0])
+            .expect_err("Like needs a text column");
+        assert!(error.to_string().contains("text"), "{error}");
+    }
+
+    /// Step 39.3 (item M37): the case fence — equality criteria compare
+    /// case-sensitively (byte order), Like matches case-insensitively
+    /// (Option Compare Database via the expression matcher).
+    #[test]
+    fn text_criteria_case_fence_is_pinned() {
+        let text = kind_of("s", FieldKind::Text { max_len: 50 });
+        let column = &text.fields[0];
+        let equal = parse_predicate("berlin", "v", column).expect("parses");
+        assert!(
+            !equal.matches(&FieldValue::Text("Berlin".into())),
+            "equality is case-sensitive"
+        );
+        let like = parse_predicate("Like \"berlin\"", "v", column).expect("parses");
+        assert!(
+            like.matches(&FieldValue::Text("Berlin".into())),
+            "Like is case-insensitive"
+        );
+    }
 }
