@@ -106,8 +106,6 @@ fn delete_flows_dispatch_and_surface_precise_errors() {
 
 #[test]
 fn opening_a_database_prefills_the_sidecar_path_and_saving_reports_a_notice() {
-    use datacraft_core::command::Command;
-
     // The status notices are UI text: pin the language while asserting.
     let _guard = crate::i18n::lang_lock();
     crate::i18n::set_lang(crate::i18n::Lang::English);
@@ -162,7 +160,6 @@ fn opening_a_database_prefills_the_sidecar_path_and_saving_reports_a_notice() {
 #[test]
 fn the_designer_palette_places_fields_and_toolbox_controls() {
     use datacraft_core::ObjectKind;
-    use datacraft_core::command::Command;
     use datacraft_core::form::ControlKind;
     use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
 
@@ -229,7 +226,6 @@ fn the_designer_palette_places_fields_and_toolbox_controls() {
 fn the_datasheet_new_row_inserts_through_the_bus() {
     use datacraft_core::ObjectId;
     use datacraft_core::ObjectKind;
-    use datacraft_core::command::Command;
     use datacraft_core::schema::{
         AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
     };
@@ -286,7 +282,6 @@ fn dispatch_refreshes_the_snapshot() {
 
 #[test]
 fn a_password_required_open_raises_the_prompt_and_retries() {
-    use datacraft_core::command::Command;
     let mut port = datacraft_core::port::MockPort::new();
     port.with_password("secret");
     let mut app = App::new(Box::new(port));
@@ -315,7 +310,6 @@ fn a_password_required_open_raises_the_prompt_and_retries() {
 fn undo_refreshes_the_datasheet_row_cache() {
     use datacraft_core::ObjectId;
     use datacraft_core::ObjectKind;
-    use datacraft_core::command::Command;
     use datacraft_core::port::MockPort;
     use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
 
@@ -374,9 +368,10 @@ fn a_failing_query_run_stores_the_reason_for_the_tab() {
         path: "memory.mock".into(),
         password: None,
     });
-    app.dispatch(datacraft_core::command::Command::CreateQuery {
-        name: "All".into(),
-    });
+    app.dispatch(datacraft_core::command::Command::CreateQuery { name: "All".into() });
+    app.dispatch(datacraft_core::command::Command::OpenObject(
+        datacraft_core::ObjectId::new(datacraft_core::ObjectKind::Query, "All"),
+    ));
     app.dispatch(datacraft_core::command::Command::SetQbeCell {
         query: "All".into(),
         row: QbeRow::Table,
