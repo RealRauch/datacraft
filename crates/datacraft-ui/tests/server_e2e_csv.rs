@@ -61,12 +61,15 @@ fn a_csv_directory_drives_the_full_stack_over_the_wire() {
         snapshot["database"]["capabilities"]["alter_table"],
         json!(false)
     );
-    // CSV has no relationships, so the mapper affordance is disabled —
-    // the availability map names exactly that (ADR-7).
+    // CSV has no relationships, so the mapper affordance and the mapper's
+    // create/delete affordances are disabled — the availability map names
+    // exactly that (ADR-7; step 41.1).
     assert_eq!(
         snapshot["database"]["availability"],
         json!({
             "relationships": "no_relationships",
+            "relationships.create": "no_relationships",
+            "relationships.delete": "no_relationships",
             "backstage.save_as": "no_passwords",
             "backstage.change_password": "no_passwords"
         })

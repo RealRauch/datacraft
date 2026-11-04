@@ -41,6 +41,11 @@ pub mod ids {
     pub const CREATE_TABLE: &str = "table";
     /// Ribbon Database Tools ▸ Relationships (the mapper pane).
     pub const RELATIONSHIPS: &str = "relationships";
+    /// Relationship-mapper create affordance (step 41.1, item M45).
+    /// Gates on `Support::Yes` — the dispatch gate refuses anything less.
+    pub const RELATIONSHIPS_CREATE: &str = "relationships.create";
+    /// Relationship-mapper per-row delete affordance (step 41.1, item M45).
+    pub const RELATIONSHIPS_DELETE: &str = "relationships.delete";
     /// Navigation-pane context menu Delete.
     pub const NAV_DELETE: &str = "nav.delete";
     /// Datasheet new-record row.
@@ -74,6 +79,16 @@ pub fn affordances(caps: &DriverCapabilities) -> BTreeMap<String, DisabledReason
     if caps.relationships == Support::No {
         map.insert(
             ids::RELATIONSHIPS.to_owned(),
+            DisabledReason::NoRelationships,
+        );
+    }
+    if caps.relationships != Support::Yes {
+        map.insert(
+            ids::RELATIONSHIPS_CREATE.to_owned(),
+            DisabledReason::NoRelationships,
+        );
+        map.insert(
+            ids::RELATIONSHIPS_DELETE.to_owned(),
             DisabledReason::NoRelationships,
         );
     }

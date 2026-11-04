@@ -231,7 +231,7 @@ fn the_conservative_and_optimistic_reference_sets_are_distinct() {
     assert!(full.write_rows);
     assert!(!full.atomic_batch);
     assert_eq!(full.autonumber, Support::No);
-    assert_eq!(full.relationships, Support::ReadOnly);
+    assert_eq!(full.relationships, Support::Yes);
     assert_ne!(none, full, "the two reference sets are distinct");
 }
 

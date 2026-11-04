@@ -106,6 +106,9 @@ pub struct App {
     /// VBA viewer search text (module list + source full-text filter,
     /// step 17.2).
     pub vba_search: String,
+    /// Draft of the relationship-create form while the mapper pane's
+    /// form is open (`None` hides it, step 41.1, item M45).
+    pub(crate) relationship_draft: Option<crate::relationships::RelationshipDraft>,
     /// UI-owned settings (ADR-5); persisted only when a path is attached.
     pub(crate) settings: crate::settings::Settings,
     /// Path of `ui.json`; `None` keeps settings session-only (tests).
@@ -168,6 +171,7 @@ impl App {
             sql_column_widths: Vec::new(),
             password_prompt: None,
             vba_search: String::new(),
+            relationship_draft: None,
             settings: crate::settings::Settings::default(),
             settings_path: None,
             position_rescued: false,

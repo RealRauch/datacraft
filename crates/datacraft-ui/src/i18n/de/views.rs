@@ -120,6 +120,12 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Table no longer exists", "Tabelle existiert nicht mehr"),
     ("Table:", "Tabelle:"),
     ("Tables: {tables}", "Tabellen: {tables}"),
+    ("Create Relationship", "Beziehung erstellen"),
+    ("New Relationship", "Neue Beziehung"),
+    ("Referenced field", "Referenziertes Feld"),
+    ("Referenced table", "Referenzierte Tabelle"),
+    ("Referencing field", "Verweisendes Feld"),
+    ("Referencing table", "Verweisende Tabelle"),
     (
         "The macro definition carries no readable argument records.",
         "Die Makrodefinition enthält keine lesbaren Argumentdatensätze.",

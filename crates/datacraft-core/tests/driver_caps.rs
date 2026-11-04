@@ -67,7 +67,7 @@ fn the_mock_reports_honest_default_capabilities() {
     assert!(!caps.atomic_batch, "the mock applies batches one by one");
     assert!(!caps.passwords, "the mock ignores passwords");
     assert_eq!(caps.autonumber, Support::No);
-    assert_eq!(caps.relationships, Support::ReadOnly);
+    assert_eq!(caps.relationships, Support::Yes);
     assert_eq!(caps.native_queries, Support::ReadOnly);
     assert_eq!(caps.macros, Support::ReadOnly);
     assert_eq!(caps.vba, Support::ReadOnly);
@@ -88,7 +88,7 @@ fn the_snapshot_carries_driver_and_capabilities() {
     assert!(!db.capabilities.write_rows);
     assert!(!db.capabilities.atomic_batch);
     assert!(db.capabilities.read_tables);
-    assert_eq!(db.capabilities.relationships, Support::ReadOnly);
+    assert_eq!(db.capabilities.relationships, Support::Yes);
 }
 
 /// The wire spells the vocabulary deterministically — flat capability

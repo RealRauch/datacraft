@@ -138,7 +138,7 @@ impl DriverCapabilities {
             atomic_batch: false,
             passwords: true,
             autonumber: Support::No,
-            relationships: Support::ReadOnly,
+            relationships: Support::Yes,
             native_queries: Support::ReadOnly,
             macros: Support::ReadOnly,
             vba: Support::ReadOnly,

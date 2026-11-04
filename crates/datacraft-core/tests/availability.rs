@@ -78,6 +78,14 @@ fn restricted_capabilities_disable_the_matching_affordances() {
                 datacraft_core::availability::DisabledReason::NoRelationships,
             ),
             (
+                "relationships.create".to_owned(),
+                datacraft_core::availability::DisabledReason::NoRelationships,
+            ),
+            (
+                "relationships.delete".to_owned(),
+                datacraft_core::availability::DisabledReason::NoRelationships,
+            ),
+            (
                 "backstage.save_as".to_owned(),
                 datacraft_core::availability::DisabledReason::NoPasswords,
             ),
