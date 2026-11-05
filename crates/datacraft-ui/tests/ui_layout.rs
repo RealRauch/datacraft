@@ -114,10 +114,7 @@ fn every_ribbon_group_stays_inside_the_window() {
 
 /// Renders the full shell at `size` and drains the rect log plus the
 /// semantic tree.
-fn shell_frame(
-    mut app: App,
-    size: egui::Vec2,
-) -> (Vec<(String, egui::Rect)>, String) {
+fn shell_frame(app: App, size: egui::Vec2) -> (Vec<(String, egui::Rect)>, String) {
     let mut harness = Harness::new_ui_state(
         move |ui, app: &mut App| {
             datacraft_ui::theme::fonts::install(ui.ctx());
@@ -145,10 +142,7 @@ fn shell_frame(
     (layout_probe::drain(), lines.join("\n"))
 }
 
-fn panel_rect<'a>(
-    rects: &'a [(String, egui::Rect)],
-    id: &str,
-) -> egui::Rect {
+fn panel_rect(rects: &[(String, egui::Rect)], id: &str) -> egui::Rect {
     rects
         .iter()
         .find(|(name, _)| name == id)

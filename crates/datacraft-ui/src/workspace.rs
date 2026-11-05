@@ -82,7 +82,25 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                                 ui.close();
                             }
                         });
-                        if ui.small_button("✕").clicked() {
+                        // Paints through the icon dispatcher (step 44.2,
+                        // H53 sweep): the shipped font set has no "✕"
+                        // glyph, so the text button rendered tofu in the
+                        // live app and panicked the strict headless suite.
+                        let (close_rect, close_response) =
+                            ui.allocate_exact_size(egui::vec2(18.0, 18.0), egui::Sense::click());
+                        let close_response = close_response.on_hover_text(t("Close"));
+                        let close_visuals = ui.style().interact(&close_response);
+                        crate::icons::paint(
+                            ui.painter(),
+                            close_rect.shrink(4.0),
+                            "close",
+                            close_visuals.fg_stroke.color,
+                            tokens.accent,
+                        );
+                        close_response.widget_info(|| {
+                            egui::WidgetInfo::labeled(egui::Role::Button, true, t("Close"))
+                        });
+                        if close_response.clicked() {
                             intent = Some(WorkspaceIntent::Close(tab.id));
                         }
                     });
