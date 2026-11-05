@@ -24,6 +24,16 @@ fn customers() -> TableDef {
     )
 }
 
+fn other_table() -> TableDef {
+    TableDef::new(
+        "Others",
+        vec![
+            FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
+            FieldDef::new("name", FieldKind::Text { max_len: 50 }),
+        ],
+    )
+}
+
 fn customers_app(rows: Vec<Vec<datacraft_core::schema::FieldValue>>) -> App {
     let mut port = MockPort::with_tables(vec![customers()]);
     port.with_row_data("Customers", rows);
@@ -273,5 +283,65 @@ fn the_filter_dialog_seeds_and_clears_the_live_filter() {
     assert!(
         harness.get_by_label("beta").rect().width() > 0.0,
         "beta returns"
+    );
+}
+
+/// Activating an object surfaces its contextual tools tab (step 47.1,
+/// item M58 — Access convention; the user had to click Tabellentools
+/// manually): the ribbon's selection follows the active document's
+/// kind.
+#[test]
+fn activating_a_table_surfaces_the_table_tools_tab() {
+    let mut app = app_with_table_tab();
+    app.active_ribbon_tab = "home";
+    let mut harness = ribbon_harness(app);
+    harness.run();
+    assert_eq!(
+        harness.state().active_ribbon_tab, "table_tools",
+        "activating a table selects its contextual tools tab"
+    );
+}
+
+/// The backstage is never yanked by object activation (step 47.1, M58
+/// guard): File pages stay put.
+#[test]
+fn the_backstage_is_not_yanked_by_object_activation() {
+    let mut app = app_with_table_tab();
+    app.active_ribbon_tab = "file";
+    let mut harness = ribbon_harness(app);
+    harness.run();
+    assert_eq!(
+        harness.state().active_ribbon_tab, "file",
+        "the backstage keeps the selection"
+    );
+}
+
+/// Switching between two objects of the SAME kind never yanks the user
+/// off a non-contextual ribbon tab (step 47.1, M58 guard): Database
+/// Tools stays selected while the user browses tables.
+#[test]
+fn switching_between_two_tables_keeps_the_ribbon_tab() {
+    let port = MockPort::with_tables(vec![customers(), other_table()]);
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Customers",
+    )));
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Others",
+    )));
+    app.active_ribbon_tab = "database_tools";
+    let first = app.snapshot().tabs[0].id;
+    app.dispatch(Command::SetActiveTab { tab_id: first });
+    let mut harness = ribbon_harness(app);
+    harness.run();
+    assert_eq!(
+        harness.state().active_ribbon_tab, "database_tools",
+        "same-kind activation keeps the non-contextual tab"
     );
 }
