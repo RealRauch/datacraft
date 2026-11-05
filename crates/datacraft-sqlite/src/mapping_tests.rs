@@ -47,19 +47,11 @@ fn marker_types_match_with_a_length_or_precision_suffix() {
     let case = |declared: &str| field_kind(declared, 0, false, true);
     assert_eq!(case("DATETIME(6)"), FieldKind::DateTime);
     assert_eq!(case("CURRENCY(10)"), FieldKind::Currency);
-    assert_eq!(
-        case("BOOLEAN(1)"),
-        FieldKind::Boolean {
-            tri_state: true
-        }
-    );
+    assert_eq!(case("BOOLEAN(1)"), FieldKind::Boolean { tri_state: true });
     assert_eq!(case("GUID(16)"), FieldKind::Guid);
     assert_eq!(case("TIMESTAMP (3)"), FieldKind::DateTime);
     // Character types are not marker names — their suffix is the budget.
-    assert_eq!(
-        case("VARCHAR(40)"),
-        FieldKind::Text { max_len: 40 }
-    );
+    assert_eq!(case("VARCHAR(40)"), FieldKind::Text { max_len: 40 });
     // The integer key marker survives a width suffix too.
     assert_eq!(
         field_kind("INTEGER(4)", 1, true, false),

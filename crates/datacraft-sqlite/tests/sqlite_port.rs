@@ -166,7 +166,8 @@ fn tricky_database() -> Scratch {
 fn a_word_mention_outside_the_key_column_keeps_the_integer_key_plain() {
     let scratch = tricky_database();
     let mut port = SqlitePort::new();
-    port.open(&scratch.0, None).expect("open generated sqlite file");
+    port.open(&scratch.0, None)
+        .expect("open generated sqlite file");
 
     // The key column stays a plain, user-assignable integer.
     assert_eq!(
@@ -192,7 +193,8 @@ fn a_word_mention_outside_the_key_column_keeps_the_integer_key_plain() {
 fn marker_type_suffixes_keep_their_declared_kind() {
     let scratch = tricky_database();
     let mut port = SqlitePort::new();
-    port.open(&scratch.0, None).expect("open generated sqlite file");
+    port.open(&scratch.0, None)
+        .expect("open generated sqlite file");
     assert_eq!(kind(&port, "tricky", "stamp"), FieldKind::DateTime);
     assert_eq!(kind(&port, "tricky", "price"), FieldKind::Currency);
 }

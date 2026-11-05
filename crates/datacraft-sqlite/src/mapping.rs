@@ -6,6 +6,7 @@
 use std::io::Read;
 use std::path::Path;
 
+use crate::ddl::pk_is_autoincrement;
 use datacraft_core::port::{PortError, Relationship};
 use datacraft_core::schema::{
     AutoKind, BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
@@ -221,7 +222,14 @@ pub(crate) fn collect_tables(conn: &Connection) -> Result<Vec<TableDef>, PortErr
             continue;
         }
         let sql: Option<String> = row.get(1).map_err(|e| read_failed("sqlite_master", e))?;
-        let autoincrement = sql.is_some_and(|s| s.to_ascii_uppercase().contains("AUTOINCREMENT"));
+        // The AutoNumber flag comes from the key column's own DDL
+        // segment only — a word mention elsewhere never flips the
+        // integer key (step 42.1, L13).
+        let key_column = primary_key(conn, &name)?;
+        let autoincrement = sql
+            .as_deref()
+            .zip(key_column.as_deref())
+            .is_some_and(|(sql, column)| pk_is_autoincrement(sql, column));
         tables.push(TableDef::new(
             name.clone(),
             table_info(conn, &name, autoincrement)?,
@@ -259,8 +267,11 @@ pub(crate) fn table_info(
 ///
 /// Declared types are matched by name first (BOOLEAN/DATE/CURRENCY/GUID have
 /// no SQLite semantics of their own but are stable marker types), then by
-/// SQLite's own affinity rules. Unbounded text maps to the Access maximum
-/// (255); `VARCHAR(n)`/`CHAR(n)` keep their declared budget.
+/// SQLite's own affinity rules. Marker names may carry a length or
+/// precision suffix (`DATETIME(6)` matches the `DATETIME` marker) while
+/// the affinity fallbacks and the text budget still see the full
+/// declared type. Unbounded text maps to the Access maximum (255);
+/// `VARCHAR(n)`/`CHAR(n)` keep their declared budget.
 pub(crate) fn field_kind(
     declared: &str,
     pk: i64,
@@ -268,21 +279,22 @@ pub(crate) fn field_kind(
     nullable: bool,
 ) -> FieldKind {
     let upper = declared.trim().to_ascii_uppercase();
-    if autoincrement && pk > 0 && upper == "INTEGER" {
+    let marker = marker_base(&upper);
+    if autoincrement && pk > 0 && marker == "INTEGER" {
         return FieldKind::AutoNumber(AutoKind::LongInteger);
     }
-    if upper == "BOOLEAN" || upper == "BOOL" {
+    if marker == "BOOLEAN" || marker == "BOOL" {
         return FieldKind::Boolean {
             tri_state: nullable,
         };
     }
-    if matches!(upper.as_str(), "DATE" | "DATETIME" | "TIMESTAMP") {
+    if matches!(marker, "DATE" | "DATETIME" | "TIMESTAMP") {
         return FieldKind::DateTime;
     }
-    if matches!(upper.as_str(), "CURRENCY" | "MONEY") {
+    if matches!(marker, "CURRENCY" | "MONEY") {
         return FieldKind::Currency;
     }
-    if matches!(upper.as_str(), "GUID" | "UNIQUEIDENTIFIER") {
+    if matches!(marker, "GUID" | "UNIQUEIDENTIFIER") {
         return FieldKind::Guid;
     }
     if upper.contains("INT") {
@@ -303,6 +315,17 @@ pub(crate) fn field_kind(
         precision: 28,
         scale: 0,
     })
+}
+
+/// Marker name with a trailing parenthesized suffix removed
+/// (`DATETIME(6)` matches the `DATETIME` marker).
+fn marker_base(upper: &str) -> &str {
+    if upper.ends_with(')')
+        && let Some(open) = upper.rfind('(')
+    {
+        return upper[..open].trim_end();
+    }
+    upper
 }
 
 /// Character budget of a text column: `VARCHAR(n)`/`CHAR(n)` if declared,

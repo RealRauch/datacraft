@@ -636,11 +636,14 @@ primary-key position; `PRAGMA foreign_key_list` supplies relationships
 (a missing `to` column resolves to the referenced table's primary key).
 
 **Declared type → Access field kind.** Marker types are matched by name
-first, then by SQLite's affinity rules:
+first (a trailing length/precision suffix such as `DATETIME(6)` is
+stripped for the marker comparison; affinity fallbacks and the
+`VARCHAR(n)` budget still see the full declared type), then by SQLite's
+affinity rules:
 
 | SQLite declared type | Domain kind | Notes |
 |---|---|---|
-| `INTEGER PRIMARY KEY AUTOINCREMENT` | `AutoNumber(LongInteger)` | requires the table DDL to contain `AUTOINCREMENT`; always required |
+| `INTEGER PRIMARY KEY AUTOINCREMENT` | `AutoNumber(LongInteger)` | requires the key column's own DDL segment to carry the `AUTOINCREMENT` token (word mentions elsewhere — another column's default, a quoted name — never flip the key); always required |
 | `INTEGER`, `BIGINT`, `INT*` | `Number(LongInteger)` | 64-bit values widen into the domain integer |
 | `TEXT`, `CHAR`, `CLOB`, `VARCHAR(n)` | `Text { max_len }` | `n` clamped to 1–255; unbounded text maps to the Access maximum 255 |
 | `BLOB` or no declared type | `Binary(OleObject)` | raw bytes |
