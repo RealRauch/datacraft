@@ -281,14 +281,8 @@ fn record_navigation_places_previous_left_of_next() {
     port.with_row_data(
         "Orders",
         vec![
-            vec![
-                FieldValue::Integer(1),
-                FieldValue::Text("bolt".to_owned()),
-            ],
-            vec![
-                FieldValue::Integer(2),
-                FieldValue::Text("nut".to_owned()),
-            ],
+            vec![FieldValue::Integer(1), FieldValue::Text("bolt".to_owned())],
+            vec![FieldValue::Integer(2), FieldValue::Text("nut".to_owned())],
         ],
     );
     let mut app = App::new(Box::new(port));

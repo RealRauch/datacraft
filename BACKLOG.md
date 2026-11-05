@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-05T16:36
+# BACKLOG.md — Open items (As of: 2026-11-05T23:14
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -35,6 +35,18 @@
 - **Problem:** DataCraft has no path that imports an external file's content as new tables into the currently open database (Jet4/SQLite). CSV directories open only as a read-only driver source through the backstage folder dialog. The ribbon's "Import File" button today claims a "Phase 9" future that has passed; the decision (M49) keeps the button visible but honestly disabled until this feature is built, so it needs a real item to drive it.
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
+
+### [ ] M55 — Filter criteria cannot be typed: the header menu closes on editor click — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet/header.rs` (the header context menu's criteria editor), `crates/datacraft-ui/src/datasheet.rs` (the filter intent wiring).
+- **Problem:** The user cannot enter a filter criterion in the live app: the header context menu closes as soon as the criteria editor is clicked (walkthrough report 2026-11-05). egui's context menu does not host text editing reliably — the same interaction also stayed dead in the kittest attempt during 44.5 (type_text and accesskit set-value never reached the in-menu editor).
+- **Approach:** Move the criteria editor out of the menu into a small anchored egui Window (the mapper/sql/expression window pattern on App state): the menu offers one "Filter…" item that opens the dialog for that column; the dialog carries the seeded criteria editor plus Apply/Clear and dispatches the existing SetTableFilter commands. The menu keeps sort and freeze items unchanged.
+- **Acceptance:** Typing a criterion in the dialog and applying filters the rows over the bus; the dialog seeds from the live filter; Clear removes it; kittest pins cover open/seed/apply/clear through the dialog; canonical verification set green.
+
+### [ ] M56 — Record navigation arrows mirrored (prev right, next left) — 🟡
+- **Location:** `crates/datacraft-ui/src/shell.rs` (`record_navigation_ui` — the row is painted under the outer right-to-left status layout, mirroring the pair).
+- **Problem:** The status bar's record navigation shows the previous button right of the next one (user walkthrough report 2026-11-05, screenshot); left should decrement, right should increment.
+- **Approach:** Paint the counter row in its own left-to-right layout inside the right-to-left status bar (the block stays anchored at the right edge; only the internal order changes).
+- **Acceptance:** Previous sits left of the counter, next right of it (rect pin at shell level); canonical verification set green.
 
 ---
 

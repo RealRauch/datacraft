@@ -19,6 +19,14 @@
 - **44.4 Contextual design view switches the open table (M53)**
 - **44.5 Datasheet sort discoverability + first-class column filters (M54)**
 - **44.6 Phase 44 Quality Gate Review**
+### Phase 45 — Walkthrough Fixes
+
+**Scope (Steps):**
+
+- **45.1 Filter dialog window replaces the in-menu editor (user report: menu closes on field click)**
+- **45.2 Record-navigation arrow order: prev left, next right (user report)**
+- **45.3 Phase 45 Quality Gate Review (+ README datasheet row)**
+
 
 
 
@@ -285,3 +293,6 @@
 | 44.4 | Contextual design view switches the open table (M53) | ✅ |
 | 44.5 | Datasheet sort discoverability + first-class column filters (M54) | ✅ |
 | 44.6 | Phase 44 Quality Gate Review | ✅ |
+| 45.1 | Filter dialog window replaces the in-menu editor (user report: menu closes on field click) | ⬜ |
+| 45.2 | Record-navigation arrow order: prev left, next right (user report) | 🔄 |
+| 45.3 | Phase 45 Quality Gate Review (+ README datasheet row) | ⬜ |

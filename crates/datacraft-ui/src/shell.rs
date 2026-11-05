@@ -182,8 +182,24 @@ impl App {
             return;
         }
         let current = current.min(len - 1);
+        // The outer status layout is right-to-left; this box reads its
+        // own order left-to-right (step 45.2): previous on the left of
+        // the counter, next on the right.
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+            self.record_navigation_row(ui, &active, current, len);
+        });
+    }
+
+    /// The navigation row in reading order (step 45.2).
+    fn record_navigation_row(
+        &mut self,
+        ui: &mut egui::Ui,
+        tab: &datacraft_core::snapshot::TabSnapshot,
+        current: usize,
+        len: usize,
+    ) {
         if ui.small_button("\u{25c0}").clicked() && current > 0 {
-            self.step_record(&active, current - 1, len);
+            self.step_record(tab, current - 1, len);
         }
         ui.label(
             egui::RichText::new(tr(
@@ -196,7 +212,7 @@ impl App {
             .small(),
         );
         if ui.small_button("\u{25b6}").clicked() && current + 1 < len {
-            self.step_record(&active, current + 1, len);
+            self.step_record(tab, current + 1, len);
         }
     }
 
