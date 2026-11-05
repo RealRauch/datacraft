@@ -69,6 +69,7 @@ crates/
 ├── datacraft-storage/   driver composite: detection + samples (Ph. 30)
 ├── datacraft-csv/       CSV directory driver — ADR-7 out-of-tree proof (Ph. 30)
 ├── datacraft-mcp/       headless stdio JSON-RPC binary (Ph. 9; own crate since 31.3)
+├── datacraft-cli/       headless CLI client binary (Ph. 9)
 └── datacraft-ui/        eframe/egui desktop shell (lib + bin `datacraft`)
 ```
 
@@ -80,8 +81,8 @@ decisions in core.
 Dependency direction rules (review-enforced, never cyclic):
 
 ```text
-datacraft-ui      ──► datacraft-core
-datacraft-cli     ──► datacraft-core
+datacraft-ui      ──► datacraft-core, datacraft-storage, datacraft-csv
+datacraft-cli     ──► datacraft-core, datacraft-storage, datacraft-csv
 datacraft-mcp     ──► datacraft-core, datacraft-storage, datacraft-csv
 datacraft-storage ──► datacraft-jet, datacraft-sqlite, datacraft-core
 datacraft-jet     ──► datacraft-core   (clean-room Jet/ACE backend)
@@ -94,8 +95,10 @@ Out-of-tree drivers depend only on `datacraft-core` and are composed at
 the binary composition roots via `DetectingPort::with_fallback` (ADR-7,
 §16) — the storage crate never names them.
 
-- The UI never touches `datacraft-storage` directly; storage access happens
-  exclusively through core commands.
+- Library and UI code never touches a driver directly; storage access
+  happens exclusively through core commands. Only the binary targets
+  (`crates/*/src/main.rs`, `crates/datacraft-ui/src/bin/*`) name
+  `datacraft-storage` and `datacraft-csv` as the composition roots.
 - No async runtime (tokio & co.). The egui event loop drives the process;
   background work uses `std::thread` + channels behind core ports.
 - `[workspace.dependencies]` pins every external version once;
@@ -103,24 +106,18 @@ the binary composition roots via `DetectingPort::with_fallback` (ADR-7,
 
 ## 5. Headless core & command API (Principles 3 + 4)
 
-Target design (implemented in Phase 4; shape fixed here):
+Implemented in Phase 4 and extended phase by phase since; this section
+pins the shape, not the variant list. The authoritative command
+vocabulary lives in `datacraft-core/src/command.rs` (the enum is
+`#[non_exhaustive]` per M22 — clients match with a wildcard arm), the
+event vocabulary in `event.rs` and the serializable state surface in
+`snapshot.rs`. Row writes, undo/redo, save-as/password, relationships,
+templates/samples, capability-gated dispatch (ADR-7) and the UI-parity
+commands of phases 38–42 all speak it.
 
 ```rust
 /// Every user-visible action, GUI or agent, is exactly one command.
-pub enum Command {
-    OpenDatabase { path: PathBuf },
-    CloseDatabase,
-    CreateTable { definition: TableDef },
-    DropTable { table: String },
-    OpenObject(ObjectId),
-    CloseTab { tab_id: TabId },
-    SetActiveTab { tab_id: TabId },
-    ToggleNavPane,
-    RunQuery { query: ObjectId },
-    SetQbeCell { row: QbeRow, col: QbeCol, value: QbeValue },
-    AddFormControl { form: ObjectId, control: FormControl },
-    // ...
-}
+pub enum Command { /* the authoritative list is command.rs */ }
 
 /// Observable outcome of a dispatch; the UI re-renders from state, agents assert on events.
 pub enum Event { /* DatabaseOpened { .. }, TabOpened { .. }, .. */ }
@@ -189,16 +186,19 @@ pub trait StorageEngine: Send {
 }
 ```
 
-No Jet/ACE-specific types leak across this boundary — the core works against
-`TableSchema`/`RowBatch` domain types. Backend selection is feature-gated:
-`jet-rs` (default, product) and `libmdb-oracle` (test).
+No Jet/ACE-specific types leaked across that boundary — the core worked
+against `TableSchema`/`RowBatch` domain types, and backend selection was
+feature-gated (`jet-rs` product, `libmdb-oracle` test). Both mechanisms are
+historical: today the oracle exists only behind `#[cfg(test)]` and product
+composition is the driver registry below.
 
-Since Phase 13 the same port also fronts a **SQLite** backend: `DetectingPort`
-sniffs the file magic at `open` and delegates to the Jet/ACE or the SQLite
-implementation, so all clients keep one command vocabulary for both source
-families. `InsertRow`/`SqlRan` are port-level writes and the shadow-SQL
-engine reads every source through the port (see `docs/FORMAT-JET.md`
-§"SQLite backend").
+Since Phase 13 the same port also fronts a **SQLite** backend, and since
+Phase 30 the **CSV** directory driver docks the same way (ADR-7):
+`DetectingPort` sniffs the file magic (or the directory shape) at `open` and
+delegates to the registered driver — Jet/ACE, SQLite or CSV — so all clients
+keep one command vocabulary for every source family. `InsertRow`/`SqlRan`
+are port-level writes and the shadow-SQL engine reads every source through
+the port (see `docs/FORMAT-JET.md` §"SQLite backend").
 
 The `StorageEngine` snippet above is the historical Phase-2 record; the
 living boundary is the core-owned `StoragePort` trait. The Phase-2 trait —
@@ -217,14 +217,21 @@ read incl. chained TDEFs, >255-byte jump-table rows and overflow/LVAL pages,
 embedded-OLE columns (fixed 0x11 long binary), ACE read and complex values
 (attachments, multi-value, version history; Phase 16), Jet3/Jet4 RC4 database
 passwords and page encryption (Phase 16; ACE Office encryption stays a precise
-`Unsupported`), the Jet4 writer core incl. update/delete and journaled batches
-(tables + rows, usage-map-consistent; Phases 10–11), and the Phase 17
-read-only programmability layer (named macros, VBA extraction/viewer/static
-analysis). Remaining write-path work: AutoNumber counters (M8), `DropTable`
-(M7), LVAL-chain writes for complex values, the ACE write path and the
-Access-repair gate. The README compatibility matrix is the claim set.
+`Unsupported`), the Jet4 writer core incl. update/delete, drops, design-time
+alter, index/relationship creation and journaled batches (tables + rows,
+usage-map-consistent; Phases 10–11, 24, 32), the ACE write path (Phase 25),
+the SQLite read/write backend (Phase 13; indexes/foreign keys in 32), the CSV
+directory driver (Phase 30), the Phase 17 read-only programmability layer
+(named macros, VBA extraction/viewer/static analysis), native saved-query
+decode and the qualified-dialect execution (Phases 15, 27) and encrypted
+Save-As with password change (Phase 27). Remaining write-path work:
+LVAL-chain writes for complex values, physical Jet index pages (the writer
+carries index metadata + uniqueness so far), the ReplicationId AutoNumber
+flavor, Jet's tri-state Boolean NULL (documented rejection, M24) and the
+manual Access-repair gate of the shipped samples. The README compatibility
+matrix is the claim set.
 
-## 7. Domain data model (preview of Phase 3)
+## 7. Domain data model (delivered in Phase 3)
 
 Access type mapping (native Jet/ACE types ↔ DataCraft domain types):
 
@@ -304,6 +311,7 @@ datacraft/
 ├── rust-toolchain.toml         pinned toolchain (H3)
 ├── crates/
 │   ├── datacraft-core/         lib — domain, commands, state
+│   ├── datacraft-csv/          lib — CSV directory driver (ADR-7)
 │   ├── datacraft-jet/          lib — clean-room Jet/ACE backend (pure Rust)
 │   ├── datacraft-sqlite/       lib — SQLite backend (rusqlite bundled)
 │   ├── datacraft-storage/      lib — driver composite (detection + samples)
@@ -331,17 +339,51 @@ datacraft/
 
 ## 13. Phase mapping
 
+The live status of every step is `PROGRESS.md`; completed phase detail
+blocks live in `docs/archive/PROGRESS_ARCHIVE.md`. This table maps each
+phase to what it delivered:
+
 | Phase | Delivers |
 |---|---|
 | 1 — Blueprint & Skeleton | this document, workspace, CI gates, testing policy |
-| 2 — Storage Engine Core | `StorageEngine` trait, Jet page layer, TDEF/TDAT decoder, libmdb oracle |
+| 2 — Storage Engine Core | Jet page layer, TDEF/TDAT decoder, libmdb oracle (the trait snippet of §6's historical record) |
 | 3 — Data Model & Schema | Access data types, field properties, serde persistence |
 | 4 — Headless Core & Command API | command bus, state query, test IDs, JSON-RPC stub |
 | 5 — UI Skeleton (egui) | app shell, ribbon, navigation pane, tabbed workspace |
 | 6 — Datasheet & Design View | shared grid core, datasheet, table design view |
 | 7 — QBE Query Builder | relationship mapper, QBE grid, query engine |
 | 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime |
-| 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, release prep |
+| 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep |
+| 10 — Jet4 Writer, Reports & Release | Jet4 writer workstream, Jet3 read, report designer + print preview, fixture pin integrity |
+| 11 — Port Write-Through & Journal | insert/update/delete through the port, journaled write profiles |
+| 12 — Access Look & Theme | Access ribbon/nav-pane/status/datasheet styling over the token system |
+| 13 — SQLite & SQL | SQLite source backend, SQLite writes, SQL window |
+| 14 — ACCDB Read | ACE fixtures and the ACE read path |
+| 15 — Expressions & Saved Queries | expression service, field wiring, `MSysQueries` decode |
+| 16 — Complex Values & Encryption | attachments/multi-value/version history, RC4 passwords, Jet3 remainders |
+| 17 — Macros, VBA & Docs Accuracy | read-only macro inventory, VBA extraction/viewer/static analysis, verified compatibility matrix |
+| 18–19 — UI Localization & Settings | i18n kernel, complete German catalog, `ui.json`, language switcher |
+| 20 — Look & Typography | neutral tokens, Inter/JetBrains Mono typography, original vector iconography, Light/Dark/System appearance |
+| 21 — Access UI Alignment | contextual ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX, keyboard |
+| 22 — Settings Hardening | atomic `ui.json` save, window position/maximized state, off-screen rescue |
+| 23 — Hardening & Test Gaps | CLI process E2E, headless kittest UI suite with AccessKit snapshots, native-query decode errors surfaced at open |
+| 24 — Jet Writer Remainder | AutoNumber counter maintenance, table drops through the writer, design-time schema editing |
+| 25 — ACCDB Write | ACE write contracts, port write-through and bus E2E on `.accdb` |
+| 26–29 — Release, Queries, UI Rest, Samples | release engineering, native query execution + encrypted save-as, undo/redo + recent databases, create-database flow, templates and shipped samples |
+| 30 — Driver Model | declarative per-session capabilities, registry detection, CSV directory driver, capability-disabled UI affordances (ADR-7, §16) |
+| 31 — Publishing & Crate Split | jet/sqlite/mcp as standalone crates behind the composite, publish-ready vocabulary, Semver/MSRV/changelog policy |
+| 32 — Schema Writing | persisted field properties, index creation, relationship/foreign-key creation |
+| 33 — Journal Capability Gating | journaled batches gate on the declared atomic_batch capability |
+| 34 — Cross-Cutting Review | storage/drivers, core, UI and public-API reviews with in-phase fixes |
+| 35 — Documentation Sweep | entry-point docs, ARCHITECTURE stale sections, FORMAT-JET/TESTING, matrix re-verification |
+| 36 — Driver Edge Suites | CSV/detecting/MCP coverage, driver inventory in the snapshot, CSV type inference, tri-state Boolean NULL decision |
+| 37 — Release Readiness | self-created fixtures replace Northwind, fixture rebuild tooling, licenses/attribution, history hygiene |
+| 38 — UI Restyle | icon glyph port, backstage restyle, native dialogs behind the seam, window chrome polish |
+| 39 — Correctness Fences | named date pictures, SQL-dialect fence, QBE criteria fence, cache load errors surfaced |
+| 40 — Datasheet UX | keyboard record navigation, horizontal scroll + freeze columns, row deletion, in-place cell editing |
+| 41 — GUI Parity | relationship mapper affordances, expression window, VBA analysis viewer, report grouping picker, ribbon truth pass |
+| 42 — Core Correctness | SQLite affinity edge cases, capability-gated design edits, by-name QBE projection |
+| 43 — Coverage & CI Pinning | coverage gap audit, cargo-llvm-cov pinned in the CI coverage job |
 
 ## 14. Compatibility scope & VBA — decision record
 
