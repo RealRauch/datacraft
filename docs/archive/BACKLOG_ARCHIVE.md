@@ -1477,3 +1477,12 @@
 - **Approach:** Paint the counter row in its own left-to-right layout inside the right-to-left status bar (the block stays anchored at the right edge; only the internal order changes).
 - **Acceptance:** Previous sits left of the counter, next right of it (rect pin at shell level); canonical verification set green.
 - **Done:** done in `f4afe03` (RED `9ee5a77` + fixture follow-up) - step 45.2: the nav row paints in its own left-to-right layout inside the right-to-left status bar; rect pin proves previous sits left of next
+
+---
+
+### [x] M55 — Filter criteria cannot be typed: the header menu closes on editor click — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet/header.rs` (the header context menu's criteria editor), `crates/datacraft-ui/src/datasheet.rs` (the filter intent wiring).
+- **Problem:** The user cannot enter a filter criterion in the live app: the header context menu closes as soon as the criteria editor is clicked (walkthrough report 2026-11-05). egui's context menu does not host text editing reliably — the same interaction also stayed dead in the kittest attempt during 44.5 (type_text and accesskit set-value never reached the in-menu editor).
+- **Approach:** Move the criteria editor out of the menu into a small anchored egui Window (the mapper/sql/expression window pattern on App state): the menu offers one "Filter…" item that opens the dialog for that column; the dialog carries the seeded criteria editor plus Apply/Clear and dispatches the existing SetTableFilter commands. The menu keeps sort and freeze items unchanged.
+- **Acceptance:** Typing a criterion in the dialog and applying filters the rows over the bus; the dialog seeds from the live filter; Clear removes it; kittest pins cover open/seed/apply/clear through the dialog; canonical verification set green.
+- **Done:** done in `2c3a0d2` (RED `b493e20`) - step 45.1: the header menu's Filter item opens a per-tab criteria window (egui menus do not host text editing - the reported live bug and the 44.5 kittest dead-end were the same defect); the dialog seeds from the live filter and Apply/Clear dispatch the existing commands
