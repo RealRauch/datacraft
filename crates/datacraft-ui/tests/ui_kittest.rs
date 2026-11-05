@@ -283,10 +283,9 @@ fn capability_restricted_sources_disable_the_matching_affordances() {
         let tab = app.snapshot().tabs[0].id;
         (app, tab)
     };
-    // The Table action lives on the Create tab.
-    app.active_ribbon_tab = "create";
-
     let mut ribbon = ribbon_harness(app);
+    ribbon.run(); // the first paint surfaces Table Tools (47.1, M58)
+    ribbon.state_mut().active_ribbon_tab = "create";
     ribbon.run();
     let dump = tree_dump(&ribbon);
     assert!(

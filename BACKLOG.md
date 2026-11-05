@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-05T23:33
+# BACKLOG.md — Open items (As of: 2026-11-05T23:49
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -35,6 +35,12 @@
 - **Problem:** DataCraft has no path that imports an external file's content as new tables into the currently open database (Jet4/SQLite). CSV directories open only as a read-only driver source through the backstage folder dialog. The ribbon's "Import File" button today claims a "Phase 9" future that has passed; the decision (M49) keeps the button visible but honestly disabled until this feature is built, so it needs a real item to drive it.
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
+
+### [ ] M58 — Activating an object does not surface its contextual ribbon tab — 🟡
+- **Location:** `crates/datacraft-ui/src/ribbon.rs` (`ribbon_ui` — the contextual tabs follow the active object kind for *presence* via `rendered_tabs`, but `active_ribbon_tab` never follows), `crates/datacraft-core/src/ribbon.rs` (spec).
+- **Problem:** Double-clicking a table in the nav pane opens/activates its tab, but the ribbon stays on the previous tab — the user must manually click Tabellentools (user walkthrough report 2026-11-05). Access convention: activating an object surfaces its contextual tools tab automatically.
+- **Approach:** A core spec helper `contextual_tab_id(kind)` (spec-derived mapping object kind → contextual tab id), and the UI follows *kind changes* of the active document: when the active tab's object kind changes, the ribbon selects the matching contextual tab — unless the user is in the backstage (no yank out of File pages) and never when the kind stays the same (no yank off Database Tools while switching between two tables).
+- **Acceptance:** First activation of a table/query/form selects its tools tab; switching between two tables keeps a non-contextual ribbon tab; the backstage is never yanked; kittest pins for all three; canonical verification set green.
 
 ---
 

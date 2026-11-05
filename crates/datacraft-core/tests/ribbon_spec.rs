@@ -301,3 +301,26 @@ fn labels_are_non_empty_everywhere() {
         }
     }
 }
+
+/// The kind-to-contextual-tab mapping is spec-derived (step 47.1, M58).
+#[test]
+fn contextual_tab_ids_follow_the_spec() {
+    assert_eq!(
+        datacraft_core::ribbon::contextual_tab_id("table"),
+        Some("table_tools")
+    );
+    assert_eq!(
+        datacraft_core::ribbon::contextual_tab_id("query"),
+        Some("query_tools")
+    );
+    assert_eq!(
+        datacraft_core::ribbon::contextual_tab_id("form"),
+        Some("form_tools")
+    );
+    assert_eq!(
+        datacraft_core::ribbon::contextual_tab_id("report"),
+        Some("report_tools")
+    );
+    assert_eq!(datacraft_core::ribbon::contextual_tab_id("macro"), None);
+    assert_eq!(datacraft_core::ribbon::contextual_tab_id("module"), None);
+}

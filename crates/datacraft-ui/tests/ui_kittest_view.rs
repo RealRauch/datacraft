@@ -297,7 +297,8 @@ fn activating_a_table_surfaces_the_table_tools_tab() {
     let mut harness = ribbon_harness(app);
     harness.run();
     assert_eq!(
-        harness.state().active_ribbon_tab, "table_tools",
+        harness.state().active_ribbon_tab,
+        "table_tools",
         "activating a table selects its contextual tools tab"
     );
 }
@@ -311,7 +312,8 @@ fn the_backstage_is_not_yanked_by_object_activation() {
     let mut harness = ribbon_harness(app);
     harness.run();
     assert_eq!(
-        harness.state().active_ribbon_tab, "file",
+        harness.state().active_ribbon_tab,
+        "file",
         "the backstage keeps the selection"
     );
 }
@@ -335,13 +337,17 @@ fn switching_between_two_tables_keeps_the_ribbon_tab() {
         datacraft_core::ObjectKind::Table,
         "Others",
     )));
-    app.active_ribbon_tab = "database_tools";
-    let first = app.snapshot().tabs[0].id;
-    app.dispatch(Command::SetActiveTab { tab_id: first });
     let mut harness = ribbon_harness(app);
+    harness.run(); // the first paint surfaces Table Tools (kind seen)
+    harness.state_mut().active_ribbon_tab = "database_tools";
+    let first = harness.state().snapshot().tabs[0].id;
+    harness
+        .state_mut()
+        .dispatch(Command::SetActiveTab { tab_id: first });
     harness.run();
     assert_eq!(
-        harness.state().active_ribbon_tab, "database_tools",
+        harness.state().active_ribbon_tab,
+        "database_tools",
         "same-kind activation keeps the non-contextual tab"
     );
 }

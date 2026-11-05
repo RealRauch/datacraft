@@ -24,12 +24,39 @@ use crate::theme::tokens;
 mod qat;
 mod views;
 
+/// The ribbon selection follows the active document's object kind
+/// (step 47.1, M58 — Access convention): activating a table, query,
+/// form or report surfaces its contextual tools tab. Two guards keep
+/// it honest: the backstage is never yanked, and a same-kind
+/// activation (switching between two tables) changes nothing — the
+/// user keeps, say, Database Tools while browsing tables.
+fn follow_active_object(app: &mut App) {
+    let kind = app
+        .snapshot()
+        .active_tab
+        .and_then(|id| app.snapshot().tabs.iter().find(|tab| tab.id == id))
+        .map(|tab| tab.object_kind.clone());
+    if kind == app.active_object_kind {
+        return;
+    }
+    app.active_object_kind = kind.clone();
+    if app.active_ribbon_tab == "file" {
+        return;
+    }
+    if let Some(kind) = kind
+        && let Some(tab_id) = datacraft_core::ribbon::contextual_tab_id(&kind)
+    {
+        app.active_ribbon_tab = tab_id;
+    }
+}
+
 /// Renders the Quick Access strip and the ribbon in Access structure
 /// (step 12.2): a compact icon row on top, then a tab strip row and the
 /// active tab's command groups — each group carries its caption at the
 /// bottom and groups are separated by hairlines. Pure paint: intents are
 /// collected during paint and dispatched once.
 pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
+    follow_active_object(app);
     let tokens = tokens(ui.visuals());
     let mut intent: Option<Command> = qat::quick_access_ui(app, ui);
     // Contextual tabs follow the active object kind (step 21.1, U5); a

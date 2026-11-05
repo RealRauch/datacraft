@@ -29,6 +29,9 @@ pub struct App {
     pub open_path: String,
     /// Selected ribbon tab id (presentation state, `&'static` from the spec).
     pub active_ribbon_tab: &'static str,
+    /// Object kind of the active document as last seen by the ribbon
+    /// (step 47.1, M58): the selection follows *kind changes* only.
+    pub(crate) active_object_kind: Option<String>,
     /// Selected backstage page while the File tab is active (step 21.3).
     pub backstage_page: crate::backstage::BackstagePage,
     /// Navigation-pane group sort (step 21.5; ordering lives in core).
@@ -150,6 +153,7 @@ impl App {
             snapshot,
             dialogs: Box::new(crate::dialogs::NativeDialogs),
             open_path: String::new(),
+            active_object_kind: None,
             active_ribbon_tab: "home",
             backstage_page: crate::backstage::BackstagePage::default(),
             nav_sort: datacraft_core::nav::NavSortOrder::default(),

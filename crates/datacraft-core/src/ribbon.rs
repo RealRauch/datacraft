@@ -256,6 +256,16 @@ pub fn ribbon_spec() -> &'static RibbonSpec {
 
 /// Tabs to render for the active object kind: the base tabs followed by
 /// the matching contextual tab, if the kind has one (step 21.1, item U5).
+/// The contextual tab id serving an object kind, per the spec
+/// (step 47.1, M58) — `None` when the kind has no contextual tab.
+pub fn contextual_tab_id(kind: &str) -> Option<&'static str> {
+    ribbon_spec()
+        .contextual_tabs
+        .iter()
+        .find(|entry| entry.context == kind)
+        .map(|entry| entry.tab.id)
+}
+
 pub fn rendered_tabs(active_kind: Option<&str>) -> Vec<&'static RibbonTab> {
     let spec = ribbon_spec();
     let mut tabs: Vec<&'static RibbonTab> = spec.tabs.iter().collect();
