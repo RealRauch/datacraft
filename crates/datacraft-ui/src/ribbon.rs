@@ -114,6 +114,10 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                     if ribbon_button(ui, t(action.label), action.id, tip) {
                                         app.create_table_flow();
                                     }
+                                } else if action.id == "table_design" {
+                                    if ribbon_button(ui, t(action.label), action.id, tip) {
+                                        app.create_table_design_flow();
+                                    }
                                 } else if action.id == "open_database" {
                                     ui.horizontal(|ui| {
                                         ui.add(
@@ -141,6 +145,10 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                             ActionState::DisabledIn { phase } => {
                                 ribbon_button_disabled(ui, t(action.label), action.id, tip)
                                     .on_hover_text(tr("arrives in {phase}", &[("phase", phase)]));
+                            }
+                            ActionState::Planned => {
+                                ribbon_button_disabled(ui, t(action.label), action.id, tip)
+                                    .on_hover_text(t("planned — not available yet"));
                             }
                         });
                     }
@@ -335,7 +343,8 @@ mod tests {
 
     /// Seam contract (LESSONS #2): every enabled spec action except the
     /// input-bound `open_database`, the state-bound `view_mode` and the
-    /// UI-flow `table` maps to a command; nothing else does.
+    /// two-command table flows (`table`, `table_design`) maps to a
+    /// command; nothing else does.
     #[test]
     fn every_enabled_action_maps_to_a_command() {
         let app = App::new(Box::new(MockPort::new()));
@@ -345,7 +354,10 @@ mod tests {
                     let mapped = command_for(action.id, &app);
                     match &action.state {
                         ActionState::Enabled
-                            if !matches!(action.id, "open_database" | "view_mode" | "table") =>
+                            if !matches!(
+                                action.id,
+                                "open_database" | "view_mode" | "table" | "table_design"
+                            ) =>
                         {
                             assert!(
                                 mapped.is_some(),
@@ -375,7 +387,7 @@ mod tests {
                 ActionState::Enabled => {
                     assert!(mapped.is_some(), "QAT {} has no mapping", entry.id);
                 }
-                ActionState::DisabledIn { .. } => {
+                ActionState::DisabledIn { .. } | ActionState::Planned => {
                     assert!(mapped.is_none(), "QAT {} must stay disabled", entry.id);
                 }
             }

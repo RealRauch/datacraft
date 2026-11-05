@@ -17,6 +17,9 @@ pub enum ActionState {
         /// Phase that lands the action, e.g. `"Phase 6"`.
         phase: &'static str,
     },
+    /// A planned feature: rendered disabled with an honest planned-state
+    /// reason and no phase claim (step 41.5, item M49).
+    Planned,
 }
 
 /// One ribbon action (a button).
@@ -143,7 +146,7 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
                         RibbonAction {
                             id: "table_design",
                             label: "Table Design",
-                            state: ActionState::DisabledIn { phase: "Phase 6" },
+                            state: ActionState::Enabled,
                         },
                     ],
                 },
@@ -185,7 +188,7 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
                 actions: vec![RibbonAction {
                     id: "import_file",
                     label: "Import File",
-                    state: ActionState::DisabledIn { phase: "Phase 9" },
+                    state: ActionState::Planned,
                 }],
             }],
         },

@@ -203,6 +203,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("password", "Kennwort"),
     ("path to .datacraft", "Pfad zur .datacraft-Datei"),
     ("path to .mdb", "Pfad zur .mdb-Datei"),
+    (
+        "planned — not available yet",
+        "geplant — noch nicht verfügbar",
+    ),
     ("table {table} not found", "Tabelle {table} nicht gefunden"),
     ("{count} result row", "{count} Ergebniszeile"),
     ("{count} result rows", "{count} Ergebniszeilen"),

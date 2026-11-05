@@ -42,6 +42,10 @@ pub(super) fn quick_access_ui(app: &App, ui: &mut egui::Ui) -> Option<Command> {
                     qat_button(ui, t(entry.label), entry.id, false)
                         .on_hover_text(tr("arrives in {phase}", &[("phase", phase)]));
                 }
+                ActionState::Planned => {
+                    qat_button(ui, t(entry.label), entry.id, false)
+                        .on_hover_text(t("planned — not available yet"));
+                }
             });
         }
     });

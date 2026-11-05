@@ -15,6 +15,29 @@ impl App {
     /// Creates a new table with the Access default shape (step 11.3) and
     /// opens it — the ribbon's New Table flow.
     pub fn create_table_flow(&mut self) {
+        if let Some(name) = self.create_default_table() {
+            self.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+                datacraft_core::ObjectKind::Table,
+                name,
+            )));
+        }
+    }
+
+    /// Creates a new table with the Access default shape and opens it in
+    /// the design view (the ribbon's Table Design flow, step 41.5, item
+    /// M49) — the same design flow the nav pane's Design menu dispatches.
+    pub fn create_table_design_flow(&mut self) {
+        if let Some(name) = self.create_default_table() {
+            self.dispatch(Command::OpenObjectInMode {
+                object: datacraft_core::ObjectId::new(datacraft_core::ObjectKind::Table, name),
+                mode: datacraft_core::state::TabMode::Design,
+            });
+        }
+    }
+
+    /// Creates one Access-default table with the next free name; the
+    /// created name on success, `None` when the dispatch failed.
+    fn create_default_table(&mut self) -> Option<String> {
         let name = next_free_name(
             self.snapshot()
                 .database
@@ -30,10 +53,9 @@ impl App {
             .iter()
             .any(|event| matches!(event, Event::TableCreated { .. }))
         {
-            self.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
-                datacraft_core::ObjectKind::Table,
-                name,
-            )));
+            Some(name)
+        } else {
+            None
         }
     }
 
