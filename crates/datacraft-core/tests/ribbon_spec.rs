@@ -8,13 +8,14 @@
 
 use datacraft_core::ribbon::{ActionState, rendered_tabs, ribbon_spec};
 
-const DISPATCHABLE_ACTIONS: [&str; 9] = [
+const DISPATCHABLE_ACTIONS: [&str; 10] = [
     "ribbon.home.view.toggle_nav_pane",
     "ribbon.home.views.view_mode",
     "ribbon.create.queries.query_design",
     "ribbon.create.forms.form_design",
     "ribbon.create.reports.report_design",
     "ribbon.create.tables.table",
+    "ribbon.create.tables.table_design",
     "ribbon.database_tools.relationships.relationships",
     "ribbon.database_tools.queries.query_sql",
     "ribbon.database_tools.queries.query_expression",
@@ -218,6 +219,45 @@ fn quick_access_save_is_a_stable_command_id() {
     );
 }
 
+/// The truth pass (step 41.5, item M49): Table Design activates the
+/// shipped design flow, Import File stays visible but names a planned
+/// feature — no action claims a phase that has passed.
+#[test]
+fn create_tab_table_design_is_enabled_and_import_file_is_planned() {
+    let spec = ribbon_spec();
+    let create_tab = spec
+        .tabs
+        .iter()
+        .find(|tab| tab.id == "create")
+        .expect("create tab");
+    let table_design = create_tab
+        .groups
+        .iter()
+        .flat_map(|group| &group.actions)
+        .find(|action| action.id == "table_design")
+        .expect("table_design action");
+    assert!(
+        matches!(table_design.state, ActionState::Enabled),
+        "the design flow is shipped — the button dispatches"
+    );
+
+    let external_data = spec
+        .tabs
+        .iter()
+        .find(|tab| tab.id == "external_data")
+        .expect("external data tab");
+    let import_file = external_data
+        .groups
+        .iter()
+        .flat_map(|group| &group.actions)
+        .find(|action| action.id == "import_file")
+        .expect("import_file action");
+    assert!(
+        matches!(import_file.state, ActionState::Planned),
+        "the import flow is a planned feature, not a past phase"
+    );
+}
+
 #[test]
 fn disabled_actions_declare_their_arriving_phase() {
     let spec = ribbon_spec();
@@ -236,6 +276,7 @@ fn disabled_actions_declare_their_arriving_phase() {
                             action.id
                         );
                     }
+                    ActionState::Planned => {}
                     ActionState::Enabled => {}
                 }
             }
