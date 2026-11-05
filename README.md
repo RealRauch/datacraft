@@ -7,9 +7,10 @@ reimplementation of the Microsoft Access experience, built in pure Rust.**
 
 A fast, open-source database tool with a familiar workflow: the ribbon,
 navigation pane, tabbed documents, datasheet and design views, the QBE query
-builder and a form/report canvas. It reads Jet3/Jet4 `.mdb` and ACE `.accdb`
-files and writes Jet4 `.mdb` on verified table/row paths (the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-01) states
+builder and a form/report canvas. It reads Jet3/Jet4 `.mdb`, ACE `.accdb`,
+SQLite databases and CSV directories, and writes Jet4/ACE and SQLite on
+verified table/row paths (the
+[compatibility matrix](#compatibility-matrix-verified-2026-11-02) states
 exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
@@ -167,8 +168,9 @@ echo '{"jsonrpc":"2.0","id":1,"method":"inspect"}' | cargo run -p datacraft-mcp
 cargo run -p datacraft-cli -- open fixtures/testV2000.mdb --json
 ```
 
-The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
-`mdbtools` installed there); golden-file tests run everywhere.
+The libmdb oracle cross-check additionally runs in CI (ubuntu, with
+`mdbtools` installed there; macOS runners are paused, re-admission tracked as
+L25); golden-file tests run everywhere.
 
 ```bash
 cargo llvm-cov --workspace --exclude datacraft-ui \
@@ -182,6 +184,7 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 | core | `datacraft-core` | domain model, schema, command bus, query engine, application state, snapshots, JSON-RPC transport (Phases 3–4, 7) |
 | jet | `datacraft-jet` | clean-room pure-Rust Jet3/Jet4 read + Jet4/ACE write backends behind the core-owned `StoragePort` seam, libmdb oracle (`cfg(test)` only) (Phase 2, 10; split in Phase 31) |
 | sqlite | `datacraft-sqlite` | SQLite backend behind the same seam (rusqlite, statically bundled) (Phase 13; split in Phase 31) |
+| csv | `datacraft-csv` | CSV directory driver behind the same seam — a directory of `*.csv` files is one database (ADR-7, Phase 30) |
 | storage | `datacraft-storage` | driver composite: format-detecting registry over the shipped backends plus the deterministic samples generator (Phase 29–30) |
 | ui | `datacraft-ui` | eframe/egui desktop shell — binary `datacraft` (Phase 5+) |
 | cli | `datacraft-cli` | the fourth command-bus client — binary `datacraft-cli` (Phase 9) |
@@ -190,25 +193,26 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 ```text
 datacraft-ui (egui) ───────► datacraft-core (command bus) ──► datacraft-storage (composite)
 datacraft-cli (shell) ──────┘            ▲                        ├─ datacraft-jet (Jet/ACE)
-JSON-RPC / MCP (datacraft-mcp) ──────────┘                        └─ datacraft-sqlite (SQLite)
+JSON-RPC / MCP (datacraft-mcp) ──────────┘                        ├─ datacraft-sqlite (SQLite)
+                                                                  └─ datacraft-csv (CSV directories)
 ```
 
-Dependency direction is one-way and review-enforced: `ui → core`,
-`cli → core`, `storage → core`, `core → nothing`; the binary targets
-are the composition roots that name storage. The crates.io publishing
-order, the Semver/MSRV policy and the release checklist live in
-[docs/PUBLISHING.md](docs/PUBLISHING.md).
-
-The UI never touches storage directly — every client speaks the same command
-language, and a ribbon button dispatches the identical `Command` as an MCP
-tool call. Dependency direction is one-way and review-enforced:
-`ui → core`, `storage → core`, `core → nothing`. The full blueprint — command
-API shape, test-ID conventions, storage decision record, rendering strategy —
-is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Dependency direction is one-way and review-enforced: `jet → core`,
+`sqlite → core`, `csv → core`, `storage → jet, sqlite`, `core → nothing`;
+the three client binaries (`datacraft-ui`, `datacraft-cli`,
+`datacraft-mcp`) name `core + storage + csv` and are the composition
+roots that build the composite. Library and UI code never touches a
+driver directly — every client speaks the same command language, and a
+ribbon button dispatches the identical `Command` as an MCP tool call.
+The crates.io publishing order, the Semver/MSRV policy and the release
+checklist live in [docs/PUBLISHING.md](docs/PUBLISHING.md). The full
+blueprint — command API shape, test-ID conventions, storage decision
+record, rendering strategy — is in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Roadmap
 
-Seventeen delivered phases and the planned UI work:
+Delivered phases and the open work:
 
 | Phase | Delivers | Status |
 | --- | --- | --- |
@@ -236,15 +240,28 @@ Seventeen delivered phases and the planned UI work:
 | 23 — Hardening & Test Gaps | CLI process E2E (exit codes, stderr), headless kittest UI suite with AccessKit snapshots, native-query decode errors surfaced at open | ✅ |
 | 24 — Jet Writer Remainder | AutoNumber counter maintenance, table drops through the writer, design-time schema editing (add/drop/rename/required) | ✅ |
 | 25 — ACCDB Write | ACE write contracts, port write-through and bus E2E on `.accdb` | ✅ |
-| 26–29 — Release, Queries, UI Rest, Samples | release engineering (26, planned), native query execution + encrypted save-as (27, done), undo/redo + recent databases (28, done), create-database flow, templates and shipped samples (29) | 26 ⬜ · 27 ✅ · 28 ✅ · 29 ✅ |
+| 26–29 — Release, Queries, UI Rest, Samples | release engineering (matrix, checksums, packaged smoke), native query execution + encrypted save-as, undo/redo + recent databases, create-database flow, templates and shipped samples | ✅ |
 | 30 — Driver Model | declarative per-session capabilities, registry detection, CSV directory driver as the out-of-tree proof, capability-disabled UI affordances (ADR-7) | ✅ |
+| 31 — Publishing & Crate Split | jet/sqlite/mcp as standalone crates behind the composite, publish-ready vocabulary, Semver/MSRV/changelog policy | ✅ |
+| 32 — Schema Writing | persisted field properties, index creation, relationship/foreign-key creation | ✅ |
+| 33 — Journal Capability Gating | journaled batches gate on the declared atomic_batch capability | ✅ |
+| 34 — Cross-Cutting Review | storage/drivers, core, UI and public-API reviews with in-phase fixes | ✅ |
+| 35 — Documentation Sweep | entry-point docs, ARCHITECTURE stale sections, FORMAT-JET/TESTING, matrix re-verification | 🔄 |
+| 36 — Driver Edge Suites | CSV/detecting/MCP coverage, driver inventory in the snapshot, CSV type inference, tri-state Boolean NULL decision | ✅ |
+| 37 — Release Readiness | self-created fixtures replace Northwind, fixture rebuild tooling, licenses/attribution, history hygiene | ✅ |
+| 38 — UI Restyle | icon glyph port, backstage restyle, native dialogs behind the seam, window chrome polish | ✅ |
+| 39 — Correctness Fences | named date pictures, SQL-dialect fence, QBE criteria fence, cache load errors surfaced | ✅ |
+| 40 — Datasheet UX | keyboard record navigation, horizontal scroll + freeze columns, row deletion, in-place cell editing | ✅ |
+| 41 — GUI Parity | relationship mapper affordances, expression window, VBA analysis viewer, report grouping picker, ribbon truth pass | ✅ |
+| 42 — Core Correctness | SQLite affinity edge cases, capability-gated design edits, by-name QBE projection | ✅ |
+| 43 — Coverage & CI Pinning | coverage gap audit, cargo-llvm-cov pinned in the CI coverage job | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
 interpreter or runtime**; VBA is extracted, displayed and statically analyzed
 only (Phase 17, ADR-2). The ring model and rationale are in
 [docs/ROADMAP.md](docs/ROADMAP.md); the verified claim set is the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-01).
+[compatibility matrix](#compatibility-matrix-verified-2026-11-02).
 
 ## Quality gates
 
@@ -256,7 +273,7 @@ Mechanically enforced in CI on every push and pull request:
 | Source files < 500 lines | CI job fails on any `.rs` file ≥ 500 lines |
 | **No technical debt** | CI scan: no `TODO`/`FIXME`/`HACK`/`XXX` in tracked files (append-only archives excluded) |
 | Formatting & lints | `rustfmt --check`, `clippy -D warnings` |
-| Cross-platform tests | Matrix: ubuntu-latest, windows-latest, macos-latest |
+| Cross-platform tests | Matrix: ubuntu-latest, windows-latest (macOS runners paused, re-admission tracked as L25; the release workflow still builds and smokes macOS artifacts) |
 | Format oracle | libmdb cross-check of the decoded Jet4/ACE fixture tables and rows |
 
 ## Design & branding

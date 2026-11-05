@@ -230,7 +230,7 @@
 | 34.4 | Public API surface audit for Phase 31 (R1) | ✅ |
 | 34.5 | Finding triage + fix window (R1) | ✅ |
 | 34.6 | Phase 34 Quality Gate Review | ✅ |
-| 35.1 | AGENTS.md + README architecture and diagrams (R2) | ⬜ |
+| 35.1 | AGENTS.md + README architecture and diagrams (R2) | 🔄 |
 | 35.2 | ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2) | ⬜ |
 | 35.3 | FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2) | ⬜ |
 | 35.4 | Phase 35 Quality Gate Review | ⬜ |

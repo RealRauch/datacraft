@@ -13,14 +13,17 @@
 DataCraft is a clean-room, pure-Rust reimplementation of the classic Microsoft
 Access workflow: a desktop shell (`eframe`/`egui`), a headless command bus, a
 JSON-RPC/MCP endpoint and a CLI — all speaking the same `Command` vocabulary.
-It reads Jet3/Jet4 `.mdb`, ACE `.accdb` and SQLite, and writes verified Jet4
-table/row paths. No COM, no OLE DB, no `winapi`, no async runtime.
+It reads Jet3/Jet4 `.mdb`, ACE `.accdb`, SQLite databases and CSV directories,
+and writes verified Jet4/ACE and SQLite table/row paths. No COM, no OLE DB,
+no `winapi`, no async runtime.
 
 Workspace crates (dependency direction is review-enforced, never cyclic):
 
 ```text
-datacraft-ui  ──► datacraft-core          (egui shell, binary `datacraft`)
-datacraft-cli ──► datacraft-core          (headless CLI binary)
+datacraft-ui  ──► datacraft-core, datacraft-storage, datacraft-csv
+                                          (egui shell, binary `datacraft`)
+datacraft-cli ──► datacraft-core, datacraft-storage, datacraft-csv
+                                          (headless CLI binary)
 datacraft-mcp ──► datacraft-core, datacraft-storage, datacraft-csv
                                           (headless stdio JSON-RPC binary)
 datacraft-storage ──► datacraft-jet, datacraft-sqlite
@@ -32,7 +35,8 @@ datacraft-core ──► (nothing internal)
 ```
 
 Binary targets are the only composition roots allowed to name
-`datacraft-storage` (`crates/*/src/main.rs`, `crates/datacraft-ui/src/bin/*`).
+`datacraft-storage` and `datacraft-csv` (`crates/*/src/main.rs`,
+`crates/datacraft-ui/src/bin/*`).
 Library and UI code reaches storage exclusively through core commands.
 
 ## 2. Start every session in this order
@@ -169,8 +173,9 @@ Hard rules (CI-enforced):
   (`*.png`, `*.mdb`, `*.accdb`, …) stay binary.
 - `lcov.info` is generated and git-ignored; `.zcode/` holds local session
   artifacts and is never committed.
-- The oracle suite needs `mdbtools` (available on Ubuntu/macOS CI, not on
-  Windows): `DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-jet --test oracle`.
+- The oracle suite needs `mdbtools` (available on Ubuntu CI, not on Windows;
+  macOS runners are paused, re-admission tracked as L25):
+  `DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-jet --test oracle`.
 
 ## 9. Where to look
 
