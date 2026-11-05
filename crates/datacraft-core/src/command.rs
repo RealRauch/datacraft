@@ -13,7 +13,7 @@ use crate::ObjectId;
 use crate::canvas::Rect;
 use crate::form::ControlDef;
 use crate::ids::TabId;
-use crate::qbe::{QbeRow, QbeValue};
+use crate::qbe::{QbeRow, QbeValue, SortOrder};
 use crate::schema::TableDef;
 
 /// Row context of `Command::RunExpression` (step 15.2, H41).
@@ -278,6 +278,35 @@ pub enum Command {
     ClearQbeCriteria {
         /// Target query name (case-insensitive).
         query: String,
+    },
+    /// Sorts a table's datasheet view (step 44.5, item M54): core view
+    /// state projected into the tab snapshot; `SortOrder::None` clears.
+    /// The field is whitelisted against the table's schema (LESSONS #5).
+    SetTableSort {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// Sort field name.
+        field: String,
+        /// Sort direction; `None` clears the sort.
+        order: SortOrder,
+    },
+    /// Filters a table's datasheet view by one column's criteria
+    /// (step 44.5, item M54): parsed eagerly against the column's kind
+    /// so garbage fails at set time; `None` clears that column's
+    /// filter. Multiple filters AND together.
+    SetTableFilter {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// Filtered field name.
+        field: String,
+        /// Criteria text, engine dialect; `None` clears the field.
+        criteria: Option<String>,
+    },
+    /// Clears every column filter of a table's datasheet view
+    /// (step 44.5, item M54) — the status bar chip's one-click clear.
+    ClearTableFilters {
+        /// Target table name (case-insensitive).
+        table: String,
     },
     /// Deletes a query (dependent tabs close first).
     DeleteQuery {

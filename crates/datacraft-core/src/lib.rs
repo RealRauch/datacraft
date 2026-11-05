@@ -44,6 +44,7 @@ pub mod snapshot;
 pub mod sql_engine;
 pub mod sql_types;
 pub mod state;
+pub mod table_view;
 pub mod templates;
 pub mod transport;
 pub mod undo;

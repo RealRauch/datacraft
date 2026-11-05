@@ -76,6 +76,10 @@ impl AppState {
 /// State of the open database.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DatabaseState {
+    /// Per-table datasheet view state (step 44.5, item M54): sort and
+    /// column filters, keyed by table name (case-insensitive keys are
+    /// written by the dispatch validation).
+    pub table_views: std::collections::BTreeMap<String, TableViewState>,
     /// Filesystem path of the database file.
     pub path: PathBuf,
     /// Database name (file stem).
@@ -142,6 +146,21 @@ impl TabMode {
             TabMode::Design => TabMode::Datasheet,
         }
     }
+}
+
+/// Datasheet view state of one table (step 44.5, item M54): the sort
+/// (field + direction) and the column filters (field → criteria text).
+/// Presentation model — the row data itself stays untouched.
+/// (field + direction) and the column filters (field → criteria text).
+/// Presentation model — the row data itself stays untouched.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct TableViewState {
+    /// Sort field name (whitelisted at set time), if any.
+    pub sort_field: Option<String>,
+    /// Sort direction, if a sort is set.
+    pub sort_order: Option<crate::qbe::SortOrder>,
+    /// Column filters: field name → criteria text (engine dialect).
+    pub filters: std::collections::BTreeMap<String, String>,
 }
 
 /// State of one open document tab.

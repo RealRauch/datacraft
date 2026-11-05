@@ -177,6 +177,13 @@ pub struct TabSnapshot {
     pub mode: crate::state::TabMode,
     /// Whether the tab has a second (design) view (step 21.1, item U5).
     pub has_design_view: bool,
+    /// Datasheet sort field of a table tab (step 44.5, item M54).
+    pub sort_field: Option<String>,
+    /// Datasheet sort direction of a table tab (step 44.5, item M54).
+    pub sort_order: Option<crate::qbe::SortOrder>,
+    /// Datasheet column filters of a table tab (step 44.5, item M54):
+    /// field name → criteria text.
+    pub filters: std::collections::BTreeMap<String, String>,
 }
 
 impl UiStateSnapshot {
@@ -275,13 +282,23 @@ impl UiStateSnapshot {
             tabs: state
                 .tabs
                 .iter()
-                .map(|tab| TabSnapshot {
-                    id: tab.id,
-                    object_kind: tab.object.kind.slug().to_owned(),
-                    object_name: tab.object.name.clone(),
-                    ui_test_id: tab.ui_test_id(),
-                    mode: tab.mode,
-                    has_design_view: tab.object.kind.has_design_view(),
+                .map(|tab| {
+                    let view = state
+                        .database
+                        .as_ref()
+                        .and_then(|db| db.table_views.get(&tab.object.name))
+                        .filter(|_| tab.object.kind == crate::ObjectKind::Table);
+                    TabSnapshot {
+                        id: tab.id,
+                        object_kind: tab.object.kind.slug().to_owned(),
+                        object_name: tab.object.name.clone(),
+                        ui_test_id: tab.ui_test_id(),
+                        mode: tab.mode,
+                        has_design_view: tab.object.kind.has_design_view(),
+                        sort_field: view.and_then(|view| view.sort_field.clone()),
+                        sort_order: view.and_then(|view| view.sort_order),
+                        filters: view.map(|view| view.filters.clone()).unwrap_or_default(),
+                    }
                 })
                 .collect(),
             active_tab: state.active_tab,

@@ -237,6 +237,17 @@ impl Core {
                 value,
             } => self.set_qbe_cell(&query, row, col, value),
             Command::ClearQbeCriteria { query } => self.clear_qbe_criteria(&query),
+            Command::SetTableSort {
+                table,
+                field,
+                order,
+            } => self.set_table_sort(&table, &field, order),
+            Command::SetTableFilter {
+                table,
+                field,
+                criteria,
+            } => self.set_table_filter(&table, &field, criteria.as_deref()),
+            Command::ClearTableFilters { table } => self.clear_table_filters(&table),
             Command::DeleteQuery { name } => self.delete_query(&name),
             Command::RunQuery { query } => self.run_query_command(&query),
             Command::CreateForm { name } => self.create_form(&name),

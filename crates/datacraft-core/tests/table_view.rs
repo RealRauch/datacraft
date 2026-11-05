@@ -34,7 +34,9 @@ fn core_with_table() -> Core {
         password: None,
     });
     assert!(
-        !events.iter().any(|event| matches!(event, Event::Failed { .. })),
+        !events
+            .iter()
+            .any(|event| matches!(event, Event::Failed { .. })),
         "{events:?}"
     );
     core
@@ -65,7 +67,7 @@ fn table_view_commands_store_and_clear_sort_and_filters() {
     let failed = core.dispatch(Command::SetTableFilter {
         table: "Orders".into(),
         field: "item".into(),
-        criteria: Some("Like B*".into()),
+        criteria: Some("Like \"B*\"".into()),
     });
     assert!(!failed.iter().any(|e| matches!(e, Event::Failed { .. })));
 
@@ -74,7 +76,7 @@ fn table_view_commands_store_and_clear_sort_and_filters() {
     assert_eq!(tab.sort_order, Some(SortOrder::Descending));
     assert_eq!(
         tab.filters.get("item").map(String::as_str),
-        Some("Like B*"),
+        Some("Like \"B*\""),
         "{:?}",
         tab.filters
     );
@@ -86,7 +88,9 @@ fn table_view_commands_store_and_clear_sort_and_filters() {
         field: "total".into(),
         order: SortOrder::None,
     });
-    core.dispatch(Command::ClearTableFilters { table: "Orders".into() });
+    core.dispatch(Command::ClearTableFilters {
+        table: "Orders".into(),
+    });
     let tab = &core.inspect().tabs[0];
     assert_eq!(tab.sort_field, None);
     assert_eq!(tab.sort_order, None);
@@ -99,7 +103,7 @@ fn table_view_commands_store_and_clear_sort_and_filters() {
 fn a_none_criteria_clears_only_its_field() {
     let mut core = core_with_table();
     open_table_tab(&mut core);
-    for (field, criteria) in [("item", "Like B*"), ("total", "> 100")] {
+    for (field, criteria) in [("item", "Like \"B*\""), ("total", "> 100")] {
         core.dispatch(Command::SetTableFilter {
             table: "Orders".into(),
             field: field.into(),
@@ -129,9 +133,9 @@ fn view_command_violations_fail_precisely() {
         order: SortOrder::Ascending,
     });
     assert!(
-        events.iter().any(
-            |e| matches!(e, Event::Failed { reason } if reason.contains("Ghost"))
-        ),
+        events
+            .iter()
+            .any(|e| matches!(e, Event::Failed { reason } if reason.contains("Ghost"))),
         "{events:?}"
     );
 
@@ -141,9 +145,9 @@ fn view_command_violations_fail_precisely() {
         order: SortOrder::Ascending,
     });
     assert!(
-        events.iter().any(
-            |e| matches!(e, Event::Failed { reason } if reason.contains("ghost"))
-        ),
+        events
+            .iter()
+            .any(|e| matches!(e, Event::Failed { reason } if reason.contains("ghost"))),
         "{events:?}"
     );
 
@@ -169,12 +173,24 @@ fn view_command_violations_fail_precisely() {
 fn view_order_filters_then_sorts_into_display_indices() {
     let table = orders_table();
     let rows = vec![
-        vec![FieldValue::Integer(1), FieldValue::Text("bolt".into()), FieldValue::Currency(250)],
-        vec![FieldValue::Integer(2), FieldValue::Text("brake".into()), FieldValue::Currency(90)],
-        vec![FieldValue::Integer(3), FieldValue::Text("chain".into()), FieldValue::Currency(120)],
+        vec![
+            FieldValue::Integer(1),
+            FieldValue::Text("bolt".into()),
+            FieldValue::Currency(250),
+        ],
+        vec![
+            FieldValue::Integer(2),
+            FieldValue::Text("brake".into()),
+            FieldValue::Currency(90),
+        ],
+        vec![
+            FieldValue::Integer(3),
+            FieldValue::Text("chain".into()),
+            FieldValue::Currency(120),
+        ],
     ];
     let mut filters = BTreeMap::new();
-    filters.insert("item".to_owned(), "Like B*".to_owned());
+    filters.insert("item".to_owned(), "Like \"B*\"".to_owned());
     let order = view_order(
         &table,
         &rows,
@@ -186,8 +202,7 @@ fn view_order_filters_then_sorts_into_display_indices() {
     assert_eq!(order, vec![1, 0], "brake(90) before bolt(250)");
 
     // Without a view model the identity order comes back.
-    let identity =
-        view_order(&table, &rows, None, &BTreeMap::new()).expect("runs");
+    let identity = view_order(&table, &rows, None, &BTreeMap::new()).expect("runs");
     assert_eq!(identity, vec![0, 1, 2]);
 
     // Violations surface precisely.
@@ -195,7 +210,10 @@ fn view_order_filters_then_sorts_into_display_indices() {
     filters.insert("ghost".to_owned(), "1".to_owned());
     let err = view_order(&table, &rows, None, &filters).expect_err("unknown field");
     assert!(
-        matches!(err, datacraft_core::query_engine::EngineError::UnknownField { .. }),
+        matches!(
+            err,
+            datacraft_core::query_engine::EngineError::UnknownField { .. }
+        ),
         "{err}"
     );
 }
