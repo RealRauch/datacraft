@@ -35,6 +35,8 @@ tests without a database file. Its behaviour is part of the supported API
 a production backend. The modules that only host `impl Core` blocks are
 private, so docs.rs shows no empty modules.
 
+**UI layout seam:** `datacraft_ui::layout_probe` (`clear`/`record`/`drain`) is public on purpose — the kittest suites record paint rects through it, because a semantic tree is blind to pixel geometry (step 44.1, H52/T10); it carries no production behaviour.
+
 **Not published:** `datacraft-ui`. The desktop shell ships only through the
 release archives — its value is the application, its dependency tree
 (eframe/wgpu/fonts) is large, and it has no library consumer. This exclusion

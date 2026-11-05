@@ -39,6 +39,7 @@ impl eframe::App for App {
             .frame(egui::Frame::side_top_panel(ui.style()).fill(tokens.ribbon))
             .show(ui, |ui| {
                 crate::ribbon::ribbon_ui(self, ui);
+                crate::layout_probe::record("shell.ribbon_panel", ui.max_rect());
             });
 
         if self.snapshot().nav_pane_visible {
@@ -48,12 +49,14 @@ impl eframe::App for App {
                 .frame(egui::Frame::side_top_panel(ui.style()).fill(tokens.panel))
                 .show(ui, |ui| {
                     crate::nav_pane::nav_pane_ui(self, ui);
+                    crate::layout_probe::record("shell.navpane_panel", ui.max_rect());
                 });
         }
 
         egui::Panel::bottom("datacraft.status")
             .frame(egui::Frame::side_top_panel(ui.style()).fill(tokens.chrome))
             .show(ui, |ui| {
+                crate::layout_probe::record("shell.status_panel", ui.max_rect());
                 ui.horizontal(|ui| {
                     // Left: database context (Access convention — the active
                     // document's object replaces the generic count).

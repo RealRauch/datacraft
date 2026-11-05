@@ -9,9 +9,10 @@
 use eframe::egui;
 
 use datacraft_core::command::Command;
-use datacraft_core::ribbon::{ActionState, rendered_tabs};
+use datacraft_core::ribbon::{ActionState, RibbonGroup, rendered_tabs};
 
 use crate::availability;
+use crate::layout_probe;
 
 use crate::app::App;
 use crate::i18n::{t, tr};
@@ -86,92 +87,134 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.add_space(4.0);
         for group in &tab.groups {
-            // Group: actions flow horizontally, the caption sits centred
-            // at the bottom (the Access ribbon convention).
-            ui.vertical(|ui| {
-                ui.set_min_width(120.0);
-                ui.add_space(2.0);
-                ui.horizontal(|ui| {
-                    for action in &group.actions {
-                        let tip = command_tips.get(tip_index).map(String::as_str);
-                        tip_index += 1;
-                        let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
-                        ui.push_id(id, |ui| match &action.state {
-                            ActionState::Enabled
-                                if availability::restricted(app.snapshot(), action.id)
-                                    .is_some() =>
-                            {
-                                // Capability-disabled for the open source
-                                // (ADR-7): same muted rendering as the
-                                // planned actions, reason instead of phase.
-                                let reason = availability::restricted(app.snapshot(), action.id)
-                                    .expect("checked above");
-                                ribbon_button_disabled(ui, t(action.label), action.id, tip)
-                                    .on_hover_text(availability::reason_text(reason));
-                            }
-                            ActionState::Enabled => {
-                                if action.id == "table" {
-                                    if ribbon_button(ui, t(action.label), action.id, tip) {
-                                        app.create_table_flow();
-                                    }
-                                } else if action.id == "table_design" {
-                                    if ribbon_button(ui, t(action.label), action.id, tip) {
-                                        app.create_table_design_flow();
-                                    }
-                                } else if action.id == "open_database" {
-                                    ui.horizontal(|ui| {
-                                        ui.add(
-                                            egui::TextEdit::singleline(&mut app.open_path)
-                                                .desired_width(180.0)
-                                                .hint_text(t("path to .mdb")),
-                                        );
+            // Content-sized container (step 44.1, H52): the first
+            // `ui.vertical` in a horizontal row absorbs the whole
+            // remaining width in egui 0.37 and pushed every later group
+            // off-window while its caption centred across the full row.
+            // Measure the group with the same width formula the buttons
+            // allocate with and reserve exactly that.
+            let width = group_width(ui, group).max(120.0);
+            let group_ui = ui.allocate_ui_with_layout(
+                egui::vec2(width, 64.0),
+                egui::Layout::top_down(egui::Align::Center),
+                |ui| {
+                    ui.set_min_width(width);
+                    ui.add_space(2.0);
+                    ui.horizontal(|ui| {
+                        for action in &group.actions {
+                            let tip = command_tips.get(tip_index).map(String::as_str);
+                            tip_index += 1;
+                            let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
+                            ui.push_id(id, |ui| match &action.state {
+                                ActionState::Enabled
+                                    if availability::restricted(app.snapshot(), action.id)
+                                        .is_some() =>
+                                {
+                                    // Capability-disabled for the open source
+                                    // (ADR-7): same muted rendering as the
+                                    // planned actions, reason instead of phase.
+                                    let reason =
+                                        availability::restricted(app.snapshot(), action.id)
+                                            .expect("checked above");
+                                    ribbon_button_disabled(ui, t(action.label), action.id, tip)
+                                        .on_hover_text(availability::reason_text(reason));
+                                }
+                                ActionState::Enabled => {
+                                    if action.id == "table" {
                                         if ribbon_button(ui, t(action.label), action.id, tip) {
-                                            intent = Some(Command::OpenDatabase {
-                                                path: app.open_path.clone().into(),
-                                                password: None,
-                                            });
+                                            app.create_table_flow();
                                         }
-                                    });
-                                } else if action.id == "view_mode" {
-                                    if let Some(command) = views::view_mode_button(ui, app, tip) {
+                                    } else if action.id == "table_design" {
+                                        if ribbon_button(ui, t(action.label), action.id, tip) {
+                                            app.create_table_design_flow();
+                                        }
+                                    } else if action.id == "open_database" {
+                                        ui.horizontal(|ui| {
+                                            ui.add(
+                                                egui::TextEdit::singleline(&mut app.open_path)
+                                                    .desired_width(180.0)
+                                                    .hint_text(t("path to .mdb")),
+                                            );
+                                            if ribbon_button(ui, t(action.label), action.id, tip) {
+                                                intent = Some(Command::OpenDatabase {
+                                                    path: app.open_path.clone().into(),
+                                                    password: None,
+                                                });
+                                            }
+                                        });
+                                    } else if action.id == "view_mode" {
+                                        if let Some(command) = views::view_mode_button(ui, app, tip)
+                                        {
+                                            intent = Some(command);
+                                        }
+                                    } else if ribbon_button(ui, t(action.label), action.id, tip)
+                                        && let Some(command) = command_for(action.id, app)
+                                    {
                                         intent = Some(command);
                                     }
-                                } else if ribbon_button(ui, t(action.label), action.id, tip)
-                                    && let Some(command) = command_for(action.id, app)
-                                {
-                                    intent = Some(command);
                                 }
-                            }
-                            ActionState::DisabledIn { phase } => {
-                                ribbon_button_disabled(ui, t(action.label), action.id, tip)
-                                    .on_hover_text(tr("arrives in {phase}", &[("phase", phase)]));
-                            }
-                            ActionState::Planned => {
-                                ribbon_button_disabled(ui, t(action.label), action.id, tip)
-                                    .on_hover_text(t("planned — not available yet"));
-                            }
-                        });
-                    }
-                });
-                ui.add_space(1.0);
-                ui.with_layout(
-                    egui::Layout::top_down_justified(egui::Align::Center),
-                    |ui| {
-                        ui.label(
-                            egui::RichText::new(t(group.label))
-                                .size(fonts::CAPTION.size)
-                                .extra_letter_spacing(fonts::CAPTION.tracking_points())
-                                .color(tokens.text_muted),
-                        );
-                    },
-                );
-            });
+                                ActionState::DisabledIn { phase } => {
+                                    ribbon_button_disabled(ui, t(action.label), action.id, tip)
+                                        .on_hover_text(tr(
+                                            "arrives in {phase}",
+                                            &[("phase", phase)],
+                                        ));
+                                }
+                                ActionState::Planned => {
+                                    ribbon_button_disabled(ui, t(action.label), action.id, tip)
+                                        .on_hover_text(t("planned — not available yet"));
+                                }
+                            });
+                        }
+                    });
+                    ui.add_space(1.0);
+                    ui.with_layout(
+                        egui::Layout::top_down_justified(egui::Align::Center),
+                        |ui| {
+                            ui.label(
+                                egui::RichText::new(t(group.label))
+                                    .size(fonts::CAPTION.size)
+                                    .extra_letter_spacing(fonts::CAPTION.tracking_points())
+                                    .color(tokens.text_muted),
+                            );
+                        },
+                    );
+                },
+            );
+            layout_probe::record(
+                &format!("ribbon.{}.{}", tab.id, group.id),
+                group_ui.response.rect,
+            );
             ui.separator();
         }
     });
     if let Some(command) = intent {
         app.dispatch(command);
     }
+}
+
+/// The painted width of one action's button — the same formula
+/// [`ribbon_button_response`] allocates with — so a group container can
+/// size itself to its content instead of the row's remaining width.
+fn action_width(ui: &egui::Ui, label: &str) -> f32 {
+    let font = egui::FontId::new(fonts::CONTROL.size, egui::FontFamily::Proportional);
+    let measure = ui
+        .painter()
+        .layout_no_wrap(label.to_owned(), font, egui::Color32::TRANSPARENT);
+    (measure.size().x + 18.0).max(52.0)
+}
+
+/// Content width of a group: its buttons plus the row's item spacing
+/// and a small padding margin.
+fn group_width(ui: &egui::Ui, group: &RibbonGroup) -> f32 {
+    let spacing = ui.spacing().item_spacing.x;
+    let buttons: f32 = group
+        .actions
+        .iter()
+        .map(|action| action_width(ui, t(action.label)))
+        .sum();
+    let gaps = group.actions.len().saturating_sub(1) as f32 * spacing;
+    buttons + gaps + 8.0
 }
 
 /// An Access-sized command button (icon above the label).
@@ -200,11 +243,7 @@ fn ribbon_button_response(
     tip: Option<&str>,
 ) -> egui::Response {
     let tokens = tokens(ui.visuals());
-    let font = egui::FontId::new(fonts::CONTROL.size, egui::FontFamily::Proportional);
-    let measure = ui
-        .painter()
-        .layout_no_wrap(label.to_owned(), font.clone(), tokens.text);
-    let width = (measure.size().x + 18.0).max(52.0);
+    let width = action_width(ui, label);
     let sense = if enabled {
         egui::Sense::click()
     } else {
@@ -241,6 +280,7 @@ fn ribbon_button_response(
     );
     icons::paint(ui.painter(), icon_rect, icon, ink, accent);
 
+    let font = egui::FontId::new(fonts::CONTROL.size, egui::FontFamily::Proportional);
     let galley = ui.painter().layout_no_wrap(label.to_owned(), font, ink);
     ui.painter().galley(
         egui::pos2(rect.center().x, rect.bottom() - 12.0) - galley.size() / 2.0,

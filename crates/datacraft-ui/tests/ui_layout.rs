@@ -36,9 +36,8 @@ fn app_with_tables() -> App {
     app
 }
 
-fn ribbon_rects(mut app: App, ribbon_tab: &'static str) -> Vec<(String, egui::Rect)> {
-    app.active_ribbon_tab = ribbon_tab;
-    let mut harness = Harness::new_ui_state(
+fn layout_harness(app: App) -> Harness<'static, App> {
+    Harness::new_ui_state(
         move |ui, app: &mut App| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
@@ -47,7 +46,12 @@ fn ribbon_rects(mut app: App, ribbon_tab: &'static str) -> Vec<(String, egui::Re
             layout_probe::record("probe.window", ui.max_rect());
         },
         app,
-    );
+    )
+}
+
+fn ribbon_rects(mut app: App, ribbon_tab: &'static str) -> Vec<(String, egui::Rect)> {
+    app.active_ribbon_tab = ribbon_tab;
+    let mut harness = layout_harness(app);
     harness.run();
     layout_probe::drain()
 }
@@ -79,21 +83,30 @@ fn database_tools_groups_are_content_sized() {
 
 #[test]
 fn every_ribbon_group_stays_inside_the_window() {
-    for tab in ["database_tools", "create", "home"] {
-        let rects = ribbon_rects(app_with_tables(), tab);
-        let window = rects
-            .iter()
-            .find(|(id, _)| id == "probe.window")
-            .map(|(_, rect)| *rect)
-            .expect("window rect recorded");
-        for (id, rect) in &rects {
-            if !id.starts_with("ribbon.") {
-                continue;
+    // Both acceptance sizes (H52/T10): the shipped default and the
+    // minimum plausible window.
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0)] {
+        for tab in ["database_tools", "create", "home"] {
+            let mut app = app_with_tables();
+            app.active_ribbon_tab = tab;
+            let mut harness = layout_harness(app);
+            harness.set_size(size);
+            harness.run();
+            let rects = layout_probe::drain();
+            let window = rects
+                .iter()
+                .find(|(id, _)| id == "probe.window")
+                .map(|(_, rect)| *rect)
+                .expect("window rect recorded");
+            for (id, rect) in &rects {
+                if !id.starts_with("ribbon.") {
+                    continue;
+                }
+                assert!(
+                    rect.right() <= window.right() + 1.0,
+                    "group {id} on {tab} paints at {rect:?}, beyond the window's right edge {window:?} at {size:?} — its actions are invisible in the live app (H52)"
+                );
             }
-            assert!(
-                rect.right() <= window.right() + 1.0,
-                "group {id} on {tab} paints at {rect:?}, beyond the window's right edge {window:?} — its actions are invisible in the live app (H52)"
-            );
         }
     }
 }
@@ -109,9 +122,13 @@ fn panels_never_overlap_the_status_bar() {
         move |ui, app: &mut App| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
+            // The tab strip paints a text "✕"; the headless font set
+            // carries no glyph for it (tofu policy, like the live app's
+            // fallback path).
+            ui.ctx()
+                .set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
             layout_probe::clear();
-            let frame = eframe::Frame::_new_kittest();
-            let mut frame = frame;
+            let mut frame = eframe::Frame::_new_kittest();
             eframe::App::ui(app, ui, &mut frame);
             layout_probe::record("probe.window", ui.max_rect());
         },

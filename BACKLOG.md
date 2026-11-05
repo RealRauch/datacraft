@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-05T02:20
+# BACKLOG.md — Open items (As of: 2026-11-05T16:36
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -18,6 +18,18 @@
 
 > No open items.
 
+### [ ] H52 — Ribbon groups: the first group stretches across the full row and pushes the rest off-window — 🟠
+- **Location:** `crates/datacraft-ui/src/ribbon.rs` (group row: `ui.horizontal` → `ui.vertical` per group, measured 2026-11-05: the first group's rect spans the whole remaining row width — 764px of a ~950px harness — pushing every later group past the right window edge; second+ groups size to content ≈130px).
+- **Problem:** In the live app the first ribbon group of every tab stretches across the full row (its centered caption lands at the window centre — the user-visible symptom on Database Tools: only "Beziehungen" shows, the Queries group with SQL/Expression is pushed off-window; the Create tab hides Queries/Forms/Reports the same way). The semantic tree still contains the off-screen buttons, so every existing kittest tree pin passes — pixel/layout was never asserted (found in the live-UI investigation 2026-11-05; root cause confirmed with rect measurements).
+- **Approach:** Size each group to its content explicitly (measure the group's buttons with the same width formula `ribbon_button_response` uses, floor at 120) and allocate that exact width for the group container; the caption then centres inside the real group. Add an in-crate `#[cfg(test)]` rect collector and pin: the Queries group's right edge stays inside the window on Database Tools, and on Create the Reports group is visible — rect-level assertions, not tree dumps.
+- **Acceptance:** Every tab renders all its groups inside the window at 1280×800 and 960×600; rect pins prove each group's right edge ≤ the window width; the caption centres under its own group; the live app shows SQL/Expression on Database Tools again; canonical verification set green.
+
+### [ ] H53 — Datasheet content paints behind the status bar (panel overlap) — 🟠
+- **Location:** shell/workspace rect layering — `crates/datacraft-ui/src/shell.rs` (panels + `workspace_ui` share one `ui`) and `crates/datacraft-ui/src/workspace.rs` (tabstrip panel + central panel).
+- **Problem:** The user observed datasheet content disappearing behind the status bar (screenshot 2026-11-05: a partially covered row above `database (Jet4) — Bikes`): the workspace/content rect overlaps the bottom panel, so the last row(s) paint under the footer. Same class as H52 — layout rects were never asserted, only semantic trees.
+- **Approach:** Reproduce with a rect-level probe (shell render in kittest + measure the central area's bottom edge against the status panel's top edge, at default and 600-height windows), fix the rect computation, and pin the non-overlap.
+- **Acceptance:** The document area's bottom edge never crosses the status bar's top edge at 1280×800 and 960×600; the datasheet's last visible row is fully above the footer; rect pins prove it; canonical verification set green.
+
 ---
 
 ## 🟡 MEDIUM
@@ -35,6 +47,24 @@
 - **Problem:** DataCraft has no path that imports an external file's content as new tables into the currently open database (Jet4/SQLite). CSV directories open only as a read-only driver source through the backstage folder dialog. The ribbon's "Import File" button today claims a "Phase 9" future that has passed; the decision (M49) keeps the button visible but honestly disabled until this feature is built, so it needs a real item to drive it.
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
+
+### [ ] M52 — No Close Database affordance in the UI — 🟡
+- **Location:** Backstage Save page / File menu, `crates/datacraft-ui/src/backstage/` (the bus has `CloseDatabase` — the CLI and server_e2e dispatch it — but no UI affordance exists).
+- **Problem:** A user cannot close the open database to open a different one without restarting the app (user report 2026-11-05). Opening a database while one is open is refused or replaces nothing, so the only route out is the window close.
+- **Approach:** A Close Database affordance on the backstage (Save page action or Home card area, alongside Save a copy / Change password), dispatching one `CloseDatabase`; after close the backstage Home shows and open-dependent state (tabs, caches, undo) resets through the existing DatabaseClosed path. Capability-independent (always available while a database is open).
+- **Acceptance:** Close Database returns to the no-database state over the real bus (tabs cleared, nav pane empty, backstage Home); a kittest pins the affordance and the post-close snapshot; reopening a different file works in one flow; canonical verification set green.
+
+### [ ] M53 — Contextual design view opens a new table instead of switching the open table — 🟡
+- **Location:** The contextual Table Tools tab (`table_tools`) and its command mapping in `crates/datacraft-ui/src/ribbon.rs` (`command_for`), versus the Create tab's `table_design` action (`create_table_design_flow`, step 41.5/M49) and the nav pane's Design (U9, `OpenObjectInMode`).
+- **Problem:** Clicking the design-view affordance on an OPEN table (contextual Table Tools) opens a NEW empty table in design view instead of switching the current table's tab to Design mode (user report 2026-11-05). Access semantics: Create ▸ Table Design creates a new table; the contextual View group switches the open object's mode (`SetTabMode` exists for exactly that).
+- **Approach:** Map the contextual tab's design affordance to `SetTabMode { tab_id, mode: Design }` on the active table tab (the Home Views split-button already switches modes — reuse its seam); the Create tab's Table Design keeps creating new tables. Label the two affordances distinctly (Entwurf / Neu in Entwurfsansicht) so both flows are discoverable.
+- **Acceptance:** With a table tab open, the contextual affordance switches THAT tab to design view (same table name, one `SetTabMode`); the Create action still creates a new table design; kittest pins both paths; canonical verification set green.
+
+### [ ] M54 — Datasheet sort is undiscoverable and filtering is missing entirely — 🟡
+- **Location:** Datasheet header rendering (`crates/datacraft-ui/src/datasheet/`), the QBE sort path (U8: header-click sort through `SetQbeCell`), and the status bar's disabled Filter placeholder (U11).
+- **Problem:** The user experiences datasheet tables as unsortable and unfilterable ("wie z. B. in Excel", 2026-11-05). Sorting technically exists (header click writes a QBE sort cell) but is undiscoverable — no visual affordance on the header — and filtering does not exist at all (the status bar renders only a disabled `Filter` button as a placeholder).
+- **Approach:** Two parts. (1) Make sorting discoverable: sort-indicator arrows on the sorted header, a header context menu (Sort Ascending/Descending/Clear) beside the existing freeze menu, localized labels. (2) A first-class filter model: per-column filter entry in the same header context menu feeding a QBE criteria (the engine's predicate vocabulary covers it), an active-filter chip in the status bar replacing the placeholder (click clears), and the row count reflecting the filtered view. Data stays headless-true: every action is one command (`SetQbeCell`), no UI-side row math.
+- **Acceptance:** Sorting shows its direction on the header and is clearable from the context menu; a column filter set from the menu filters the rows over the real query path and its chip clears with one click; kittest pins sort, filter and clear; the status Filter button reflects active filter state; canonical verification set green.
 
 ---
 
@@ -83,6 +113,12 @@
 - **Problem:** Scratch paths are `temp_dir + datacraft-sqlite-journal-{pid}-{counter}.sqlite`. After an interrupted test run (killed coverage/test process), a leftover file with a recycled pid and counter 0 collides: `CREATE TABLE notes` fails with "table notes already exists" and the suite answers one spurious failure (observed 2026-11-05 during the step 42.3 run; isolated rerun green).
 - **Approach:** Unlink the pre-existing scratch file before seeding (`let _ = std::fs::remove_file(&path)` like the shop fixture), or make the path unique per run (nanosecond timestamp component). Mechanical sweep over the sqlite/core/ui test helpers for the same missing guard.
 - **Acceptance:** Seeding never collides with leftovers from interrupted runs; the sweep notes every helper that gained the guard; workspace suite green across repeated runs.
+
+### [ ] T10 — Layout/rect-level UI test layer (semantic-tree pins are blind to pixel geometry) — 🔵
+- **Location:** `crates/datacraft-ui/tests/` (the kittest family), `docs/TESTING.md` §4 (taxonomy).
+- **Problem:** The kittest suite asserts the semantic tree only; AccessKit nodes exist even when a widget paints off-window or under another panel — the H52 ribbon stretch and the H53 status-bar overlap both passed every existing pin while the live UI hid features (proven 2026-11-05: probe rendered the SQL button in the tree while the live app showed nothing). Layout/pixel truth has no test layer.
+- **Approach:** An in-crate, `#[cfg(test)]` rect-collection seam for the shell and the ribbon (widget rects keyed by test id, gathered through egui's own response rects during paint), plus a kittest suite asserting geometry contracts: every ribbon group's rect is inside the window, the workspace's bottom edge never crosses the status panel, panels do not overlap each other. Taxonomy row updated (Layout/pixel layer: rect assertions, still no raster pixel compares).
+- **Acceptance:** The rect seam exists behind `#[cfg(test)]` (no public API growth), a layout suite pins the window-geometry contracts at two window sizes, H52/H53 fixes carry their pins from this seam, TESTING taxonomy documents the layer; canonical verification set green.
 
 ---
 

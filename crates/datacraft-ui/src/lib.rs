@@ -28,6 +28,7 @@ pub mod i18n;
 pub mod icons;
 pub mod keys;
 pub mod labels;
+pub mod layout_probe;
 pub mod macro_viewer;
 pub mod nav_pane;
 pub mod password_prompt;

@@ -98,6 +98,7 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
     egui::CentralPanel::default()
         .frame(egui::Frame::central_panel(ui.style()).fill(tokens.canvas))
         .show(ui, |ui| {
+            crate::layout_probe::record("shell.workspace_panel", ui.max_rect());
             let snapshot = app.snapshot().clone();
             let active = snapshot
                 .active_tab
