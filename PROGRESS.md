@@ -279,7 +279,7 @@
 | 41.6 | Phase 41 Quality Gate Review | ✅ |
 | 42.1 | SQLite affinity edge cases: AUTOINCREMENT scope and marker type suffixes (L13) | ✅ |
 | 42.2 | Capability-gate design-time schema edits (L18) | ✅ |
-| 42.3 | QBE projection resolves by name via the schema whitelist (L22) | ⬜ |
+| 42.3 | QBE projection resolves by name via the schema whitelist (L22) | ✅ |
 | 42.4 | Phase 42 Quality Gate Review | ⬜ |
 | 43.1 | Coverage gap audit: contract tests for locally uncovered edge paths (T9) | ✅ |
 | 43.2 | Pin cargo-llvm-cov@0.9.1 in the CI coverage job (M51, High gate: released) | ✅ |

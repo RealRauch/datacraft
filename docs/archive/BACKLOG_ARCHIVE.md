@@ -1387,3 +1387,12 @@
 - **Approach:** Add the `AlterTables` reason plus the design-view affordance ids to the core availability map, render the controls disabled with the localized tooltip, and gate the Create Database button on the same map; keep the dispatcher gates as the second line of defence.
 - **Acceptance:** On a SQLite session the design-view edit controls (and on a creation-disabled composition the Create Database button) are disabled with a localized reason; kittest pins the SQLite case; no command is required to discover the restriction.
 - **Done:** done in `ea7b277` (RED `890bf07`) - step 42.2: AlterTables/CreateDatabase reasons + five affordance ids; design-view edit block and backstage Create Database button render disabled with the localized reason; CSV wire pin honestly gains the four design.* entries
+
+---
+
+### [x] L22 — QBE projection is positional while field names document source columns — 🟢
+- **Location:** `crates/datacraft-core/src/query_engine.rs:73-88` (projection uses the field's position in `def.fields`, while `parse_predicates`/`sort_rows` resolve `QbeField.name` against the table), `crates/datacraft-core/src/qbe.rs` (`QbeField.name` documented as "source field name").
+- **Problem:** A `QueryDef` whose field list is a subset or reordered silently projects the wrong columns: the header names come from the grid entries but the values come from the same positional index of the source row. Every in-tree caller builds the full grid in source order, so it works today, but the documented contract says names are source fields and an out-of-tree client can be silently wrong.
+- **Approach (decided 2026-11-04: by-name resolution):** Resolve every projection column by name through the schema whitelist; reject duplicate and unknown field names with a precise, locatable error. Update the `QueryDef`/`QbeField` docs to state the by-name contract explicitly.
+- **Acceptance:** A subset/reordered definition projects exactly the named columns; duplicate or unknown names fail loudly instead of silently mis-projecting; the by-name contract is documented on `QueryDef`/`QbeField` and pinned by tests.
+- **Done:** done in `69e0797` (RED `8b6ac9b`) - step 42.3: projection resolves every shown column by name through the source whitelist (case-insensitive); duplicate shown names answer DuplicateField, unknown names UnknownField; by-name contract documented on QueryDef.fields/QbeField.name

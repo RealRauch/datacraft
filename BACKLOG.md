@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-05T01:20
+# BACKLOG.md — Open items (As of: 2026-11-05T02:20
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -60,12 +60,6 @@
 - **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
 - **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
 
-### [ ] L22 — QBE projection is positional while field names document source columns — 🟢
-- **Location:** `crates/datacraft-core/src/query_engine.rs:73-88` (projection uses the field's position in `def.fields`, while `parse_predicates`/`sort_rows` resolve `QbeField.name` against the table), `crates/datacraft-core/src/qbe.rs` (`QbeField.name` documented as "source field name").
-- **Problem:** A `QueryDef` whose field list is a subset or reordered silently projects the wrong columns: the header names come from the grid entries but the values come from the same positional index of the source row. Every in-tree caller builds the full grid in source order, so it works today, but the documented contract says names are source fields and an out-of-tree client can be silently wrong.
-- **Approach (decided 2026-11-04: by-name resolution):** Resolve every projection column by name through the schema whitelist; reject duplicate and unknown field names with a precise, locatable error. Update the `QueryDef`/`QbeField` docs to state the by-name contract explicitly.
-- **Acceptance:** A subset/reordered definition projects exactly the named columns; duplicate or unknown names fail loudly instead of silently mis-projecting; the by-name contract is documented on `QueryDef`/`QbeField` and pinned by tests.
-
 ### [ ] L24 — Publish metadata: repository and readme for the published crates — 🟢
 - **Location:** `Cargo.toml` (`[workspace.package]`), `crates/*/Cargo.toml` (`[package]` metadata), `docs/PUBLISHING.md` release checklist step 4
 - **Problem:** `cargo package --list` warns "manifest has no documentation, homepage or repository" for the published crates (found in step 37.4 while verifying the packaged license files). crates.io shows empty repository/docs links for such packages; the release checklist's dry-run step would surface it too late. The per-crate `description` fields have landed since (the family stands unpublished at `0.1.0`); `repository` and the `readme` field are still missing everywhere — without `readme`, the crates.io pages render no README at all.
@@ -89,6 +83,12 @@
 - **Problem:** The expression window evaluates over an empty scope only. The core supports a row context (table + zero-based live-row index) — CLI/MCP agents can address it, but the window has no table/row picker, so GUI users cannot evaluate field expressions against a record (documented follow-up when M46 landed, step 41.2).
 - **Approach:** Add an optional row-context picker to the expression window (table + row selector fed from the snapshot), dispatching `RunExpression` with `Some(ExpressionContext)` when set; keep the contextless evaluation as the default state.
 - **Acceptance:** Picking a table and row makes the window evaluate against that record (field names resolve); clearing the picker returns to the empty scope; a kittest pins one contextual run; canonical verification set green.
+
+### [ ] L28 — Flaky scratch paths: interrupted runs leave files that recycled pids collide with — 🟢
+- **Location:** `crates/datacraft-sqlite/tests/sqlite_journal.rs` (`scratch_path`, `open_core` — the seed does not unlink a pre-existing scratch file), same shape possible in other suites whose `scratch_path` helpers skip the remove-first step (`shop_database()` in sqlite_port.rs shows the guard).
+- **Problem:** Scratch paths are `temp_dir + datacraft-sqlite-journal-{pid}-{counter}.sqlite`. After an interrupted test run (killed coverage/test process), a leftover file with a recycled pid and counter 0 collides: `CREATE TABLE notes` fails with "table notes already exists" and the suite answers one spurious failure (observed 2026-11-05 during the step 42.3 run; isolated rerun green).
+- **Approach:** Unlink the pre-existing scratch file before seeding (`let _ = std::fs::remove_file(&path)` like the shop fixture), or make the path unique per run (nanosecond timestamp component). Mechanical sweep over the sqlite/core/ui test helpers for the same missing guard.
+- **Acceptance:** Seeding never collides with leftovers from interrupted runs; the sweep notes every helper that gained the guard; workspace suite green across repeated runs.
 
 ---
 
@@ -261,3 +261,4 @@
 - M49 — Ribbon placeholders "Table Design"/"Import File" contradict reality — done (done in `78b19d2` (RED `63fe820`) — step 41.5: Table Design opens a new Access-default table in the design view (flows seam, same input-bound exclusion as the Table action); Import File stays visible with ActionState::Planned and no phase claim; no stale phase labels remain)
 - L13 — SQLite affinity edge cases: AUTOINCREMENT substring and parameterized type names — done (done in `4d5ebba` (RED `e900ea6`) - step 42.1: ddl::pk_is_autoincrement scopes the token to the key column's own definition (quoted forms, word boundary, malformed DDL answers false); marker_base strips one trailing parenthesized suffix for the marker names (DATETIME(6) -> DateTime, CURRENCY(10) -> Currency); FORMAT-JET documents both rules)
 - L18 — Design-time schema edits are not capability-gated in the UI — done (done in `ea7b277` (RED `890bf07`) - step 42.2: AlterTables/CreateDatabase reasons + five affordance ids; design-view edit block and backstage Create Database button render disabled with the localized reason; CSV wire pin honestly gains the four design.* entries)
+- L22 — QBE projection is positional while field names document source columns — done (done in `69e0797` (RED `8b6ac9b`) - step 42.3: projection resolves every shown column by name through the source whitelist (case-insensitive); duplicate shown names answer DuplicateField, unknown names UnknownField; by-name contract documented on QueryDef.fields/QbeField.name)
