@@ -678,6 +678,39 @@ the metadata check runs before the connection is opened, because Windows
 defers the failure to the first write) and answers a precise `Unsupported`
 on every write.
 
+## CSV directory driver (2026-11-02, steps 30.9/36.5, BACKLOG M18/L7)
+
+The third source family is **not a binary format** and carries no file magic:
+a *database* is a directory, its tables are the `*.csv` files inside (catalog
+sorted by name, like the directory listing). The driver
+(`crates/datacraft-csv`) depends on nothing but `datacraft-core` — the ADR-7
+out-of-tree proof — and composes at the binary roots via
+`DetectingPort::with_fallback`, which hands directory paths to the fallback
+when the magic sniff declines (detection: `path.is_dir()`); the driver
+inventory reports the family offline (step 36.4, M23).
+
+**Schema.** The first row of each file names the columns. Every column reads
+as Short Text by default; the schema *kind* is inferred at open, deterministically,
+from a full scan (step 36.5, L7): all-integer columns become `LongInteger`,
+all-float columns `Double`, all-ISO-date columns (`YYYY-MM-DD`) `DateTime`;
+anything else — and every ambiguous column — stays Short Text. One quoted
+cell pins the whole column to Short Text (the user's escape hatch) and empty
+cells do not vote. Cell **values** still read as text; only the schema kind
+is inferred, so the datasheet formats and parses by the declared kind.
+
+**Writes.** Any write rewrites the whole file exactly once (sibling temp file
++ rename), so a call is atomic — either every operation of the call lands or
+none (`atomic_batch: true`). Rows are addressed positionally in file order
+(data rows after the header); non-text domain values render deterministically
+through the core's cell display (`Null` becomes an empty cell). Served
+surfaces: create the database directory (refuses existing paths), create/drop
+table, insert/update/delete. Not served (honest capability set): schema
+alteration, relationships, passwords, engine-assigned AutoNumbers and the
+Jet-style inventories (native queries, macros, VBA) — the declared
+`DriverCapabilities` name exactly that, and the availability map disables the
+matching UI affordances (phase 42.2 extends this to the design view's
+schema edits).
+
 ## Column type 0x11 — decision record (2026-11-01, step 10.7, BACKLOG L2)
 
 **Decision:** `0x11` maps to `JetType::LongBinary` — a **fixed-storage long

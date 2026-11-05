@@ -10,7 +10,7 @@ navigation pane, tabbed documents, datasheet and design views, the QBE query
 builder and a form/report canvas. It reads Jet3/Jet4 `.mdb`, ACE `.accdb`,
 SQLite databases and CSV directories, and writes Jet4/ACE and SQLite on
 verified table/row paths (the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-02) states
+[compatibility matrix](#compatibility-matrix-verified-2026-11-05) states
 exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
@@ -58,7 +58,7 @@ _By the ArtCraft team._
 > maximized; ADR-5). Expect breaking changes. The honest, step-by-step
 > picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
 > the verified compatibility claims are in
-> [Compatibility matrix](#compatibility-matrix-verified-2026-11-02).
+> [Compatibility matrix](#compatibility-matrix-verified-2026-11-05).
 
 ## Why DataCraft
 
@@ -67,7 +67,7 @@ _By the ArtCraft team._
   canvas — rendered in an original, minimal ArtCraft aesthetic.
 - **Your files.** Verified read paths for `.mdb` (Jet3/Jet4) and `.accdb`
   (ACE), plus verified Jet4 and ACE write paths, in pure Rust. The
-  [compatibility matrix](#compatibility-matrix-verified-2026-11-02) names
+  [compatibility matrix](#compatibility-matrix-verified-2026-11-05) names
   every covered and unsupported path — no blanket "bit-for-bit" claim. No
   COM, OLE DB, ADO or winapi anywhere.
 - **Clean-room.** Format knowledge comes only from public specifications and
@@ -119,7 +119,7 @@ The honest picture, phase by phase, is in
 [docs/ROADMAP.md](docs/ROADMAP.md); the format facts are catalogued in
 [docs/FORMAT-JET.md](docs/FORMAT-JET.md).
 
-## Compatibility matrix (verified 2026-11-02)
+## Compatibility matrix (verified 2026-11-05)
 
 Every compatibility claim below names its evidence; unsupported paths are
 stated in the same row. **Read** means decode through the `StoragePort`;
@@ -261,7 +261,7 @@ query engine → macros → forms runtime. DataCraft implements **no VBA
 interpreter or runtime**; VBA is extracted, displayed and statically analyzed
 only (Phase 17, ADR-2). The ring model and rationale are in
 [docs/ROADMAP.md](docs/ROADMAP.md); the verified claim set is the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-02).
+[compatibility matrix](#compatibility-matrix-verified-2026-11-05).
 
 ## Quality gates
 
