@@ -132,8 +132,8 @@ any code embedded in database files without explicit user consent/permissions.
 |---|-----------|---------|--------|
 | M0 | Storage read milestones (Jet4 → ACE) | everything | ✅ Jet4 (Phase 2), Jet3 (Phase 10), ACE 2007/2010/2016 (Phase 14, oracle-checked); SQLite sources (Phase 13); ACCDB write (Phase 25) |
 | M1 | Expression service (Ring 1) | queries, macros, forms, validation | ✅ Phase 15 (steps 15.1–15.2, H41 archived; `Now`/`Date` deliberately absent — deterministic) |
-| M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 · native query execution → Phase 27 (planned, M12) |
-| M3 | Write path (Ring 0 write) | editing apps, Access-compatible write goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11); ACCDB write-through landed in Phase 25 (writer contracts + port + wire/CLI, README matrix) |
+| M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 · native query execution ✅ Phase 27 (M12) |
+| M3 | Write path (Ring 0 write) | editing apps, Access-compatible write goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11); ACCDB write-through landed in Phase 25 (writer contracts + port + wire/CLI, README matrix); drops, design-time alter, field indexes and relationships landed in Phases 24 and 32 |
 | M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview) + Phase 15 (grouped/aggregate bands) |
 | M5 | Macros (Ring 3) | unattended app logic | ✅ Phase 17, step 17.1: read-only inventory (name + coarse arguments); DoCmd execution stays out of scope |
 | M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ✅ Phase 17, steps 17.2–17.3 (extraction, viewer, `AnalyzeVba`; no execution) |
@@ -142,7 +142,7 @@ any code embedded in database files without explicit user consent/permissions.
 
 Ordering notes:
 
-- Planned sequence (2026-11-02, latest; human decision): all feature work
+- Planned sequence (2026-11-02; human decision — execution diverged, see the executed orders below): all feature work
   first, review and documentation before the release, release engineering
   last — Phase 27 (native query execution + encrypted save-as) → Phase 28
   (undo/redo + recent databases) → Phase 33 (journal batch integrity, M20)
@@ -156,6 +156,15 @@ Ordering notes:
   after Phase 30; the first tag should carry the complete write surface,
   a walked review checklist and contradiction-free entry-point docs.
   Phase numbers stay fixed.
+- Executed order (2026-11-05): Phase 26 (release engineering, M13)
+  delivered early — the release workflow, packaged smoke and tag policy
+  shipped ahead of the first tag; Phases 27–29 landed as planned; Phases
+  31–34 (publishing/crate split, schema writing, journal gating,
+  cross-cutting review) and Phases 36–43 (driver edge suites, release
+  readiness, UI restyle, correctness fences, datasheet UX, GUI parity,
+  core correctness, coverage pinning) executed ahead of the sweep, so
+  Phase 35 (documentation sweep, R2) runs last before the first tag —
+  the entry-point docs are the remaining gate.
 - Executed order (2026-11-02): Phase 30 (driver model — ADR-7: declarative
   per-session capabilities, registry detection, CSV directory driver as the
   out-of-tree proof, core-computed UI affordances), after Phase 25 (ACCDB

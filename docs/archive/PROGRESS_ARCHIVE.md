@@ -571,3 +571,15 @@ before the tag.
 - **42.3 QBE projection resolves by name via the schema whitelist (L22)**
 - **42.4 Phase 42 Quality Gate Review**
 **Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 154 workspace suites (1310 tests, 0 failures), file-size gate, hygiene clean (no banned tokens in phase-42 files), coverage gate green (llvm-cov --fail-under-lines 95 exit 0), docs_validate ok. Deliverables: L13 token-scoped AUTOINCREMENT detection plus suffix-tolerant marker names via ddl::pk_is_autoincrement/marker_base, FORMAT-JET updated (e900ea6/4d5ebba); L18 AlterTables/CreateDatabase availability vocabulary gating the design-view edit block and the backstage Create Database button with localized reasons, CSV wire pin honestly extended (890bf07/ea7b277); L22 by-name QBE projection through the source whitelist with DuplicateField/UnknownField errors and the contract documented on QueryDef/QbeField (8b6ac9b/69e0797). One unrelated flake observed during 42.3 filed as L28 (stale scratch files collide with recycled pids). Mechanical normalization inside the L13 RED commit: the corrupt-file test's raw NUL byte became the identical \\x00 escape. (checkpoint: 69e0797)
+
+---
+
+### Phase 35 — Documentation Sweep *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **35.1 AGENTS.md + README architecture and diagrams (R2)**
+- **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
+- **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
+- **35.4 Phase 35 Quality Gate Review**
+**Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 154 workspace suites (1310 tests, 0 failures), file-size gate, hygiene clean (no banned tokens in code files), coverage gate green (llvm-cov --fail-under-lines 95 exit 0), docs_validate ok. Deliverables: 35.1 AGENTS.md/README crate graphs, roadmap 26-43, CI-matrix and read/write claims match the manifests and workflows (8b8c686); 35.2 ARCHITECTURE command surface points at command.rs, crate tree/edges corrected (cli listed, ui/cli carry storage+csv), format milestones through Phase 32, honest remaining-work list, full 1-43 phase mapping (8af10c0); 35.3 FORMAT-JET CSV driver section, TESTING taxonomy repaired with the live suite families, compatibility matrix re-verified and stamped 2026-11-05 (ab86d4d); ROADMAP milestone rows (M12/M3) and ordering notes updated with the executed order through Phase 43; R2 archived. Acceptance evidence: the fresh-contributor walkthrough (read AGENTS/README -> build -> open a CSV directory) runs green over the real CLI binary. (checkpoint: ab86d4d)

@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 35 — Documentation Sweep *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **35.1 AGENTS.md + README architecture and diagrams (R2)**
-- **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
-- **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
-- **35.4 Phase 35 Quality Gate Review**
 
 
 
@@ -232,8 +224,8 @@
 | 34.6 | Phase 34 Quality Gate Review | ✅ |
 | 35.1 | AGENTS.md + README architecture and diagrams (R2) | ✅ |
 | 35.2 | ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2) | ✅ |
-| 35.3 | FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2) | 🔄 |
-| 35.4 | Phase 35 Quality Gate Review | ⬜ |
+| 35.3 | FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2) | ✅ |
+| 35.4 | Phase 35 Quality Gate Review | ✅ |
 | 34.7 | Semantic-Conformance-Spot-Checks (T6) | ✅ |
 | 36.1 | CSV behavioral edge suites (T7) | ✅ |
 | 36.2 | Detecting registry edge suites + L9 (T7) | ✅ |
