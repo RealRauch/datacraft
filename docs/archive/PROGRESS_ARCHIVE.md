@@ -583,3 +583,13 @@ before the tag.
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
 **Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 154 workspace suites (1310 tests, 0 failures), file-size gate, hygiene clean (no banned tokens in code files), coverage gate green (llvm-cov --fail-under-lines 95 exit 0), docs_validate ok. Deliverables: 35.1 AGENTS.md/README crate graphs, roadmap 26-43, CI-matrix and read/write claims match the manifests and workflows (8b8c686); 35.2 ARCHITECTURE command surface points at command.rs, crate tree/edges corrected (cli listed, ui/cli carry storage+csv), format milestones through Phase 32, honest remaining-work list, full 1-43 phase mapping (8af10c0); 35.3 FORMAT-JET CSV driver section, TESTING taxonomy repaired with the live suite families, compatibility matrix re-verified and stamped 2026-11-05 (ab86d4d); ROADMAP milestone rows (M12/M3) and ordering notes updated with the executed order through Phase 43; R2 archived. Acceptance evidence: the fresh-contributor walkthrough (read AGENTS/README -> build -> open a CSV directory) runs green over the real CLI binary. (checkpoint: ab86d4d)
+
+---
+
+### Phase 46 — Form Runtime Layout
+
+**Scope (Steps):**
+
+- **46.1 Runtime paints stored control rects on the designer canvas (M57)**
+- **46.2 Phase 46 Quality Gate Review**
+**Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 158 workspace suites (0 failures), file-size gate, hygiene clean, coverage gate green (llvm-cov --fail-under-lines 95 exit 0), docs_validate ok. Deliverable: 46.1 the form runtime renders the designed layout — the shared 640x400 designer canvas, controls at their stored rects and sizes (c163a49, M57 archived); the new ui_kittest_form suite pins runtime-rect == stored-rect through the layout_probe seam. README form row unchanged (the compatibility matrix's design-layer row already claims sidecar forms; the runtime now honours it). (checkpoint: c163a49)

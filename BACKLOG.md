@@ -18,12 +18,6 @@
 
 > No open items.
 
-### [ ] M57 — Form runtime ignores the designer's stored control rects — 🟠
-- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (the runtime paints every control in a vertical ScrollArea stack with a fixed 200x22 text box and never reads `ControlDef.rect`); the designer (`form_design.rs`) places controls at their stored rects on a 640x400 canvas.
-- **Problem:** The form runtime's control arrangement differs from the designer's (user walkthrough report 2026-11-05 with screenshots, database `Downloads\database.mdb`): Form1's designer shows three staggered text boxes ({Id}/{Name}/{Email} at distinct canvas rects), while the runtime view stacks all three top-left in a uniform column. ADR-1's WYSIWYG contract (the runtime renders the designed layout) is not honoured; the designer's snap-to-grid work is invisible to users.
-- **Approach:** The runtime paints the same 640x400 canvas as the designer (shared constants) and places each control at `canvas.min + control.rect` with its stored size (the text box honours the rect instead of the fixed size) through `Ui::new_child(UiBuilder::new().max_rect(...))`; the existing bound-value rendering stays. The layout_probe seam records each control's runtime rect (`runtime.<form>.<control>`) so a pin asserts the painted positions against the stored rects.
-- **Acceptance:** A form built over the bus (CreateForm + record source + AddFormControl with distinct rects) renders its controls at exactly the stored positions in the runtime; the kittest pin proves runtime rect == stored rect per control; the record navigation row stays below the canvas; canonical verification set green.
-
 ---
 
 ## 🟡 MEDIUM
@@ -266,3 +260,4 @@
 - T10 — Layout/rect-level UI test layer (semantic-tree pins are blind to pixel geometry) — done (done by phase 44 (steps 44.1/44.2/44.6, `c1e081d`/`e7a90d3`/phase gate) - the layout_probe rect seam is public (PUBLISHING-documented beside MockPort), ui_layout.rs pins group widths, in-window bounds and pairwise panel geometry at 1280x800/960x600, and the TESTING taxonomy carries the Layout-rects row)
 - M56 — Record navigation arrows mirrored (prev right, next left) — done (done in `f4afe03` (RED `9ee5a77` + fixture follow-up) - step 45.2: the nav row paints in its own left-to-right layout inside the right-to-left status bar; rect pin proves previous sits left of next)
 - M55 — Filter criteria cannot be typed: the header menu closes on editor click — done (done in `2c3a0d2` (RED `b493e20`) - step 45.1: the header menu's Filter item opens a per-tab criteria window (egui menus do not host text editing - the reported live bug and the 44.5 kittest dead-end were the same defect); the dialog seeds from the live filter and Apply/Clear dispatch the existing commands)
+- M57 — Form runtime ignores the designer's stored control rects — done (done in `c163a49` (RED `5077ac8`) - step 46.1: the runtime paints the designer's shared 640x400 canvas and places every control at its stored rect with its stored size (child Ui per rect); the user's database.mdb Form1 now renders staggered as designed; layout_probe records runtime.Form1.<control> rects for the pin)

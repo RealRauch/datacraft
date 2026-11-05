@@ -26,12 +26,6 @@
 - **45.1 Filter dialog window replaces the in-menu editor (user report: menu closes on field click)**
 - **45.2 Record-navigation arrow order: prev left, next right (user report)**
 - **45.3 Phase 45 Quality Gate Review (+ README datasheet row)**
-### Phase 46 — Form Runtime Layout
-
-**Scope (Steps):**
-
-- **46.1 Runtime paints stored control rects on the designer canvas (M57)**
-- **46.2 Phase 46 Quality Gate Review**
 
 
 
@@ -303,5 +297,5 @@
 | 45.1 | Filter dialog window replaces the in-menu editor (user report: menu closes on field click) | ✅ |
 | 45.2 | Record-navigation arrow order: prev left, next right (user report) | 🔄 |
 | 45.3 | Phase 45 Quality Gate Review (+ README datasheet row) | ✅ |
-| 46.1 | Runtime paints stored control rects on the designer canvas (M57) | 🔄 |
-| 46.2 | Phase 46 Quality Gate Review | ⬜ |
+| 46.1 | Runtime paints stored control rects on the designer canvas (M57) | ✅ |
+| 46.2 | Phase 46 Quality Gate Review | ✅ |

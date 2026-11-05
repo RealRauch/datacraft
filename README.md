@@ -257,6 +257,7 @@ Delivered phases and the open work:
 | 43 — Coverage & CI Pinning | coverage gap audit, cargo-llvm-cov pinned in the CI coverage job | ✅ |
 | 44 — UI Layout & Affordance Audit | content-sized ribbon groups, panel-geometry pins, Close Database, German label semantics, datasheet sort/filter with the core view state, the layout-rect seam | ✅ |
 | 45 — Walkthrough Fixes | column filter dialog replaces the in-menu editor (menus cannot host text editing), record-navigation arrow order | ✅ |
+| 46 — Form Runtime Layout | the runtime renders the designed layout: the shared designer canvas, controls at their stored rects and sizes | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
