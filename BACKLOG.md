@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-05T00:39
+# BACKLOG.md — Open items (As of: 2026-11-05T01:20
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -275,3 +275,4 @@
 - M45 — Relationship mapper: create/delete relationships are headless-only — done (done in `f331afe` (RED `2aaa13a`) — step 41.1: mapper create form (four schema pickers) + per-row delete, one command each; availability ids relationships.create/delete gate on != Yes; full() reference set corrected to relationships: Yes)
 - M46 — Expression service has no GUI surface (RunExpression) — done (done in `0fdb340` (RED `3e1750c`) — step 41.2: Database Tools > Expression window dispatching RunExpression without row context, result/failure rendering kittest-pinned; row-context evaluation stays a documented follow-up)
 - M47 — VBA static analysis has no viewer (AnalyzeVba) — done (done in `8c6c689` (RED `af03bed`) — step 41.3: viewer Analyze affordance dispatching AnalyzeVba, right pane renders all five VbaAnalysis sections read-only (ADR-2 kept); kittest over fixture-shaped MockPort content (dependency direction: the ui crate cannot decode the accdb fixture))
+- F10 — Inline fix: design-view palette column pushed past the viewport — done (fixed in `76ab83c` (step 41.4) — ui.set_max_width caps on both design-view canvas columns; the report-design kittest drives the palette column visibly)

@@ -1351,3 +1351,12 @@
 - **Approach:** An analysis view in or next to the VBA viewer that dispatches `AnalyzeVba` once on demand and renders the returned `VbaAnalysis` sections (per-module call graph, SQL statements, references, unused modules) as read-only lists; keep ADR-2 (static analysis only, no execution).
 - **Acceptance:** The GUI shows all analysis sections for an open VBA project; a kittest on the programmability fixture pins the rendering; canonical verification set green.
 - **Done:** done in `8c6c689` (RED `af03bed`) — step 41.3: viewer Analyze affordance dispatching AnalyzeVba, right pane renders all five VbaAnalysis sections read-only (ADR-2 kept); kittest over fixture-shaped MockPort content (dependency direction: the ui crate cannot decode the accdb fixture)
+
+---
+
+### [x] F10 — Inline fix: design-view palette column pushed past the viewport — 🟢
+- **Location:** `crates/datacraft-ui/src/form_design.rs:36-45` (the design view's `horizontal_top` row)
+- **Problem:** The design views' canvas columns were not width-capped, and egui separators span the full available width inside a vertical layout — the canvas column's min_rect stretched to the whole row, pushing the palette column (record source, fields, toolbox) past the viewport. In the painted design view the palette was unreachable on any window narrower than canvas + full-row width. Found in step 41.4 while driving the report design view under kittest (the palette combo rendered at x=1410 on a 1400-px viewport).
+- **Fix:** One-line cap per view — `ui.set_max_width(<canvas width>)` on the canvas column in `report_design.rs` (step 41.4 scope) and `form_design.rs` (this inline fix, same defect one file over, ~4 lines, Low class).
+- **Acceptance:** The palette column renders beside the canvas at its own width; the report-design kittest (step 41.4) drives the grouping picker through the visible palette column.
+- **Done:** fixed in `76ab83c` (step 41.4) — ui.set_max_width caps on both design-view canvas columns; the report-design kittest drives the palette column visibly
