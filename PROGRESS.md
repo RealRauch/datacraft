@@ -283,5 +283,5 @@
 | 44.2 | Status-bar panel overlap on the workspace content (H53) | 🔄 |
 | 44.3 | Close Database affordance on the backstage (M52) | ✅ |
 | 44.4 | Contextual design view switches the open table (M53) | ✅ |
-| 44.5 | Datasheet sort discoverability + first-class column filters (M54) | 🔄 |
+| 44.5 | Datasheet sort discoverability + first-class column filters (M54) | ✅ |
 | 44.6 | Phase 44 Quality Gate Review | ⬜ |
