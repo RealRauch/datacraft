@@ -16,9 +16,9 @@ use crate::app::App;
 use crate::i18n::{plural, t, tr};
 
 /// Form canvas width in points.
-const FORM_WIDTH: f32 = 640.0;
+pub(crate) const FORM_WIDTH: f32 = 640.0;
 /// Form canvas height in points.
-const FORM_HEIGHT: f32 = 400.0;
+pub(crate) const FORM_HEIGHT: f32 = 400.0;
 
 /// Renders the design view of one form tab: canvas plus palette.
 pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {

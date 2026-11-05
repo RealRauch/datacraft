@@ -12,7 +12,6 @@ use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use datacraft_ui::layout_probe;
-use eframe::egui;
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT;
 
@@ -44,7 +43,9 @@ fn form_app() -> App {
         path: "shop.mdb".into(),
         password: None,
     });
-    app.dispatch(Command::CreateForm { name: "Form1".into() });
+    app.dispatch(Command::CreateForm {
+        name: "Form1".into(),
+    });
     app.set_record_source(datacraft_core::ObjectKind::Form, "Form1", "Customers");
     app.dispatch(Command::AddFormControl {
         form: "Form1".into(),
@@ -53,7 +54,12 @@ fn form_app() -> App {
             kind: ControlKind::TextBox {
                 bound_field: Some("Name".into()),
             },
-            rect: datacraft_core::canvas::Rect { x: 208.0, y: 64.0, width: 160.0, height: 24.0 },
+            rect: datacraft_core::canvas::Rect {
+                x: 208.0,
+                y: 64.0,
+                width: 160.0,
+                height: 24.0,
+            },
         },
     });
     app.dispatch(Command::AddFormControl {
@@ -63,7 +69,12 @@ fn form_app() -> App {
             kind: ControlKind::TextBox {
                 bound_field: Some("Email".into()),
             },
-            rect: datacraft_core::canvas::Rect { x: 64.0, y: 160.0, width: 184.0, height: 24.0 },
+            rect: datacraft_core::canvas::Rect {
+                x: 64.0,
+                y: 160.0,
+                width: 184.0,
+                height: 24.0,
+            },
         },
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(

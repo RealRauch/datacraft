@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-05T23:14
+# BACKLOG.md — Open items (As of: 2026-11-05T23:33
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -17,6 +17,12 @@
 ## 🟠 HIGH
 
 > No open items.
+
+### [ ] M57 — Form runtime ignores the designer's stored control rects — 🟠
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (the runtime paints every control in a vertical ScrollArea stack with a fixed 200x22 text box and never reads `ControlDef.rect`); the designer (`form_design.rs`) places controls at their stored rects on a 640x400 canvas.
+- **Problem:** The form runtime's control arrangement differs from the designer's (user walkthrough report 2026-11-05 with screenshots, database `Downloads\database.mdb`): Form1's designer shows three staggered text boxes ({Id}/{Name}/{Email} at distinct canvas rects), while the runtime view stacks all three top-left in a uniform column. ADR-1's WYSIWYG contract (the runtime renders the designed layout) is not honoured; the designer's snap-to-grid work is invisible to users.
+- **Approach:** The runtime paints the same 640x400 canvas as the designer (shared constants) and places each control at `canvas.min + control.rect` with its stored size (the text box honours the rect instead of the fixed size) through `Ui::new_child(UiBuilder::new().max_rect(...))`; the existing bound-value rendering stays. The layout_probe seam records each control's runtime rect (`runtime.<form>.<control>`) so a pin asserts the painted positions against the stored rects.
+- **Acceptance:** A form built over the bus (CreateForm + record source + AddFormControl with distinct rects) renders its controls at exactly the stored positions in the runtime; the kittest pin proves runtime rect == stored rect per control; the record navigation row stays below the canvas; canonical verification set green.
 
 ---
 

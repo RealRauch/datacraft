@@ -62,6 +62,20 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
+            // The designed canvas (step 46.1, M57): the runtime paints
+            // the same 640x400 surface as the designer and places every
+            // control at its stored rect — the designer's arrangement is
+            // what users see at runtime (ADR-1 WYSIWYG), instead of the
+            // old top-left stack.
+            let (canvas, _) = ui.allocate_exact_size(
+                egui::vec2(
+                    crate::form_design::FORM_WIDTH,
+                    crate::form_design::FORM_HEIGHT,
+                ),
+                egui::Sense::hover(),
+            );
+            let painter = ui.painter_at(canvas);
+            painter.rect_filled(canvas, 0.0, ui.visuals().extreme_bg_color);
             for control in &form.controls {
                 ui.push_id(
                     format!(
@@ -70,9 +84,21 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                         control.name.to_lowercase()
                     ),
                     |ui| {
-                        ui.horizontal(|ui| {
-                            render_control(ui, control, &row, &index_of);
-                        });
+                        let rect = egui::Rect::from_min_size(
+                            canvas.min + egui::vec2(control.rect.x, control.rect.y),
+                            egui::vec2(control.rect.width, control.rect.height),
+                        );
+                        crate::layout_probe::record(
+                            &format!("runtime.{}.{}", form.name, control.name),
+                            rect,
+                        );
+                        let mut control_ui =
+                            ui.new_child(egui::UiBuilder::new().max_rect(rect).id_salt(format!(
+                                "runtime.canvas.{}.{}",
+                                form.name.to_lowercase(),
+                                control.name.to_lowercase()
+                            )));
+                        render_control(&mut control_ui, control, &row, &index_of);
                     },
                 );
             }
@@ -119,8 +145,10 @@ fn render_control(
                 .and_then(index_of)
                 .map(|i| value_label(&row[i]))
                 .unwrap_or_default();
+            // The stored rect's size (step 46.1, M57) — the designed
+            // box, not the old fixed 200x22.
             ui.add_sized(
-                [200.0, 22.0],
+                [ui.max_rect().width(), ui.max_rect().height()],
                 egui::TextEdit::singleline(&mut value.clone()).interactive(false),
             );
         }
