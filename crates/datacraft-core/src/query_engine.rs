@@ -240,6 +240,104 @@ mod tests {
         assert!(matches!(err, EngineError::UnknownField { .. }), "{err}");
     }
 
+    /// A subset or reordered grid projects exactly the named columns
+    /// (step 42.3, item L22): positions resolve by name through the
+    /// source whitelist, never from grid order.
+    #[test]
+    fn projection_resolves_by_name_for_subset_and_reordered_grids() {
+        let source = TableDef::new(
+            "T",
+            vec![
+                FieldDef::new("name", FieldKind::Text { max_len: 5 }),
+                FieldDef::new("rank", FieldKind::Number(NumericKind::LongInteger)),
+                FieldDef::new("total", FieldKind::Currency),
+            ],
+        );
+        let data = vec![vec![
+            FieldValue::Text("b".into()),
+            FieldValue::Integer(2),
+            FieldValue::Currency(900),
+        ]];
+        // Grid order rank, name — a reordered subset of the source.
+        let def = QueryDef {
+            name: "q".into(),
+            table: "T".into(),
+            fields: vec![
+                QbeField {
+                    name: "rank".into(),
+                    shown: true,
+                    sort: SortOrder::None,
+                    criteria: Vec::new(),
+                },
+                QbeField {
+                    name: "name".into(),
+                    shown: true,
+                    sort: SortOrder::None,
+                    criteria: Vec::new(),
+                },
+            ],
+        };
+        let result = run_query(&def, &source, &data).expect("runs");
+        assert_eq!(result.columns, ["rank", "name"]);
+        assert_eq!(
+            result.rows[0],
+            vec![FieldValue::Integer(2), FieldValue::Text("b".into())]
+        );
+    }
+
+    /// Duplicate shown names are a precise error — the by-name
+    /// projection forbids ambiguity (step 42.3, item L22).
+    #[test]
+    fn duplicate_shown_names_fail_loudly() {
+        let source = TableDef::new("T", vec![FieldDef::new("v", FieldKind::Currency)]);
+        let def = QueryDef {
+            name: "q".into(),
+            table: "T".into(),
+            fields: vec![
+                QbeField {
+                    name: "v".into(),
+                    shown: true,
+                    sort: SortOrder::None,
+                    criteria: Vec::new(),
+                },
+                // Same column again, different spelling.
+                QbeField {
+                    name: "V".into(),
+                    shown: true,
+                    sort: SortOrder::None,
+                    criteria: Vec::new(),
+                },
+            ],
+        };
+        let err = run_query(&def, &source, &one_row(FieldValue::Null))
+            .expect_err("duplicate projection");
+        assert!(
+            matches!(err, EngineError::DuplicateField { .. }),
+            "{err}"
+        );
+    }
+
+    /// An unknown shown name is a whitelist error even without
+    /// criteria or sort — not a silently mis-projected column
+    /// (step 42.3, item L22).
+    #[test]
+    fn unknown_shown_names_fail_loudly() {
+        let source = TableDef::new("T", vec![FieldDef::new("v", FieldKind::Currency)]);
+        let def = QueryDef {
+            name: "q".into(),
+            table: "T".into(),
+            fields: vec![QbeField {
+                name: "ghost".into(),
+                shown: true,
+                sort: SortOrder::None,
+                criteria: Vec::new(),
+            }],
+        };
+        let err =
+            run_query(&def, &source, &one_row(FieldValue::Null)).expect_err("unknown column");
+        assert!(matches!(err, EngineError::UnknownField { .. }), "{err}");
+    }
+
     /// prefix parsing: each prefix selects its band.
     #[test]
     fn operator_prefixes_select_their_band() {
