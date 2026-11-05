@@ -1378,3 +1378,12 @@
 - **Approach:** Detect `AUTOINCREMENT` on the primary-key column's definition (token-aware, or via `PRAGMA table_info` + the DDL segment belonging to the PK column), and strip a trailing `(…)` before the marker-type comparison. Affinity fallbacks stay unchanged.
 - **Acceptance:** A DDL mentioning the word outside the PK column does not create an AutoNumber; `DATETIME(6)` maps to `DateTime` (and `CURRENCY(10)` to `Currency`); unit tests pin both directions, real fixture catalogs unchanged.
 - **Done:** done in `4d5ebba` (RED `e900ea6`) - step 42.1: ddl::pk_is_autoincrement scopes the token to the key column's own definition (quoted forms, word boundary, malformed DDL answers false); marker_base strips one trailing parenthesized suffix for the marker names (DATETIME(6) -> DateTime, CURRENCY(10) -> Currency); FORMAT-JET documents both rules
+
+---
+
+### [x] L18 — Design-time schema edits are not capability-gated in the UI — 🟢
+- **Location:** `crates/datacraft-ui/src/design.rs:111-168` (Add Field / Rename / Delete / Required are always enabled), `crates/datacraft-core/src/availability.rs` (`DisabledReason` has no `AlterTables` variant and no affordance id).
+- **Problem:** The design view offers schema edits regardless of the driver's `alter_table` capability. SQLite reports `alter_table=false`, so every click there produces a `Failed` toast ("unsupported: the sqlite driver cannot alter the schema for this source") instead of a disabled control with the reason — the affordance vocabulary covers create/drop/write/relationships/passwords but not alter. The backstage "Create Database" button is likewise enabled from the selected format rather than `create_database`.
+- **Approach:** Add the `AlterTables` reason plus the design-view affordance ids to the core availability map, render the controls disabled with the localized tooltip, and gate the Create Database button on the same map; keep the dispatcher gates as the second line of defence.
+- **Acceptance:** On a SQLite session the design-view edit controls (and on a creation-disabled composition the Create Database button) are disabled with a localized reason; kittest pins the SQLite case; no command is required to discover the restriction.
+- **Done:** done in `ea7b277` (RED `890bf07`) - step 42.2: AlterTables/CreateDatabase reasons + five affordance ids; design-view edit block and backstage Create Database button render disabled with the localized reason; CSV wire pin honestly gains the four design.* entries
