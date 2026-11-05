@@ -514,10 +514,7 @@ fn the_contextual_views_button_switches_the_open_table_to_design() {
     harness.run();
     let tab = &harness.state().snapshot().tabs[0];
     assert!(
-        matches!(
-            tab.mode,
-            datacraft_core::state::TabMode::Design
-        ),
+        matches!(tab.mode, datacraft_core::state::TabMode::Design),
         "the open table switches to the design view, got {:?}",
         tab.mode
     );

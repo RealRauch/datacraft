@@ -138,7 +138,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Switch view", "Ansicht wechseln"),
     ("System", "System"),
     ("Table", "Tabelle"),
-    ("Table Design", "Entwurfsansicht"),
+    ("Table Design", "Tabellenentwurf"),
     ("Table Tools", "Tabellentools"),
     ("Tables", "Tabellen"),
     ("Text Box", "Textfeld"),
