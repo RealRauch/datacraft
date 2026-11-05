@@ -142,6 +142,61 @@ fn maps_declared_types_onto_access_kinds() {
     );
 }
 
+/// Database whose DDL mentions `AUTOINCREMENT` only inside another
+/// column's default string and whose marker types carry a length or
+/// precision suffix (step 42.1, item L13).
+fn tricky_database() -> Scratch {
+    let path = scratch_path("tricky");
+    let _ = std::fs::remove_file(&path);
+    let conn = rusqlite::Connection::open(&path).expect("create scratch database");
+    conn.execute_batch(
+        "CREATE TABLE tricky (
+             id INTEGER PRIMARY KEY,
+             note TEXT DEFAULT 'AUTOINCREMENT',
+             stamp DATETIME(6),
+             price CURRENCY(10)
+         );
+         INSERT INTO tricky (id, note, stamp, price) VALUES (7, 'x', NULL, NULL);",
+    )
+    .expect("populate scratch database");
+    Scratch(path)
+}
+
+#[test]
+fn a_word_mention_outside_the_key_column_keeps_the_integer_key_plain() {
+    let scratch = tricky_database();
+    let mut port = SqlitePort::new();
+    port.open(&scratch.0, None).expect("open generated sqlite file");
+
+    // The key column stays a plain, user-assignable integer.
+    assert_eq!(
+        kind(&port, "tricky", "id"),
+        FieldKind::Number(NumericKind::LongInteger)
+    );
+
+    // The write path accepts user-provided key values — an AutoNumber
+    // classification would reject them as engine-assigned.
+    port.insert_row(
+        "tricky",
+        &[
+            FieldValue::Integer(9),
+            FieldValue::Text("y".to_owned()),
+            FieldValue::Null,
+            FieldValue::Null,
+        ],
+    )
+    .expect("user-provided key values are accepted");
+}
+
+#[test]
+fn marker_type_suffixes_keep_their_declared_kind() {
+    let scratch = tricky_database();
+    let mut port = SqlitePort::new();
+    port.open(&scratch.0, None).expect("open generated sqlite file");
+    assert_eq!(kind(&port, "tricky", "stamp"), FieldKind::DateTime);
+    assert_eq!(kind(&port, "tricky", "price"), FieldKind::Currency);
+}
+
 #[test]
 fn not_null_columns_are_required_fields() {
     let (port, _scratch) = open_shop();
@@ -345,7 +400,7 @@ fn integer_storage_in_a_datetime_column_reads_as_a_date() {
 fn a_corrupt_sqlite_file_reports_a_located_read_error() {
     let path = scratch_path("corrupt");
     let _ = std::fs::remove_file(&path);
-    let mut bytes = b"SQLite format 3 ".to_vec();
+    let mut bytes = b"SQLite format 3\x00".to_vec();
     bytes.resize(512, 0xAA);
     std::fs::write(&path, &bytes).expect("write corrupt file");
     let _scratch = Scratch(path.clone());
