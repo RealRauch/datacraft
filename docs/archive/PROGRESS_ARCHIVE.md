@@ -593,3 +593,13 @@ before the tag.
 - **46.1 Runtime paints stored control rects on the designer canvas (M57)**
 - **46.2 Phase 46 Quality Gate Review**
 **Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 158 workspace suites (0 failures), file-size gate, hygiene clean, coverage gate green (llvm-cov --fail-under-lines 95 exit 0), docs_validate ok. Deliverable: 46.1 the form runtime renders the designed layout — the shared 640x400 designer canvas, controls at their stored rects and sizes (c163a49, M57 archived); the new ui_kittest_form suite pins runtime-rect == stored-rect through the layout_probe seam. README form row unchanged (the compatibility matrix's design-layer row already claims sidecar forms; the runtime now honours it). (checkpoint: c163a49)
+
+---
+
+### Phase 47 — Walkthrough Fixes II
+
+**Scope (Steps):**
+
+- **47.1 Object activation surfaces the contextual ribbon tab (M58)**
+- **47.2 Phase 47 Quality Gate Review**
+**Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 158 workspace suites (0 failures), file-size gate, hygiene clean, coverage gate green (llvm-cov --fail-under-lines 95 exit 0), docs_validate ok. Deliverable: 47.1 object activation surfaces the contextual ribbon tab (0154080, M58 archived); README/ARCHITECTURE carry the phase-47 rows. (checkpoint: 0154080)

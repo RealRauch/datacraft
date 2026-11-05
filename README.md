@@ -258,6 +258,7 @@ Delivered phases and the open work:
 | 44 — UI Layout & Affordance Audit | content-sized ribbon groups, panel-geometry pins, Close Database, German label semantics, datasheet sort/filter with the core view state, the layout-rect seam | ✅ |
 | 45 — Walkthrough Fixes | column filter dialog replaces the in-menu editor (menus cannot host text editing), record-navigation arrow order | ✅ |
 | 46 — Form Runtime Layout | the runtime renders the designed layout: the shared designer canvas, controls at their stored rects and sizes | ✅ |
+| 47 — Walkthrough Fixes II | activating an object surfaces its contextual ribbon tab (backstage and same-kind switches never yank) | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA

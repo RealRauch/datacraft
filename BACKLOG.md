@@ -36,12 +36,6 @@
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
 
-### [ ] M58 — Activating an object does not surface its contextual ribbon tab — 🟡
-- **Location:** `crates/datacraft-ui/src/ribbon.rs` (`ribbon_ui` — the contextual tabs follow the active object kind for *presence* via `rendered_tabs`, but `active_ribbon_tab` never follows), `crates/datacraft-core/src/ribbon.rs` (spec).
-- **Problem:** Double-clicking a table in the nav pane opens/activates its tab, but the ribbon stays on the previous tab — the user must manually click Tabellentools (user walkthrough report 2026-11-05). Access convention: activating an object surfaces its contextual tools tab automatically.
-- **Approach:** A core spec helper `contextual_tab_id(kind)` (spec-derived mapping object kind → contextual tab id), and the UI follows *kind changes* of the active document: when the active tab's object kind changes, the ribbon selects the matching contextual tab — unless the user is in the backstage (no yank out of File pages) and never when the kind stays the same (no yank off Database Tools while switching between two tables).
-- **Acceptance:** First activation of a table/query/form selects its tools tab; switching between two tables keeps a non-contextual ribbon tab; the backstage is never yanked; kittest pins for all three; canonical verification set green.
-
 ---
 
 ## 🟢 LOW
@@ -267,3 +261,4 @@
 - M56 — Record navigation arrows mirrored (prev right, next left) — done (done in `f4afe03` (RED `9ee5a77` + fixture follow-up) - step 45.2: the nav row paints in its own left-to-right layout inside the right-to-left status bar; rect pin proves previous sits left of next)
 - M55 — Filter criteria cannot be typed: the header menu closes on editor click — done (done in `2c3a0d2` (RED `b493e20`) - step 45.1: the header menu's Filter item opens a per-tab criteria window (egui menus do not host text editing - the reported live bug and the 44.5 kittest dead-end were the same defect); the dialog seeds from the live filter and Apply/Clear dispatch the existing commands)
 - M57 — Form runtime ignores the designer's stored control rects — done (done in `c163a49` (RED `5077ac8`) - step 46.1: the runtime paints the designer's shared 640x400 canvas and places every control at its stored rect with its stored size (child Ui per rect); the user's database.mdb Form1 now renders staggered as designed; layout_probe records runtime.Form1.<control> rects for the pin)
+- M58 — Activating an object does not surface its contextual ribbon tab — done (done in `0154080` (RED `db49f7d`) - step 47.1: the ribbon selection follows the active document's kind via the spec-derived core contextual_tab_id mapping; guards pin that the backstage is never yanked and same-kind activation changes nothing)
