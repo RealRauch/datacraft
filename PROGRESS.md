@@ -17,14 +17,6 @@
 - **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
-### Phase 42 — Core Correctness *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **42.1 SQLite affinity edge cases: AUTOINCREMENT scope and marker type suffixes (L13)**
-- **42.2 Capability-gate design-time schema edits (L18)**
-- **42.3 QBE projection resolves by name via the schema whitelist (L22)**
-- **42.4 Phase 42 Quality Gate Review**
 
 
 
@@ -280,7 +272,7 @@
 | 42.1 | SQLite affinity edge cases: AUTOINCREMENT scope and marker type suffixes (L13) | ✅ |
 | 42.2 | Capability-gate design-time schema edits (L18) | ✅ |
 | 42.3 | QBE projection resolves by name via the schema whitelist (L22) | ✅ |
-| 42.4 | Phase 42 Quality Gate Review | ⬜ |
+| 42.4 | Phase 42 Quality Gate Review | ✅ |
 | 43.1 | Coverage gap audit: contract tests for locally uncovered edge paths (T9) | ✅ |
 | 43.2 | Pin cargo-llvm-cov@0.9.1 in the CI coverage job (M51, High gate: released) | ✅ |
 | 43.3 | Phase 43 Quality Gate Review | ✅ |

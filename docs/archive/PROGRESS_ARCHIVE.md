@@ -559,3 +559,15 @@ before the tag.
 - **41.5 Ribbon truth pass: activate Table Design, honest Import File state (M49)**
 - **41.6 Phase 41 Quality Gate Review**
 **Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 153 workspace suites (1296 tests, 0 failures), file-size gate, hygiene clean (CI word-boundary scan), coverage gate green (llvm-cov --fail-under-lines 95 exit 0). Deliverables: M45 mapper create form + per-row delete with relationships.create/delete affordance ids and the CSV wire pin (2aaa13a/f331afe); M46 Expression window over RunExpression, row-context follow-up filed as L27 (3e1750c/0fdb340); M47 analysis pane rendering all five VbaAnalysis sections (af03bed/8c6c689); M48 grouping picker in both directions plus the F10 design-view palette fix (681e0f9/76ab83c); M49 Table Design active and Import File honest Planned (63fe820/78b19d2). Deviations documented: M49's command_for wording refined to the shared flows seam (the same input-bound exclusion the seam grants the Table action); M47's kittest pins fixture-shaped MockPort content because datacraft-ui cannot decode the accdb fixture (dependency direction). Process note: a popup-bisect scratch suite slipped into 76ab83c and was removed forward in cf84051.
+
+---
+
+### Phase 42 — Core Correctness *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **42.1 SQLite affinity edge cases: AUTOINCREMENT scope and marker type suffixes (L13)**
+- **42.2 Capability-gate design-time schema edits (L18)**
+- **42.3 QBE projection resolves by name via the schema whitelist (L22)**
+- **42.4 Phase 42 Quality Gate Review**
+**Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 154 workspace suites (1310 tests, 0 failures), file-size gate, hygiene clean (no banned tokens in phase-42 files), coverage gate green (llvm-cov --fail-under-lines 95 exit 0), docs_validate ok. Deliverables: L13 token-scoped AUTOINCREMENT detection plus suffix-tolerant marker names via ddl::pk_is_autoincrement/marker_base, FORMAT-JET updated (e900ea6/4d5ebba); L18 AlterTables/CreateDatabase availability vocabulary gating the design-view edit block and the backstage Create Database button with localized reasons, CSV wire pin honestly extended (890bf07/ea7b277); L22 by-name QBE projection through the source whitelist with DuplicateField/UnknownField errors and the contract documented on QueryDef/QbeField (8b6ac9b/69e0797). One unrelated flake observed during 42.3 filed as L28 (stale scratch files collide with recycled pids). Mechanical normalization inside the L13 RED commit: the corrupt-file test's raw NUL byte became the identical \\x00 escape. (checkpoint: 69e0797)
