@@ -275,7 +275,7 @@ fn capability_restricted_sources_disable_the_matching_affordances() {
         password: None,
     });
     assert!(events.len() == 1, "{events:?}");
-    let (mut app, _tab) = {
+    let (app, _tab) = {
         app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
             datacraft_core::ObjectKind::Table,
             "Customers",
