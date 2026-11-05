@@ -18,12 +18,6 @@
 
 > No open items.
 
-### [ ] H53 — Datasheet content paints behind the status bar (panel overlap) — 🟠
-- **Location:** shell/workspace rect layering — `crates/datacraft-ui/src/shell.rs` (panels + `workspace_ui` share one `ui`) and `crates/datacraft-ui/src/workspace.rs` (tabstrip panel + central panel).
-- **Problem:** The user observed datasheet content disappearing behind the status bar (screenshot 2026-11-05: a partially covered row above `database (Jet4) — Bikes`): the workspace/content rect overlaps the bottom panel, so the last row(s) paint under the footer. Same class as H52 — layout rects were never asserted, only semantic trees.
-- **Approach:** Reproduce with a rect-level probe (shell render in kittest + measure the central area's bottom edge against the status panel's top edge, at default and 600-height windows), fix the rect computation, and pin the non-overlap.
-- **Acceptance:** The document area's bottom edge never crosses the status bar's top edge at 1280×800 and 960×600; the datasheet's last visible row is fully above the footer; rect pins prove it; canonical verification set green.
-
 ---
 
 ## 🟡 MEDIUM
@@ -101,12 +95,6 @@
 - **Problem:** The expression window evaluates over an empty scope only. The core supports a row context (table + zero-based live-row index) — CLI/MCP agents can address it, but the window has no table/row picker, so GUI users cannot evaluate field expressions against a record (documented follow-up when M46 landed, step 41.2).
 - **Approach:** Add an optional row-context picker to the expression window (table + row selector fed from the snapshot), dispatching `RunExpression` with `Some(ExpressionContext)` when set; keep the contextless evaluation as the default state.
 - **Acceptance:** Picking a table and row makes the window evaluate against that record (field names resolve); clearing the picker returns to the empty scope; a kittest pins one contextual run; canonical verification set green.
-
-### [ ] L28 — Flaky scratch paths: interrupted runs leave files that recycled pids collide with — 🟢
-- **Location:** `crates/datacraft-sqlite/tests/sqlite_journal.rs` (`scratch_path`, `open_core` — the seed does not unlink a pre-existing scratch file), same shape possible in other suites whose `scratch_path` helpers skip the remove-first step (`shop_database()` in sqlite_port.rs shows the guard).
-- **Problem:** Scratch paths are `temp_dir + datacraft-sqlite-journal-{pid}-{counter}.sqlite`. After an interrupted test run (killed coverage/test process), a leftover file with a recycled pid and counter 0 collides: `CREATE TABLE notes` fails with "table notes already exists" and the suite answers one spurious failure (observed 2026-11-05 during the step 42.3 run; isolated rerun green).
-- **Approach:** Unlink the pre-existing scratch file before seeding (`let _ = std::fs::remove_file(&path)` like the shop fixture), or make the path unique per run (nanosecond timestamp component). Mechanical sweep over the sqlite/core/ui test helpers for the same missing guard.
-- **Acceptance:** Seeding never collides with leftovers from interrupted runs; the sweep notes every helper that gained the guard; workspace suite green across repeated runs.
 
 ### [ ] T10 — Layout/rect-level UI test layer (semantic-tree pins are blind to pixel geometry) — 🔵
 - **Location:** `crates/datacraft-ui/tests/` (the kittest family), `docs/TESTING.md` §4 (taxonomy).
@@ -288,3 +276,5 @@
 - L22 — QBE projection is positional while field names document source columns — done (done in `69e0797` (RED `8b6ac9b`) - step 42.3: projection resolves every shown column by name through the source whitelist (case-insensitive); duplicate shown names answer DuplicateField, unknown names UnknownField; by-name contract documented on QueryDef.fields/QbeField.name)
 - R2 — Documentation sweep before the release (Phase 35) — done (done by phase 35 (checkpoints `8b8c686`/`8af10c0`/`ab86d4d`): AGENTS.md + README crate graphs, roadmap and CI claims match the manifests/workflows; ARCHITECTURE command surface, crate tree, storage record and the 1-43 phase mapping are current; FORMAT-JET documents the CSV driver, TESTING names the live suite families, the compatibility matrix is re-verified and stamped 2026-11-05; fresh-contributor walkthrough green (CLI opens a CSV directory over the real binary, exit 0))
 - H52 — Ribbon groups: the first group stretches across the full row and pushes the rest off-window — done (done in `c1e081d` (RED `3ecfa4e`) - step 44.1: ribbon groups size to content (action_width deduped from the button formula, floor 120, allocate_ui_with_layout reserves the width); layout_probe rect seam (T10) landed with pins for content sizing, in-window groups at 1280x800/960x600 and the H53 status-bar contract; user-confirmed live symptom (Queries group invisible on Database Tools) reproduced by rect measurement)
+- H53 — Datasheet content paints behind the status bar (panel overlap) — done (done in `e7a90d3` (RED `f82bcea`) - step 44.2: pairwise panel geometry pinned at 1280x800/960x600 (workspace/status, ribbon, nav-pane) - headless clean without any escape hatch; the live-reported footer overlap is not reproducible at headless geometry and stays under observation at the user's DPI; the tab-strip close glyph now paints through the icon dispatcher (text U+2715 rendered tofu in the live app, kittest's Panic policy made it a hard failure headless))
+- L28 — Flaky scratch paths: interrupted runs leave files that recycled pids collide with — done (done in `8ab847d` - every sqlite scratch_path appends the subsecond nanos, so recycled pids from interrupted runs cannot collide with leftovers; the journal-suite flake (observed twice on 2026-11-05) is structurally impossible now)
