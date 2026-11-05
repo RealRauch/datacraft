@@ -188,6 +188,7 @@ fn the_status_line_names_the_ace_format() {
     use datacraft_core::present::status_line;
     let mut state = datacraft_core::state::AppState::new();
     state.database = Some(datacraft_core::state::DatabaseState {
+        table_views: std::collections::BTreeMap::new(),
         path: "shop.accdb".into(),
         name: "shop".into(),
         format: datacraft_core::port::DatabaseFormat::Ace,
