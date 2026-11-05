@@ -8,7 +8,7 @@
 
 use datacraft_core::command::Command;
 use datacraft_core::port::MockPort;
-use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
+use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use datacraft_ui::layout_probe;
 use eframe::egui;
@@ -269,10 +269,36 @@ fn the_status_filter_chip_clears_the_active_filters() {
 /// mirrored the pair.
 #[test]
 fn record_navigation_places_previous_left_of_next() {
-    let mut app = app_with_tables();
+    // The navigation box renders only over a non-empty record domain —
+    // the fixture needs live rows (the table-only mock has none).
+    let mut port = MockPort::with_tables(vec![TableDef::new(
+        "Orders",
+        vec![
+            FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
+            FieldDef::new("item", FieldKind::Text { max_len: 50 }),
+        ],
+    )]);
+    port.with_row_data(
+        "Orders",
+        vec![
+            vec![
+                FieldValue::Integer(1),
+                FieldValue::Text("bolt".to_owned()),
+            ],
+            vec![
+                FieldValue::Integer(2),
+                FieldValue::Text("nut".to_owned()),
+            ],
+        ],
+    );
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,
-        "ServiceOrders",
+        "Orders",
     )));
     let mut harness = Harness::new_ui_state(
         move |ui, app: &mut App| {
