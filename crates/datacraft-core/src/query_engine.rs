@@ -30,6 +30,15 @@ pub enum EngineError {
         /// The source table.
         table: String,
     },
+    /// The query grid lists the same source field more than once
+    /// among its shown columns — the by-name projection forbids
+    /// ambiguity (step 42.3, item L22).
+    DuplicateField {
+        /// The duplicated name.
+        field: String,
+        /// The query definition.
+        query: String,
+    },
     /// A criteria literal does not fit the column's kind.
     BadLiteral {
         /// The column.
@@ -46,6 +55,12 @@ impl std::fmt::Display for EngineError {
         match self {
             Self::UnknownField { field, table } => {
                 write!(f, "field {field:?} is not a field of {table:?}")
+            }
+            Self::DuplicateField { field, query } => {
+                write!(
+                    f,
+                    "field {field:?} appears more than once in query {query:?}"
+                )
             }
             Self::BadLiteral {
                 field,
@@ -74,14 +89,31 @@ pub fn run_query(
         })
         .collect();
 
-    let shown: Vec<(usize, &String)> = def
+    // By-name projection (step 42.3, L22): shown names resolve through
+    // the source whitelist and must be unique (case-insensitive), so a
+    // subset or reordered grid can never mis-project silently.
+    let shown_names: Vec<&str> = def
         .fields
         .iter()
-        .enumerate()
-        .filter(|(_, f)| f.shown)
-        .map(|(i, f)| (i, &f.name))
+        .filter(|f| f.shown)
+        .map(|f| f.name.as_str())
         .collect();
-    let columns: Vec<String> = shown.iter().map(|(_, name)| (*name).clone()).collect();
+    for (at, name) in shown_names.iter().enumerate() {
+        if shown_names[..at]
+            .iter()
+            .any(|other| other.eq_ignore_ascii_case(name))
+        {
+            return Err(EngineError::DuplicateField {
+                field: (*name).to_owned(),
+                query: def.name.clone(),
+            });
+        }
+    }
+    let shown: Vec<(usize, String)> = shown_names
+        .iter()
+        .map(|name| resolve_column(source, name))
+        .collect::<Result<Vec<_>, _>>()?;
+    let columns: Vec<String> = shown.iter().map(|(_, name)| name.clone()).collect();
 
     // Sort on the FULL rows (hidden sort keys are legal), then project.
     let mut filtered = filtered;
@@ -96,6 +128,21 @@ pub fn run_query(
         columns,
         rows: result_rows,
     })
+}
+
+/// Resolves one grid column against the source schema whitelist by
+/// name (case-insensitive — the same rule the criteria and sort paths
+/// apply).
+fn resolve_column(source: &TableDef, name: &str) -> Result<(usize, String), EngineError> {
+    let index = source
+        .fields
+        .iter()
+        .position(|c| c.name.eq_ignore_ascii_case(name))
+        .ok_or(EngineError::UnknownField {
+            field: name.to_owned(),
+            table: source.name.clone(),
+        })?;
+    Ok((index, name.to_owned()))
 }
 
 /// Parses all criteria into per-column predicate lists (grid order).
@@ -309,12 +356,9 @@ mod tests {
                 },
             ],
         };
-        let err = run_query(&def, &source, &one_row(FieldValue::Null))
-            .expect_err("duplicate projection");
-        assert!(
-            matches!(err, EngineError::DuplicateField { .. }),
-            "{err}"
-        );
+        let err =
+            run_query(&def, &source, &one_row(FieldValue::Null)).expect_err("duplicate projection");
+        assert!(matches!(err, EngineError::DuplicateField { .. }), "{err}");
     }
 
     /// An unknown shown name is a whitelist error even without
@@ -333,8 +377,7 @@ mod tests {
                 criteria: Vec::new(),
             }],
         };
-        let err =
-            run_query(&def, &source, &one_row(FieldValue::Null)).expect_err("unknown column");
+        let err = run_query(&def, &source, &one_row(FieldValue::Null)).expect_err("unknown column");
         assert!(matches!(err, EngineError::UnknownField { .. }), "{err}");
     }
 

@@ -45,7 +45,9 @@ impl SortOrder {
 /// One column of the QBE grid.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QbeField {
-    /// Source field name (whitelisted against the source table).
+    /// Source field name, resolved against the source table by name
+    /// (case-insensitive) through the schema whitelist — never by
+    /// grid position (step 42.3, item L22).
     pub name: String,
     /// Whether the column appears in the result.
     pub shown: bool,
@@ -62,7 +64,10 @@ pub struct QueryDef {
     pub name: String,
     /// Source table (whitelisted against the database).
     pub table: String,
-    /// QBE columns in grid order.
+    /// QBE columns in grid order. The list may be any subset in any
+    /// order of the source's fields: shown names resolve by name and
+    /// must be unique (case-insensitive) and known, or execution
+    /// answers a precise `EngineError`.
     pub fields: Vec<QbeField>,
 }
 
