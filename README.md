@@ -255,6 +255,7 @@ Delivered phases and the open work:
 | 41 — GUI Parity | relationship mapper affordances, expression window, VBA analysis viewer, report grouping picker, ribbon truth pass | ✅ |
 | 42 — Core Correctness | SQLite affinity edge cases, capability-gated design edits, by-name QBE projection | ✅ |
 | 43 — Coverage & CI Pinning | coverage gap audit, cargo-llvm-cov pinned in the CI coverage job | ✅ |
+| 44 — UI Layout & Affordance Audit | content-sized ribbon groups, panel-geometry pins, Close Database, German label semantics, datasheet sort/filter with the core view state, the layout-rect seam | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA

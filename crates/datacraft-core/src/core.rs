@@ -12,6 +12,7 @@ use crate::snapshot::UiStateSnapshot;
 use crate::state::AppState;
 
 mod relationships;
+mod table_view_state;
 mod tabs;
 
 /// The headless application core: reducer + state + storage port.
