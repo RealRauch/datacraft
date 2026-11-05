@@ -19,8 +19,11 @@ use datacraft_sqlite::SqlitePort;
 fn scratch_path() -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.subsec_nanos());
     std::env::temp_dir().join(format!(
-        "datacraft-sqlite-journal-{}-{n}.sqlite",
+        "datacraft-sqlite-journal-{}-{n}-{stamp}.sqlite",
         std::process::id()
     ))
 }
