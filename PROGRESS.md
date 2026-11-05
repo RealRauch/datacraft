@@ -17,16 +17,6 @@
 - **35.2 ARCHITECTURE stale sections: §5 preview, §6 remaining work, §13 phase mapping (R2)**
 - **35.3 FORMAT-JET CSV section, TESTING taxonomy, matrix re-verification (R2)**
 - **35.4 Phase 35 Quality Gate Review**
-### Phase 41 — GUI Parity: Surface the Headless Commands *(accepted: PLAN_WITHOUT_WIP)*
-
-**Scope (Steps):**
-
-- **41.1 Relationship mapper: create/delete affordances (M45)**
-- **41.2 Expression window for RunExpression (M46)**
-- **41.3 VBA static analysis viewer for AnalyzeVba (M47)**
-- **41.4 Report designer grouping picker (M48)**
-- **41.5 Ribbon truth pass: activate Table Design, honest Import File state (M49)**
-- **41.6 Phase 41 Quality Gate Review**
 ### Phase 42 — Core Correctness *(accepted: PLAN_WITHOUT_WIP)*
 
 **Scope (Steps):**
@@ -286,7 +276,7 @@
 | 41.3 | VBA static analysis viewer for AnalyzeVba (M47) | ✅ |
 | 41.4 | Report designer grouping picker (M48) | ✅ |
 | 41.5 | Ribbon truth pass: activate Table Design, honest Import File state (M49) | ✅ |
-| 41.6 | Phase 41 Quality Gate Review | ⬜ |
+| 41.6 | Phase 41 Quality Gate Review | ✅ |
 | 42.1 | SQLite affinity edge cases: AUTOINCREMENT scope and marker type suffixes (L13) | ⬜ |
 | 42.2 | Capability-gate design-time schema edits (L18) | ⬜ |
 | 42.3 | QBE projection resolves by name via the schema whitelist (L22) | ⬜ |

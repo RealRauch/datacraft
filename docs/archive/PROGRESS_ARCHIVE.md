@@ -545,3 +545,17 @@ before the tag.
 - **43.2 Pin cargo-llvm-cov@0.9.1 in the CI coverage job (M51, High gate: released)**
 - **43.3 Phase 43 Quality Gate Review**
 **Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 148 workspace test suites, file-size gate, hygiene clean, and the local Windows coverage gate (95.0032%, MSVC attribution) now passes with --fail-under-lines 95. Deliverables: T9 edge-path pins across expr/undo/port/qbe/present/nav/schema/alter/csv with TESTING.md exception #4 documenting the defensive/unreachable arms and the MSVC-vs-linux attribution residue (b83ffe1); M51 pinned cargo-llvm-cov@0.9.1 in the CI coverage job with the deliberate-bump policy (1a769e2, High gate released in-session).
+
+---
+
+### Phase 41 — GUI Parity: Surface the Headless Commands *(accepted: PLAN_WITHOUT_WIP)*
+
+**Scope (Steps):**
+
+- **41.1 Relationship mapper: create/delete affordances (M45)**
+- **41.2 Expression window for RunExpression (M46)**
+- **41.3 VBA static analysis viewer for AnalyzeVba (M47)**
+- **41.4 Report designer grouping picker (M48)**
+- **41.5 Ribbon truth pass: activate Table Design, honest Import File state (M49)**
+- **41.6 Phase 41 Quality Gate Review**
+**Verification:** Canonical verification set green on the final state: fmt, clippy -D warnings, 153 workspace suites (1296 tests, 0 failures), file-size gate, hygiene clean (CI word-boundary scan), coverage gate green (llvm-cov --fail-under-lines 95 exit 0). Deliverables: M45 mapper create form + per-row delete with relationships.create/delete affordance ids and the CSV wire pin (2aaa13a/f331afe); M46 Expression window over RunExpression, row-context follow-up filed as L27 (3e1750c/0fdb340); M47 analysis pane rendering all five VbaAnalysis sections (af03bed/8c6c689); M48 grouping picker in both directions plus the F10 design-view palette fix (681e0f9/76ab83c); M49 Table Design active and Import File honest Planned (63fe820/78b19d2). Deviations documented: M49's command_for wording refined to the shared flows seam (the same input-bound exclusion the seam grants the Table action); M47's kittest pins fixture-shaped MockPort content because datacraft-ui cannot decode the accdb fixture (dependency direction). Process note: a popup-bisect scratch suite slipped into 76ab83c and was removed forward in cf84051.
