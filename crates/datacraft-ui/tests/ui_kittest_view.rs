@@ -198,13 +198,46 @@ fn the_datasheet_header_menu_sorts_the_table() {
     );
 }
 
-/// A set column filter hides the matching rows' neighbours over the
-/// core predicate path (step 44.5, M54): `Like "a*"` keeps alpha and
-/// drops beta, the header menu shows the active criteria (seeded from
-/// the live filter), and the menu's Clear Filter button removes the
-/// filter over the bus — beta returns.
+/// The header menu's Filter item opens the criteria dialog (step 45.1,
+/// item M55 — the menu closed on editor click, so the editor lives in a
+/// window now): typing a criterion and applying stores the filter over
+/// the bus and the rows follow it.
 #[test]
-fn a_column_filter_hides_rows_until_the_menu_clears_it() {
+fn the_filter_dialog_applies_a_typed_criterion() {
+    let mut harness = datasheet_harness(customers_two_rows_app());
+    harness.run();
+    harness.get_by_label("name").click_secondary();
+    harness.run();
+    harness.get_by_label("Filter…").click();
+    harness.run();
+    let editor = harness
+        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
+    editor.set_text_value_accesskit("Like \"a*\"");
+    harness.run();
+    harness.get_by_label("Apply Filter").click();
+    harness.run();
+
+    let tab = &harness.state().snapshot().tabs[0];
+    assert_eq!(
+        tab.filters.get("name").map(String::as_str),
+        Some("Like \"a*\""),
+        "{:?}",
+        tab.filters
+    );
+    assert!(harness.get_by_label("alpha").rect().width() > 0.0);
+    let dump = tree_dump(&harness);
+    assert!(
+        !dump.contains("beta"),
+        "the filtered-out row no longer renders:
+{dump}"
+    );
+}
+
+/// A set column filter hides the non-matching rows (step 44.5/45.1):
+/// the dialog seeds its editor from the live filter, and the dialog's
+/// Clear Filter removes the filter over the bus — beta returns.
+#[test]
+fn the_filter_dialog_seeds_and_clears_the_live_filter() {
     let mut app = customers_two_rows_app();
     app.dispatch(Command::SetTableFilter {
         table: "Customers".into(),
@@ -217,26 +250,25 @@ fn a_column_filter_hides_rows_until_the_menu_clears_it() {
     let dump = tree_dump(&harness);
     assert!(
         !dump.contains("beta"),
-        "the filtered-out row no longer renders:\n{dump}"
+        "the filtered-out row no longer renders:
+{dump}"
     );
 
-    // The menu seeds its criteria editor from the live filter.
     harness.get_by_label("name").click_secondary();
     harness.run();
-    let editor =
-        harness.get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
+    harness.get_by_label("Filter…").click();
+    harness.run();
+    let editor = harness
+        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
     assert_eq!(
         editor.value().as_deref(),
         Some("Like \"a*\""),
-        "the active criteria are visible in the menu"
+        "the active criteria are visible in the dialog"
     );
 
     harness.get_by_label("Clear Filter").click();
     harness.run();
     let tab = &harness.state().snapshot().tabs[0];
     assert!(tab.filters.is_empty(), "the filter cleared over the bus");
-    assert!(
-        harness.get_by_label("beta").rect().width() > 0.0,
-        "beta returns"
-    );
+    assert!(harness.get_by_label("beta").rect().width() > 0.0, "beta returns");
 }
