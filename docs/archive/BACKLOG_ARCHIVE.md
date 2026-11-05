@@ -1432,3 +1432,12 @@
 - **Approach:** Unlink the pre-existing scratch file before seeding (`let _ = std::fs::remove_file(&path)` like the shop fixture), or make the path unique per run (nanosecond timestamp component). Mechanical sweep over the sqlite/core/ui test helpers for the same missing guard.
 - **Acceptance:** Seeding never collides with leftovers from interrupted runs; the sweep notes every helper that gained the guard; workspace suite green across repeated runs.
 - **Done:** done in `8ab847d` - every sqlite scratch_path appends the subsecond nanos, so recycled pids from interrupted runs cannot collide with leftovers; the journal-suite flake (observed twice on 2026-11-05) is structurally impossible now
+
+---
+
+### [x] M52 — No Close Database affordance in the UI — 🟡
+- **Location:** Backstage Save page / File menu, `crates/datacraft-ui/src/backstage/` (the bus has `CloseDatabase` — the CLI and server_e2e dispatch it — but no UI affordance exists).
+- **Problem:** A user cannot close the open database to open a different one without restarting the app (user report 2026-11-05). Opening a database while one is open is refused or replaces nothing, so the only route out is the window close.
+- **Approach:** A Close Database affordance on the backstage (Save page action or Home card area, alongside Save a copy / Change password), dispatching one `CloseDatabase`; after close the backstage Home shows and open-dependent state (tabs, caches, undo) resets through the existing DatabaseClosed path. Capability-independent (always available while a database is open).
+- **Acceptance:** Close Database returns to the no-database state over the real bus (tabs cleared, nav pane empty, backstage Home); a kittest pins the affordance and the post-close snapshot; reopening a different file works in one flow; canonical verification set green.
+- **Done:** done in `80a2916` (RED `0de386c`) - step 44.3: the backstage Save page closes the open database over one CloseDatabase and lands on Home; button gated on an open source, capability-independent; the i18n parity test surfaced and dropped a pre-existing duplicate 'Close Database' catalog key on the way
