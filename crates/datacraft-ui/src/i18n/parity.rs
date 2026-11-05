@@ -259,3 +259,19 @@ fn placeholders(text: &str) -> BTreeSet<String> {
     }
     names
 }
+
+/// The German Create-tab action names the NEW object; the view switch
+/// names the view (step 44.4, item M53 — the old "Entwurfsansicht"
+/// label made the create action look like the view switch, which is
+/// exactly how the user ended up creating a table instead).
+#[test]
+fn the_german_table_design_label_names_the_new_object_not_the_view() {
+    use super::{Lang, translate};
+    assert_eq!(
+        translate(Lang::German, "Table Design"),
+        "Tabellenentwurf",
+        "the create action must not borrow the view-switch label"
+    );
+    assert_eq!(translate(Lang::German, "Design"), "Entwurf");
+    assert_eq!(translate(Lang::German, "Datasheet"), "Datenblatt");
+}

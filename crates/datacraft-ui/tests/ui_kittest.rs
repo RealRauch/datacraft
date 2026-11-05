@@ -496,3 +496,33 @@ fn qat_undo_and_redo_follow_the_history_depth() {
     assert!(dump.contains("Button|Undo| disabled"), "{dump}");
     assert!(!dump.contains("Button|Redo| disabled"), "{dump}");
 }
+
+/// The contextual Table Tools Views split switches the OPEN tab's mode
+/// in place (step 44.4, item M53): the same object stays active and one
+/// `SetTabMode` moves it to the design view — while the Create tab's
+/// Table Design keeps creating a NEW table (pinned in
+/// ui_kittest_ribbon_truth.rs).
+#[test]
+fn the_contextual_views_button_switches_the_open_table_to_design() {
+    let (mut app, _tab) = app_with_table_tab();
+    app.active_ribbon_tab = "table_tools";
+    let mut harness = ribbon_harness(app);
+    harness.run();
+    let object = harness.state().snapshot().tabs[0].object_name.clone();
+
+    harness.get_by_label("Datasheet").click();
+    harness.run();
+    let tab = &harness.state().snapshot().tabs[0];
+    assert!(
+        matches!(
+            tab.mode,
+            datacraft_core::state::TabMode::Design
+        ),
+        "the open table switches to the design view, got {:?}",
+        tab.mode
+    );
+    assert_eq!(
+        tab.object_name, object,
+        "the same table stays open — the contextual switch never creates a new table"
+    );
+}
