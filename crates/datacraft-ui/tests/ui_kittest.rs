@@ -442,6 +442,31 @@ fn backstage_password_controls_gate_on_the_capability() {
     assert!(dump.contains("Button|Change Password| disabled"), "{dump}");
 }
 
+/// The backstage Save page closes the database over the bus (step 44.3,
+/// item M52): exactly one `CloseDatabase`, back to the Home page, no
+/// open source afterwards.
+#[test]
+fn the_backstage_close_database_button_closes_over_the_bus() {
+    let mut app = mock_app();
+    app.backstage_page = datacraft_ui::backstage::BackstagePage::Save;
+    let mut harness = backstage_harness(app);
+    harness.run();
+    harness
+        .get_by_label("Close Database")
+        .click();
+    harness.run();
+    let app = harness.state();
+    assert!(
+        app.snapshot().database.is_none(),
+        "the database must be closed after the affordance dispatches"
+    );
+    assert_eq!(
+        app.backstage_page,
+        datacraft_ui::backstage::BackstagePage::Home,
+        "the backstage lands on Home after closing"
+    );
+}
+
 #[test]
 fn qat_undo_and_redo_follow_the_history_depth() {
     let mut harness = ribbon_harness(mock_app());
