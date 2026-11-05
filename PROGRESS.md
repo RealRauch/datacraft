@@ -285,7 +285,7 @@
 | 41.2 | Expression window for RunExpression (M46) | ✅ |
 | 41.3 | VBA static analysis viewer for AnalyzeVba (M47) | ✅ |
 | 41.4 | Report designer grouping picker (M48) | ✅ |
-| 41.5 | Ribbon truth pass: activate Table Design, honest Import File state (M49) | ⬜ |
+| 41.5 | Ribbon truth pass: activate Table Design, honest Import File state (M49) | ✅ |
 | 41.6 | Phase 41 Quality Gate Review | ⬜ |
 | 42.1 | SQLite affinity edge cases: AUTOINCREMENT scope and marker type suffixes (L13) | ⬜ |
 | 42.2 | Capability-gate design-time schema edits (L18) | ⬜ |

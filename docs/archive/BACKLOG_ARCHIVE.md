@@ -1360,3 +1360,12 @@
 - **Fix:** One-line cap per view — `ui.set_max_width(<canvas width>)` on the canvas column in `report_design.rs` (step 41.4 scope) and `form_design.rs` (this inline fix, same defect one file over, ~4 lines, Low class).
 - **Acceptance:** The palette column renders beside the canvas at its own width; the report-design kittest (step 41.4) drives the grouping picker through the visible palette column.
 - **Done:** fixed in `76ab83c` (step 41.4) — ui.set_max_width caps on both design-view canvas columns; the report-design kittest drives the palette column visibly
+
+---
+
+### [x] M49 — Ribbon placeholders "Table Design"/"Import File" contradict reality — 🟡
+- **Location:** `crates/datacraft-core/src/ribbon.rs` (`table_design` → `DisabledIn { phase: "Phase 6" }`, `import_file` → `DisabledIn { phase: "Phase 9" }`), rendering in `crates/datacraft-ui/src/ribbon.rs:141-143` ("arrives in {phase}")
+- **Problem:** Both buttons render as placeholders for phases that are long past (the project stands at phase 39): the table design view exists (nav pane → Design → `OpenObjectInMode`), and "Import File" (import into the open database) does not exist at all — CSV directories open through the backstage folder dialog instead. The ribbon claims a future for one shipped feature and one unplanned one (found in the command/GUI parity audit 2026-11-04).
+- **Approach (decided 2026-11-04):** (1) `table_design` activates the existing design flow for a selected/created table — the feature is shipped, the button dispatches through `command_for`; (2) `import_file` stays as a button but renders an honest disabled state with a planned-feature reason (no phase claim) — the feature itself is planned as M50. Update the core ribbon model and the seam test accordingly; no stale phase labels remain anywhere.
+- **Acceptance:** No ribbon action claims a phase that has passed; every Create/External Data button either dispatches a command through `command_for` or shows an honest disabled reason (planned feature, not a past phase); kittest/snapshot pins updated; canonical verification set green.
+- **Done:** done in `78b19d2` (RED `63fe820`) — step 41.5: Table Design opens a new Access-default table in the design view (flows seam, same input-bound exclusion as the Table action); Import File stays visible with ActionState::Planned and no phase claim; no stale phase labels remain
