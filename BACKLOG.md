@@ -42,12 +42,6 @@
 - **Approach:** Move the criteria editor out of the menu into a small anchored egui Window (the mapper/sql/expression window pattern on App state): the menu offers one "Filter…" item that opens the dialog for that column; the dialog carries the seeded criteria editor plus Apply/Clear and dispatches the existing SetTableFilter commands. The menu keeps sort and freeze items unchanged.
 - **Acceptance:** Typing a criterion in the dialog and applying filters the rows over the bus; the dialog seeds from the live filter; Clear removes it; kittest pins cover open/seed/apply/clear through the dialog; canonical verification set green.
 
-### [ ] M56 — Record navigation arrows mirrored (prev right, next left) — 🟡
-- **Location:** `crates/datacraft-ui/src/shell.rs` (`record_navigation_ui` — the row is painted under the outer right-to-left status layout, mirroring the pair).
-- **Problem:** The status bar's record navigation shows the previous button right of the next one (user walkthrough report 2026-11-05, screenshot); left should decrement, right should increment.
-- **Approach:** Paint the counter row in its own left-to-right layout inside the right-to-left status bar (the block stays anchored at the right edge; only the internal order changes).
-- **Acceptance:** Previous sits left of the counter, next right of it (rect pin at shell level); canonical verification set green.
-
 ---
 
 ## 🟢 LOW
@@ -270,3 +264,4 @@
 - M53 — Contextual design view opens a new table instead of switching the open table — done (done in `e19e8f9` (RED `163dac4`) - step 44.4: the defect was the German label, not the wiring — the Create tab's "Table Design" borrowed the view-switch name ("Entwurfsansicht") and now reads "Tabellenentwurf" (German Access's create-action name); the contextual Views split already switched the open object correctly and is now pinned (one SetTabMode, same object stays open); the Create action keeps creating a new table (41.5 pin))
 - M54 — Datasheet sort is undiscoverable and filtering is missing entirely — done (done by step 44.5 (core `94e2479` + UI `4ce7b8c`; pins `4796ac0`/`f82bcea`): table datasheets sort and filter over the core view state - SetTableSort/SetTableFilter/ClearTableFilters store per-table view state projected into the tab snapshot, table_view::view_order computes the display order in core, the header menu carries the criteria editor (seeded from the live filter) and the status Filter chip names the count and clears with one click; headers are labelled ColumnHeader nodes now (a11y gap); sort carets existed for query grids and now exist for tables)
 - T10 — Layout/rect-level UI test layer (semantic-tree pins are blind to pixel geometry) — done (done by phase 44 (steps 44.1/44.2/44.6, `c1e081d`/`e7a90d3`/phase gate) - the layout_probe rect seam is public (PUBLISHING-documented beside MockPort), ui_layout.rs pins group widths, in-window bounds and pairwise panel geometry at 1280x800/960x600, and the TESTING taxonomy carries the Layout-rects row)
+- M56 — Record navigation arrows mirrored (prev right, next left) — done (done in `f4afe03` (RED `9ee5a77` + fixture follow-up) - step 45.2: the nav row paints in its own left-to-right layout inside the right-to-left status bar; rect pin proves previous sits left of next)
