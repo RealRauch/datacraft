@@ -20,7 +20,7 @@ use datacraft_core::qbe::{QbeRow, QbeValue, SortOrder};
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
-use crate::i18n::{plural, t};
+use crate::i18n::{plural, t, tr};
 use crate::labels::value_label;
 use crate::theme::tokens;
 
@@ -115,17 +115,6 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             }
         })
         .collect();
-    let mut filter_drafts: Vec<String> = (0..columns.len())
-        .map(|col| {
-            let live = tab.filters.get(&columns[col]).cloned();
-            let draft = app.filter_draft(tab.id, col);
-            if draft.is_empty() {
-                live.unwrap_or_default()
-            } else {
-                draft
-            }
-        })
-        .collect();
     let mut widths = app.column_widths(tab.id, columns.len());
     let frozen = datacraft_core::grid::effective_frozen(app.frozen_columns(tab.id), columns.len());
     let delete_reason = crate::availability::restricted(
@@ -151,7 +140,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut delete_intent: Option<usize> = None;
     let mut pending_edit: Option<EditIntent> = None;
     let mut sort_intent: Option<(usize, SortOrder)> = None;
-    let mut filter_intent: Option<(usize, Option<String>)> = None;
+    let mut dialog_intent: Option<usize> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
         let mut on_freeze = |count: usize| freeze_intent = Some(count);
@@ -160,8 +149,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         let mut on_sort = |column: usize, order: SortOrder| {
             sort_intent = Some((column, order));
         };
-        let mut on_filter = |column: usize, criteria: Option<String>| {
-            filter_intent = Some((column, criteria));
+        let mut on_filter_dialog = |column: usize| {
+            dialog_intent = Some(column);
         };
         grid_ui(
             ui,
@@ -184,23 +173,12 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 Some(&mut on_freeze),
                 Some(&mut on_delete),
                 Some(&mut on_edit),
-                Some(&mut on_filter),
-                &mut filter_drafts,
+                Some(&mut on_filter_dialog),
             ),
         );
     }
     if let Some(count) = freeze_intent {
         app.set_frozen_columns(tab.id, count);
-    }
-    if let Some((column, criteria)) = filter_intent
-        && let Some(field) = columns.get(column)
-    {
-        app.dispatch(Command::SetTableFilter {
-            table: tab.object_name.clone(),
-            field: field.clone(),
-            criteria,
-        });
-        app.set_filter_draft(tab.id, column, String::new());
     }
     if let Some((column, order)) = sort_intent
         && let Some(field) = columns.get(column)
@@ -210,6 +188,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             field: field.clone(),
             order,
         });
+    }
+    if let Some(column) = dialog_intent {
+        app.open_filter_dialog(tab.id, column);
     }
     match pending_edit {
         Some(EditIntent::Start { row, col }) => {
@@ -243,6 +224,72 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     ui.label(egui::RichText::new(plural(row_count, "{count} row", "{count} rows")).small());
     new_row_ui(app, tab, &columns, &widths, ui);
+    filter_dialog_ui(app, tab, &columns, ui);
+}
+
+/// The column filter dialog (step 45.1, M55): egui menus do not host
+/// text editing — clicking the in-menu editor closed the whole menu —
+/// so the criteria editor lives in a small window (the mapper/sql
+/// window pattern). The editor seeds from the live filter; Apply and
+/// Clear dispatch the existing `SetTableFilter` commands.
+fn filter_dialog_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &mut egui::Ui) {
+    let Some(column) = app.filter_dialog(tab.id) else {
+        return;
+    };
+    let Some(field) = columns.get(column) else {
+        app.close_filter_dialog(tab.id);
+        return;
+    };
+    let title = tr("Filter — {field}", &[("field", field)]);
+    let live = tab.filters.get(field).cloned().unwrap_or_default();
+    let mut close = false;
+    egui::Window::new(title)
+        .id(egui::Id::unique(format!(
+            "datacraft.filter.{}",
+            tab.ui_test_id
+        )))
+        .default_width(320.0)
+        .show(ui, |ui| {
+            let mut draft = {
+                let buffered = app.filter_draft(tab.id, column);
+                if buffered.is_empty() {
+                    live.clone()
+                } else {
+                    buffered
+                }
+            };
+            let criteria_label = ui.label(t("Filter criteria"));
+            if ui
+                .text_edit_singleline(&mut draft)
+                .labelled_by(criteria_label.id)
+                .changed()
+            {
+                app.set_filter_draft(tab.id, column, draft.clone());
+            }
+            ui.horizontal(|ui| {
+                if ui.button(t("Apply Filter")).clicked() && !draft.trim().is_empty() {
+                    app.dispatch(Command::SetTableFilter {
+                        table: tab.object_name.clone(),
+                        field: field.clone(),
+                        criteria: Some(draft.clone()),
+                    });
+                    app.set_filter_draft(tab.id, column, String::new());
+                    close = true;
+                }
+                if !live.is_empty() && ui.button(t("Clear Filter")).clicked() {
+                    app.dispatch(Command::SetTableFilter {
+                        table: tab.object_name.clone(),
+                        field: field.clone(),
+                        criteria: None,
+                    });
+                    app.set_filter_draft(tab.id, column, String::new());
+                    close = true;
+                }
+            });
+        });
+    if close {
+        app.close_filter_dialog(tab.id);
+    }
 }
 
 /// The datasheet's new-record row (step 11.7): one text cell per column,
@@ -374,7 +421,6 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 None,
                 None,
                 None,
-                &mut [],
             ),
         );
     }

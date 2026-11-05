@@ -123,6 +123,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("Sort Ascending", "Aufsteigend sortieren"),
     ("Filter criteria", "Filterkriterium"),
+    ("Filter…", "Filter …"),
+    ("Filter — {field}", "Filter — {field}"),
     ("Apply Filter", "Filter anwenden"),
     ("Clear Filter", "Filter löschen"),
     (

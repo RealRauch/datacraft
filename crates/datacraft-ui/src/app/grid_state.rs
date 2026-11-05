@@ -112,6 +112,22 @@ impl App {
         self.sql_column_widths = widths;
     }
 
+    /// The open filter dialog of a tab (step 45.1, M55): the column
+    /// whose criteria editor the window shows, if any.
+    pub fn filter_dialog(&self, tab_id: TabId) -> Option<usize> {
+        self.filter_dialog.get(&tab_id).copied()
+    }
+
+    /// Opens the filter dialog for one column.
+    pub fn open_filter_dialog(&mut self, tab_id: TabId, column: usize) {
+        self.filter_dialog.insert(tab_id, column);
+    }
+
+    /// Closes a tab's filter dialog.
+    pub fn close_filter_dialog(&mut self, tab_id: TabId) {
+        self.filter_dialog.remove(&tab_id);
+    }
+
     /// Buffered filter criteria of a datasheet header menu, keyed by
     /// tab and column index (step 44.5, M54): menus are immediate-mode,
     /// so the typed draft persists on the app between frames.

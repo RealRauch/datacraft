@@ -54,6 +54,7 @@ pub struct App {
     /// Buffered new-field name per design tab (step 24.3, M9).
     design_new_field: HashMap<TabId, String>,
     filter_drafts: HashMap<(TabId, usize), String>,
+    filter_dialog: HashMap<TabId, usize>,
     /// Buffered rename text per design tab (step 24.3, M9).
     design_rename: HashMap<TabId, String>,
     /// Current record cursor per table/query tab (the status bar's
@@ -167,6 +168,7 @@ impl App {
             design_selection: HashMap::new(),
             design_new_field: HashMap::new(),
             filter_drafts: HashMap::new(),
+            filter_dialog: HashMap::new(),
             design_rename: HashMap::new(),
             sql_text: "SELECT 1 AS one;".to_owned(),
             sql_error: None,

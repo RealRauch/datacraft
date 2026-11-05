@@ -101,10 +101,9 @@ pub(crate) struct GridCallbacks<'a> {
     pub on_delete: Option<&'a mut dyn FnMut(usize)>,
     /// In-place cell editing intents.
     pub on_edit: Option<&'a mut dyn FnMut(EditIntent)>,
-    /// Table column filters from the header menu (`None` clears).
-    pub on_filter: Option<&'a mut dyn FnMut(usize, Option<String>)>,
-    /// The per-column criteria drafts the menu's editor edits.
-    pub filter_drafts: &'a mut [String],
+    /// Opens a column's filter dialog from the header menu (step 45.1,
+    /// M55).
+    pub on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
 }
 
 /// Bundles the callbacks for [`grid_ui`] (keeps the call sites tidy).
@@ -115,8 +114,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_freeze: Option<&'a mut dyn FnMut(usize)>,
     on_delete: Option<&'a mut dyn FnMut(usize)>,
     on_edit: Option<&'a mut dyn FnMut(EditIntent)>,
-    on_filter: Option<&'a mut dyn FnMut(usize, Option<String>)>,
-    filter_drafts: &'a mut [String],
+    on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
 ) -> GridCallbacks<'a> {
     GridCallbacks {
         on_select,
@@ -124,8 +122,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_freeze,
         on_delete,
         on_edit,
-        on_filter,
-        filter_drafts,
+        on_filter_dialog,
     }
 }
 
@@ -136,8 +133,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'_>, callbacks: GridCall
         on_freeze,
         mut on_delete,
         mut on_edit,
-        on_filter,
-        filter_drafts,
+        on_filter_dialog,
     } = callbacks;
     let Grid {
         metrics,
@@ -208,8 +204,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'_>, callbacks: GridCall
         band_width: ui.available_width(),
         sort: on_sort,
         freeze: on_freeze,
-        filter: on_filter,
-        filter_drafts,
+        filter_dialog: on_filter_dialog,
     };
     header_ui(ui, &metrics, columns, widths, sort_orders, &mut header);
     let total_width: f32 = widths.iter().sum();

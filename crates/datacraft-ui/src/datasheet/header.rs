@@ -33,13 +33,10 @@ pub(super) struct HeaderPass<'a> {
     pub band_width: f32,
     pub sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     pub freeze: Option<&'a mut dyn FnMut(usize)>,
-    /// Column filter affordance (step 44.5, M54): writes the criteria
-    /// typed into the header menu (`None` clears the column's filter).
-    pub filter: Option<&'a mut dyn FnMut(usize, Option<String>)>,
-    /// The per-column criteria draft the menu's editor edits; seeded
-    /// with the active criteria so an active filter is visible (and
-    /// editable) right in the menu.
-    pub filter_drafts: &'a mut [String],
+    /// Column filter affordance (step 45.1, M55): opens the column's
+    /// criteria dialog (the in-menu editor died on click — egui menus
+    /// do not host text editing).
+    pub filter_dialog: Option<&'a mut dyn FnMut(usize)>,
 }
 
 /// Header band: accent fill, column names with sort indicators, resize
@@ -65,6 +62,7 @@ pub(super) fn header_ui(
     let band_h = metrics.header_height;
     let mut pending_sort: Option<(usize, SortOrder)> = None;
     let mut pending_freeze: Option<usize> = None;
+    let mut pending_filter_dialog: Option<usize> = None;
     // The band is viewport-bounded, never content-sized: a content-sized
     // band would widen the container ui and defeat the body's horizontal
     // scroll. Cells beyond the band are painted clipped.
@@ -138,33 +136,12 @@ pub(super) fn header_ui(
                     }
                 }
             }
-            if pass.filter.is_some() {
+            if pass.filter_dialog.is_some() {
                 ui.separator();
-                let draft = pass.filter_drafts.get(col).cloned().unwrap_or_default();
-                let mut edited = draft.clone();
-                let criteria_label = ui.label(t("Filter criteria"));
-                if ui
-                    .text_edit_singleline(&mut edited)
-                    .labelled_by(criteria_label.id)
-                    .changed()
-                    && let Some(slot) = pass.filter_drafts.get_mut(col)
-                {
-                    *slot = edited.clone();
+                if ui.selectable_label(false, t("Filter…")).clicked() {
+                    pending_filter_dialog = Some(col);
+                    ui.close();
                 }
-                ui.horizontal(|ui| {
-                    if ui.button(t("Apply Filter")).clicked() && !edited.trim().is_empty() {
-                        if let Some(callback) = pass.filter.as_mut() {
-                            callback(col, Some(edited.clone()));
-                        }
-                        ui.close();
-                    }
-                    if !draft.trim().is_empty() && ui.button(t("Clear Filter")).clicked() {
-                        if let Some(callback) = pass.filter.as_mut() {
-                            callback(col, None);
-                        }
-                        ui.close();
-                    }
-                });
             }
             if col >= frozen && ui.selectable_label(false, t("Freeze Fields")).clicked() {
                 pending_freeze = Some(col + 1);
@@ -207,5 +184,10 @@ pub(super) fn header_ui(
         && let Some(callback) = pass.freeze.as_mut()
     {
         callback(count);
+    }
+    if let Some(column) = pending_filter_dialog
+        && let Some(callback) = pass.filter_dialog.as_mut()
+    {
+        callback(column);
     }
 }

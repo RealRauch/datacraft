@@ -210,8 +210,8 @@ fn the_filter_dialog_applies_a_typed_criterion() {
     harness.run();
     harness.get_by_label("Filter…").click();
     harness.run();
-    let editor = harness
-        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
+    let editor =
+        harness.get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
     editor.set_text_value_accesskit("Like \"a*\"");
     harness.run();
     harness.get_by_label("Apply Filter").click();
@@ -258,8 +258,8 @@ fn the_filter_dialog_seeds_and_clears_the_live_filter() {
     harness.run();
     harness.get_by_label("Filter…").click();
     harness.run();
-    let editor = harness
-        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
+    let editor =
+        harness.get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
     assert_eq!(
         editor.value().as_deref(),
         Some("Like \"a*\""),
@@ -270,5 +270,8 @@ fn the_filter_dialog_seeds_and_clears_the_live_filter() {
     harness.run();
     let tab = &harness.state().snapshot().tabs[0];
     assert!(tab.filters.is_empty(), "the filter cleared over the bus");
-    assert!(harness.get_by_label("beta").rect().width() > 0.0, "beta returns");
+    assert!(
+        harness.get_by_label("beta").rect().width() > 0.0,
+        "beta returns"
+    );
 }
