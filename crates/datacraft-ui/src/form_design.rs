@@ -34,7 +34,13 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     };
 
     ui.horizontal_top(|ui| {
-        ui.vertical(|ui| canvas_ui(app, tab, &form, ui));
+        // Cap the canvas column at the canvas width: egui separators span
+        // the full available width, and an uncapped column would push
+        // the palette column past the viewport (F10, found in step 41.4).
+        ui.vertical(|ui| {
+            ui.set_max_width(FORM_WIDTH);
+            canvas_ui(app, tab, &form, ui);
+        });
         ui.separator();
         ui.vertical(|ui| {
             crate::designer_palette::designer_palette_ui(app, ObjectKind::Form, &form.name, ui)

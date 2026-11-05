@@ -27,9 +27,9 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
 
     let (source, tables, fields) = palette_data(app, kind, object);
 
-    ui.label(egui::RichText::new(t("Record Source")).strong());
+    let source_label = ui.label(egui::RichText::new(t("Record Source")).strong());
     let mut chosen: Option<String> = None;
-    egui::ComboBox::from_id_salt(format!(
+    let source_combo = egui::ComboBox::from_id_salt(format!(
         "designer.{}.{}.source",
         kind.slug(),
         object.to_lowercase()
@@ -49,6 +49,9 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
             }
         }
     });
+    // Name the combo for screen readers and the kittest's accessibility
+    // check (the strong label above is decorative without this link).
+    source_combo.response.labelled_by(source_label.id);
     if let Some(table) = chosen {
         app.set_record_source(kind, object, &table);
         return;

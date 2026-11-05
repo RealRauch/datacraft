@@ -30,12 +30,68 @@ pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     };
 
     ui.horizontal_top(|ui| {
-        ui.vertical(|ui| canvas_ui(app, tab, &report, ui));
+        // Cap the canvas column at the page width: egui separators span
+        // the full available width, and an uncapped column would push
+        // the palette column past the viewport (found in step 41.4).
+        ui.vertical(|ui| {
+            ui.set_max_width(report.page.width);
+            canvas_ui(app, tab, &report, ui);
+        });
         ui.separator();
         ui.vertical(|ui| {
-            crate::designer_palette::designer_palette_ui(app, ObjectKind::Report, &report.name, ui)
+            crate::designer_palette::designer_palette_ui(app, ObjectKind::Report, &report.name, ui);
+            ui.separator();
+            grouping_picker(app, &report, ui);
         });
     });
+}
+
+/// The grouping picker (step 41.4, item M48): the record source's fields
+/// plus a "no grouping" entry, dispatching exactly one
+/// `SetReportGrouping` per change. The preview re-renders the bands from
+/// the refreshed snapshot.
+fn grouping_picker(app: &mut App, report: &ReportDef, ui: &mut egui::Ui) {
+    let fields: Vec<String> = app
+        .snapshot()
+        .database
+        .as_ref()
+        .and_then(|db| {
+            db.tables
+                .iter()
+                .find(|table| table.name.eq_ignore_ascii_case(&report.source))
+                .map(|table| table.fields.iter().map(|f| f.name.clone()).collect())
+        })
+        .unwrap_or_default();
+    let selected = report
+        .group_by
+        .clone()
+        .unwrap_or_else(|| t("no grouping").to_owned());
+    let mut chosen: Option<Option<String>> = None;
+    egui::ComboBox::from_label(t("Grouping"))
+        .selected_text(selected)
+        .show_ui(ui, |ui| {
+            if ui
+                .selectable_label(report.group_by.is_none(), t("no grouping"))
+                .clicked()
+            {
+                chosen = Some(None);
+            }
+            for field in &fields {
+                let is_current = report
+                    .group_by
+                    .as_ref()
+                    .is_some_and(|current| current.eq_ignore_ascii_case(field));
+                if ui.selectable_label(is_current, field).clicked() {
+                    chosen = Some(Some(field.clone()));
+                }
+            }
+        });
+    if let Some(group_by) = chosen {
+        app.dispatch(Command::SetReportGrouping {
+            report: report.name.clone(),
+            group_by,
+        });
+    }
 }
 
 /// The report's design canvas itself (paper, grid, controls, footer).

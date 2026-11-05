@@ -105,6 +105,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("Report no longer exists", "Bericht existiert nicht mehr"),
     ("Report: {name}", "Bericht: {name}"),
+    ("Grouping", "Gruppierung"),
+    ("no grouping", "keine Gruppierung"),
     ("Required", "Erforderlich"),
     (
         "Rows could not be loaded: {reason}",
