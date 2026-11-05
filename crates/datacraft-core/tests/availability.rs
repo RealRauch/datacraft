@@ -173,4 +173,57 @@ fn disabled_reasons_serialize_stable_on_the_wire() {
         serde_json::to_value(DisabledReason::NoPasswords).expect("serialize"),
         serde_json::json!("no_passwords")
     );
+    assert_eq!(
+        serde_json::to_value(DisabledReason::AlterTables).expect("serialize"),
+        serde_json::json!("alter_tables")
+    );
+    assert_eq!(
+        serde_json::to_value(DisabledReason::CreateDatabase).expect("serialize"),
+        serde_json::json!("create_database")
+    );
+}
+
+/// The design view's edit affordances gate on `alter_table` and the
+/// backstage Create Database button on `create_database`
+/// (step 42.2, item L18); capable sources carry neither.
+#[test]
+fn schema_edit_and_create_affordances_gate_on_their_capabilities() {
+    let mut caps = DriverCapabilities::full();
+    caps.alter_table = false;
+    caps.create_database = false;
+    let db = core_with(caps).inspect().database.expect("database open");
+    for id in [
+        "design.add_field",
+        "design.rename_field",
+        "design.drop_field",
+        "design.set_field_properties",
+    ] {
+        assert_eq!(
+            db.availability.get(id),
+            Some(&datacraft_core::availability::DisabledReason::AlterTables),
+            "affordance {id:?} must be disabled for a source without alter_table"
+        );
+    }
+    assert_eq!(
+        db.availability.get("backstage.create_database"),
+        Some(&datacraft_core::availability::DisabledReason::CreateDatabase),
+        "the create-database affordance must be disabled without create_database"
+    );
+
+    let db = core_with(DriverCapabilities::full())
+        .inspect()
+        .database
+        .expect("database open");
+    for id in [
+        "design.add_field",
+        "design.rename_field",
+        "design.drop_field",
+        "design.set_field_properties",
+        "backstage.create_database",
+    ] {
+        assert!(
+            !db.availability.contains_key(id),
+            "a capable source keeps {id:?} enabled"
+        );
+    }
 }

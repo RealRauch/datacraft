@@ -108,64 +108,77 @@ pub fn design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     ui.separator();
 
-    // Design-time edits (step 24.3, M9): one command per action.
+    // Design-time edits (step 24.3, M9): one command per action. The
+    // block gates on the alter_table capability (step 42.2, L18) — a
+    // restricted source shows the reason instead of dispatching into a
+    // Failed toast; the dispatcher gate stays the second line.
     let mut intent: Option<Command> = None;
-    ui.horizontal(|ui| {
-        let label = ui.label(t("New field"));
-        let mut new_name = app.design_new_field(tab.id);
-        if ui
-            .text_edit_singleline(&mut new_name)
-            .labelled_by(label.id)
-            .changed()
-        {
-            app.set_design_new_field(tab.id, new_name.clone());
-        }
-        if ui.button(t("Add Field")).clicked() && !new_name.trim().is_empty() {
-            intent = Some(Command::AddField {
-                table: tab.object_name.clone(),
-                field: FieldDef::new(new_name.trim(), FieldKind::Text { max_len: 50 }),
-            });
-            app.set_design_new_field(tab.id, String::new());
-        }
-    });
-    if let Some(field) = fields.get(selected) {
+    let schema_restriction = crate::availability::restricted(
+        app.snapshot(),
+        datacraft_core::availability::ids::DESIGN_ADD_FIELD,
+    )
+    .copied();
+    if let Some(reason) = schema_restriction {
+        ui.weak(crate::availability::reason_text(&reason));
+    }
+    ui.add_enabled_ui(schema_restriction.is_none(), |ui| {
         ui.horizontal(|ui| {
-            let label = ui.label(t("Rename field"));
-            let mut rename = app.design_rename(tab.id);
+            let label = ui.label(t("New field"));
+            let mut new_name = app.design_new_field(tab.id);
             if ui
-                .text_edit_singleline(&mut rename)
+                .text_edit_singleline(&mut new_name)
                 .labelled_by(label.id)
                 .changed()
             {
-                app.set_design_rename(tab.id, rename.clone());
+                app.set_design_new_field(tab.id, new_name.clone());
             }
-            if ui.button(t("Rename")).clicked() && !rename.trim().is_empty() {
-                intent = Some(Command::RenameField {
+            if ui.button(t("Add Field")).clicked() && !new_name.trim().is_empty() {
+                intent = Some(Command::AddField {
                     table: tab.object_name.clone(),
-                    field: field.name.clone(),
-                    new_name: rename.trim().to_owned(),
+                    field: FieldDef::new(new_name.trim(), FieldKind::Text { max_len: 50 }),
                 });
-                app.set_design_rename(tab.id, String::new());
-            }
-            if ui.button(t("Delete")).clicked() {
-                intent = Some(Command::DropField {
-                    table: tab.object_name.clone(),
-                    field: field.name.clone(),
-                });
-            }
-            let mut required = field.properties.required;
-            if ui.checkbox(&mut required, t("Required")).changed() {
-                intent = Some(Command::SetFieldProperties {
-                    table: tab.object_name.clone(),
-                    field: field.name.clone(),
-                    properties: FieldProperties {
-                        required,
-                        ..field.properties.clone()
-                    },
-                });
+                app.set_design_new_field(tab.id, String::new());
             }
         });
-    }
+        if let Some(field) = fields.get(selected) {
+            ui.horizontal(|ui| {
+                let label = ui.label(t("Rename field"));
+                let mut rename = app.design_rename(tab.id);
+                if ui
+                    .text_edit_singleline(&mut rename)
+                    .labelled_by(label.id)
+                    .changed()
+                {
+                    app.set_design_rename(tab.id, rename.clone());
+                }
+                if ui.button(t("Rename")).clicked() && !rename.trim().is_empty() {
+                    intent = Some(Command::RenameField {
+                        table: tab.object_name.clone(),
+                        field: field.name.clone(),
+                        new_name: rename.trim().to_owned(),
+                    });
+                    app.set_design_rename(tab.id, String::new());
+                }
+                if ui.button(t("Delete")).clicked() {
+                    intent = Some(Command::DropField {
+                        table: tab.object_name.clone(),
+                        field: field.name.clone(),
+                    });
+                }
+                let mut required = field.properties.required;
+                if ui.checkbox(&mut required, t("Required")).changed() {
+                    intent = Some(Command::SetFieldProperties {
+                        table: tab.object_name.clone(),
+                        field: field.name.clone(),
+                        properties: FieldProperties {
+                            required,
+                            ..field.properties.clone()
+                        },
+                    });
+                }
+            });
+        }
+    });
     if let Some(command) = intent {
         app.dispatch(command);
     }

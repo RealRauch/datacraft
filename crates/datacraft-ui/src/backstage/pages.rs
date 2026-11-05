@@ -137,7 +137,19 @@ fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command
         app.new_database_path = path.display().to_string();
     }
     ui.add_space(8.0);
-    let enabled = !app.new_database_path.trim().is_empty() && app.new_database_template.is_some();
+    // The button gates on the composition's create capability
+    // (step 42.2, L18); the dispatcher gate stays the second line.
+    let creation_restriction = crate::availability::restricted(
+        app.snapshot(),
+        datacraft_core::availability::ids::CREATE_DATABASE,
+    )
+    .copied();
+    if let Some(reason) = creation_restriction {
+        ui.weak(crate::availability::reason_text(&reason));
+    }
+    let enabled = creation_restriction.is_none()
+        && !app.new_database_path.trim().is_empty()
+        && app.new_database_template.is_some();
     if ui
         .push_id("backstage.new.create", |ui| {
             ui.add_enabled(enabled, egui::Button::new(t("Create Database")))

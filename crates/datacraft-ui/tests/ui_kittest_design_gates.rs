@@ -10,10 +10,8 @@ use datacraft_core::port::{DriverCapabilities, MockPort};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_core::snapshot::TabSnapshot;
 use datacraft_ui::app::App;
-use eframe::egui;
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT;
-use egui_kittest::kittest::Queryable;
 
 fn customers() -> TableDef {
     TableDef::new(
@@ -42,10 +40,7 @@ fn design_app(caps: DriverCapabilities) -> (App, TabSnapshot) {
     (app, tab)
 }
 
-fn design_harness(
-    app: App,
-    tab: TabSnapshot,
-) -> Harness<'static, (App, TabSnapshot)> {
+fn design_harness(app: App, tab: TabSnapshot) -> Harness<'static, (App, TabSnapshot)> {
     Harness::new_ui_state(
         move |ui, (app, tab)| {
             datacraft_ui::theme::fonts::install(ui.ctx());

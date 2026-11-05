@@ -156,6 +156,14 @@ pub static TABLE: &[(&str, &str)] = &[
         "Die geöffnete Datenquelle kann keine Tabellen erstellen",
     ),
     (
+        "the open source cannot alter the schema",
+        "Die geöffnete Datenquelle kann das Schema nicht ändern",
+    ),
+    (
+        "the open source cannot create new databases",
+        "Die geöffnete Datenquelle kann keine neuen Datenbanken erstellen",
+    ),
+    (
         "the open source cannot drop tables",
         "Die geöffnete Datenquelle kann keine Tabellen löschen",
     ),

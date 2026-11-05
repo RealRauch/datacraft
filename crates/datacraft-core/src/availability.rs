@@ -32,6 +32,11 @@ pub enum DisabledReason {
     /// The source has no database-password surface (save-as / password
     /// change are unavailable).
     NoPasswords,
+    /// The driver cannot alter the schema in place (the design view's
+    /// edit controls).
+    AlterTables,
+    /// The composition cannot create new database files.
+    CreateDatabase,
 }
 
 /// Stable affordance ids shared by the ribbon spec, the navigation
@@ -59,6 +64,17 @@ pub mod ids {
     pub const SAVE_AS: &str = "backstage.save_as";
     /// Backstage Save ▸ Change password (step 27.2, M14).
     pub const CHANGE_PASSWORD: &str = "backstage.change_password";
+    /// Backstage New ▸ Create Database (step 42.2, item L18).
+    pub const CREATE_DATABASE: &str = "backstage.create_database";
+    /// Design view ▸ Add Field (step 42.2, item L18). The four design
+    /// ids share the `alter_table` capability.
+    pub const DESIGN_ADD_FIELD: &str = "design.add_field";
+    /// Design view ▸ Rename (step 42.2, item L18).
+    pub const DESIGN_RENAME_FIELD: &str = "design.rename_field";
+    /// Design view ▸ Delete field (step 42.2, item L18).
+    pub const DESIGN_DROP_FIELD: &str = "design.drop_field";
+    /// Design view ▸ Required toggle (step 42.2, item L18).
+    pub const DESIGN_SET_FIELD_PROPERTIES: &str = "design.set_field_properties";
 }
 
 /// The availability map for one open source: disabled affordance id →
@@ -95,6 +111,30 @@ pub fn affordances(caps: &DriverCapabilities) -> BTreeMap<String, DisabledReason
     if !caps.passwords {
         map.insert(ids::SAVE_AS.to_owned(), DisabledReason::NoPasswords);
         map.insert(ids::CHANGE_PASSWORD.to_owned(), DisabledReason::NoPasswords);
+    }
+    if !caps.alter_table {
+        map.insert(
+            ids::DESIGN_ADD_FIELD.to_owned(),
+            DisabledReason::AlterTables,
+        );
+        map.insert(
+            ids::DESIGN_RENAME_FIELD.to_owned(),
+            DisabledReason::AlterTables,
+        );
+        map.insert(
+            ids::DESIGN_DROP_FIELD.to_owned(),
+            DisabledReason::AlterTables,
+        );
+        map.insert(
+            ids::DESIGN_SET_FIELD_PROPERTIES.to_owned(),
+            DisabledReason::AlterTables,
+        );
+    }
+    if !caps.create_database {
+        map.insert(
+            ids::CREATE_DATABASE.to_owned(),
+            DisabledReason::CreateDatabase,
+        );
     }
     map
 }
