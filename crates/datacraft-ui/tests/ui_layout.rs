@@ -262,3 +262,32 @@ fn the_status_filter_chip_clears_the_active_filters() {
 {dump}"
     );
 }
+
+/// The status bar's record navigation reads left-to-right (step 45.2,
+/// user report): the decrement (previous) button sits left of the
+/// increment (next) button — the outer right-to-left status layout
+/// mirrored the pair.
+#[test]
+fn record_navigation_places_previous_left_of_next() {
+    let mut app = app_with_tables();
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "ServiceOrders",
+    )));
+    let mut harness = Harness::new_ui_state(
+        move |ui, app: &mut App| {
+            datacraft_ui::theme::fonts::install(ui.ctx());
+            datacraft_ui::theme::apply(ui.ctx());
+            let mut frame = eframe::Frame::_new_kittest();
+            eframe::App::ui(app, ui, &mut frame);
+        },
+        app,
+    );
+    harness.run();
+    let previous = harness.get_by_label("◀").rect();
+    let next = harness.get_by_label("▶").rect();
+    assert!(
+        previous.left() < next.left(),
+        "previous ({previous:?}) must sit left of next ({next:?})"
+    );
+}
