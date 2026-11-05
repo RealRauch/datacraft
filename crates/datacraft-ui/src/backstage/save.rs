@@ -172,5 +172,29 @@ pub(super) fn save_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Comm
     ui.add_space(10.0);
     ui.separator();
     change_password_ui(app, ui, intents);
+    ui.add_space(10.0);
+    ui.separator();
+    close_database_ui(app, ui);
+}
+
+/// Closes the open database over the bus (step 44.3, item M52): the
+/// user's route back to the no-database state so another file can open.
+/// Capability-independent — closing needs nothing from the driver; the
+/// button gates only on a database actually being open (the dispatcher
+/// answers a precise failed-noop otherwise). Direct dispatch, since the
+/// backstage page resets to Home as part of the same action.
+fn close_database_ui(app: &mut App, ui: &mut egui::Ui) {
+    ui.label(t("Close the open database to open another one."));
+    let enabled = app.snapshot().database.is_some();
+    if ui
+        .push_id("backstage.save.close_database", |ui| {
+            ui.add_enabled(enabled, egui::Button::new(t("Close Database")))
+        })
+        .inner
+        .clicked()
+    {
+        app.dispatch(Command::CloseDatabase);
+        app.backstage_page = super::BackstagePage::Home;
+    }
     status_line(app, ui);
 }

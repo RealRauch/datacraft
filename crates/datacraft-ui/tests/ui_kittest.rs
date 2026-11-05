@@ -451,9 +451,7 @@ fn the_backstage_close_database_button_closes_over_the_bus() {
     app.backstage_page = datacraft_ui::backstage::BackstagePage::Save;
     let mut harness = backstage_harness(app);
     harness.run();
-    harness
-        .get_by_label("Close Database")
-        .click();
+    harness.get_by_label("Close Database").click();
     harness.run();
     let app = harness.state();
     assert!(

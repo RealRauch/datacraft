@@ -98,6 +98,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Save Design", "Entwurf speichern"),
     ("Save a Copy", "Eine Kopie speichern"),
     ("Save Copy", "Kopie speichern"),
+    (
+        "Close the open database to open another one.",
+        "Offene Datenbank schließen, um eine andere zu öffnen.",
+    ),
     ("Database Password", "Datenbankpasswort"),
     ("Database password changed", "Datenbankpasswort geändert"),
     ("Database password removed", "Datenbankpasswort entfernt"),
