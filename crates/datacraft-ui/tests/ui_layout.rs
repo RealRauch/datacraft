@@ -13,6 +13,7 @@ use datacraft_ui::app::App;
 use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
+use egui_kittest::kittest::NodeT;
 
 fn app_with_tables() -> App {
     let port = MockPort::with_tables(vec![
@@ -111,22 +112,16 @@ fn every_ribbon_group_stays_inside_the_window() {
     }
 }
 
-#[test]
-fn panels_never_overlap_the_status_bar() {
-    let mut app = app_with_tables();
-    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
-        datacraft_core::ObjectKind::Table,
-        "ServiceOrders",
-    )));
+/// Renders the full shell at `size` and drains the rect log plus the
+/// semantic tree.
+fn shell_frame(
+    mut app: App,
+    size: egui::Vec2,
+) -> (Vec<(String, egui::Rect)>, String) {
     let mut harness = Harness::new_ui_state(
         move |ui, app: &mut App| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
-            // The tab strip paints a text "✕"; the headless font set
-            // carries no glyph for it (tofu policy, like the live app's
-            // fallback path).
-            ui.ctx()
-                .set_missing_glyph_policy(egui::MissingGlyphPolicy::Tofu);
             layout_probe::clear();
             let mut frame = eframe::Frame::_new_kittest();
             eframe::App::ui(app, ui, &mut frame);
@@ -134,22 +129,83 @@ fn panels_never_overlap_the_status_bar() {
         },
         app,
     );
+    harness.set_size(size);
     harness.run();
     harness.run();
-    let rects = layout_probe::drain();
-    let status = rects
+    let mut lines = Vec::new();
+    for node in harness.root().children_recursive() {
+        let node = node.accesskit_node();
+        let label = node.label().unwrap_or_default();
+        if label.is_empty() {
+            continue;
+        }
+        let disabled = if node.is_disabled() { " disabled" } else { "" };
+        lines.push(format!("{:?}|{label}{disabled}", node.role()));
+    }
+    (layout_probe::drain(), lines.join("\n"))
+}
+
+fn panel_rect<'a>(
+    rects: &'a [(String, egui::Rect)],
+    id: &str,
+) -> egui::Rect {
+    rects
         .iter()
-        .find(|(id, _)| id == "shell.status_panel")
+        .find(|(name, _)| name == id)
         .map(|(_, rect)| *rect)
-        .expect("status panel rect recorded");
-    let workspace = rects
-        .iter()
-        .find(|(id, _)| id == "shell.workspace_panel")
-        .map(|(_, rect)| *rect)
-        .expect("workspace panel rect recorded");
+        .unwrap_or_else(|| panic!("rect {id:?} recorded"))
+}
+
+#[test]
+fn panels_never_overlap_the_status_bar() {
+    // Both acceptance sizes (H53): the shipped default and the minimum
+    // plausible window — the user saw datasheet rows behind the footer.
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0)] {
+        let mut app = app_with_tables();
+        app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+            datacraft_core::ObjectKind::Table,
+            "ServiceOrders",
+        )));
+        let (rects, _dump) = shell_frame(app, size);
+        let status = panel_rect(&rects, "shell.status_panel");
+        let workspace = panel_rect(&rects, "shell.workspace_panel");
+        let ribbon = panel_rect(&rects, "shell.ribbon_panel");
+        let navpane = panel_rect(&rects, "shell.navpane_panel");
+        assert!(
+            workspace.bottom() <= status.top() + 1.0,
+            "the workspace content bottom ({:?}) crosses the status bar top ({status:?}) at {size:?} — rows disappear behind the footer (H53)",
+            workspace.bottom()
+        );
+        assert!(
+            workspace.top() >= ribbon.bottom() - 1.0,
+            "the workspace content top ({:?}) crosses the ribbon bottom ({ribbon:?}) at {size:?}",
+            workspace.top()
+        );
+        assert!(
+            workspace.left() >= navpane.right() - 1.0,
+            "the workspace content left ({:?}) crosses the nav pane right ({navpane:?}) at {size:?}",
+            workspace.left()
+        );
+    }
+}
+
+/// The tab strip's close affordance is a labelled button painted by the
+/// icon dispatcher — the shipped font set has no "✕" glyph, so the text
+/// button rendered tofu in the live app (step 44.2, H53 sweep).
+#[test]
+fn the_tab_close_affordance_is_labelled_close() {
+    let mut app = app_with_tables();
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "ServiceOrders",
+    )));
+    let (_rects, dump) = shell_frame(app, egui::vec2(1280.0, 800.0));
     assert!(
-        workspace.bottom() <= status.top() + 1.0,
-        "the workspace content bottom ({:?}) crosses the status bar top ({status:?}) — rows disappear behind the footer (H53)",
-        workspace.bottom()
+        dump.contains("Button|Close"),
+        "the tab close affordance carries the localized Close label:\n{dump}"
+    );
+    assert!(
+        !dump.contains("Button|✕"),
+        "the close affordance must not paint the tofu-boxed ✕ character:\n{dump}"
     );
 }
