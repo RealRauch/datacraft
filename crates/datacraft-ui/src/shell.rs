@@ -6,6 +6,7 @@
 
 use eframe::egui;
 
+use datacraft_core::command::Command;
 use datacraft_core::snapshot::UiStateSnapshot;
 
 use crate::app::App;
@@ -57,6 +58,7 @@ impl eframe::App for App {
             .frame(egui::Frame::side_top_panel(ui.style()).fill(tokens.chrome))
             .show(ui, |ui| {
                 crate::layout_probe::record("shell.status_panel", ui.max_rect());
+                let mut clear_filters: Option<String> = None;
                 ui.horizontal(|ui| {
                     // Left: database context (Access convention — the active
                     // document's object replaces the generic count).
@@ -80,18 +82,47 @@ impl eframe::App for App {
                     } else if let Some(notice) = self.last_notice() {
                         ui.colored_label(tokens.accent, notice);
                     }
-                    // Filter-state placeholder (step 21.7, U11): rendered
-                    // disabled until a filter model exists.
-                    ui.push_id("status.filter", |ui| {
-                        ui.add_enabled(false, egui::Button::new(t("Filter")))
-                            .on_hover_text(t("No filter is active."));
-                    });
+                    // Filter chip (step 44.5, M54): live when the active
+                    // table tab carries column filters — one click clears
+                    // them all over the bus; otherwise the placeholder
+                    // (step 21.7, U11) stays muted.
+                    if let Some((kind, table)) = active.as_ref()
+                        && kind == "table"
+                    {
+                        let count = self
+                            .snapshot()
+                            .tabs
+                            .iter()
+                            .find(|tab| tab.object_name == *table)
+                            .map(|tab| tab.filters.len())
+                            .unwrap_or(0);
+                        ui.push_id("status.filter", |ui| {
+                            let response = if count > 0 {
+                                ui.button(format!("{} ({count})", t("Filter")))
+                                    .on_hover_text(t("Click to clear all filters on this table."))
+                            } else {
+                                ui.add_enabled(false, egui::Button::new(t("Filter")))
+                                    .on_hover_text(t("No filter is active."))
+                            };
+                            if count > 0 && response.clicked() {
+                                clear_filters = Some(table.clone());
+                            }
+                        });
+                    } else {
+                        ui.push_id("status.filter", |ui| {
+                            ui.add_enabled(false, egui::Button::new(t("Filter")))
+                                .on_hover_text(t("No filter is active."));
+                        });
+                    }
                     // Right: the record-navigation box over the active view's
                     // record domain (rows / results / form record / pages).
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         self.record_navigation_ui(ui);
                     });
                 });
+                if let Some(table) = clear_filters {
+                    self.dispatch(Command::ClearTableFilters { table });
+                }
             });
 
         crate::workspace::workspace_ui(self, ui);

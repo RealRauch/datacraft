@@ -122,6 +122,13 @@ pub static TABLE: &[(&str, &str)] = &[
         "Einstellungen konnten nicht gespeichert werden: {reason}",
     ),
     ("Sort Ascending", "Aufsteigend sortieren"),
+    ("Filter criteria", "Filterkriterium"),
+    ("Apply Filter", "Filter anwenden"),
+    ("Clear Filter", "Filter löschen"),
+    (
+        "Click to clear all filters on this table.",
+        "Klicken, um alle Filter dieser Tabelle zu löschen.",
+    ),
     ("Sort Descending", "Absteigend sortieren"),
     ("Sort by Name", "Nach Name sortieren"),
     ("Sort by Type", "Nach Typ sortieren"),

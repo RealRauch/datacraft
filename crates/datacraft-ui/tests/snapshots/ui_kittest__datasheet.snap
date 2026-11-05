@@ -1,7 +1,10 @@
 ---
 source: crates/datacraft-ui/tests/ui_kittest.rs
+assertion_line: 243
 expression: tree_dump(&harness)
 ---
+ColumnHeader|id|
+ColumnHeader|name|
 Button|     1|
 Label||1
 Label||alpha

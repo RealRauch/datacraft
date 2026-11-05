@@ -27,12 +27,19 @@ const HANDLE_WIDTH: f32 = 5.0;
 /// width (the band must never widen its container — that would defeat the
 /// body's horizontal scroll); `sort` writes the QBE sort cell, `freeze`
 /// sets the frozen count (0 = unfreeze all).
-pub(super) struct HeaderPass<'sort, 'freeze> {
+pub(super) struct HeaderPass<'a> {
     pub scroll_x: f32,
     pub frozen: usize,
     pub band_width: f32,
-    pub sort: Option<&'sort mut dyn FnMut(usize, SortOrder)>,
-    pub freeze: Option<&'freeze mut dyn FnMut(usize)>,
+    pub sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
+    pub freeze: Option<&'a mut dyn FnMut(usize)>,
+    /// Column filter affordance (step 44.5, M54): writes the criteria
+    /// typed into the header menu (`None` clears the column's filter).
+    pub filter: Option<&'a mut dyn FnMut(usize, Option<String>)>,
+    /// The per-column criteria draft the menu's editor edits; seeded
+    /// with the active criteria so an active filter is visible (and
+    /// editable) right in the menu.
+    pub filter_drafts: &'a mut [String],
 }
 
 /// Header band: accent fill, column names with sort indicators, resize
@@ -47,7 +54,7 @@ pub(super) fn header_ui(
     columns: &[String],
     widths: &mut [f32],
     sort_orders: &[SortOrder],
-    pass: &mut HeaderPass<'_, '_>,
+    pass: &mut HeaderPass<'_>,
 ) {
     let tokens = tokens(ui.visuals());
     let font = egui::TextStyle::Body.resolve(ui.style());
@@ -84,6 +91,7 @@ pub(super) fn header_ui(
         let sense = egui::Sense::click();
         let cell_id = ui.scope_id().with(("header", col));
         let response = ui.interact(cell_rect, cell_id, sense);
+        response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ColumnHeader, true, name));
         ui.painter().rect_filled(cell_rect, 0.0, tokens.accent_fill);
         let order = sort_orders.get(col).copied().unwrap_or_default();
         ui.painter().text(
@@ -129,6 +137,34 @@ pub(super) fn header_ui(
                         ui.close();
                     }
                 }
+            }
+            if pass.filter.is_some() {
+                ui.separator();
+                let draft = pass.filter_drafts.get(col).cloned().unwrap_or_default();
+                let mut edited = draft.clone();
+                let criteria_label = ui.label(t("Filter criteria"));
+                if ui
+                    .text_edit_singleline(&mut edited)
+                    .labelled_by(criteria_label.id)
+                    .changed()
+                    && let Some(slot) = pass.filter_drafts.get_mut(col)
+                {
+                    *slot = edited.clone();
+                }
+                ui.horizontal(|ui| {
+                    if ui.button(t("Apply Filter")).clicked() && !edited.trim().is_empty() {
+                        if let Some(callback) = pass.filter.as_mut() {
+                            callback(col, Some(edited.clone()));
+                        }
+                        ui.close();
+                    }
+                    if !draft.trim().is_empty() && ui.button(t("Clear Filter")).clicked() {
+                        if let Some(callback) = pass.filter.as_mut() {
+                            callback(col, None);
+                        }
+                        ui.close();
+                    }
+                });
             }
             if col >= frozen && ui.selectable_label(false, t("Freeze Fields")).clicked() {
                 pending_freeze = Some(col + 1);

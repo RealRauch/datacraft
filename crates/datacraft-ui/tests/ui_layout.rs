@@ -13,7 +13,7 @@ use datacraft_ui::app::App;
 use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::NodeT;
+use egui_kittest::kittest::{NodeT, Queryable};
 
 fn app_with_tables() -> App {
     let port = MockPort::with_tables(vec![
@@ -201,5 +201,64 @@ fn the_tab_close_affordance_is_labelled_close() {
     assert!(
         !dump.contains("Button|✕"),
         "the close affordance must not paint the tofu-boxed ✕ character:\n{dump}"
+    );
+}
+
+/// The status bar's filter chip is live when the active table carries
+/// column filters (step 44.5, M54): it names the count and one click
+/// clears every filter over the bus.
+fn tree_dump_shell(harness: &Harness<'_, App>) -> String {
+    let mut lines = Vec::new();
+    for node in harness.root().children_recursive() {
+        let node = node.accesskit_node();
+        let label = node.label().unwrap_or_default();
+        if label.is_empty() {
+            continue;
+        }
+        lines.push(format!("{:?}|{}", node.role(), label));
+    }
+    lines.join(
+        "
+",
+    )
+}
+
+#[test]
+fn the_status_filter_chip_clears_the_active_filters() {
+    let mut app = app_with_tables();
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "ServiceOrders",
+    )));
+    app.dispatch(Command::SetTableFilter {
+        table: "ServiceOrders".into(),
+        field: "Id".into(),
+        criteria: Some("> 1".into()),
+    });
+    let mut harness = Harness::new_ui_state(
+        move |ui, app: &mut App| {
+            datacraft_ui::theme::fonts::install(ui.ctx());
+            datacraft_ui::theme::apply(ui.ctx());
+            let mut frame = eframe::Frame::_new_kittest();
+            eframe::App::ui(app, ui, &mut frame);
+        },
+        app,
+    );
+    harness.run();
+    let chip = harness.get_by_label("Filter (1)");
+    assert!(chip.rect().width() > 0.0, "the chip names the filter count");
+    chip.click();
+    harness.run();
+    let tab = &harness.state().snapshot().tabs[0];
+    assert!(
+        tab.filters.is_empty(),
+        "the chip click cleared every filter: {:?}",
+        tab.filters
+    );
+    let dump = tree_dump_shell(&harness);
+    assert!(
+        !dump.contains("Filter (1)"),
+        "the chip is gone once no filter is active:
+{dump}"
     );
 }

@@ -86,15 +86,59 @@ pub(crate) enum EditIntent {
 /// Enter or a click-away commits ([`EditIntent::Commit`]), Escape
 /// discards ([`EditIntent::Cancel`]); restricted sources keep the cells
 /// inert.
-pub(crate) fn grid_ui(
-    ui: &mut egui::Ui,
-    grid: Grid<'_>,
-    on_select: &mut dyn FnMut(usize),
-    on_sort: Option<&mut dyn FnMut(usize, SortOrder)>,
-    on_freeze: Option<&mut dyn FnMut(usize)>,
-    mut on_delete: Option<&mut dyn FnMut(usize)>,
-    mut on_edit: Option<&mut dyn FnMut(EditIntent)>,
-) {
+/// The grid's paint callbacks plus the header menu's filter drafts
+/// (step 44.5, M54 — bundled so `grid_ui` stays under the arity lint):
+/// selection, QBE sort writes (query grids), freeze, record deletion,
+/// in-place cell editing and the table column filters.
+pub(crate) struct GridCallbacks<'a> {
+    /// Row selection (display index).
+    pub on_select: &'a mut dyn FnMut(usize),
+    /// Header sort (query grids write the QBE sort cell).
+    pub on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
+    /// Freeze/unfreeze through the header context menu.
+    pub on_freeze: Option<&'a mut dyn FnMut(usize)>,
+    /// Record deletion (after the caller's confirmation).
+    pub on_delete: Option<&'a mut dyn FnMut(usize)>,
+    /// In-place cell editing intents.
+    pub on_edit: Option<&'a mut dyn FnMut(EditIntent)>,
+    /// Table column filters from the header menu (`None` clears).
+    pub on_filter: Option<&'a mut dyn FnMut(usize, Option<String>)>,
+    /// The per-column criteria drafts the menu's editor edits.
+    pub filter_drafts: &'a mut [String],
+}
+
+/// Bundles the callbacks for [`grid_ui`] (keeps the call sites tidy).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn grid_ui_callbacks<'a>(
+    on_select: &'a mut dyn FnMut(usize),
+    on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
+    on_freeze: Option<&'a mut dyn FnMut(usize)>,
+    on_delete: Option<&'a mut dyn FnMut(usize)>,
+    on_edit: Option<&'a mut dyn FnMut(EditIntent)>,
+    on_filter: Option<&'a mut dyn FnMut(usize, Option<String>)>,
+    filter_drafts: &'a mut [String],
+) -> GridCallbacks<'a> {
+    GridCallbacks {
+        on_select,
+        on_sort,
+        on_freeze,
+        on_delete,
+        on_edit,
+        on_filter,
+        filter_drafts,
+    }
+}
+
+pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'_>, callbacks: GridCallbacks<'a>) {
+    let GridCallbacks {
+        on_select,
+        on_sort,
+        on_freeze,
+        mut on_delete,
+        mut on_edit,
+        on_filter,
+        filter_drafts,
+    } = callbacks;
     let Grid {
         metrics,
         columns,
@@ -164,6 +208,8 @@ pub(crate) fn grid_ui(
         band_width: ui.available_width(),
         sort: on_sort,
         freeze: on_freeze,
+        filter: on_filter,
+        filter_drafts,
     };
     header_ui(ui, &metrics, columns, widths, sort_orders, &mut header);
     let total_width: f32 = widths.iter().sum();

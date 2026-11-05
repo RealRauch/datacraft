@@ -523,3 +523,103 @@ fn the_contextual_views_button_switches_the_open_table_to_design() {
         "the same table stays open — the contextual switch never creates a new table"
     );
 }
+
+/// A two-row Customers app for the sort/filter pins (step 44.5, M54):
+/// stored order beta, alpha — sorting by name must bring alpha first.
+fn customers_two_rows_app() -> App {
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_row_data(
+        "Customers",
+        vec![
+            vec![
+                datacraft_core::schema::FieldValue::Integer(1),
+                datacraft_core::schema::FieldValue::Text("beta".to_owned()),
+            ],
+            vec![
+                datacraft_core::schema::FieldValue::Integer(2),
+                datacraft_core::schema::FieldValue::Text("alpha".to_owned()),
+            ],
+        ],
+    );
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Customers",
+    )));
+    app
+}
+
+/// The datasheet header context menu sorts the TABLE (step 44.5, M54):
+/// one menu action stores the core view state (sort field + direction
+/// on the tab snapshot) and the rows render in the sorted order — alpha
+/// (sorted) sits above beta, though the cache stores beta first.
+#[test]
+fn the_datasheet_header_menu_sorts_the_table() {
+    let mut harness = datasheet_harness(customers_two_rows_app());
+    harness.run();
+    harness.get_by_label("name").click_secondary();
+    harness.run();
+    harness.get_by_label("Sort Ascending").click();
+    harness.run();
+
+    let tab = &harness.state().snapshot().tabs[0];
+    assert_eq!(tab.sort_field.as_deref(), Some("name"));
+    assert_eq!(
+        tab.sort_order,
+        Some(datacraft_core::qbe::SortOrder::Ascending)
+    );
+    let alpha = harness.get_by_label("alpha").rect();
+    let beta = harness.get_by_label("beta").rect();
+    assert!(
+        alpha.top() < beta.top(),
+        "the sorted row renders above the others (alpha {alpha:?}, beta {beta:?})"
+    );
+}
+
+/// A set column filter hides the matching rows' neighbours over the
+/// core predicate path (step 44.5, M54): `Like "a*"` keeps alpha and
+/// drops beta, the header menu shows the active criteria (seeded from
+/// the live filter), and the menu's Clear Filter button removes the
+/// filter over the bus — beta returns.
+#[test]
+fn a_column_filter_hides_rows_until_the_menu_clears_it() {
+    let mut app = customers_two_rows_app();
+    app.dispatch(Command::SetTableFilter {
+        table: "Customers".into(),
+        field: "name".into(),
+        criteria: Some("Like \"a*\"".into()),
+    });
+    let mut harness = datasheet_harness(app);
+    harness.run();
+    assert!(harness.get_by_label("alpha").rect().width() > 0.0);
+    let dump = tree_dump(&harness);
+    assert!(
+        !dump.contains("beta"),
+        "the filtered-out row no longer renders:
+{dump}"
+    );
+
+    // The menu seeds its criteria editor from the live filter.
+    harness.get_by_label("name").click_secondary();
+    harness.run();
+    let editor =
+        harness.get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Filter criteria");
+    assert_eq!(
+        editor.value().as_deref(),
+        Some("Like \"a*\""),
+        "the active criteria are visible in the menu"
+    );
+
+    harness.get_by_label("Clear Filter").click();
+    harness.run();
+    let tab = &harness.state().snapshot().tabs[0];
+    assert!(tab.filters.is_empty(), "the filter cleared over the bus");
+    assert!(
+        harness.get_by_label("beta").rect().width() > 0.0,
+        "beta returns"
+    );
+}

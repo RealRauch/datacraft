@@ -29,7 +29,7 @@ mod header;
 mod nav;
 
 use grid::SELECTOR_WIDTH;
-pub(crate) use grid::{CellEditSlot, EditIntent, Grid, grid_ui};
+pub(crate) use grid::{CellEditSlot, EditIntent, Grid, grid_ui, grid_ui_callbacks};
 
 /// Renders the datasheet of one table tab.
 pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
@@ -57,13 +57,75 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         }
         return;
     };
-    let cursor = app.record_cursor(tab.id);
-    let body: Vec<Vec<String>> = rows
+    // The datasheet's view model (step 44.5, item M54): sort and column
+    // filters are core state on the tab snapshot; core computes the
+    // display-to-cache order (filters AND, typed compare sorts) so the
+    // UI only maps. Intents carry display indices and translate here —
+    // the cache order (the one the port addresses rows by) never leaks
+    // into the paints.
+    // The snapshot's table entry projects onto a TableDef (names +
+    // kinds — everything the engine's predicates need), so the view
+    // order computes against the same schema the snapshot shows.
+    let table_def = app.snapshot().database.as_ref().and_then(|db| {
+        db.tables
+            .iter()
+            .find(|table| table.name.eq_ignore_ascii_case(&tab.object_name))
+            .map(|entry| {
+                datacraft_core::schema::TableDef::new(
+                    entry.name.clone(),
+                    entry
+                        .fields
+                        .iter()
+                        .map(|field| {
+                            datacraft_core::schema::FieldDef::new(field.name.clone(), field.kind)
+                        })
+                        .collect(),
+                )
+            })
+    });
+    let display = table_def
+        .as_ref()
+        .and_then(|table| {
+            let sort = tab
+                .sort_field
+                .as_deref()
+                .map(|field| (field, tab.sort_order.unwrap_or(SortOrder::Ascending)));
+            datacraft_core::table_view::view_order(table, rows, sort, &tab.filters).ok()
+        })
+        .unwrap_or_else(|| (0..rows.len()).collect());
+    let cache_of_display: Vec<usize> = display.clone();
+    let display_of_cache: std::collections::HashMap<usize, usize> = display
         .iter()
-        .map(|row| row.iter().map(value_label).collect())
+        .enumerate()
+        .map(|(display_row, cache_row)| (*cache_row, display_row))
+        .collect();
+    let cursor = app.record_cursor(tab.id);
+    let body: Vec<Vec<String>> = display
+        .iter()
+        .map(|&cache_row| rows[cache_row].iter().map(value_label).collect())
         .collect();
     let row_count = body.len();
-    let sorts = vec![SortOrder::None; columns.len()];
+    let sorts: Vec<SortOrder> = columns
+        .iter()
+        .map(|column| {
+            if tab.sort_field.as_deref() == Some(column.as_str()) {
+                tab.sort_order.unwrap_or(SortOrder::None)
+            } else {
+                SortOrder::None
+            }
+        })
+        .collect();
+    let mut filter_drafts: Vec<String> = (0..columns.len())
+        .map(|col| {
+            let live = tab.filters.get(&columns[col]).cloned();
+            let draft = app.filter_draft(tab.id, col);
+            if draft.is_empty() {
+                live.unwrap_or_default()
+            } else {
+                draft
+            }
+        })
+        .collect();
     let mut widths = app.column_widths(tab.id, columns.len());
     let frozen = datacraft_core::grid::effective_frozen(app.frozen_columns(tab.id), columns.len());
     let delete_reason = crate::availability::restricted(
@@ -79,16 +141,28 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     // The armed editor's buffer is mutably borrowed for the grid pass;
     // its intents apply afterwards (the borrow ends with the call).
     let editor = app.cell_edit_parts(tab.id);
-    let edit = editor.map(|(row, col, buffer)| CellEditSlot { row, col, buffer });
+    let edit = editor.map(|(row, col, buffer)| CellEditSlot {
+        row: display_of_cache.get(&row).copied().unwrap_or(row),
+        col,
+        buffer,
+    });
     let mut selected = None;
     let mut freeze_intent: Option<usize> = None;
     let mut delete_intent: Option<usize> = None;
     let mut pending_edit: Option<EditIntent> = None;
+    let mut sort_intent: Option<(usize, SortOrder)> = None;
+    let mut filter_intent: Option<(usize, Option<String>)> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
         let mut on_freeze = |count: usize| freeze_intent = Some(count);
         let mut on_delete = |row: usize| delete_intent = Some(row);
         let mut on_edit = |intent: EditIntent| pending_edit = Some(intent);
+        let mut on_sort = |column: usize, order: SortOrder| {
+            sort_intent = Some((column, order));
+        };
+        let mut on_filter = |column: usize, criteria: Option<String>| {
+            filter_intent = Some((column, criteria));
+        };
         grid_ui(
             ui,
             Grid {
@@ -104,27 +178,53 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 edit,
                 edit_restricted,
             },
-            &mut on_select,
-            None,
-            Some(&mut on_freeze),
-            Some(&mut on_delete),
-            Some(&mut on_edit),
+            crate::datasheet::grid_ui_callbacks(
+                &mut on_select,
+                Some(&mut on_sort),
+                Some(&mut on_freeze),
+                Some(&mut on_delete),
+                Some(&mut on_edit),
+                Some(&mut on_filter),
+                &mut filter_drafts,
+            ),
         );
     }
     if let Some(count) = freeze_intent {
         app.set_frozen_columns(tab.id, count);
     }
+    if let Some((column, criteria)) = filter_intent
+        && let Some(field) = columns.get(column)
+    {
+        app.dispatch(Command::SetTableFilter {
+            table: tab.object_name.clone(),
+            field: field.clone(),
+            criteria,
+        });
+        app.set_filter_draft(tab.id, column, String::new());
+    }
+    if let Some((column, order)) = sort_intent
+        && let Some(field) = columns.get(column)
+    {
+        app.dispatch(Command::SetTableSort {
+            table: tab.object_name.clone(),
+            field: field.clone(),
+            order,
+        });
+    }
     match pending_edit {
         Some(EditIntent::Start { row, col }) => {
-            app.start_cell_edit(tab.id, row, col);
+            let cache_row = cache_of_display.get(row).copied().unwrap_or(row);
+            app.start_cell_edit(tab.id, cache_row, col);
         }
         Some(EditIntent::Commit { row, col }) => {
-            app.commit_cell_edit(tab.id, &tab.object_name, row, col);
+            let cache_row = cache_of_display.get(row).copied().unwrap_or(row);
+            app.commit_cell_edit(tab.id, &tab.object_name, cache_row, col);
         }
         Some(EditIntent::Cancel) => app.cancel_cell_edit(tab.id),
         None => {}
     }
     if let Some(row) = delete_intent {
+        let cache_row = cache_of_display.get(row).copied().unwrap_or(row);
         // Destructive-action confirmation through the dialog seam (step
         // 38.3, item M43); native dialogs speak the OS language.
         if app.dialogs.confirm(
@@ -133,7 +233,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         ) {
             app.dispatch(Command::DeleteRow {
                 table: tab.object_name.clone(),
-                row,
+                row: cache_row,
             });
         }
     }
@@ -267,11 +367,15 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 edit: None,
                 edit_restricted: true,
             },
-            &mut on_select,
-            sort,
-            Some(&mut on_freeze),
-            None,
-            None,
+            crate::datasheet::grid_ui_callbacks(
+                &mut on_select,
+                sort,
+                Some(&mut on_freeze),
+                None,
+                None,
+                None,
+                &mut [],
+            ),
         );
     }
     app.set_column_widths(tab.id, widths);

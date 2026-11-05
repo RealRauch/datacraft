@@ -112,6 +112,21 @@ impl App {
         self.sql_column_widths = widths;
     }
 
+    /// Buffered filter criteria of a datasheet header menu, keyed by
+    /// tab and column index (step 44.5, M54): menus are immediate-mode,
+    /// so the typed draft persists on the app between frames.
+    pub fn filter_draft(&self, tab_id: TabId, column: usize) -> String {
+        self.filter_drafts
+            .get(&(tab_id, column))
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// Stores the buffered filter criteria of one datasheet column.
+    pub fn set_filter_draft(&mut self, tab_id: TabId, column: usize, criteria: String) {
+        self.filter_drafts.insert((tab_id, column), criteria);
+    }
+
     /// Buffered new-field name of a design tab (step 24.3, M9).
     pub fn design_new_field(&self, tab_id: TabId) -> String {
         self.design_new_field

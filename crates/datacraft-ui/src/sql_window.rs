@@ -87,11 +87,15 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         edit: None,
                         edit_restricted: true,
                     },
-                    &mut |_row: usize| {},
-                    None,
-                    None,
-                    None,
-                    None,
+                    crate::datasheet::grid_ui_callbacks(
+                        &mut |_row: usize| {},
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        &mut [],
+                    ),
                 );
                 ui.label(
                     egui::RichText::new(plural(
