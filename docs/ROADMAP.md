@@ -455,3 +455,52 @@ the owning phase starts.
 - **Hygiene (2026-11-06):** §5 M4 corrected from ✅ to ⬜ — the
   designer/preview phases landed, the events/requery runtime of §2 Ring 4
   did not; §3's VBA re-evaluation gate keys on the runtime, not the designer.
+
+## 16. GUI interaction strategy — decision record
+
+**Decision (2026-11-07, human-approved):** the GUI's problem class is not
+missing surface but interaction honesty — the Walkthrough-Fix arc (Phases
+44–48) shows the same failure classes recurring: affordances that do nothing
+visible (M54 "unsortable … wie in Excel", M55 dead criteria editor, M58
+ribbon not following, M60 "arrows appear dead"), content painted where the
+user cannot see it (H52, H53, M61), and dishonest affordances (M49's planned
+Import). The strategy is a ladder: fix the feedback class first, then close
+the missing interaction vocabulary, then designer parity, then
+discoverability, then the power-user surface. Work items are created when
+the owning phase starts; open Phase 48 (M60–M62) stays untouched by this
+record.
+
+**Stage ladder:**
+
+| Stage | Content | Basis |
+|-------|---------|-------|
+| 0 — Feedback & honesty sweep | Ctrl+Z/Ctrl+Y (the undo/redo commands exist — only the keys are missing), tooltips for every ribbon/backstage control (17 hover sites today), a busy/progress affordance, a notice/error history (today: one transient status-bar line), localized failure reasons (I6), a shortcuts help page, and the deferred M42 subjective polish pass on the token system | the recurring Phase 44–48 bug classes, fixed as a class instead of per instance |
+| 1 — Datasheet completeness | filter-by-value dialog (a value list, not the raw criteria string — M62 documents that dialect today), multi-select + cell copy/paste, find/replace, column drag-reorder, a visual Null marker, and windowed row reads in core (today: full-scan cache per tab) | M54: the user's stated bar is "wie z. B. in Excel" |
+| 2 — Designer parity | control property sheet (today only table-design fields have one), resize handles (move-only today), z-order/tab order, preview zoom (hard-coded 0.9), drag-drop field binding (click-to-add today) | ADR-1's WYSIWYG contract (M57 was its first breach) |
+| 3 — Discoverability & onboarding | nav-pane search/filter, the category model (the "All Access Objects" menu is a stub), object counts per group, nav-pane drag-drop, teaching empty states ("what can I do next"), QAT customization | the M52–M58 walkthroughs: users must find affordances unaided today |
+| 4 — Power users & agents | command palette (Ctrl+K) projecting the core ribbon spec — the spec already lives in core, so the palette is a UI projection of the same list; full Alt key-tip phases (Legacy/Backstage currently out of scope); ribbon collapse | the command-bus principle: every UI action is already a named Command |
+
+**Principles binding every stage:**
+
+- **No affordance without feedback.** A new control ships with visible state
+  feedback, a tooltip, and a test pin; where geometry matters, a
+  layout_probe rect pin at both pinned window sizes (the T10 lesson:
+  semantic-tree pins are not layout truth).
+- **Core owns decisions.** When touched, the known UI-side decision points
+  move to core: view-order mapping (`datasheet.rs`), FormN/ReportN
+  auto-naming (`ribbon.rs`), multi-command flow composition (`flows.rs`).
+- **i18n parity for every string.** The catalog grows with each stage; the
+  one known violation (hardcoded "Delete Record" confirmation text,
+  `datasheet.rs`) is an immediate inline fix, not roadmap work.
+- **Splits are part of the work.** Six UI files sit 15–42 lines under the
+  500-line gate; datasheet/nav work will force module splits (precedent:
+  `header.rs`) — planned, not discovered.
+- **Windowing before scale.** Lazy row reads (core usage-map discovery)
+  precede any datasheet feature that assumes large tables render fast.
+- **Deliberate omissions stay deliberate.** Print/Export surface arrives
+  via §11; the browser build stays a §15 non-goal.
+
+**Hygiene notes:** eframe 0.37 is pinned per-crate, not in
+`[workspace.dependencies]` — moved there on the next `Cargo.toml` touch
+(Medium gate). The M48 grouping-picker bookkeeping (delivered per
+PROGRESS 41.4, still open in BACKLOG) is reconciled at Phase 48 close.
