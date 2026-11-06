@@ -73,12 +73,36 @@ fn a_fresh_jet4_file_opens_with_an_empty_catalog() {
     assert_eq!(header.format, FormatVersion::Jet4);
     assert_eq!(
         header.page_count, 4,
-        "header, free map, catalog, usage page"
+        "header, maps, catalog TDEF, usage, four system tables"
     );
-    assert_eq!(bytes.len(), 4 * 4096);
+    assert_eq!(bytes.len(), 19 * 4096);
 
+    // The fresh catalog carries the engine's own system shape: the three
+    // containers, MSysDb and the four system tables (49.2 template; the
+    // `MSys` tables stay hidden behind the port's prefix filter).
     let reader = Jet4TableReader::new(bytes).expect("the fresh file reopens");
-    assert!(reader.catalog().expect("catalog decodes").is_empty());
+    let catalog = reader.catalog().expect("catalog decodes");
+    let names: Vec<&str> = catalog.iter().map(|entry| entry.name.as_str()).collect();
+    assert_eq!(
+        names,
+        [
+            "Tables",
+            "Databases",
+            "Relationships",
+            "MSysDb",
+            "MSysObjects",
+            "MSysACEs",
+            "MSysQueries",
+            "MSysRelationships",
+        ],
+        "the fresh catalog is the engine's system shape"
+    );
+    let aces = catalog
+        .iter()
+        .find(|entry| entry.name == "MSysACEs")
+        .expect("MSysACEs row present");
+    assert_eq!(aces.object_type, 1, "system tables are type-1 rows");
+    assert_eq!(aces.flags, -2_147_483_648, "the system flag bit is set");
 
     let mut port = Jet4Port::new();
     let opened = port
