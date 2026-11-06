@@ -94,7 +94,7 @@ impl JetTableDef {
                 var_index: (flag_bits & crate::jet::tdef::flags::FIXED == 0).then_some(var_index),
                 fixed_offset,
                 len,
-                scale: (misc & 0xFF) as u8,
+                misc: u16::from(misc),
                 compressed_text: false, // Jet3 has no unicode compression
                 indexed: datacraft_core::schema::IndexMode::None,
             });

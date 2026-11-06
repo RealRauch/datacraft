@@ -89,7 +89,7 @@ fn every_supported_kind_maps_to_its_storage_shape() {
         assert_eq!(col.data_type, *data_type, "{kind:?}");
         assert_eq!(col.len, *len, "{kind:?}");
         assert_eq!(col.is_fixed(), *fixed, "{kind:?}");
-        assert_eq!(col.scale, *scale, "{kind:?}");
+        assert_eq!(col.misc, 0x0400 | u16::from(*scale), "{kind:?}");
         assert!(col.is_nullable(), "Access defaults to nullable: {kind:?}");
     }
 }

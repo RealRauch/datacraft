@@ -249,11 +249,10 @@ fn port_level_relationship_errors_are_precise() {
     let relationship = relationship();
     let error = port
         .delete_relationship(&relationship)
-        .expect_err("no MSysRelationships yet");
-    assert!(
-        error.to_string().contains("no MSysRelationships"),
-        "{error:?}"
-    );
+        .expect_err("no relationship rows yet");
+    // The fresh file ships MSysRelationships (49.2 template), so the
+    // precise answer is the empty-table lookup miss, not the missing table.
+    assert!(error.to_string().contains("not found"), "{error:?}");
 
     let other = Relationship {
         table: "Orders".into(),

@@ -129,8 +129,10 @@ pub struct JetColumn {
     pub fixed_offset: u16,
     /// Storage length: exact for fixed, max for variable, 0 for memo/OLE.
     pub len: u16,
-    /// Scale for `Numeric` columns (from the `misc` descriptor byte).
-    pub scale: u8,
+    /// The misc descriptor u16: the collation constant `0x0409` on
+    /// non-Numeric columns, `0x0400 | scale` for `Numeric` (observed in
+    /// every real writer, step 49.2; FORMAT-JET).
+    pub misc: u16,
     /// True when the text column uses compressed unicode.
     pub compressed_text: bool,
     /// Domain index mode restored from the TDEF index metadata (step 32.2,
@@ -157,7 +159,7 @@ impl JetColumn {
             var_index: None,
             fixed_offset,
             len,
-            scale: 0,
+            misc: 0x0409,
             compressed_text: false,
             indexed: IndexMode::None,
         }
@@ -358,7 +360,7 @@ impl JetTableDef {
                 var_index: (flag_bits & flags::FIXED == 0).then_some(var_index),
                 fixed_offset,
                 len,
-                scale: (misc & 0xFF) as u8,
+                misc,
                 compressed_text: misc_flags & 0x01 != 0,
                 indexed: IndexMode::None,
             });

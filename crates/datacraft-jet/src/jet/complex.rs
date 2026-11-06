@@ -224,7 +224,7 @@ fn multi_value_kind(column: &JetColumn) -> Option<MultiValueKind> {
         JetType::Double => MultiValueKind::Number(NumericKind::Double),
         JetType::Numeric => MultiValueKind::Number(NumericKind::Decimal {
             precision: 28,
-            scale: column.scale,
+            scale: (column.misc & 0xFF) as u8,
         }),
         JetType::DateTime => MultiValueKind::DateTime,
         JetType::Currency => MultiValueKind::Currency,

@@ -59,7 +59,9 @@ pub(crate) fn table_to_columns(definition: &TableDef) -> Result<Vec<JetColumn>, 
             0,
             len,
         );
-        column.scale = scale;
+        // The misc slot carries `0x0400 | scale` on Numeric columns
+        // (DAO parity; FORMAT-JET).
+        column.misc = 0x0400 | u16::from(scale);
         column.indexed = field.properties.indexed;
         columns.push(column);
     }

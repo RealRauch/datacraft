@@ -41,9 +41,12 @@ fn decrypted_region(bytes: &[u8]) -> Vec<u8> {
 
 /// The deterministic page-0 state a fresh file must carry: the uniform
 /// `0x0100` tail and the decrypted region with the observed constant set
-/// (fresh DAO reference, step 49.1) plus code page, password mask and
-/// creation date.
-fn expected_page0_state(created: f64) -> (Vec<u8>, Vec<u8>) {
+/// (fresh DAO reference, step 49.1) plus code page, password mask and the
+/// template's fixed creation date (the engine binds its ACL validation to
+/// that time-of-day — the date is carried, never redated; 49.2).
+fn expected_page0_state() -> (Vec<u8>, Vec<u8>) {
+    /// The template's creation date, byte-exact (OLE days).
+    const TEMPLATE_CREATION_DATE: f64 = f64::from_bits(0x40E6_9F9E_3FE5_8AFA);
     let mut tail = vec![0u8; 0x1000 - 0xE00];
     for word in tail.as_chunks_mut::<2>().0 {
         *word = 0x0100u16.to_le_bytes();
@@ -53,18 +56,22 @@ fn expected_page0_state(created: f64) -> (Vec<u8>, Vec<u8>) {
         region[index * 4..index * 4 + 4].copy_from_slice(&constant.to_le_bytes());
     }
     region[0x24..0x26].copy_from_slice(&1252u16.to_le_bytes());
-    let mask = (created as i64 as u32).to_le_bytes();
+    let mask = (TEMPLATE_CREATION_DATE as i64 as u32).to_le_bytes();
     for (index, slot) in region[0x2A..0x52].iter_mut().enumerate() {
         *slot = mask[index % 4];
     }
     region[0x52..0x56].copy_from_slice(&0x11A6u32.to_le_bytes());
     region[0x56..0x5A].copy_from_slice(&0x0409u32.to_le_bytes());
-    region[0x5A..0x62].copy_from_slice(&created.to_le_bytes());
+    region[0x5A..0x62].copy_from_slice(&TEMPLATE_CREATION_DATE.to_le_bytes());
     (tail, region)
 }
 
+/// The template's fixed creation date (byte-exact; mirrored from
+/// `create.rs`'s embedded template for the date assertions).
+pub const TEMPLATE_CREATION_DATE: f64 = f64::from_bits(0x40E6_9F9E_3FE5_8AFA);
+
 #[test]
-fn a_fresh_jet4_file_opens_with_an_empty_catalog() {
+fn a_fresh_jet4_file_carries_the_engine_system_catalog() {
     let path = scratch("fresh.mdb");
     datacraft_jet::jet::create::create_jet4_file(&path, 45_000.0).expect("create");
     let bytes = jet_bytes(&path);
@@ -72,7 +79,7 @@ fn a_fresh_jet4_file_opens_with_an_empty_catalog() {
     let header = FileHeader::decode(&bytes, bytes.len() as u64).expect("valid header");
     assert_eq!(header.format, FormatVersion::Jet4);
     assert_eq!(
-        header.page_count, 4,
+        header.page_count, 19,
         "header, maps, catalog TDEF, usage, four system tables"
     );
     assert_eq!(bytes.len(), 19 * 4096);
@@ -189,6 +196,38 @@ fn creating_over_an_existing_file_is_refused_and_leaves_it_intact() {
 }
 
 #[test]
+fn creating_into_a_missing_directory_is_a_precise_error() {
+    let dir = scratch("missing-dir");
+    let _ = std::fs::remove_dir_all(&dir);
+    let path = dir.join("fresh.mdb");
+    let error = datacraft_jet::jet::create::create_jet4_file(&path, 45_000.0)
+        .expect_err("the parent directory does not exist");
+    match error {
+        StorageError::Unsupported { reason } => {
+            assert!(reason.contains("fresh.mdb"), "{reason}");
+        }
+        other => panic!("expected Unsupported, got {other:?}"),
+    }
+    assert!(!path.exists(), "no partial file");
+}
+
+#[test]
+fn a_materialization_row_shape_mismatch_is_refused() {
+    let path = scratch("row-mismatch.mdb");
+    let tables = vec![(
+        TableDef::new(
+            "People",
+            vec![FieldDef::new("name", FieldKind::Text { max_len: 10 })],
+        ),
+        vec![vec![FieldValue::Text("Ada".into()), FieldValue::Integer(1)]],
+    )];
+    let error = datacraft_jet::jet::create::materialize_jet4_template(&path, 45_000.0, &tables)
+        .expect_err("the row holds more values than the table defines fields");
+    assert!(error.to_string().contains("values"), "{error:?}");
+    assert!(!path.exists(), "the failed materialization left no file");
+}
+
+#[test]
 fn the_jet_backend_refuses_every_other_format_precisely() {
     let mut port = Jet4Port::new();
     for (format, needle) in [
@@ -248,10 +287,9 @@ fn the_sqlite_backend_refuses_jet4_targets() {
 #[test]
 fn the_fresh_page0_carries_the_region_constants_and_the_uniform_tail() {
     let path = scratch("page0.mdb");
-    let created = 45_000.0;
-    datacraft_jet::jet::create::create_jet4_file(&path, created).expect("create");
+    datacraft_jet::jet::create::create_jet4_file(&path, 45_000.0).expect("create");
     let bytes = jet_bytes(&path);
-    let (tail, region) = expected_page0_state(created);
+    let (tail, region) = expected_page0_state();
 
     assert_eq!(
         page0_tail(&bytes),
@@ -278,13 +316,16 @@ fn the_page0_tail_and_region_constants_survive_every_rewrite() {
         .expect("create through the port");
     port.open(&path, None).expect("open the fresh file");
 
-    // The port stamps the wall-clock creation date, so the fresh shape is
-    // asserted against the date the file itself carries (the mask and the
-    // creation date derive from it; every other byte is fixed).
+    // The fresh file carries the template's fixed creation date (the ACL
+    // anchor) — assert it, then pin tail and region across the lifecycle.
     let bytes = jet_bytes(&path);
     let header = FileHeader::decode(&bytes, bytes.len() as u64).expect("valid header");
     let info = decode_header_region(&bytes, &header).expect("the fresh region decodes");
-    let (tail, region) = expected_page0_state(info.creation_date);
+    assert_eq!(
+        info.creation_date, TEMPLATE_CREATION_DATE,
+        "the template creation date is carried verbatim"
+    );
+    let (tail, region) = expected_page0_state();
 
     let unchanged = |label: &str| {
         let bytes = jet_bytes(&path);

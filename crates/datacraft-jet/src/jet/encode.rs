@@ -313,12 +313,20 @@ pub fn build_table_def(
 /// 55-byte fixed header, `num_real_idx` × 12 zero statistics descriptors,
 /// 25-byte column descriptors in column-id order, UCS-2 names, the raw index
 /// section, per-variable usage-map pointers terminated by `0xFFFF`.
+///
+/// Field constants observed in every real writer's TDEF (fresh-DAO reference
+/// and the Access-2000 fixture alike, step 49.2): the head's second dword
+/// and each descriptor's second dword carry the `0x659` constant, and the
+/// per-column misc slot carries the `0x0409` collation (`0x0400 | scale`
+/// for Numeric — modelled on `JetColumn::misc`). Written for byte parity;
+/// the engine's open path may compare them.
 pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
+    const TDEF_CONSTANT: u32 = 0x659;
     let columns = &def.columns;
     let num_var = columns.iter().filter(|c| !c.is_fixed()).count();
     let mut block = Vec::new();
     block.extend_from_slice(&0u32.to_le_bytes()); // tdef_len, patched below
-    block.extend_from_slice(&0u32.to_le_bytes()); // unknown
+    block.extend_from_slice(&TDEF_CONSTANT.to_le_bytes()); // observed constant
     block.extend_from_slice(&def.num_rows.to_le_bytes());
     block.extend_from_slice(&def.autonumber.to_le_bytes());
     block.push(0x01);
@@ -333,16 +341,20 @@ pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
     block.extend_from_slice(&def.real_index_count.to_le_bytes()); // num_real_idx
     block.extend_from_slice(&def.used_pages.to_le_bytes());
     block.extend_from_slice(&def.free_pages.to_le_bytes());
-    // Per-real-index row statistics: zero is the observed/expected shape
-    // (the counts are loose hints, not used for reads).
-    block.extend_from_slice(&vec![0u8; def.real_index_count as usize * 12]);
+    // Per-real-index row statistics: the observed middle dword carries the
+    // table's row count (loose hints, not used for reads).
+    for _ in 0..def.real_index_count {
+        block.extend_from_slice(&0u32.to_le_bytes());
+        block.extend_from_slice(&def.num_rows.to_le_bytes());
+        block.extend_from_slice(&0u32.to_le_bytes());
+    }
     for col in columns {
         block.push(col.data_type as u8);
-        block.extend_from_slice(&0u32.to_le_bytes()); // unknown
+        block.extend_from_slice(&TDEF_CONSTANT.to_le_bytes()); // observed constant
         block.extend_from_slice(&col.column_id.to_le_bytes());
         block.extend_from_slice(&col.var_index.unwrap_or(0).to_le_bytes());
         block.extend_from_slice(&col.column_id.to_le_bytes());
-        block.extend_from_slice(&(u16::from(col.scale)).to_le_bytes()); // misc
+        block.extend_from_slice(&col.misc.to_le_bytes()); // misc
         block.extend_from_slice(&0u16.to_le_bytes()); // misc_ext
         block.push(col.flags);
         block.push(u8::from(col.compressed_text)); // misc_flags

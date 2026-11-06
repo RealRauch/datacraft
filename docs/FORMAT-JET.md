@@ -153,6 +153,82 @@ incrementally in 49.2: the create path fixes are applied one at a time against
 the DAO open-test until the fresh file is accepted, then pinned with
 deterministic byte-shape assertions in the create suites.
 
+## Fresh-create template and the engine's open gates (2026-11-07, step 49.2, item M63)
+
+The hand-built catalog shape was abandoned after the oracle loop proved the
+remaining gates cannot be passed without reimplementing the engine's physical
+index B-trees (below). The create path now emits an **embedded minimal
+engine-written template** (`crates/datacraft-jet/src/jet/fresh_template.mdb`,
+19 pages, provenance `tools/dao-oracle/oracle.ps1 new-db`, 2026-11-06 — our
+own black-box product, clean-room untouched). `create_jet4_file` copies it
+verbatim and normalizes the tail's first word to the uniform `0x0100` policy;
+the DAO open-test verdict on a CLI-created file is **OK: accepted**.
+
+**The creation date is an ACL anchor — never redate it.** Mutation matrix
+over the template's page-0 region (~30 open verdicts):
+
+- Redating the region's creation date (0x72) with a consistent password mask
+  and a consistent day number anywhere in the file answers the engine's
+  permission-denied refusal (3033) **when the time-of-day fraction changes**;
+  a different day with the template's exact fraction opens fine. The engine
+  binds its ACL validation to the creation time-of-day the template was
+  written with (the ACEs' SIDs cover the objects of that instant).
+- Redating the date *without* the mask (or vice versa) answers "Kein
+  zulässiges Kennwort" — the mask = `(date as i64 as u32)` derivation is
+  confirmed from the engine side.
+- Consequences: the fresh bytes are a constant (deterministic, LESSONS #6);
+  the shipped samples carry the template's fixed creation date; `created`
+  stamps only rows the writer adds afterwards, which the engine does not
+  gate.
+
+**The engine resolves the catalog through the ParentIdName index B-tree.**
+Surgical evidence on an engine-edited file (a table created via DAO
+`CREATE TABLE`):
+
+- The engine maintains both catalog index leaves on catalog-row inserts
+  (page 7 = ParentIdName leaf, 146 → 157 non-zero bytes; page 8 = Id leaf,
+  51 → 57; the new table's Id `0x13` appears in the Id leaf).
+- Rolling back the Id leaf makes no difference (the table stays visible) —
+  a stale secondary index is tolerated.
+- Rolling back the **ParentIdName** leaf makes the engine-created table
+  vanish from `TableDefs` (5 → 4) while its catalog row and TDEF remain
+  intact — the composite index is the read path.
+- An index-less catalog TDEF (`num_idx = 0`, pointer list preserved, leaves
+  freed or zeroed) is refused with "Nicht erkennbares Datenbankformat"
+  (three strip variants) — the system-catalog indexes are mandatory.
+
+**Leaf page format (HACKING + verified against our bytes).** Header: type
+`0x04`, `0x01`, free-space u16, parent TDEF u32, prev/next/tail u32,
+`pref_len` u16 at 0x14. An entry-start bitmap at 0x1B..0x1E0 (low bit first)
+marks each entry's start relative to 0x1E0 plus the last entry's end; the
+first entry at 0x1E0 is implicit. Entries grow upward from 0x1E0; free-space
+= `0x1000 − last end`. Leaf entry: `[flag 0x7F][key][3-byte page BE]
+[1-byte row]`; composite keys repeat `[flag][key]` per column and carry a
+`01 00 00 00` dword before the pointer. LongInt keys are big-endian with the
+top bit set (`80 00 00 02` = 2, `90 00 00 00` = 0x10000000). NULL key
+columns contribute flag `0x00` and no data.
+
+**Open item — collation weights.** Text keys are collation-weighted,
+case-folded bytes (observed: `a`→`0x4A`, `b`→`0x4C`, `D`→`0x4F`, `e`→`0x51`,
+`i`→`0x59`, `l`→`0x5E`, `M`→`0x60`, `S`/`s`→`0x6B`, `T`→`0x6D`, `y`→`0x76`),
+with irregular gaps (accented-adjacent weight room). These do **not** match
+HACKING's simple `A-Z → 0x60-0x79` sketch — the template carries a different
+sort-order encoding. The weight table is extractable via an oracle probe
+batch (engine-created tables enumerating the CP1252 alphabet) and embeddable
+as observed data — that is the prerequisite for the writer's B-tree leaf
+maintenance (the next work item: without it, DataCraft-created *tables* are
+invisible to Access even though the file opens).
+
+**TDEF descriptor constants (now emitted).** The head's second dword and
+each column descriptor's second dword carry `0x659` in every real writer
+(fresh-DAO reference and the Access-2000 fixture alike), and the per-column
+misc u16 slot carries the collation `0x0409` (`0x0400 | scale` for Numeric —
+modelled as `JetColumn::misc`). The engine-created user-table TDEF
+(`CREATE TABLE Foo (a LONG, b TEXT(50))`) is otherwise shape-identical to
+ours: map type `0x00` rows, `0x4E` table type, id-ordered descriptors
+indistinguishable for that column set, no per-variable pointer list without
+long-value columns.
+
 ## Pages
 
 - Pages are 0-indexed regions of `page_size` bytes; page N at offset `N * page_size`.

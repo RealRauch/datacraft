@@ -53,7 +53,7 @@ pub(crate) fn field_def(
         JetType::Double => FieldKind::Number(NumericKind::Double),
         JetType::Numeric => FieldKind::Number(NumericKind::Decimal {
             precision: 28,
-            scale: column.scale,
+            scale: (column.misc & 0xFF) as u8,
         }),
         JetType::DateTime => FieldKind::DateTime,
         JetType::Binary | JetType::Ole | JetType::LongBinary => {
