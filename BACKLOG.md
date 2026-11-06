@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-05T23:49
+# BACKLOG.md — Open items (As of: 2026-11-06T01:15
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -12,11 +12,38 @@
 
 > No open items.
 
+### [ ] M63 — DataCraft-created .mdb files are refused by Access (zero-filled header-region fields) — 🔴
+- **Location:** `crates/datacraft-jet/src/jet/create.rs` (the create path's page-0 build and system-catalog layout).
+- **Problem:** Access refuses every DataCraft-created `.mdb` (user incident 2026-11-06, "Zu viele aktive Benutzer"; isolated via a local DAO oracle + differential experiments against Access-COM/jackcess references). TWO independent gates, both proven by byte-level bisection on the healthy reference:
+  1. **Page-0 tail (0xE00..0x1000) written as all-zero** — a healthy file with a zeroed tail reproduces "Zu viele aktive Benutzer" exactly; a healthy file with a 0x0100-filled tail opens. The tail is undocumented in HACKING/jabakobob; observed as 256 u16s, mostly 0x0100 filler with writer-specific leading words (Access-COM 23p: [0x0104]; DAO 21p: [0x0101, 0x0102]; jackcess 743p: [0x011D, 0x0131]).
+  2. **The system-catalog structure (pages 1+)** — a DataCraft file with a fully healthy page 0 swapped in still fails "Nicht erkennbares Datenbankformat" (and conversely, our page 1 on a healthy file opens, so the gate sits in pages 2+: the MSysObjects TDEF shape and/or the system rows our create path writes).
+  Additional region facts proven: the encrypted region needs the constant sequence 0x18: 0x100, 0x1C: 0x101, 0x20: 2, 0x24: 3, 0x28: 4, 0x2C: 5 (HACKING names none of these; observed in Access-COM AND jackcess files), 0x6A = the creating engine's build number per HACKING (we write 0), 0x6E = collation 0x0409; our password-mask derivation and creation date at 0x72 are CORRECT (verified: 46329 = 0xB4F9 matches the observed mask bytes).
+- **Approach:** (1) Finish the catalog-level differential analysis (our page-2 TDEF bytes + system rows vs the Access-COM reference, field by field). (2) Fix the create path: emit the full region constant set, a non-zero well-formed tail, and a catalog shape the Jet engine accepts — driven by the local DAO oracle (Windows) with deterministic byte-shape assertions for CI. (3) Maintain the tail on writes/growth. (4) FORMAT-JET documents every observed field honestly (unnamed = unnamed). (5) The acceptance bar (user-set 2026-11-06): bidirectional co-existence — Access-created opens in DataCraft, DataCraft-created opens in Access, edits in either keep the file openable in both (the lock-file hazard M59 covers the concurrent session).
+- **Acceptance:** A database created by DataCraft opens in real Access and vice versa without error (user-verified); after DataCraft edits the file still opens in Access and after Access edits it still opens in DataCraft; create/update/delete round-trips keep both doors open; deterministic shape assertions in the create suites + the DAO oracle as the Windows-local verification; canonical verification set green.
+
 ---
 
 ## 🟠 HIGH
 
 > No open items.
+
+### [ ] M59 — DataCraft ignores Access lock files: concurrent Access sessions can corrupt the database — 🟠
+- **Location:** `crates/datacraft-jet/src/` (the port's open path), `crates/datacraft-ui/src/backstage.rs` (open flow), sidecar path derivation; user incident 2026-11-06 (database.mdb in Downloads: opened in Access while the DataCraft session still held the file, Access's failed attempt left a 0-byte `database.ldb`, subsequent Access opens answered "Zu viele aktive Benutzer").
+- **Problem:** DataCraft holds Jet/ACE files open read-write with no awareness of Access's lock protocol: no `.ldb` detection, no shared-access check. A user who opens the same database in Access while a DataCraft session is live gets two uncoordinated writers; DataCraft's atomic write-through then replaces the file under Access's feet, and Access's lock file is left orphaned/stale. DataCraft cannot distinguish a live `.ldb` (Access is open — refuse read-write) from a stale one (Access crashed — harmless, but Access will refuse until it is removed) without implementing the lock protocol, which is clean-room-unclear (no public specification of the `.ldb` contents; out of scope for now).
+- **Approach:** The honest, implementable boundary: at Jet/ACE open, if a sibling `.ldb` exists, DataCraft (1) opens the file **read-only** (capabilities downgraded like a read-only filesystem file — the existing precise `Unsupported` vocabulary covers every write), and (2) surfaces a localized notice in the status bar and the Info backstage page naming the lock file ("An Access lock file (database.ldb) exists — the database opens read-only; close it in Access and remove the stale lock file to edit it here."). If no `.ldb` exists, behavior is unchanged. DataCraft never creates or deletes lock files. Documented in FORMAT-JET (the co-existence section) and the README compatibility matrix (Access co-existence row).
+- **Acceptance:** Opening a Jet4/ACE database with a sibling `.ldb` (fixture-built empty file in a scratch dir) yields a read-only session with the localized notice in the snapshot and the status bar; no `.ldb` — unchanged behavior; the CLI/MCP clients surface the same notice; a kittest and a port-contract test pin both paths; canonical verification set green.
+
+### [ ] M60 — Record navigation: the counter reads the form cursor while the arrows move the record cursor — 🟠
+- **Location:** `crates/datacraft-ui/src/shell.rs` (`record_navigation_ui` — the counter reads `self.form_record(active.id)` for the `_` catch-all arm, i.e. for **tables** too, while `step_record` routes table navigation to `set_record_cursor`).
+- **Problem:** The user walkthrough report 2026-11-06 (3 records, first active): clicking the next arrow activates the second datasheet row (the cursor moves) but the counter stays "1 von 3" — it reads the **form cursor**, not the record cursor the arrows write. Subsequent clicks keep writing cursor=1 (computed from the unchanged form cursor 0+1), so the arrows appear dead. Manually selecting a row "unsticks" it only until the same mismatch recurs.
+- **Approach:** The navigation box reads the cursor its own `step_record` writes: `"form"` keeps `form_record`; the `_` arm (tables) reads `record_cursor` like queries do.
+- **Acceptance:** Clicking next on a 2-row table shows "2 of 2" and the record cursor is 1 (kittest over the real shell); the form path is unchanged; canonical verification set green.
+
+### [ ] M61 — Datasheet trailing elements (row count, new-record row) paint behind the status bar — 🟠
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (the trailing row-count label and `new_row_ui` paint after the virtualized grid), `crates/datacraft-ui/src/datasheet/grid.rs` (the grid's viewport height math).
+- **Problem:** The user's live screenshots 2026-11-06 (database.mdb, ServiceOrders) show content behind the status footer — the H53 live observation is now confirmed. The 44.2 pin asserts panel rects (workspace vs status), which pass headless; what it does NOT assert is whether the datasheet's **trailing affordances** (the row-count label and the new-record row, painted after the grid) stay inside the workspace: the grid consumes the full available height for rows, pushing the trailing elements below the panel's bottom edge where the status bar covers them.
+- **Approach:** Record the trailing elements' rects through the layout_probe seam (full-shell render, like the H53 pin), extend the assertion to `trailing.bottom() <= status.top()` at 1280x800 and 960x600, and reproduce RED first. Then fix the space budget: the grid's row viewport reserves the trailing elements' measured heights (the count label and the new-record row render above the reserved space), so everything stays inside the workspace at any scale.
+- **Acceptance:** The trailing row-count label and the new-record row are fully above the status bar (rect pins at two window sizes); the datasheet still fills the viewport with rows; canonical verification set green.
 
 ---
 
@@ -35,6 +62,12 @@
 - **Problem:** DataCraft has no path that imports an external file's content as new tables into the currently open database (Jet4/SQLite). CSV directories open only as a read-only driver source through the backstage folder dialog. The ribbon's "Import File" button today claims a "Phase 9" future that has passed; the decision (M49) keeps the button visible but honestly disabled until this feature is built, so it needs a real item to drive it.
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
+
+### [ ] M62 — Filter dialog: document the criteria syntax (wildcards, quoting, operators) — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (`filter_dialog_ui`).
+- **Problem:** The filter dialog accepts the engine's criteria dialect but never states it; the user asked for the syntax (walkthrough 2026-11-06). The dialect (M37 fence): quoted `Like` patterns with the Access wildcards `*` (any run), `?` (one char), `#` (one digit), and bare comparison criteria `=`, `<>`, `<`, `<=`, `>`, `>=` (e.g. `> 100`), literals coerced to the column's kind.
+- **Approach:** A short, localized help block under the dialog's criteria editor (weak text, wraps): the wildcards, the quoting rule, the comparison operators and one example each (`Like "A*"` / `> 100`). German catalog entry; the English source is the key.
+- **Acceptance:** The dialog shows the syntax summary in both languages (kittest tree pin), the text wraps inside the dialog width, canonical verification set green.
 
 ---
 

@@ -9,23 +9,24 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 44 — UI Layout & Affordance Audit
+### Phase 48 — Walkthrough Fixes III
 
 **Scope (Steps):**
 
-- **44.1 Ribbon group stretch fix + the layout/rect test seam (H52, T10)**
-- **44.2 Status-bar panel overlap on the workspace content (H53)**
-- **44.3 Close Database affordance on the backstage (M52)**
-- **44.4 Contextual design view switches the open table (M53)**
-- **44.5 Datasheet sort discoverability + first-class column filters (M54)**
-- **44.6 Phase 44 Quality Gate Review**
-### Phase 45 — Walkthrough Fixes
+- **48.1 Record navigation reads the cursor it writes (M60)**
+- **48.2 Datasheet trailing elements stay above the status bar (M61)**
+- **48.3 Filter dialog documents the criteria syntax (M62)**
+- **48.4 Phase 48 Quality Gate Review**
+### Phase 49 — Create-Path Access Compatibility (M63, Critical)
 
 **Scope (Steps):**
 
-- **45.1 Filter dialog window replaces the in-menu editor (user report: menu closes on field click)**
-- **45.2 Record-navigation arrow order: prev left, next right (user report)**
-- **45.3 Phase 45 Quality Gate Review (+ README datasheet row)**
+- **49.1 Page-0 tail reverse-engineering: structure, semantics, maintenance (M63, DAO oracle)**
+- **49.2 Writer: emit + maintain the tail and the remaining region fields (M63)**
+- **49.3 Compatibility verification: DataCraft-created file opens in real Access (M63, user gate)**
+- **49.4 User data recovery through the fixed writer + Phase 49 gate**
+
+
 
 
 
@@ -290,15 +291,23 @@
 | 43.2 | Pin cargo-llvm-cov@0.9.1 in the CI coverage job (M51, High gate: released) | ✅ |
 | 43.3 | Phase 43 Quality Gate Review | ✅ |
 | 44.1 | Ribbon group stretch fix + the layout/rect test seam (H52, T10) | ✅ |
-| 44.2 | Status-bar panel overlap on the workspace content (H53) | 🔄 |
+| 44.2 | Status-bar panel overlap on the workspace content (H53) | ✅ |
 | 44.3 | Close Database affordance on the backstage (M52) | ✅ |
 | 44.4 | Contextual design view switches the open table (M53) | ✅ |
 | 44.5 | Datasheet sort discoverability + first-class column filters (M54) | ✅ |
 | 44.6 | Phase 44 Quality Gate Review | ✅ |
 | 45.1 | Filter dialog window replaces the in-menu editor (user report: menu closes on field click) | ✅ |
-| 45.2 | Record-navigation arrow order: prev left, next right (user report) | 🔄 |
+| 45.2 | Record-navigation arrow order: prev left, next right (user report) | ✅ |
 | 45.3 | Phase 45 Quality Gate Review (+ README datasheet row) | ✅ |
 | 46.1 | Runtime paints stored control rects on the designer canvas (M57) | ✅ |
 | 46.2 | Phase 46 Quality Gate Review | ✅ |
 | 47.1 | Object activation surfaces the contextual ribbon tab (M58) | ✅ |
 | 47.2 | Phase 47 Quality Gate Review | ✅ |
+| 48.1 | Record navigation reads the cursor it writes (M60) | ⬜ |
+| 48.2 | Datasheet trailing elements stay above the status bar (M61) | ⬜ |
+| 48.3 | Filter dialog documents the criteria syntax (M62) | ⬜ |
+| 48.4 | Phase 48 Quality Gate Review | ⬜ |
+| 49.1 | Page-0 tail reverse-engineering: structure, semantics, maintenance (M63, DAO oracle) | ⬜ |
+| 49.2 | Writer: emit + maintain the tail and the remaining region fields (M63) | ⬜ |
+| 49.3 | Compatibility verification: DataCraft-created file opens in real Access (M63, user gate) | ⬜ |
+| 49.4 | User data recovery through the fixed writer + Phase 49 gate | ⬜ |
