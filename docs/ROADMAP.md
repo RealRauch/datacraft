@@ -265,3 +265,45 @@ rule that out-of-tree drivers depend only on `datacraft-core`).
 "ADR-7 driver model makes later sources additive") and a future
 table-export command. Release gates per PLAYBOOK §0.5: new crate + calamine
 dependency = Medium, fixtures = Medium, any CI oracle job = High.
+
+## 8. ODF spreadsheets (OpenOffice/LibreOffice) — decision record
+
+**Decision (2026-11-06, human-approved):** ODF spreadsheet support is planned
+as its own driver module, deliberately separate from the Excel family (§7).
+Same ADR-7 shape: one new `DatabaseFormat` variant, sniff + registry
+composition, sheets exposed as tables. **Read-only first**; a write path is a
+separate, later decision. Work items are created only when the owning phase
+starts; sequencing sits behind the Excel module (§7) — no hard dependency,
+but the driver pattern, the calamine pin and the release gates are shared.
+
+**Format matrix:**
+
+| Format | Read | Write | Boundary |
+|--------|------|-------|----------|
+| .ods (OpenDocument Spreadsheet) | ✅ first | later phase | the native Calc format of OpenOffice/LibreOffice — OASIS ODF, ISO/IEC 26300 |
+| .fods (flat XML ODF) | later step | ⛔ for now | single-file XML variant, not covered by calamine; a clean-room flat-XML reader from the public spec is the natural path |
+| .ots (ODF spreadsheet template) | unconfirmed | ⛔ | structurally an .ods with a template mimetype — verify against calamine at phase start before promising it |
+| legacy OpenOffice 1.x (.sxc/.stc) | — | — | out of scope (pre-ODF format) |
+
+**Implementation strategy:** read via calamine — it already covers .ods, so
+the module adds no new reader dependency; both driver crates share one pin in
+`[workspace.dependencies]`. Note: calamine loads all sheets of an .ods at open
+time (no lazy loading) — acceptable for the table-level read path, a footnote
+for very large workbooks. The writer candidate for the later phase is
+[spreadsheet-ods](https://crates.io/crates/spreadsheet-ods) (MIT OR
+Apache-2.0, 1.0.x, actively maintained); the same deterministic-write rule as
+§7 applies — never silently destroy styles, formulas or objects of foreign
+files. Password-protected files fail with a precise `Unsupported` error (ACE
+office-encryption precedent).
+
+**Prior art (2026-11-06):** GridCraft (`storytold/gridcraft`) imports .ods
+worksheet data only (saved values instead of formulas) — supporting the
+values-first read boundary. ODF is a fully public OASIS/ISO specification, so
+a clean-room extension beyond library support (e.g. .fods) is
+straightforward.
+
+**Downstream:** identical to §7 — feeds M50 (Import File) and a future
+table-export command once the read driver exists. Optional oracle pattern:
+LibreOffice headless as `DATACRAFT_ORACLE_ODS` (env-var gated, mirrors
+DATACRAFT_ORACLE_MDB). Release gates per PLAYBOOK §0.5: new crate = Medium,
+fixtures = Medium, any CI oracle job = High.
