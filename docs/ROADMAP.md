@@ -134,7 +134,7 @@ any code embedded in database files without explicit user consent/permissions.
 | M1 | Expression service (Ring 1) | queries, macros, forms, validation | ✅ Phase 15 (steps 15.1–15.2, H41 archived; `Now`/`Date` deliberately absent — deterministic) |
 | M2 | Query engine + QBE (Ring 2) | real app behavior | ✅ Phase 7 · native query execution ✅ Phase 27 (M12) |
 | M3 | Write path (Ring 0 write) | editing apps, Access-compatible write goal | ✅ Jet4 writer landed in Phase 10 (create + insert); update/delete + journal profiles landed in Phase 11 (steps 11.10–11.11); ACCDB write-through landed in Phase 25 (writer contracts + port + wire/CLI, README matrix); drops, design-time alter, field indexes and relationships landed in Phases 24 and 32 |
-| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ✅ Phase 8 (forms) + Phase 10 (report designer + print preview) + Phase 15 (grouped/aggregate bands) |
+| M4 | Forms/Reports runtime (Ring 4) | the Access UX itself | ⬜ designer + preview shipped (Phases 8, 10, 15 — forms designer, report designer + print preview, grouped/aggregate bands); the events/requery runtime (§2 Ring 4) stays open |
 | M5 | Macros (Ring 3) | unattended app logic | ✅ Phase 17, step 17.1: read-only inventory (name + coarse arguments); DoCmd execution stays out of scope |
 | M6 | VBA extraction + viewer + static analysis | migration tooling, fidelity | ✅ Phase 17, steps 17.2–17.3 (extraction, viewer, `AnalyzeVba`; no execution) |
 | M7 | `ScriptEngine` trait hook in core (unimplemented) + engine decision | stage-2 scripting when the §4 gate opens | ⬜ gated (Ring 4 + demand) |
@@ -351,3 +351,107 @@ rustls features. Connection failures surface as precise, locatable errors.
   shared-.mdb editing is not part of this record). A network transport for
   the command bus (remote MCP/JSON-RPC) is a separate future topic, not
   decided here.
+
+## 10. Maintenance & salvage — decision record
+
+**Decision (2026-11-06, human-approved):** DataCraft ships a maintenance
+track: Compact & Repair as a first-class command, a read-only salvage reader
+for damaged files, and a pre-open health check. Today none of these exist —
+no command touches maintenance.
+
+**Rationale:** compact is cheap here — a verified Jet4/ACE writer already
+exists, so compact = read everything, write a fresh file, swap atomically
+(the sidecar follows the path, not the inode). Salvage is the clean-room
+differentiator: a reader that recovers every readable row, never writes, and
+reports damage precisely per page/row is the honest version of the "Access
+repair" emergency that Access's own repair handles silently at best.
+
+| Capability | Read/write | Boundary |
+|-----------|------------|----------|
+| Compact & Repair (command + backstage) | write, always a new verified file | in-place rewrite is out of scope; repair = compact + per-object damage report, never silent fixes |
+| Salvage reader | read-only | recovers readable rows into a new file or a report; per-page errors are locatable (existing error rule) |
+| Pre-open health check | read-only | header/region/page sanity before presenting the file; feeds the M59 lock-file notice |
+
+Order: health check → compact (writer reuse) → salvage (largest; needs a
+damage-model fixture set from clean-room sources — Medium gate each).
+
+## 11. Export matrix — decision record
+
+**Decision (2026-11-06, human-approved):** External data is bidirectional —
+Access's External-Data story is import AND export, while DataCraft so far
+records only read-side families (§7/§8/§9). Export becomes its own record,
+same capability-honesty style.
+
+| Target | Order | Basis / boundary |
+|--------|-------|------------------|
+| CSV | first | the `csv` crate already writes (the datacraft-csv driver uses it for its atomic rewrite); the export command is a new core command, distinct from the CSV *driver* (a directory of tables) |
+| JSON (tables + schema) | early | agent-first surface for MCP consumers; pure data, no styling |
+| xlsx / .ods | after the §7/§8 read drivers | writer candidates are already named there (rust_xlsxwriter, spreadsheet-ods); same deterministic-write rule |
+| PDF from report preview | later | the print preview already paginates in core; PDF is a renderer question, not a core one |
+| Print | later | OS print dialog is UI-owned; core stays headless |
+
+Exports are explicit user actions producing new files; the source database
+is never modified. Multi-table (whole-database) export follows single-table.
+
+## 12. Text semantics & collation — decision record
+
+**Decision (2026-11-06, human-approved):** text comparison semantics become
+an explicit, documented boundary instead of an accident of the code path.
+Today `Like`/QBE use Access semantics (case-insensitive, `* ? #` wildcards —
+Option Compare Database), while the SQL engine uses SQLite semantics
+(`%` wildcards, SQLite text ordering), and FORMAT-JET.md documents byte-order
+text equality as a divergence from Access. The two wildcard languages mirror
+Access's own ANSI-89 (QBE, `*`) vs ANSI-92 (SQL, `%`) split — DataCraft
+keeps that split, but as a *declared* rule per engine, not an undocumented
+accident.
+
+Staged follow-ups (work items at phase start): (a) document the semantics
+map per engine in TESTING/ARCHITECTURE; (b) read the database collation from
+the Jet header and honor it for text ordering in queries, replacing raw byte
+order — deviations stay listed in the compatibility matrix; (c) per-column
+collation on the create path (already flagged as a real-writer convention in
+FORMAT-JET). Out of scope: locale-aware collation tables beyond what the
+file declares — an honest support matrix instead.
+
+## 13. Referential integrity enforcement — decision record
+
+**Decision (2026-11-06, human-approved):** the backends must agree on write
+semantics. Today SQLite enforces foreign keys (`PRAGMA foreign_keys=ON`,
+orphans refused) while the Jet path writes `MSysRelationships` metadata
+only — no orphan rejection, no cascade behavior. That breaks the parity
+principle: identical state transitions across entry points *and* backends.
+
+Ladder: (a) minimum parity — the Jet write path rejects orphan
+inserts/updates against declared relationships with a precise, locatable
+error; (b) cascade DELETE/UPDATE honoring the `MSysRelationships` flags as a
+separate later step — it touches the physical Jet index pages, so the §6
+M15/M16 deferred index work is a prerequisite; (c) cascade options in the
+relationships editor ship with (b). SQLite semantics stay as they are; the
+acceptance bar is "same input → same visible outcome on both backends".
+
+## 14. Migration assessment — decision record
+
+**Decision (2026-11-06, human-approved):** generalize `AnalyzeVba` into an
+app-level readiness report — the "what breaks if I move this app" command.
+`AnalyzeVba` stays as-is; a new assessment command aggregates per-object
+evidence: ring coverage per form/report/query (bound? decodable? runs in
+Ring 1/2?), VBA modules and their transpilable-subset estimate, the
+linked-table inventory (§9 Stage 0 output feeds exactly here), an
+unsupported-feature list, and an effort summary. Headless and MCP-friendly
+like `AnalyzeVba`; read-only by construction. Work items are created when
+the owning phase starts.
+
+## 15. Small boundaries & record hygiene
+
+- **Format floor:** Jet 1.x/2.0 (`.mdb` below Jet 3) are out of scope; the
+  verified floor is Jet 3 (Phase 10). Stated once, here.
+- **WASM/browser:** a browser build of the UI is a non-goal for now — the
+  headless clients (CLI/MCP) already cover remote automation. Deliberate
+  statement, not a gap.
+- **Distribution:** installers/signing/auto-update are a post-first-tag
+  topic; the release workflow (M13) governs tags, the CHANGELOG stays
+  human-reviewed. As of 2026-11-06 the family is unpublished at 0.1.0 and
+  carries no tag — the first-tag gate remains the entry-point docs sweep.
+- **Hygiene (2026-11-06):** §5 M4 corrected from ✅ to ⬜ — the
+  designer/preview phases landed, the events/requery runtime of §2 Ring 4
+  did not; §3's VBA re-evaluation gate keys on the runtime, not the designer.
