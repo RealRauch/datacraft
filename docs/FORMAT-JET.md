@@ -90,11 +90,13 @@ reads `0x0103` and the file still opens (open → edit → reopen cycle pinned).
 The zero-filled tail of every DataCraft-created file to date reproduces rule 1
 exactly (the incident's error).
 
-**Writer policy (for 49.2):** emit a uniform-`0x0100` tail at creation
-(deterministic, passes rules 1–3) and preserve the tail bytes verbatim on
-every rewrite (page 0 already survives the read-modify-write). No counter
-emulation — the counters are writer-internal and the engine maintains its own
-on its sessions; this divergence is documented, not hidden.
+**Writer policy (implemented in 49.2):** a fresh file carries the uniform
+`0x0100` tail (deterministic, passes rules 1–3) and the tail bytes are
+preserved verbatim on every rewrite (page 0 survives the read-modify-write;
+pinned across create/insert/update/delete/alter/drop/reopen in the create
+suite). No counter emulation — the counters are writer-internal and the
+engine maintains its own on its sessions; this divergence is documented, not
+hidden.
 
 ### The encrypted header region constants (re-verified on a fresh DAO file)
 
@@ -118,7 +120,9 @@ Access-COM *and* jackcess files; HACKING names none of these fields. The
 build number at 0x6A follows HACKING ("the Jet version that last wrote the
 database"); the observed fresh-DAO value 0x11A6 = the installed engine's
 build. Whether the engine validates the build number was not probed;
-DataCraft will emit a fixed plausible build number for shape parity.
+DataCraft emits the fixed value `0x11A6` for shape parity (since 49.2, like
+the constants above and the `0x0409` collation — byte-pinned in the create
+suite).
 
 ### The catalog gate (pages 2+; the second, independent refusal)
 

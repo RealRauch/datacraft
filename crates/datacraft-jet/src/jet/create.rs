@@ -1,11 +1,14 @@
 //! Fresh Jet4 file builder and template materializer (phase 29, steps
-//! 29.1/29.2, item H44).
+//! 29.1/29.2, item H44; page-0 acceptance shape step 49.2, item M63).
 //!
 //! A brand-new four-page database — header page, global free map, an empty
 //! `MSysObjects` catalog and its usage page — written from nothing. The
 //! page shapes are the ones proven readable by the reader/writer suites
 //! (`docs/FORMAT-JET.md` "Usage maps (writer)", "Catalog insert recipe");
 //! the header region is RC4-encrypted like every real writer leaves it.
+//! Page 0 additionally carries the region constants and the uniform
+//! `0x0100` tail the real Jet engine's open path requires
+//! (`docs/FORMAT-JET.md` "Page-0 tail and create-path acceptance").
 //!
 //! Determinism (LESSONS #6): the only wall-clock-shaped input is the
 //! explicit `created` OLE date — same inputs produce byte-identical files,
@@ -33,8 +36,22 @@ const CODE_PAGE_AT: usize = 0x3c - 0x18;
 const CREATION_DATE_AT: usize = 0x72 - 0x18;
 /// Page-0 offset of the password field inside the header region.
 const PASSWORD_AT: usize = 0x42 - 0x18;
+/// Page-0 offset of the creating engine's build number inside the header
+/// region.
+const BUILD_NUMBER_AT: usize = 0x6a - 0x18;
+/// Page-0 offset of the collation LANGID inside the header region.
+const COLLATION_AT: usize = 0x6e - 0x18;
+/// Page-0 offset of the 256-word tail after the header region.
+const TAIL_AT: usize = 0xE00;
 /// Default database code page of a fresh database (Windows-1252).
 const CODE_PAGE: u16 = 1252;
+/// Creating engine's build number a fresh file carries. A fixed plausible
+/// value (fresh-DAO reference observation, step 49.1) for shape parity —
+/// whether the engine validates it was not probed (FORMAT-JET).
+const BUILD_NUMBER: u32 = 0x11A6;
+/// Collation LANGID a fresh file carries — the `dbLangGeneral` pair to the
+/// Windows-1252 code page (fresh-DAO reference, step 49.1).
+const COLLATION: u32 = 0x0409;
 /// Pages the fresh global free map window covers (64-byte bitmap).
 const FREE_MAP_WINDOW: u32 = 512;
 /// `MSysObjects` TDEF page (format constant, see `catalog.rs`).
@@ -54,12 +71,20 @@ pub fn create_jet4_file(path: &Path, created: f64) -> Result<(), StorageError> {
     }
     let mut file = vec![0u8; 4 * PAGE];
 
-    // Page 0: magic, product string, version and the encrypted header
-    // region (code page, empty password, creation date).
+    // Page 0: magic, product string, version, the encrypted header region
+    // (region constants, code page, empty password, creation date) and the
+    // 256-word tail the engine's open path validates.
     file[0..4].copy_from_slice(&SIGNATURE);
     file[4..20].copy_from_slice(JET_PRODUCT);
     file[0x14..0x18].copy_from_slice(&JET4_VERSION.to_le_bytes());
     file[0x18..0x18 + JET4_HEADER_REGION].copy_from_slice(&header_region(created));
+    // The tail: 256 uniform 0x0100 words. A zero-filled tail reproduces the
+    // engine's "Zu viele aktive Benutzer" refusal (the M63 incident); the
+    // uniform shape passes the acceptance grammar and the engine adopts it
+    // as its counter baseline on its own sessions (FORMAT-JET, 49.1).
+    for word in file[TAIL_AT..PAGE].as_chunks_mut::<2>().0 {
+        *word = 0x0100u16.to_le_bytes();
+    }
 
     // Page 1: the global free map — pages 0..4 allocated, the window
     // beyond EOF marked free.
@@ -98,18 +123,28 @@ pub fn create_jet4_file(path: &Path, created: f64) -> Result<(), StorageError> {
     })
 }
 
-/// The decrypted header region for a fresh database: code page 1252, an
-/// empty password (the creation-date mask itself) and the creation date —
-/// RC4-encrypted in place like every real file carries it.
+/// The decrypted header region for a fresh database: the observed constant
+/// dwords `0x100/0x101/2/3/4/5`, code page 1252, an empty password (the
+/// creation-date mask itself), the build number, the collation LANGID and
+/// the creation date — RC4-encrypted in place like every real file carries
+/// it (FORMAT-JET "Page-0 tail and create-path acceptance", step 49.1).
 fn header_region(created: f64) -> Vec<u8> {
     let mask = (created as i64 as u32).to_le_bytes();
     let mut region = vec![0u8; JET4_HEADER_REGION];
+    for (index, constant) in [0x0000_0100u32, 0x0000_0101, 2, 3, 4, 5]
+        .into_iter()
+        .enumerate()
+    {
+        region[index * 4..index * 4 + 4].copy_from_slice(&constant.to_le_bytes());
+    }
     region[CODE_PAGE_AT..CODE_PAGE_AT + 2].copy_from_slice(&CODE_PAGE.to_le_bytes());
     // An empty password decodes when every field byte equals the mask byte
     // at its position (four-byte period).
     for (index, slot) in region[PASSWORD_AT..PASSWORD_AT + 40].iter_mut().enumerate() {
         *slot = mask[index % 4];
     }
+    region[BUILD_NUMBER_AT..BUILD_NUMBER_AT + 4].copy_from_slice(&BUILD_NUMBER.to_le_bytes());
+    region[COLLATION_AT..COLLATION_AT + 4].copy_from_slice(&COLLATION.to_le_bytes());
     region[CREATION_DATE_AT..CREATION_DATE_AT + 8].copy_from_slice(&created.to_le_bytes());
     crate::jet::crypto::rc4(&HEADER_RC4_KEY, &mut region);
     region
