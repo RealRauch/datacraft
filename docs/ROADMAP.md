@@ -223,3 +223,45 @@ follow-up that would lift it.
   it opens the file (documented manual gate). A follow-up item covers the
   index-page format research and maintenance; it is the largest remaining
   writer-fidelity risk.
+
+## 7. Format families beyond Access — decision record
+
+**Decision (2026-11-06, human-approved):** DataCraft adds Excel workbook
+support as a new format family, delivered as its own driver module under the
+ADR-7 model (one new `DatabaseFormat` variant, sniff + registry composition,
+sheets exposed as tables). **Read-only first**; a write path is a separate,
+later decision. Work items are created only when the owning phase starts.
+
+**Format matrix:**
+
+| Format | Read | Write | Boundary |
+|--------|------|-------|----------|
+| .xlsx (OOXML SpreadsheetML) | ✅ first | later phase | core format |
+| .xlsm | ✅ (values) | later phase | macros are never read, executed or modified (same boundary as VBA, §3) |
+| .xls (BIFF8) | ✅ (values) | ⛔ out of scope | BIFF8 writing is a format family of its own; the clean-room reference (GridCraft) also imports .xls only |
+| .xlsb (binary OOXML) | ✅ (values) | ⛔ for now | data import from saved values |
+| .ods / .fods (ODF) | — | — | deliberately a **separate later module** (decision 2026-11-06) |
+
+**Implementation strategy:** the reader is
+[calamine](https://crates.io/crates/calamine) (MIT, pure Rust, synchronous,
+empty default features) — same precedent as datacraft-sqlite using rusqlite
+for a publicly standardized format. The writer candidate for the later phase
+is rust_xlsxwriter (MIT OR Apache-2.0). When writes arrive they must respect
+the deterministic-write rule and never silently destroy formulas, styles or
+objects of foreign workbooks; a whole-file rewrite (CSV precedent) is
+acceptable only for pure data sheets or workbooks DataCraft created itself.
+Password-protected workbooks fail with a precise `Unsupported` error (ACE
+office-encryption precedent).
+
+**Prior art (2026-11-06):** GridCraft (`storytold/gridcraft`, clean-room Rust
+spreadsheet, MIT OR Apache-2.0, alpha) was studied as a fidelity yardstick:
+its native .xlsx round-trips formulas/styles/tables, while .xls is import-only
+and .xlsb/.ods import worksheet data only — supporting the read-only boundary
+above. Its `gridcraft-xlsx` crate is **not** usable as a dependency here
+(couples to gridcraft-core/model/formula/math; conflicts with the ADR-7
+rule that out-of-tree drivers depend only on `datacraft-core`).
+
+**Downstream:** once the read driver exists it feeds M50 (Import File —
+"ADR-7 driver model makes later sources additive") and a future
+table-export command. Release gates per PLAYBOOK §0.5: new crate + calamine
+dependency = Medium, fixtures = Medium, any CI oracle job = High.
