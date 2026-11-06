@@ -307,3 +307,47 @@ table-export command once the read driver exists. Optional oracle pattern:
 LibreOffice headless as `DATACRAFT_ORACLE_ODS` (env-var gated, mirrors
 DATACRAFT_ORACLE_MDB). Release gates per PLAYBOOK §0.5: new crate = Medium,
 fixtures = Medium, any CI oracle job = High.
+
+## 9. Remote sources & linked tables — decision record
+
+**Decision (2026-11-06, human-approved):** DataCraft approaches remote
+databases as a staged ladder, native-protocol first. It maps to Access's
+External-Data/linked-tables surface, and the ladder buys migration value
+before connectivity: (0) read-only linked-table inventory in Jet/ACE files,
+(1) the `SourceSpec { Path, Uri }` seam (BACKLOG L8) landing together with
+the first server driver, (2) one driver family per protocol, read-only
+first, (3) linked-table resolution inside an open database. Work items are
+created only when the owning phase starts.
+
+**Stage ladder:**
+
+| Stage | Content | Basis |
+|-------|---------|-------|
+| 0 — Link inventory (read-only) | Decode MSysObjects link records (Type 4 ODBC-linked, Type 6 Access-file-linked: CONNECT, DATABASE, foreign name, flags) and surface them in catalog/UI metadata. Today they are silently invisible — the catalog reads only Id/Name/Type/Flags and non-TDEF rows are skipped. Pure Jet-format work; no network, nothing executed. | Phase 17 macro-inventory precedent: read and display, never execute |
+| 1 — SourceSpec + first driver | L8 lands with the first server driver (PostgreSQL, read-only): additive `SourceSpec { Path, Uri }` on the open commands, snapshot gains a source display, the sidecar stays Path-only (ADR-1 rule kept), credentials via UI prompt / headless env — never persisted in the sidecar. | ADR-7 documented future path; BACKLOG L8 |
+| 2 — MySQL/MariaDB (read-only) | Second driver family; same shape, same capability honesty. | — |
+| 3 — Linked-table resolution | Linked tables inside an open Jet/ACE file resolve to Stage-1/2 sources; reads materialize into the query-engine path; writes stay out of scope initially. Resolution is an explicit user action — opening a database never dials out (ADR-2 analog: a file must not trigger side effects). | "SQL over all sources" materialization precedent (in-memory SQLite) |
+
+**Client strategy (pure Rust, synchronous — the no-async rule is binding):**
+PostgreSQL via the `postgres` crate (native, synchronous, pure Rust,
+MIT OR Apache-2.0), MySQL/MariaDB via the `mysql` crate (synchronous,
+pure Rust, MIT OR Apache-2.0). Identifiers reaching a server pass the
+schema whitelist (existing hard rule); values are parameterized; TLS via
+rustls features. Connection failures surface as precise, locatable errors.
+
+**Gates and out of scope, stated plainly:**
+
+- **SQL Server / TDS: deferred behind a gate.** Pure-Rust TDS clients are
+  async-only today, conflicting with the no-async rule. Revisit when a
+  synchronous pure-Rust client exists or the no-async principle is formally
+  reopened (High-class principle change). Same gate pattern as M7 (§4).
+- **ODBC: out of scope.** Access's own linked-table road — it needs the
+  system driver manager (odbc32/winapi, unixODBC C) and breaks the
+  no-winapi / pure-Rust principles. Native protocol drivers replace it.
+  Re-evaluation gate: only if native coverage is proven insufficient in
+  practice.
+- **File-on-share stays an OS concern** (a share path works as a path
+  today; local lock-file concurrency is M59's scope; multi-user
+  shared-.mdb editing is not part of this record). A network transport for
+  the command bus (remote MCP/JSON-RPC) is a separate future topic, not
+  decided here.
