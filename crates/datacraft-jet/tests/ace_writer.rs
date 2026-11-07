@@ -339,7 +339,7 @@ fn drop_table_removes_a_real_ace_table_and_frees_its_pages() {
 
         let tdef = table1_tdef(&reader);
         // Index leaves belong to the drop's page set (M66).
-        let (mut freed, index_pages) = support::drop_freed_pages(&writer, tdef);
+        let (freed, index_pages) = support::drop_freed_pages(&writer, tdef);
         assert!(!index_pages.is_empty(), "{name}: Table1 has indexes");
         allowed.extend(freed.iter().copied());
 
