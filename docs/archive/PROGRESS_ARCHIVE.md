@@ -692,3 +692,13 @@ before the tag.
 - **53.3 CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59)**
 - **53.4 Phase 53 Quality Gate Review**
 **Verification:** Canonical set green on the final tree: fmt, clippy -D warnings, 160 workspace test suites, file-size and hygiene gates clean. Local coverage parse 94.93% (ui excluded; the binding gate is the ubuntu CI run this push triggers). CHANGELOG carries the phase entry per the L38 cadence. Steps: 53.1 (red a8c8fe1, feat fddc268), 53.2 (red 2c50188, feat 828ab0c), 53.3 (0dba93c). (checkpoint: 0dba93c)
+
+---
+
+### Phase 54 — Next-version note
+
+**Scope (Steps):**
+
+- **54.1 Changelog next-version note + PUBLISHING policy wording (L39)**
+- **54.2 Phase 54 Quality Gate Review**
+**Verification:** Docs-only phase: hygiene scan clean, fmt/clippy/tests green (160 suites); the Rust tree is unchanged since the phase 53 gate. (checkpoint: cfd8b1f)

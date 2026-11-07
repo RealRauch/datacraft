@@ -144,12 +144,6 @@
 - **Approach:** Piggyback rule — execute only when a released step touches the query/native_exec area anyway. Move the SQL dialect, QBE evaluation and native execution into a `datacraft-query` crate so default core stays rusqlite-free; keep the `sql-engine` feature as the enabling switch. New crate = Medium release gate; direction review binding; update AGENTS §1, ARCHITECTURE §4, README and the crates.io order (31.4).
 - **Acceptance:** default-feature core builds without rusqlite; the query crate passes the standalone checks in the CI matrix style; all query/native-execution tests green; canonical verification set green.
 
-### [ ] L39 — Changelog: a next-version note makes the release-candidate status visible at phase closes — 🟢
-- **Location:** `CHANGELOG.md` (the `Unreleased` head), `docs/PUBLISHING.md` (§Changelog policy, release checklist step 2).
-- **Problem:** The version/release policy exists (PUBLISHING.md, PLAYBOOK §9) but the release-candidate status is invisible between releases — a phase close says nothing about the version the accumulated set is headed for (human call 2026-11-08: "das machen wir").
-- **Approach:** The `Unreleased` section carries a one-line `*Next version: …*` note, reassessed at every phase close within the L38 changelog pass (against the semver rule: breaking → minor, additions/fixes → patch); the release step replaces the note with the dated version heading. Policy wording lands in the PUBLISHING changelog policy and the checklist step 2.
-- **Acceptance:** The note is in the changelog head; the policy states the reassessment cadence and the release-step replacement; docs-only; canonical verification set green (docs-relevant gates) and CI green on push.
-
 ---
 
 ## 🔵 TEST GAPS
@@ -347,3 +341,4 @@
 - L25 — Re-admit macOS to the CI matrices when runner capacity recovers — done (done in 939ddbe — step 50.1: macos-latest re-admitted to the ci.yml test and oracle matrices, the in-file L10 comments removed; a CI run on main completed fully green with the macOS jobs green (run 42411956901, 2026-11-07). Note: the first run attempt exposed the ubuntu ld SIGBUS (H55, closed the same day — disk headroom step in the test job).)
 - H54 — README claims a 3-OS test matrix that CI no longer runs — done (done in 939ddbe — step 50.1: resolved by the L25 re-admission — the README matrix row now matches ci.yml (ubuntu+windows+macos), the quality-gates row and the README/AGENTS/TESTING macOS-pause notes were aligned to the re-admission; docs_validate clean.)
 - M59 — DataCraft ignores Access lock files: concurrent Access sessions can corrupt the database — done (done in fddc268 + 828ab0c + 0dba93c (red a8c8fe1, 2c50188) — phase 53: a sibling Access lock file (.ldb/.laccdb) opens the database read-only (Jet3 caps shape, precise Unsupported at with_writer/save_as/change_password), the lock file NAME travels as data through OpenedDatabase → snapshot for all four clients, the status bar and Info page render the localized notice, FORMAT-JET documents the co-existence boundary and the README matrix gained the Access co-existence row; detection is existence-only, DataCraft never creates or deletes lock files.)
+- L39 — Changelog: a next-version note makes the release-candidate status visible at phase closes — done (done in cfd8b1f — step 54.1: the Unreleased head names "Next version: 0.1.0"; the policy (PUBLISHING §Changelog policy) ties the reassessment to the per-phase changelog pass and the release checklist replaces the note with the dated heading.)

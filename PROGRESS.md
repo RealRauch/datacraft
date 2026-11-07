@@ -9,12 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 54 — Next-version note
-
-**Scope (Steps):**
-
-- **54.1 Changelog next-version note + PUBLISHING policy wording (L39)**
-- **54.2 Phase 54 Quality Gate Review**
 
 
 
@@ -316,5 +310,5 @@
 | 53.2 | UI: status bar and Info backstage render the localized notice (M59) | ✅ |
 | 53.3 | CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59) | ✅ |
 | 53.4 | Phase 53 Quality Gate Review | ✅ |
-| 54.1 | Changelog next-version note + PUBLISHING policy wording (L39) | 🔄 |
-| 54.2 | Phase 54 Quality Gate Review | ⬜ |
+| 54.1 | Changelog next-version note + PUBLISHING policy wording (L39) | ✅ |
+| 54.2 | Phase 54 Quality Gate Review | ✅ |
