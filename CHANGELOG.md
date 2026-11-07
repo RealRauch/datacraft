@@ -6,6 +6,10 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
 
+*Next version: **0.1.0** — the first public release carries this set; the
+line is reassessed at every phase close (breaking → minor, additions and
+fixes → patch per `docs/PUBLISHING.md`).*
+
 ### Added
 - core: `DriverCapabilities::none()` — the conservative declaration a minimal
   driver starts from; `StoragePort::driver_id`/`::capabilities` are required

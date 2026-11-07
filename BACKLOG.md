@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-07T21:35
+# BACKLOG.md — Open items (As of: 2026-11-08T00:36
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -143,6 +143,12 @@
 - **Problem:** The SQL dialect engine and native query execution are already feature-gated with optional rusqlite, but the optionality is not structural — the boundary exists only as a cargo feature, not as a crate. Second (optional) candidate of the crate-split policy (`docs/ROADMAP.md` §17).
 - **Approach:** Piggyback rule — execute only when a released step touches the query/native_exec area anyway. Move the SQL dialect, QBE evaluation and native execution into a `datacraft-query` crate so default core stays rusqlite-free; keep the `sql-engine` feature as the enabling switch. New crate = Medium release gate; direction review binding; update AGENTS §1, ARCHITECTURE §4, README and the crates.io order (31.4).
 - **Acceptance:** default-feature core builds without rusqlite; the query crate passes the standalone checks in the CI matrix style; all query/native-execution tests green; canonical verification set green.
+
+### [ ] L39 — Changelog: a next-version note makes the release-candidate status visible at phase closes — 🟢
+- **Location:** `CHANGELOG.md` (the `Unreleased` head), `docs/PUBLISHING.md` (§Changelog policy, release checklist step 2).
+- **Problem:** The version/release policy exists (PUBLISHING.md, PLAYBOOK §9) but the release-candidate status is invisible between releases — a phase close says nothing about the version the accumulated set is headed for (human call 2026-11-08: "das machen wir").
+- **Approach:** The `Unreleased` section carries a one-line `*Next version: …*` note, reassessed at every phase close within the L38 changelog pass (against the semver rule: breaking → minor, additions/fixes → patch); the release step replaces the note with the dated version heading. Policy wording lands in the PUBLISHING changelog policy and the checklist step 2.
+- **Acceptance:** The note is in the changelog head; the policy states the reassessment cadence and the release-step replacement; docs-only; canonical verification set green (docs-relevant gates) and CI green on push.
 
 ---
 

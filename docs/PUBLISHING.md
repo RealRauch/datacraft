@@ -80,6 +80,12 @@ is a decision, not an oversight; revisit only if a library consumer appears.
   per-commit detail. Counts as user-visible: wire and snapshot changes,
   behavior changes, capability changes, compatibility-matrix claims, MSRV
   bumps. Internal work without observable surface gets no entry.
+- The `Unreleased` section names its target version in a one-line note
+  (`*Next version: …*`), reassessed at every phase close inside the same
+  maintenance pass against the semver rule (breaking → minor, additions
+  and fixes → patch) — the release-candidate status stays visible between
+  releases. The release step replaces the note with the dated version
+  heading.
 - The release step turns `Unreleased` into the version heading with the
   release date; nothing ships without its changelog section.
 
@@ -87,7 +93,8 @@ is a decision, not an oversight; revisit only if a library consumer appears.
 
 1. Canonical verification set green on CI `main` (fmt, clippy, tests,
    coverage ≥ 95 %, file-size, hygiene, oracle).
-2. Bump the workspace version, date the changelog section.
+2. Bump the workspace version, date the changelog section — the
+   next-version note becomes the dated heading.
 3. `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` is clean
    (docs.rs is part of the published surface).
 4. `cargo publish --dry-run` per crate **in the order above**; every package
