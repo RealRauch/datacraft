@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 48 — Walkthrough Fixes III
-
-**Scope (Steps):**
-
-- **48.1 Record navigation reads the cursor it writes (M60)**
-- **48.2 Datasheet trailing elements stay above the status bar (M61)**
-- **48.3 Filter dialog documents the criteria syntax (M62)**
-- **48.4 Phase 48 Quality Gate Review**
 
 
 
@@ -298,7 +290,7 @@
 | 48.1 | Record navigation reads the cursor it writes (M60) | ✅ |
 | 48.2 | Datasheet trailing elements stay above the status bar (M61) | ✅ |
 | 48.3 | Filter dialog documents the criteria syntax (M62) | ✅ |
-| 48.4 | Phase 48 Quality Gate Review | ⬜ |
+| 48.4 | Phase 48 Quality Gate Review | ✅ |
 | 49.1 | Page-0 tail reverse-engineering: structure, semantics, maintenance (M63, DAO oracle) | ✅ |
 | 49.2 | Writer: emit + maintain the tail and the remaining region fields (M63) | ✅ |
 | 49.3 | Compatibility verification: DataCraft-created file opens in real Access (M63, user gate) | ✅ |

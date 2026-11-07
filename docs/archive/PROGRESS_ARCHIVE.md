@@ -638,3 +638,15 @@ before the tag.
 - **49.3 Compatibility verification: DataCraft-created file opens in real Access (M63, user gate)**
 - **49.4 User data recovery through the fixed writer + Phase 49 gate**
 **Verification:** Verification: canonical verification set green on the final tree (fmt, clippy -D warnings, workspace tests 160/160 suites, llvm-cov >= 95 % lines, file-size gate). Step 49.3: the ten-step real-Access checklist passed end to end (user-verified 2026-11-07); the pre-flight found and fixed K4 (seed semantics). Step 49.4: the incident database (database.mdb, byte-identical backup) was identified, the engine refusal re-proven without the lock confound, SaveDatabaseAs proven unable to repair (M67), and the data recovered through the create path via examples/recover_mdb.rs — engine-accepted, value-parity per table, autonumber continues across engines; user confirmed the data in Access. K5 (restore writes left the seed behind) fixed test-first on the way. (checkpoint: 5088f6e)
+
+---
+
+### Phase 48 — Walkthrough Fixes III
+
+**Scope (Steps):**
+
+- **48.1 Record navigation reads the cursor it writes (M60)**
+- **48.2 Datasheet trailing elements stay above the status bar (M61)**
+- **48.3 Filter dialog documents the criteria syntax (M62)**
+- **48.4 Phase 48 Quality Gate Review**
+**Verification:** Canonical verification set green on the final tree: fmt clean, clippy -D warnings clean, 160 workspace test suites ok, file-size gate clean. Coverage: ui excluded (registered exception #1); the local Windows lcov parse reads 94.94% — unchanged by the phase (0 ui entries in the export) and not comparable to the binding ubuntu CI gate, which has not run since 2026-11-03 (152 unpushed commits at gate time; push pending the human's call). Steps: 48.1 M60 (red 0bc35e6, feat 7496d5b), 48.2 M61 (red 2f4b86c, feat b0a41b6 — the add-record reachability fix), 48.3 M62 (red 2f3e1f3, feat d4353fe); executed 48.2 first per the human's add-record priority. (checkpoint: 1061922)
