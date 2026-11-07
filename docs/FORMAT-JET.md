@@ -651,12 +651,15 @@ column mapping (with its lossiness) is documented in `src/port_write.rs`:
 - text `max_len` becomes a byte budget of `2 * max_len` (UTF-16, variable
   slot); memo/OLE use the inline long-value form; numeric widths, decimal
   scale (17-byte `Numeric`), date, currency, GUID and boolean map 1:1.
-- **AutoNumber (LongInteger):** the TDEF head `+12` holds the table's next
-  value; the column carries the `0x04` AUTONUMBER flag and is written as a
+- **AutoNumber (LongInteger):** the TDEF head `+12` holds the table's **last
+  assigned** value — the engine's seed semantics (observed 2026-11-07 via the
+  DAO oracle: after engine-written ids 1..3 an insert must take 4; reading
+  the dword as "next value" re-assigned the engine's last id and collided).
+  The column carries the `0x04` AUTONUMBER flag and is written as a
   fixed 4-byte `LongInt`. `Null` on insert means engine-assigned: the writer
-  fills the counter value and advances `+12` (persisted across reopen); a
-  user-supplied value is rejected. GUID AutoNumbers (`ReplicationId`) stay a
-  precise `Unsupported` (step 24.1, M8).
+  fills seed + 1 and stores the assigned value as the new seed (persisted
+  across reopen); a user-supplied value is rejected. GUID AutoNumbers
+  (`ReplicationId`) stay a precise `Unsupported` (step 24.1, M8).
 - **Row-image restore (step 28.1, U14):** `StoragePort::restore_row` is the
   deliberate exception to the AutoNumber rule — the undo history writes a
   previously read image verbatim (fixed `LongInt`), leaving the TDEF `+12`
