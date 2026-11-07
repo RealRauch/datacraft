@@ -1504,3 +1504,11 @@
 - **Approach:** A core spec helper `contextual_tab_id(kind)` (spec-derived mapping object kind → contextual tab id), and the UI follows *kind changes* of the active document: when the active tab's object kind changes, the ribbon selects the matching contextual tab — unless the user is in the backstage (no yank out of File pages) and never when the kind stays the same (no yank off Database Tools while switching between two tables).
 - **Acceptance:** First activation of a table/query/form selects its tools tab; switching between two tables keeps a non-contextual ribbon tab; the backstage is never yanked; kittest pins for all three; canonical verification set green.
 - **Done:** done in `0154080` (RED `db49f7d`) - step 47.1: the ribbon selection follows the active document's kind via the spec-derived core contextual_tab_id mapping; guards pin that the backstage is never yanked and same-kind activation changes nothing
+
+---
+
+### [x] F11 — Inline fix: useless u16 conversion in jet3.rs blocked clippy -D warnings — 🟠
+- **Location:** `crates/datacraft-jet/src/jet/jet3.rs` (Jet3 TDEF descriptor, `misc` slot).
+- **Problem:** `misc: u16::from(misc)` converted a `u16` to itself; clippy 0.1.98 flagged it as `useless_conversion` under `-D warnings`, so the canonical verification set could not run green on the current tree (the line was untouched by step 49.2).
+- **Approach:** Dropped the conversion (`misc,`); no behavior change. Fixed inline while step 49.2 was running (Low class, one token).
+- **Done:** fixed in `da29925` (step 49.2)

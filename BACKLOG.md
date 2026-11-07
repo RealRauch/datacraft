@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-07T03:21
+# BACKLOG.md — Open items (As of: 2026-11-07T03:26
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -370,3 +370,4 @@
 - M55 — Filter criteria cannot be typed: the header menu closes on editor click — done (done in `2c3a0d2` (RED `b493e20`) - step 45.1: the header menu's Filter item opens a per-tab criteria window (egui menus do not host text editing - the reported live bug and the 44.5 kittest dead-end were the same defect); the dialog seeds from the live filter and Apply/Clear dispatch the existing commands)
 - M57 — Form runtime ignores the designer's stored control rects — done (done in `c163a49` (RED `5077ac8`) - step 46.1: the runtime paints the designer's shared 640x400 canvas and places every control at its stored rect with its stored size (child Ui per rect); the user's database.mdb Form1 now renders staggered as designed; layout_probe records runtime.Form1.<control> rects for the pin)
 - M58 — Activating an object does not surface its contextual ribbon tab — done (done in `0154080` (RED `db49f7d`) - step 47.1: the ribbon selection follows the active document's kind via the spec-derived core contextual_tab_id mapping; guards pin that the backstage is never yanked and same-kind activation changes nothing)
+- F11 — Inline fix: useless u16 conversion in jet3.rs blocked clippy -D warnings — done (fixed in `da29925` (step 49.2))
