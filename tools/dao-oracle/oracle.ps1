@@ -101,8 +101,57 @@ try {
             }
             exit 0
         }
+        'listdefs' {
+            if (-not $Path) { throw 'listdefs requires -Path' }
+            $engine = New-Object -ComObject DAO.DBEngine.120
+            try {
+                $db = $engine.OpenDatabase($Path, $false, $false)
+                foreach ($t in $db.TableDefs) { Write-Output ("TABLE: " + $t.Name) }
+                Write-Output ("COUNT: " + $db.TableDefs.Count)
+                $db.Close()
+                [System.Runtime.InteropServices.Marshal]::ReleaseComObject($db) | Out-Null
+            } catch {
+                Write-Output ("FAIL: {0}" -f $_.Exception.Message.Trim())
+                exit 1
+            } finally {
+                [System.Runtime.InteropServices.Marshal]::ReleaseComObject($engine) | Out-Null
+                Remove-StaleLockFile $Path
+            }
+            exit 0
+        }
+        'query' {
+            # Accept the SQL as -Sql or as the third positional argument
+            # (the -File binding puts it into -Second), like 'exec'.
+            if (-not $Sql) { $Sql = $Second }
+            if (-not $Path -or -not $Sql) { throw 'query requires -Path and -Sql' }
+            $engine = New-Object -ComObject DAO.DBEngine.120
+            try {
+                $db = $engine.OpenDatabase($Path, $false, $false)
+                try {
+                    $rs = $db.OpenRecordset($Sql)
+                    $cols = $rs.Fields.Count
+                    while (-not $rs.EOF) {
+                        $vals = @()
+                        for ($i = 0; $i -lt $cols; $i++) { $vals += [string]$rs.Fields.Item($i).Value }
+                        Write-Output ($vals -join ' | ')
+                        $rs.MoveNext()
+                    }
+                    $rs.Close()
+                } finally {
+                    $db.Close()
+                    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($db) | Out-Null
+                }
+            } catch {
+                Write-Output ("FAIL: {0}" -f $_.Exception.Message.Trim())
+                exit 1
+            } finally {
+                [System.Runtime.InteropServices.Marshal]::ReleaseComObject($engine) | Out-Null
+                Remove-StaleLockFile $Path
+            }
+            exit 0
+        }
         default {
-            throw "unknown command: $Command (expected new-db|exec|open-test|compact|dump)"
+            throw "unknown command: $Command (expected new-db|exec|open-test|compact|dump|listdefs|query)"
         }
     }
 } catch {

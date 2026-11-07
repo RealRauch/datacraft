@@ -27,6 +27,12 @@ powershell ... oracle.ps1 exec C:\path\scratch\fresh.mdb "INSERT INTO t1 VALUES 
 # Acceptance check: opens the file with the Jet engine and reports OK/FAIL
 powershell ... oracle.ps1 open-test C:\path\scratch\candidate.mdb
 
+# Enumerate the engine's TableDefs (name list + count) — the M63 visibility check
+powershell ... oracle.ps1 listdefs C:\path\scratch\candidate.mdb
+
+# Run a SELECT through the engine and print the rows ('|'-separated)
+powershell ... oracle.ps1 query C:\path\scratch\candidate.mdb "SELECT Id, Name FROM T ORDER BY Id"
+
 # Compact a database into a new file (maintenance observations)
 powershell ... oracle.ps1 compact C:\path\src.mdb C:\path\dst.mdb
 
