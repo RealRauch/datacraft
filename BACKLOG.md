@@ -84,12 +84,6 @@
 - **Approach:** Mirror the integer branch: attempt the parse and return a precise lexer error on failure instead of expecting; drop the panic.
 - **Acceptance:** No `expect`/`unwrap` remains on the lexer parse path; existing lexer and expression tests stay green; canonical verification set green.
 
-### [ ] M66 — Table drops leak the dropped table's physical index pages — 🟡
-- **Location:** `crates/datacraft-jet/src/jet/writer_drop.rs` (`drop_table`'s freed-page set).
-- **Problem:** A dropped table's physical index leaf pages are not returned to the global free map: the drop's page set comes from the table's used map, and the engine does not mark index pages there (observed on `testV2000.mdb`/ACE copies: the table's leaves stay allocated and unreachable after the TDEF is 0xFF-filled). The file therefore leaks those pages until a compaction. DataCraft-created tables are unaffected today (their index metadata carries `first_dp = 0`, no leaves), but any table dropped in an Access-created file leaks.
-- **Approach:** Extend the drop's page set with every physical index root of the dropped TDEF (and, defensively, the pages those roots own) before the 0xFF fill; add a contract test over an engine-written fixture table with physical indexes (leaf count before/after, global map bits).
-- **Acceptance:** Dropping an indexed table on an ACE/Jet fixture copy frees its index leaf pages (global map bit set, 0xFF-filled) and leaves no reachable reference; the drop contract tests stay green; canonical verification set green.
-
 ---
 
 ## 🟢 LOW
@@ -371,3 +365,4 @@
 - M57 — Form runtime ignores the designer's stored control rects — done (done in `c163a49` (RED `5077ac8`) - step 46.1: the runtime paints the designer's shared 640x400 canvas and places every control at its stored rect with its stored size (child Ui per rect); the user's database.mdb Form1 now renders staggered as designed; layout_probe records runtime.Form1.<control> rects for the pin)
 - M58 — Activating an object does not surface its contextual ribbon tab — done (done in `0154080` (RED `db49f7d`) - step 47.1: the ribbon selection follows the active document's kind via the spec-derived core contextual_tab_id mapping; guards pin that the backstage is never yanked and same-kind activation changes nothing)
 - F11 — Inline fix: useless u16 conversion in jet3.rs blocked clippy -D warnings — done (fixed in `da29925` (step 49.2))
+- M66 — Table drops leak the dropped table's physical index pages — done (fixed in `6ba2255` (drop scans index pages by their parent TDEF; contract test demands 0xFF-fill and global-map release))

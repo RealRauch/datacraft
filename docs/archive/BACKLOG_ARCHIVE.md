@@ -1512,3 +1512,12 @@
 - **Problem:** `misc: u16::from(misc)` converted a `u16` to itself; clippy 0.1.98 flagged it as `useless_conversion` under `-D warnings`, so the canonical verification set could not run green on the current tree (the line was untouched by step 49.2).
 - **Approach:** Dropped the conversion (`misc,`); no behavior change. Fixed inline while step 49.2 was running (Low class, one token).
 - **Done:** fixed in `da29925` (step 49.2)
+
+---
+
+### [x] M66 — Table drops leak the dropped table's physical index pages — 🟡
+- **Location:** `crates/datacraft-jet/src/jet/writer_drop.rs` (`drop_table`'s freed-page set).
+- **Problem:** A dropped table's physical index leaf pages are not returned to the global free map: the drop's page set comes from the table's used map, and the engine does not mark index pages there (observed on `testV2000.mdb`/ACE copies: the table's leaves stay allocated and unreachable after the TDEF is 0xFF-filled). The file therefore leaks those pages until a compaction. DataCraft-created tables are unaffected today (their index metadata carries `first_dp = 0`, no leaves), but any table dropped in an Access-created file leaks.
+- **Approach:** Extend the drop's page set with every physical index root of the dropped TDEF (and, defensively, the pages those roots own) before the 0xFF fill; add a contract test over an engine-written fixture table with physical indexes (leaf count before/after, global map bits).
+- **Acceptance:** Dropping an indexed table on an ACE/Jet fixture copy frees its index leaf pages (global map bit set, 0xFF-filled) and leaves no reachable reference; the drop contract tests stay green; canonical verification set green.
+- **Done:** fixed in `6ba2255` (drop scans index pages by their parent TDEF; contract test demands 0xFF-fill and global-map release)
