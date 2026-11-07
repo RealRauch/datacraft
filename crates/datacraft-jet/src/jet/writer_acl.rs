@@ -78,26 +78,7 @@ impl Jet4Writer {
         catalog_def: &JetTableDef,
     ) -> Result<Option<Vec<u8>>, StorageError> {
         let rows = reader.read_table(CATALOG_TDEF_PAGE)?.rows;
-        let column = |name: &str| {
-            catalog_def
-                .columns
-                .iter()
-                .position(|column| column.name == name)
-        };
-        let (Some(id), Some(owner)) = (column("Id"), column("Owner")) else {
-            return Ok(None);
-        };
-        for row in rows {
-            if row.get(id) != Some(&StorageValue::Int(DATABASE_OBJECT_ID)) {
-                continue;
-            }
-            if let Some(StorageValue::Binary(sid)) = row.get(owner)
-                && !sid.is_empty()
-            {
-                return Ok(Some(sid.clone()));
-            }
-        }
-        Ok(None)
+        Ok(database_owner_in(catalog_def, &rows))
     }
 
     /// The workgroup SID the engine keeps on the database object: an ACE SID
@@ -110,22 +91,7 @@ impl Jet4Writer {
     ) -> Result<Option<Vec<u8>>, StorageError> {
         let def = JetTableDef::decode(&self.file, aces_page)?;
         let rows = reader.read_table(aces_page)?.rows;
-        let index = |name: &str| def.columns.iter().position(|column| column.name == name);
-        let (Some(object), Some(sid)) = (index("ObjectId"), index("SID")) else {
-            return Ok(None);
-        };
-        for row in rows {
-            if row.get(object) != Some(&StorageValue::Int(DATABASE_OBJECT_ID)) {
-                continue;
-            }
-            if let Some(StorageValue::Binary(candidate)) = row.get(sid)
-                && !candidate.is_empty()
-                && candidate != owner
-            {
-                return Ok(Some(candidate.clone()));
-            }
-        }
-        Ok(None)
+        Ok(workgroup_sid_in(&def, &rows, owner))
     }
 
     /// Inserts the object's ACL rows into `MSysACEs`.
@@ -152,3 +118,64 @@ impl Jet4Writer {
         Ok(())
     }
 }
+
+/// The `Owner` binary of the `MSysDb` catalog row: the first row whose `Id`
+/// is the database object and whose `Owner` is a non-empty binary. `None`
+/// when the columns or the row are missing (no ACL is derived then).
+fn database_owner_in(catalog_def: &JetTableDef, rows: &[Vec<StorageValue>]) -> Option<Vec<u8>> {
+    let column = |name: &str| {
+        catalog_def
+            .columns
+            .iter()
+            .position(|column| column.name == name)
+    };
+    let (Some(id), Some(owner)) = (column("Id"), column("Owner")) else {
+        return None;
+    };
+    for row in rows {
+        if row.get(id) != Some(&StorageValue::Int(DATABASE_OBJECT_ID)) {
+            continue;
+        }
+        if let Some(StorageValue::Binary(sid)) = row.get(owner)
+            && !sid.is_empty()
+        {
+            return Some(sid.clone());
+        }
+    }
+    None
+}
+
+/// The workgroup SID the engine keeps on the database object: the first ACE
+/// SID on `MSysDb` that differs from the owner. `None` when the columns are
+/// missing or no differing SID exists (the grant list then carries the owner
+/// entry only).
+fn workgroup_sid_in(
+    aces_def: &JetTableDef,
+    rows: &[Vec<StorageValue>],
+    owner: &[u8],
+) -> Option<Vec<u8>> {
+    let index = |name: &str| {
+        aces_def
+            .columns
+            .iter()
+            .position(|column| column.name == name)
+    };
+    let (Some(object), Some(sid)) = (index("ObjectId"), index("SID")) else {
+        return None;
+    };
+    for row in rows {
+        if row.get(object) != Some(&StorageValue::Int(DATABASE_OBJECT_ID)) {
+            continue;
+        }
+        if let Some(StorageValue::Binary(candidate)) = row.get(sid)
+            && !candidate.is_empty()
+            && candidate != owner
+        {
+            return Some(candidate.clone());
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+mod tests;

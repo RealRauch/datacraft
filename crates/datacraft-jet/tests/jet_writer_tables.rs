@@ -363,3 +363,49 @@ fn scalar_fixed_types_and_variable_long_binary_round_trip() {
     let decoded = datacraft_jet::jet::decode_row(&row, &def, &[], 4096).expect("decodes");
     assert_eq!(decoded, values);
 }
+
+/// Hostile definitions and odd slot shapes answer precisely instead of
+/// panicking: a fixed offset beyond the row, a fixed LongBinary payload of
+/// exactly the descriptor length, and a scalar stored in a variable slot
+/// (the fixture nav-pane tables' shape).
+#[test]
+fn row_encoder_refuses_broken_offsets_and_encodes_odd_slots() {
+    let mut def = JetTableDef {
+        table_type: 0x4E,
+        num_rows: 0,
+        autonumber: 0,
+        used_pages: 0,
+        free_pages: 0,
+        indexes: Vec::new(),
+        index_section: Vec::new(),
+        index_count: 0,
+        real_index_count: 0,
+        columns: vec![JetColumn::new("v", JetType::LongInt, 0x03, 0, 0, 4)],
+    };
+    def.columns[0].fixed_offset = 65_530;
+    let error = encode_row(&[StorageValue::Int(1)], &def)
+        .expect_err("a hostile offset grows the row past the 65535-byte Jet limit");
+    assert!(
+        error.to_string().contains("65535-byte Jet row limit"),
+        "{error}"
+    );
+
+    let mut long_binary = JetTableDef {
+        columns: vec![JetColumn::new("blob", JetType::LongBinary, 0x03, 0, 0, 4)],
+        ..def.clone()
+    };
+    long_binary.columns[0].fixed_offset = 0;
+    let row = encode_row(&[StorageValue::Binary(vec![1, 2, 3, 4])], &long_binary)
+        .expect("fixed long binary");
+    let decoded = jet::decode_row(&row, &long_binary, &[], 4096).expect("decodes");
+    assert_eq!(decoded, [StorageValue::Binary(vec![1, 2, 3, 4])]);
+
+    let mut variable = JetTableDef {
+        columns: vec![JetColumn::new("n", JetType::LongInt, 0x02, 0, 0, 4)],
+        ..long_binary
+    };
+    variable.columns[0].var_index = Some(0);
+    let row = encode_row(&[StorageValue::Int(-2)], &variable).expect("scalar in a variable slot");
+    let decoded = jet::decode_row(&row, &variable, &[], 4096).expect("decodes");
+    assert_eq!(decoded, [StorageValue::Int(-2)]);
+}

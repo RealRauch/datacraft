@@ -303,52 +303,52 @@ pub fn leaf_entry(keys: &[KeyPart<'_>], pointer: RowPointer) -> Result<Vec<u8>, 
     }
     let mut entry = Vec::with_capacity(keys.len() * 6 + 4);
     for key in keys {
-        if matches!(key, KeyPart::Null) {
+        let Some(payload) = key_payload(key)? else {
             entry.push(NULL_FLAG);
             continue;
-        }
+        };
         entry.push(KEY_FLAG);
-        match key {
-            KeyPart::Null => unreachable!("handled above"),
-            KeyPart::Boolean(bit) => entry.push(if *bit { 0xFF } else { 0x00 }),
-            KeyPart::Byte(value) => entry.push(*value),
-            KeyPart::SmallInteger(value) => {
-                entry.extend_from_slice(&((*value as u16) ^ 0x8000).to_be_bytes());
-            }
-            KeyPart::Integer(value) => {
-                entry.extend_from_slice(&((*value as i32 as u32) ^ SIGN_32).to_be_bytes());
-            }
-            KeyPart::Currency(value) => {
-                entry.extend_from_slice(&((*value as u64) ^ SIGN_64).to_be_bytes());
-            }
-            KeyPart::Single(value) => {
-                entry.extend_from_slice(&(value.to_bits() ^ SIGN_32).to_be_bytes());
-            }
-            KeyPart::Double(value) | KeyPart::DateTime(value) => {
-                entry.extend_from_slice(&(value.to_bits() ^ SIGN_64).to_be_bytes());
-            }
-            KeyPart::Guid(bytes) => {
-                // The engine orders GUIDs by their textual byte order; the
-                // image splits after eight bytes with the observed markers.
-                entry.extend_from_slice(&[
-                    bytes[3],
-                    bytes[2],
-                    bytes[1],
-                    bytes[0],
-                    bytes[5],
-                    bytes[4],
-                    bytes[7],
-                    bytes[6],
-                    GUID_SPLIT_MARKER,
-                ]);
-                entry.extend_from_slice(&bytes[8..16]);
-                entry.push(GUID_END_MARKER);
-            }
-            KeyPart::Text(text) => entry.extend_from_slice(&text_sort_key(text)?),
-        }
+        entry.extend_from_slice(&payload);
     }
     entry.extend_from_slice(&pointer_bytes(pointer)?);
     Ok(entry)
+}
+
+/// The stored key bytes of one non-NULL component; `None` marks a NULL
+/// component (flag `0x00`, no data).
+fn key_payload(key: &KeyPart<'_>) -> Result<Option<Vec<u8>>, StorageError> {
+    Ok(match key {
+        KeyPart::Null => None,
+        KeyPart::Boolean(bit) => Some(vec![if *bit { 0xFF } else { 0x00 }]),
+        KeyPart::Byte(value) => Some(vec![*value]),
+        KeyPart::SmallInteger(value) => Some(((*value as u16) ^ 0x8000).to_be_bytes().to_vec()),
+        KeyPart::Integer(value) => Some(((*value as i32 as u32) ^ SIGN_32).to_be_bytes().to_vec()),
+        KeyPart::Currency(value) => Some(((*value as u64) ^ SIGN_64).to_be_bytes().to_vec()),
+        KeyPart::Single(value) => Some((value.to_bits() ^ SIGN_32).to_be_bytes().to_vec()),
+        KeyPart::Double(value) | KeyPart::DateTime(value) => {
+            Some((value.to_bits() ^ SIGN_64).to_be_bytes().to_vec())
+        }
+        KeyPart::Guid(bytes) => {
+            // The engine orders GUIDs by their textual byte order; the image
+            // splits after eight bytes with the observed markers.
+            let mut out = Vec::with_capacity(18);
+            out.extend_from_slice(&[
+                bytes[3],
+                bytes[2],
+                bytes[1],
+                bytes[0],
+                bytes[5],
+                bytes[4],
+                bytes[7],
+                bytes[6],
+                GUID_SPLIT_MARKER,
+            ]);
+            out.extend_from_slice(&bytes[8..16]);
+            out.push(GUID_END_MARKER);
+            Some(out)
+        }
+        KeyPart::Text(text) => Some(text_sort_key(text)?),
+    })
 }
 
 /// Reads the trailing row pointer of an entry image.
