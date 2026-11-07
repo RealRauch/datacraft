@@ -552,6 +552,32 @@ Evidence (hex study on both fixture variants, hashes per
   difference is deliberate and documented here and in the csv/jet crate
   docs. `tests/jet_row_writes.rs` pins the message.
 
+## Access co-existence: lock files (2026-11-08 — step 53, item M59)
+
+A live Access session holds a sibling **lock file** beside the database:
+`<name>.ldb` for Jet (`.mdb`) and `<name>.laccdb` for ACE (`.accdb`).
+Two uncoordinated writers corrupt the file — DataCraft's write-through
+replaces the file atomically while Access holds pages open — so the open
+path draws an honest, implementable boundary:
+
+- **Detection is existence-only** at open: a sibling lock file downgrades
+  the session to the Jet3 read-only shape (every write capability off)
+  and every write call — rows, schema, save-as, password change — answers
+  a precise `Unsupported` naming the lock file, the consequence and the
+  remedy (`jet_capabilities.rs` pins the caps and the refusals). No
+  `.ldb`/`.laccdb` sibling — unchanged behavior.
+- **DataCraft never creates or deletes lock files.** The lock protocol's
+  contents (which session holds which page) have **no public
+  specification and are clean-room-unclear** — distinguishing a live
+  lock from a stale one (Access crashed) is out of scope (M59); the user
+  removes a stale file manually once Access is closed.
+- **The lock file travels as data**: `OpenedDatabase.lock_file` → the
+  snapshot's `lock_file` carries the file NAME for every client (ADR-4 —
+  the GUI localizes the status-bar and Info-page notice from it; CLI/MCP
+  agents read the field). `driver_caps.rs` pins the snapshot path.
+- Evidence runs on **scratch-dir copies** with an empty sibling lock
+  file — the pinned fixtures are never touched.
+
 ## Usage maps (writer — verified 2026-11-01, step 10.1)
 
 Black-box verified against the Access-written fixture by decoding the TDEF

@@ -91,6 +91,23 @@ fn the_snapshot_carries_driver_and_capabilities() {
     assert_eq!(db.capabilities.relationships, Support::Yes);
 }
 
+/// The detected Access lock file travels into the snapshot as data (step
+/// 53.3, item M59): the CLI and MCP clients surface the notice through
+/// the same JSON the GUI localizes from — agents key on data, not prose
+/// (I6; ADR-4 keeps the language UI-side).
+#[test]
+fn the_snapshot_carries_the_lock_file_for_the_headless_clients() {
+    let mut port = MockPort::new();
+    port.with_lock_file("shop.ldb");
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    let db = core.inspect().database.expect("the database is open");
+    assert_eq!(db.lock_file.as_deref(), Some("shop.ldb"));
+}
+
 /// The wire spells the vocabulary deterministically — flat capability
 /// object, snake_case support levels, transparent driver id — so agents
 /// key on stable JSON, not prose.

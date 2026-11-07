@@ -314,6 +314,6 @@
 | 52.1 | Test job: disk evidence and headroom before the build (H55, High gate released 2026-11-07) | ✅ |
 | 52.2 | Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded) | ✅ |
 | 53.1 | Jet/ACE open: a sibling .ldb forces a read-only session with the lock-file notice in the snapshot (M59) | ✅ |
-| 53.2 | UI: status bar and Info backstage render the localized notice (M59) | 🔄 |
-| 53.3 | CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59) | ⬜ |
+| 53.2 | UI: status bar and Info backstage render the localized notice (M59) | ✅ |
+| 53.3 | CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59) | 🔄 |
 | 53.4 | Phase 53 Quality Gate Review | ⬜ |
