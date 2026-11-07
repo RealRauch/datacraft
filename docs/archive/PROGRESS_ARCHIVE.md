@@ -626,3 +626,15 @@ before the tag.
 - **45.1 Filter dialog window replaces the in-menu editor (user report: menu closes on field click)**
 - **45.2 Record-navigation arrow order: prev left, next right (user report)**
 - **45.3 Phase 45 Quality Gate Review (+ README datasheet row)**
+
+---
+
+### Phase 49 — Create-Path Access Compatibility (M63, Critical)
+
+**Scope (Steps):**
+
+- **49.1 Page-0 tail reverse-engineering: structure, semantics, maintenance (M63, DAO oracle)**
+- **49.2 Writer: emit + maintain the tail and the remaining region fields (M63)**
+- **49.3 Compatibility verification: DataCraft-created file opens in real Access (M63, user gate)**
+- **49.4 User data recovery through the fixed writer + Phase 49 gate**
+**Verification:** Verification: canonical verification set green on the final tree (fmt, clippy -D warnings, workspace tests 160/160 suites, llvm-cov >= 95 % lines, file-size gate). Step 49.3: the ten-step real-Access checklist passed end to end (user-verified 2026-11-07); the pre-flight found and fixed K4 (seed semantics). Step 49.4: the incident database (database.mdb, byte-identical backup) was identified, the engine refusal re-proven without the lock confound, SaveDatabaseAs proven unable to repair (M67), and the data recovered through the create path via examples/recover_mdb.rs — engine-accepted, value-parity per table, autonumber continues across engines; user confirmed the data in Access. K5 (restore writes left the seed behind) fixed test-first on the way. (checkpoint: 5088f6e)

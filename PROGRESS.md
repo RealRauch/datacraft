@@ -17,14 +17,6 @@
 - **48.2 Datasheet trailing elements stay above the status bar (M61)**
 - **48.3 Filter dialog documents the criteria syntax (M62)**
 - **48.4 Phase 48 Quality Gate Review**
-### Phase 49 — Create-Path Access Compatibility (M63, Critical)
-
-**Scope (Steps):**
-
-- **49.1 Page-0 tail reverse-engineering: structure, semantics, maintenance (M63, DAO oracle)**
-- **49.2 Writer: emit + maintain the tail and the remaining region fields (M63)**
-- **49.3 Compatibility verification: DataCraft-created file opens in real Access (M63, user gate)**
-- **49.4 User data recovery through the fixed writer + Phase 49 gate**
 
 
 
@@ -310,4 +302,4 @@
 | 49.1 | Page-0 tail reverse-engineering: structure, semantics, maintenance (M63, DAO oracle) | ✅ |
 | 49.2 | Writer: emit + maintain the tail and the remaining region fields (M63) | ✅ |
 | 49.3 | Compatibility verification: DataCraft-created file opens in real Access (M63, user gate) | ✅ |
-| 49.4 | User data recovery through the fixed writer + Phase 49 gate | ⬜ |
+| 49.4 | User data recovery through the fixed writer + Phase 49 gate | ✅ |
