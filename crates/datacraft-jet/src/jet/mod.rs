@@ -13,6 +13,7 @@ pub mod data_page;
 pub mod encode;
 pub mod header;
 pub mod index;
+pub mod index_pages;
 pub mod jet3;
 pub mod lval;
 pub mod page;
