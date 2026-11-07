@@ -1584,3 +1584,30 @@
 - **Approach:** Reframe the PUBLISHING changelog policy to the per-phase cadence; wire CHANGELOG.md into the AGENTS §7 living-documents discipline; catch `Unreleased` up coarsely for the missed phases (grouped, crate-attributed bullets with phase references).
 - **Acceptance:** `Unreleased` covers the phases since the changelog began; PUBLISHING and AGENTS state the per-phase cadence; hygiene scan clean; canonical verification set green (docs-only).
 - **Done:** done in 482ec1c — step 51.1: per-phase changelog cadence replaces the per-commit policy (PUBLISHING §Changelog policy + AGENTS §7); Unreleased caught up with grouped coarse bullets for the missed phases.
+
+---
+
+### [x] H55 — CI: ubuntu test job dies with ld SIGBUS on the migrated ubuntu-26 image — 🟠
+- **Location:** `.github/workflows/ci.yml` (test job), the GitHub-hosted runner image.
+- **Problem:** `Tests (ubuntu-latest)` failed on run 42409915023 (2026-11-07 push after 154 unpushed commits) and again on its failed-job rerun — both times with `collect2: fatal error: ld terminated with signal 7 [Bus error]` while linking core test binaries (`journal`, `new_row`). No test assertion failed; the linker dies mid-build. The `ubuntu-latest` label migrated to Ubuntu 26 beginning 2026-10-19 (annotation in the run); SIGBUS during ld is the classic disk-exhaustion symptom (a failed mmap write), and the debug build of the grown workspace (`--all-features`, egui, bundled rusqlite) is the suspected trigger — the coverage job, also a full build, succeeded. Blocks L25's acceptance (one fully green run) and every future push.
+- **Approach:** Diagnose before fixing — one lean step in the test job: `df -h` before the build (evidence in the run log) plus freeing the runner's preinstalled tooling (`sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android`); if the disk is NOT the culprit, pin `ubuntu-24.04` for the affected jobs or lower debuginfo via the profile (Cargo.toml, Medium gate) as the alternative. Touching `.github/workflows/*` is High-class: one per-occurrence release required.
+- **Acceptance:** `Tests (ubuntu-latest)` passes on a fully green CI run on `main` (which also closes L25's acceptance); the root cause is identified and recorded (df output or the image-pin rationale) in this item's closure note.
+- **Done:** done in ad5a1a5 — step 52.1: root cause confirmed as disk exhaustion on the migrated ubuntu-26 runner image (run 42411956901: 15 GB free before, 37 GB after freeing ~22 GB of preinstalled dotnet/ghc/android/swift/CodeQL tooling; the ld SIGBUS was the mmap-write failure). The evidence step stays in the test job as the standing headroom pass; run 42411956901 is fully green with macOS jobs green (closing L25's acceptance too).
+
+---
+
+### [x] L25 — Re-admit macOS to the CI matrices when runner capacity recovers — 🟢
+- **Location:** `.github/workflows/ci.yml` (test + oracle matrices, macos-latest removed 2026-11-03 per L10)
+- **Problem:** macOS runners infra-cancelled every job after ~15m (L10). The temporary narrowing removed macOS from CI; the release.yml build matrix still covers macOS artifacts with the packaged smoke, but macOS unit tests and the mdbtools oracle cross-check are no longer exercised per push.
+- **Approach:** When GitHub macOS runner capacity/billing recovers (check Settings → Billing → Actions minutes; the macOS 10x multiplier is the prime suspect), re-add `macos-latest` to both matrices, drop the L10 comments, and confirm one fully green run. High-class CI change: one per-occurrence release.
+- **Acceptance:** `macos-latest` back in both matrices; a CI run on `main` completes with the macOS jobs green (not cancelled); the in-file L10 comments removed.
+- **Done:** done in 939ddbe — step 50.1: macos-latest re-admitted to the ci.yml test and oracle matrices, the in-file L10 comments removed; a CI run on main completed fully green with the macOS jobs green (run 42411956901, 2026-11-07). Note: the first run attempt exposed the ubuntu ld SIGBUS (H55, closed the same day — disk headroom step in the test job).
+
+---
+
+### [x] H54 — README claims a 3-OS test matrix that CI no longer runs — 🟠
+- **Location:** `README.md:115` (test-matrix row), `.github/workflows/ci.yml:54` (matrix `[ubuntu-latest, windows-latest]`).
+- **Problem:** The README lists macOS in the test matrix, but CI has run ubuntu+windows only since 2026-11-03 (macOS paused, L10/L25). The README's own quality-gates table (`README.md:280`) states the pause correctly — the same file contradicts itself, and a user-facing claim that no longer holds (found in the 2026-11-07 repo review).
+- **Approach:** Align the matrix row with `ci.yml` (`ubuntu-latest`, `windows-latest`) and cross-reference L25 for the macOS re-admission; no other doc site (AGENTS/TESTING) may claim a 3-OS matrix.
+- **Acceptance:** The README matrix matches `ci.yml`; `docs_status` shows no new findings; canonical verification set green.
+- **Done:** done in 939ddbe — step 50.1: resolved by the L25 re-admission — the README matrix row now matches ci.yml (ubuntu+windows+macos), the quality-gates row and the README/AGENTS/TESTING macOS-pause notes were aligned to the re-admission; docs_validate clean.

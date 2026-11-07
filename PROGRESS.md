@@ -9,18 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 50 — CI macOS re-admission
-
-**Scope (Steps):**
-
-- **50.1 Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54)**
-- **50.2 Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled)**
-### Phase 52 — CI ubuntu diagnosis
-
-**Scope (Steps):**
-
-- **52.1 Test job: disk evidence and headroom before the build (H55, High gate released 2026-11-07)**
-- **52.2 Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded)**
 
 
 
@@ -310,9 +298,9 @@
 | 49.2 | Writer: emit + maintain the tail and the remaining region fields (M63) | ✅ |
 | 49.3 | Compatibility verification: DataCraft-created file opens in real Access (M63, user gate) | ✅ |
 | 49.4 | User data recovery through the fixed writer + Phase 49 gate | ✅ |
-| 50.1 | Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54) | 🔄 |
-| 50.2 | Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled) | ⬜ |
+| 50.1 | Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54) | ✅ |
+| 50.2 | Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled) | ✅ |
 | 51.1 | Changelog: per-phase cadence in policy and AGENTS, coarse Unreleased catch-up (L38) | ✅ |
 | 51.2 | Phase 51 Quality Gate Review | ✅ |
-| 52.1 | Test job: disk evidence and headroom before the build (H55, High gate released 2026-11-07) | 🔄 |
-| 52.2 | Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded) | ⬜ |
+| 52.1 | Test job: disk evidence and headroom before the build (H55, High gate released 2026-11-07) | ✅ |
+| 52.2 | Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded) | ✅ |

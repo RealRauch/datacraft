@@ -660,3 +660,23 @@ before the tag.
 - **51.1 Changelog: per-phase cadence in policy and AGENTS, coarse Unreleased catch-up (L38)**
 - **51.2 Phase 51 Quality Gate Review**
 **Verification:** Docs-only phase: the Rust tree is unchanged since the green canonical sweep at the phase 48 gate (01c261f); hygiene scan clean on all touched files; docs_validate green. The binding ubuntu CI gate is currently blocked by an infra-level linker failure (H55) — unrelated to this phase's docs. (checkpoint: 482ec1c)
+
+---
+
+### Phase 52 — CI ubuntu diagnosis
+
+**Scope (Steps):**
+
+- **52.1 Test job: disk evidence and headroom before the build (H55, High gate released 2026-11-07)**
+- **52.2 Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded)**
+**Verification:** Canonical gates green on CI run 42411956901: all 10 jobs success including Tests (ubuntu-latest) with the H55 headroom step (15 GB -> 37 GB free; root cause disk exhaustion), macOS tests + oracle green (not cancelled). (checkpoint: ad5a1a5)
+
+---
+
+### Phase 50 — CI macOS re-admission
+
+**Scope (Steps):**
+
+- **50.1 Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54)**
+- **50.2 Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled)**
+**Verification:** Canonical verification green on CI main run 42411956901 (all 10 jobs success; the ubuntu coverage gate reads >= 95 % from the exported lcov, confirming the local Windows 94.94 % reading as the known non-comparable local number). macOS matrix re-admission (L25/H54) accepted on this run; the ubuntu diagnosis (H55) closed in phase 52. (checkpoint: ad5a1a5)
