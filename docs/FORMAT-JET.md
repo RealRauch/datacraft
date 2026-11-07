@@ -463,8 +463,11 @@ self-created programmability fixture):
 Writer policy (M15): one real + logical index per field whose
 `FieldProperties.indexed` is not `None`; `NoDuplicates` sets the unique
 flag, every generated index ignores NULLs. Physical B-tree pages are **not**
-written (`first_dp` = 0) — a documented roadmap item; Access may rebuild
-the index on open. Uniqueness is enforced by the port on insert/update and
+written for indexes DataCraft creates itself (`first_dp` = 0) — a documented
+roadmap item; Access may rebuild the index on open. Leaves that **exist** in
+a file (engine-written catalogs, Access-created indexes) are maintained on
+every row mutation since phase 49.2 — see "Index sort keys and leaf
+maintenance". Uniqueness is enforced by the port on insert/update and
 over a whole journal batch. Existing index sections are preserved verbatim
 on unrelated row writes; `alter_table` re-encodes the index list (statistics
 and page pointers zeroed) and refuses a new unique index when the column
