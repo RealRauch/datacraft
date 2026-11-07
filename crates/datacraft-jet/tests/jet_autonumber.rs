@@ -104,10 +104,7 @@ fn an_engine_advanced_seed_assigns_one_past_it() {
     writer
         .insert_row(
             tdef,
-            &[
-                StorageValue::Null,
-                StorageValue::Text("seeded".to_owned()),
-            ],
+            &[StorageValue::Null, StorageValue::Text("seeded".to_owned())],
         )
         .expect("row inserted");
     std::fs::write(&path, writer.into_file()).expect("write the copy");

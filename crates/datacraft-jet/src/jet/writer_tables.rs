@@ -191,14 +191,13 @@ impl Jet4Writer {
             }
             if matches!(value, StorageValue::Null) {
                 let next = i64::from(def.autonumber) + 1;
-                let assigned_value =
-                    i32::try_from(next).map_err(|_| StorageError::Corrupt {
-                        context: "row insert".into(),
-                        detail: format!(
-                            "table {tdef_page} autonumber seed {:#010x} exceeds LongInteger",
-                            def.autonumber
-                        ),
-                    })?;
+                let assigned_value = i32::try_from(next).map_err(|_| StorageError::Corrupt {
+                    context: "row insert".into(),
+                    detail: format!(
+                        "table {tdef_page} autonumber seed {:#010x} exceeds LongInteger",
+                        def.autonumber
+                    ),
+                })?;
                 *value = StorageValue::Int(i64::from(assigned_value));
                 assigned = true;
             }
