@@ -163,8 +163,8 @@ impl App {
             return;
         };
         let (current, len) = match active.object_kind.as_str() {
-            // Forms navigate their source rows (the maintain_caches pass
-            // loads them per form tab); queries walk their result set.
+            // Queries walk their result set; forms navigate their source
+            // rows (the maintain_caches pass loads them per form tab).
             "query" => (
                 self.record_cursor(active.id),
                 self.results_for(active.id).map_or(0, |r| r.rows.len()),
@@ -173,8 +173,16 @@ impl App {
                 self.preview_page(active.id),
                 self.preview_pages(active.id).len(),
             ),
-            _ => (
+            // Tables read the record cursor their own `step_record` writes
+            // (step 48.1, item M60): the counter used to read the form
+            // cursor, which never moves for tables, so every click
+            // recomputed the same target and the arrows appeared dead.
+            "form" => (
                 self.form_record(active.id),
+                self.rows_for(active.id).map_or(0, Vec::len),
+            ),
+            _ => (
+                self.record_cursor(active.id),
                 self.rows_for(active.id).map_or(0, Vec::len),
             ),
         };

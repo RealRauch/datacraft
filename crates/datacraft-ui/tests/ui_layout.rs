@@ -212,10 +212,13 @@ fn tree_dump_shell(harness: &Harness<'_, App>) -> String {
     for node in harness.root().children_recursive() {
         let node = node.accesskit_node();
         let label = node.label().unwrap_or_default();
-        if label.is_empty() {
+        let value = node.value().unwrap_or_default();
+        if label.is_empty() && value.is_empty() {
             continue;
         }
-        lines.push(format!("{:?}|{}", node.role(), label));
+        // The record-navigation counter stores its text as the node's
+        // value (step 48.1, M60), so the dump must carry both.
+        lines.push(format!("{:?}|{label}|{value}", node.role()));
     }
     lines.join(
         "
