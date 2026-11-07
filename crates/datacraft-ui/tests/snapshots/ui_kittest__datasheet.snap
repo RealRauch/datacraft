@@ -1,6 +1,5 @@
 ---
 source: crates/datacraft-ui/tests/ui_kittest.rs
-assertion_line: 243
 expression: tree_dump(&harness)
 ---
 ColumnHeader|id|
@@ -11,5 +10,7 @@ Label||alpha
 Label||1 row
 TextRun||1 row
 Label||*
+TextRun||*
 Button|Add record|
 Label||Empty cells are Null; AutoNumber assigns itself.
+TextRun||Empty cells are Null; AutoNumber assigns itself.

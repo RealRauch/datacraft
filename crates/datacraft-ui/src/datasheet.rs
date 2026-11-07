@@ -15,7 +15,7 @@
 use eframe::egui;
 
 use datacraft_core::command::Command;
-use datacraft_core::grid::{DEFAULT_COLUMN_WIDTH, GridMetrics};
+use datacraft_core::grid::GridMetrics;
 use datacraft_core::qbe::{QbeRow, QbeValue, SortOrder};
 use datacraft_core::snapshot::TabSnapshot;
 
@@ -27,8 +27,8 @@ use crate::theme::tokens;
 mod grid;
 mod header;
 mod nav;
+mod trailing;
 
-use grid::SELECTOR_WIDTH;
 pub(crate) use grid::{CellEditSlot, EditIntent, Grid, grid_ui, grid_ui_callbacks};
 
 /// Renders the datasheet of one table tab.
@@ -152,30 +152,39 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         let mut on_filter_dialog = |column: usize| {
             dialog_intent = Some(column);
         };
-        grid_ui(
-            ui,
-            Grid {
-                metrics: GridMetrics::default(),
-                columns: &columns,
-                body: &body,
-                cursor,
-                widths: &mut widths,
-                sort_orders: &sorts,
-                id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
-                frozen,
-                delete_reason,
-                edit,
-                edit_restricted,
-            },
-            crate::datasheet::grid_ui_callbacks(
-                &mut on_select,
-                Some(&mut on_sort),
-                Some(&mut on_freeze),
-                Some(&mut on_delete),
-                Some(&mut on_edit),
-                Some(&mut on_filter_dialog),
-            ),
-        );
+        // The grid's row viewport reserves the trailing panels' height
+        // budget (step 48.2, item M61): without it the grid consumes the
+        // full workspace height and pushes the row-count label and the
+        // new-record row behind the status bar.
+        let metrics = GridMetrics::default();
+        let grid_height = (ui.available_height() - trailing::reserve_height(ui))
+            .max(metrics.header_height + metrics.row_height);
+        ui.allocate_ui(egui::vec2(ui.available_width(), grid_height), |ui| {
+            grid_ui(
+                ui,
+                Grid {
+                    metrics,
+                    columns: &columns,
+                    body: &body,
+                    cursor,
+                    widths: &mut widths,
+                    sort_orders: &sorts,
+                    id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
+                    frozen,
+                    delete_reason,
+                    edit,
+                    edit_restricted,
+                },
+                crate::datasheet::grid_ui_callbacks(
+                    &mut on_select,
+                    Some(&mut on_sort),
+                    Some(&mut on_freeze),
+                    Some(&mut on_delete),
+                    Some(&mut on_edit),
+                    Some(&mut on_filter_dialog),
+                ),
+            );
+        });
     }
     if let Some(count) = freeze_intent {
         app.set_frozen_columns(tab.id, count);
@@ -222,9 +231,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     if let Some(row) = selected {
         app.set_record_cursor(tab.id, row, row_count);
     }
-    let count = ui.label(egui::RichText::new(plural(row_count, "{count} row", "{count} rows")).small());
-    crate::layout_probe::record("datasheet.row_count", count.rect);
-    new_row_ui(app, tab, &columns, &widths, ui);
+    trailing::trailing_ui(app, tab, row_count, &columns, &widths, ui);
     filter_dialog_ui(app, tab, &columns, ui);
 }
 
@@ -290,74 +297,6 @@ fn filter_dialog_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &m
         });
     if close {
         app.close_filter_dialog(tab.id);
-    }
-}
-
-/// The datasheet's new-record row (step 11.7): one text cell per column,
-/// marked with the Access asterisk. "Add record" parses the cells and
-/// inserts through the bus; failures land in the status bar.
-fn new_row_ui(
-    app: &mut App,
-    tab: &TabSnapshot,
-    columns: &[String],
-    widths: &[f32],
-    ui: &mut egui::Ui,
-) {
-    ui.separator();
-    // Capability-disabled for the open source (ADR-7): the read-only
-    // new-record row renders muted with the reason instead of editable
-    // cells.
-    let new_record_reason = crate::availability::restricted(
-        app.snapshot(),
-        datacraft_core::availability::ids::NEW_RECORD,
-    );
-    let mut cells = app.new_row_cells(tab.id, columns.len());
-    let mut add = false;
-    egui::ScrollArea::horizontal()
-        .id_salt(format!("datasheet.newrow.{}", tab.ui_test_id))
-        .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.add_space(SELECTOR_WIDTH);
-                ui.label(egui::RichText::new("*").strong());
-                for (index, cell) in cells.iter_mut().enumerate() {
-                    let edit = egui::TextEdit::singleline(cell).hint_text(&columns[index]);
-                    if new_record_reason.is_some() {
-                        ui.add_enabled(
-                            false,
-                            edit.desired_width(
-                                widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH),
-                            ),
-                        );
-                    } else {
-                        ui.add_sized(
-                            [
-                                widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH),
-                                22.0,
-                            ],
-                            edit,
-                        );
-                    }
-                }
-            });
-        crate::layout_probe::record("datasheet.new_row_cells", ui.min_rect());
-        });
-    ui.horizontal(|ui| {
-        ui.add_space(SELECTOR_WIDTH);
-        let add_response = match new_record_reason {
-            Some(reason) => ui
-                .add_enabled(false, egui::Button::new(t("Add record")))
-                .on_hover_text(crate::availability::reason_text(reason)),
-            None => ui.button(t("Add record")),
-        };
-        if add_response.clicked() {
-            add = true;
-        }
-        crate::layout_probe::record("datasheet.new_row_add", add_response.rect);
-        ui.weak(t("Empty cells are Null; AutoNumber assigns itself."));
-    });
-    app.set_new_row_cells(tab.id, cells);
-    if add {
-        app.insert_new_row(tab.id, &tab.object_name);
     }
 }
 
