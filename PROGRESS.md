@@ -295,7 +295,7 @@
 | 46.2 | Phase 46 Quality Gate Review | ✅ |
 | 47.1 | Object activation surfaces the contextual ribbon tab (M58) | ✅ |
 | 47.2 | Phase 47 Quality Gate Review | ✅ |
-| 48.1 | Record navigation reads the cursor it writes (M60) | 🔄 |
+| 48.1 | Record navigation reads the cursor it writes (M60) | ✅ |
 | 48.2 | Datasheet trailing elements stay above the status bar (M61) | ✅ |
 | 48.3 | Filter dialog documents the criteria syntax (M62) | ⬜ |
 | 48.4 | Phase 48 Quality Gate Review | ⬜ |
