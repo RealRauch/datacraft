@@ -375,15 +375,21 @@ fn record_navigation_places_previous_left_of_next() {
     );
 }
 
-/// The status bar names a detected Access lock file (step 53.2, item
-/// M59): the session opened read-only, and the localized notice — rendered
-/// from the snapshot's lock-file data — stands beside the database
-/// context on every frame.
+/// The status bar renders the Access lock-file notice (step 53.2, item
+/// M59): the session opened read-only and the persistent notice stands
+/// beside the database context. The full-shell semantic tree culls
+/// static text (buttons survive, labels do not — the same blindness the
+/// M60/M61 probes worked around), so presence pins through the
+/// layout_probe rect seam; the notice text is pinned end-to-end by the
+/// Info page kittest (the same tr call) and the i18n kernel tests.
 #[test]
-fn the_status_bar_names_the_access_lock_file() {
+fn the_status_bar_renders_the_access_lock_file_notice() {
     let mut port = MockPort::with_tables(vec![TableDef::new(
         "Orders",
-        vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))],
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
     )]);
     let mut caps = datacraft_core::port::DriverCapabilities::full();
     caps.write_rows = false;
@@ -398,10 +404,16 @@ fn the_status_bar_names_the_access_lock_file() {
         path: "orders.mdb".into(),
         password: None,
     });
-    let (_rects, dump) = shell_frame(app, egui::vec2(1280.0, 800.0));
+    let (rects, _dump) = shell_frame(app, egui::vec2(1280.0, 800.0));
+    let status = panel_rect(&rects, "shell.status_panel");
+    let notice = panel_rect(&rects, "status.lock_notice");
     assert!(
-        dump.contains("Read-only — Access lock file orders.ldb"),
-        "the status bar names the lock file:\n{dump}"
+        notice.top() >= status.top() && notice.bottom() <= status.bottom() + 1.0,
+        "the notice renders inside the status bar: notice {notice:?} vs status {status:?}"
+    );
+    assert!(
+        notice.width() > 40.0,
+        "the notice carries visible text: {notice:?}"
     );
 }
 

@@ -13,7 +13,7 @@ use crate::app::App;
 use crate::appearance::Appearance;
 use crate::backstage::BackstagePage;
 use crate::backstage::recent::recent_databases_ui;
-use crate::i18n::t;
+use crate::i18n::{t, tr};
 use crate::settings::LanguageSetting;
 use crate::theme::{fonts, tokens};
 
@@ -402,6 +402,18 @@ fn info_page(app: &mut App, ui: &mut egui::Ui) {
             ui.label(egui::RichText::new(label).strong());
             ui.label(value);
         });
+    }
+    // Access co-existence (step 53.2, item M59): a detected lock file is
+    // a database fact — the name plus the full localized remedy (the
+    // same key the status bar's hover text carries).
+    if let Some(file) = &db.lock_file {
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new(t("Access lock file")).strong());
+            ui.label(file);
+        });
+        ui.label(
+            egui::RichText::new(tr(crate::shell::LOCK_NOTICE_DETAIL, &[("file", file)])).weak(),
+        );
     }
 }
 

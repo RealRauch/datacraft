@@ -97,6 +97,8 @@ fn dynamic_keys() -> BTreeSet<String> {
         crate::relationships::LABEL_REFERENCED_TABLE,
         crate::relationships::LABEL_REFERENCED_FIELD,
         crate::datasheet::FILTER_SYNTAX_HELP,
+        crate::shell::LOCK_NOTICE_STATUS,
+        crate::shell::LOCK_NOTICE_DETAIL,
     ] {
         keys.insert(key.to_owned());
     }

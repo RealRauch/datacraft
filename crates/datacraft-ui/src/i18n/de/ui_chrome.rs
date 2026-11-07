@@ -128,6 +128,15 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Apply Filter", "Filter anwenden"),
     ("Clear Filter", "Filter löschen"),
     (
+        "Read-only — Access lock file {file}",
+        "Schreibgeschützt — Access-Sperrdatei {file}",
+    ),
+    ("Access lock file", "Access-Sperrdatei"),
+    (
+        "The database opens read-only because an Access lock file ({file}) exists — close it in Access and remove the lock file to edit it here.",
+        "Die Datenbank ist schreibgeschützt geöffnet, weil eine Access-Sperrdatei ({file}) existiert — schließen Sie sie in Access und entfernen Sie die Sperrdatei, um sie hier zu bearbeiten.",
+    ),
+    (
         "Criteria: quoted Like patterns with the wildcards * (any run), ? (one character), # (one digit) — e.g. Like \"A*\" — or a comparison =, <>, <, <=, >, >= with a literal coerced to the column's kind, e.g. > 100.",
         "Kriterien: In Anführungszeichen gesetzte Like-Muster mit den Wildcards * (beliebige Zeichenfolge), ? (ein Zeichen), # (eine Ziffer) — z. B. Like \"A*\" — oder ein Vergleich =, <>, <, <=, >, >= mit einem an die Spaltenart angepassten Literal, z. B. > 100.",
     ),

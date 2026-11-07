@@ -186,6 +186,29 @@ mod tests {
         );
     }
 
+    /// The Access lock-file notice keys (step 53.2, item M59) resolve in
+    /// both languages: English is the source, German names the
+    /// Sperrdatei and the remedy — pure assertion, no global flip.
+    #[test]
+    fn the_lock_file_notice_keys_resolve_in_both_languages() {
+        assert_eq!(
+            translate(Lang::English, crate::shell::LOCK_NOTICE_STATUS),
+            crate::shell::LOCK_NOTICE_STATUS,
+            "English is the source language of every key"
+        );
+        let status = translate(Lang::German, crate::shell::LOCK_NOTICE_STATUS);
+        assert!(status.contains("Sperrdatei"), "{status}");
+        let detail = translate(Lang::German, crate::shell::LOCK_NOTICE_DETAIL);
+        assert!(
+            detail.contains("Sperrdatei") && detail.contains("entfernen"),
+            "{detail}"
+        );
+        assert_eq!(
+            translate(Lang::English, crate::shell::LOCK_NOTICE_DETAIL),
+            crate::shell::LOCK_NOTICE_DETAIL,
+        );
+    }
+
     #[test]
     fn locale_strings_map_to_languages() {
         for locale in ["de", "de-DE", "de_AT", "DE", "de-CH"] {

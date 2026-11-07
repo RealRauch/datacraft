@@ -82,6 +82,29 @@ impl eframe::App for App {
                     } else if let Some(notice) = self.last_notice() {
                         ui.colored_label(tokens.accent, notice);
                     }
+                    // Access co-existence (step 53.2, item M59): a detected
+                    // lock file stands as a persistent muted notice — the
+                    // session opened read-only and the remedy rides the
+                    // hover text.
+                    if let Some(file) = self
+                        .snapshot()
+                        .database
+                        .as_ref()
+                        .and_then(|db| db.lock_file.clone())
+                    {
+                        let notice = ui
+                            .label(
+                                egui::RichText::new(tr(LOCK_NOTICE_STATUS, &[("file", &file)]))
+                                    .small(),
+                            )
+                            .on_hover_text(tr(LOCK_NOTICE_DETAIL, &[("file", &file)]));
+                        // The full-shell semantic tree culls static text
+                        // (buttons survive, labels do not — the M60/M61
+                        // evidence), so presence pins through the rect
+                        // seam; the text is pinned end-to-end by the Info
+                        // page kittest and the i18n kernel tests.
+                        crate::layout_probe::record("status.lock_notice", notice.rect);
+                    }
                     // Filter chip (step 44.5, M54): live when the active
                     // table tab carries column filters — one click clears
                     // them all over the bus; otherwise the placeholder
@@ -246,6 +269,13 @@ pub(crate) fn window_title(snapshot: &UiStateSnapshot) -> String {
         &[("database", &db.name), ("format", &db.format.to_string())],
     )
 }
+
+/// The Access lock-file notice keys (step 53.2, item M59): the status
+/// line is short (the full remedy rides the hover text), the Info page
+/// renders the detail verbatim — one const per key so the two sites and
+/// the catalog cannot drift.
+pub(crate) const LOCK_NOTICE_STATUS: &str = "Read-only — Access lock file {file}";
+pub(crate) const LOCK_NOTICE_DETAIL: &str = "The database opens read-only because an Access lock file ({file}) exists — close it in Access and remove the lock file to edit it here.";
 
 /// Localized status-bar line (Access convention): built UI-side from the
 /// locale-neutral snapshot — core's `status_line` stays English for
