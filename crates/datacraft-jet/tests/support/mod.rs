@@ -392,3 +392,35 @@ pub fn aces_page_set(
     pages.extend(index_leaf_pages(writer, page));
     pages
 }
+
+/// The drop's expected page set for a fixture table: the TDEF, its data
+/// pages, both usage-map rows' page and the physical index leaves (M66).
+/// Returns `(freed pages, index pages)` — the index pages additionally
+/// assert their release in the global free map.
+pub fn drop_freed_pages(
+    writer: &datacraft_jet::jet::Jet4Writer,
+    tdef_page: u32,
+) -> (Vec<u32>, Vec<u32>) {
+    let mut freed = vec![tdef_page];
+    freed.extend(writer.data_pages_of(tdef_page));
+    freed.push(writer.table_used_map(tdef_page).expect("used map").0.page);
+    freed.push(writer.table_free_map(tdef_page).expect("free map").0.page);
+    let index_pages = index_leaf_pages(writer, tdef_page);
+    freed.extend(index_pages.iter().copied());
+    (freed, index_pages)
+}
+
+/// Asserts every page is released in the global free map after a drop (M66).
+pub fn assert_released_in_global_map(
+    writer: &datacraft_jet::jet::Jet4Writer,
+    pages: &[u32],
+    context: &str,
+) {
+    let global = writer.global_free_map().expect("global free map");
+    for page in pages {
+        assert!(
+            global.owns_free(*page),
+            "{context}: page {page} is released in the global map"
+        );
+    }
+}

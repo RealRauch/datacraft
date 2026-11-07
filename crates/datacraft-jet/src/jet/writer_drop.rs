@@ -78,6 +78,10 @@ impl Jet4Writer {
                 freed.insert(map_ref.page);
             }
         }
+        // The used map does not track the table's physical index pages (the
+        // engine keeps them out of it — observed on the fixtures), so the
+        // drop scans them by their owning TDEF before the fill (M66).
+        freed.extend(self.owned_index_pages(tdef_page)?);
         freed.retain(|page| *page > 2 && !chain.contains(page));
 
         // 3. Remove the catalog row first (a failure leaves the table).
@@ -104,6 +108,29 @@ impl Jet4Writer {
     fn page_next(&self, page: u32) -> Result<u32, StorageError> {
         let slice = self.header.page_slice(&self.file, page)?;
         Ok(u32::from_le_bytes([slice[4], slice[5], slice[6], slice[7]]))
+    }
+
+    /// Pages of type `0x03` (intermediate) / `0x04` (leaf) whose parent field
+    /// names `tdef_page` — the table's physical index B-tree. Every observed
+    /// index page (all fixtures) is a single-page leaf carrying its owning
+    /// TDEF at offset 4; intermediate pages share the header layout, so the
+    /// scan covers them by the same field.
+    fn owned_index_pages(&self, tdef_page: u32) -> Result<Vec<u32>, StorageError> {
+        use crate::jet::page::{PAGE_TYPE_INDEX_LEAF, PAGE_TYPE_INTERMEDIATE_INDEX};
+        let mut pages = Vec::new();
+        for page in 1..self.header.page_count as u32 {
+            let slice = self.header.page_slice(&self.file, page)?;
+            let is_index_page = matches!(
+                slice[0],
+                PAGE_TYPE_INTERMEDIATE_INDEX | PAGE_TYPE_INDEX_LEAF
+            );
+            if is_index_page
+                && u32::from_le_bytes([slice[4], slice[5], slice[6], slice[7]]) == tdef_page
+            {
+                pages.push(page);
+            }
+        }
+        Ok(pages)
     }
 
     /// Usage-map pages referenced by every other table's TDEF dwords — those

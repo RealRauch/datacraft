@@ -39,7 +39,10 @@ pub use header::{
     ACE_2007_VERSION, ACE_2010_VERSION, ACE_PRODUCT, FileHeader, JET_PRODUCT, JET4_VERSION,
     SIGNATURE,
 };
-pub use page::{JET3_PAGE_SIZE, PAGE_TYPE_DATA, PAGE_TYPE_TDEF, page_type};
+pub use page::{
+    JET3_PAGE_SIZE, PAGE_TYPE_DATA, PAGE_TYPE_INDEX_LEAF, PAGE_TYPE_INTERMEDIATE_INDEX,
+    PAGE_TYPE_TDEF, page_type,
+};
 pub use queries::{
     NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
     OBJECT_TYPE_QUERY,

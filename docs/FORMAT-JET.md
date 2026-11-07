@@ -301,9 +301,11 @@ markers. Index statistics' row-count dword tracks the distinct key count.
 **Open boundaries.** Leaves are rebuilt, never split: a multi-page index
 root and an overfull leaf answer `Unsupported` (splitting stays roadmap
 M15). The reader does not consume these leaves; they exist for the engine.
-A `DropTable` still leaves the dropped table's physical index pages
-allocated (the drop's page set comes from the used map, which does not track
-index pages) — tracked as a backlog item.
+`DropTable` frees the dropped table's physical index pages: the used map
+does not track them (observed on the fixtures), so the drop scans pages of
+type `0x03`/`0x04` whose parent field names the dropped TDEF (M66, verified
+on the ACE fixtures — every observed index page is a single-page leaf;
+multi-page trees beyond the parent field stay unobservable).
 
 ## Pages
 

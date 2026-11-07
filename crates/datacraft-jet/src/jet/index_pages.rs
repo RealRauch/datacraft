@@ -27,8 +27,8 @@ use crate::error::StorageError;
 use crate::jet::collation::text_sort_key;
 use crate::jet::tdef::JetTableDef;
 
-/// Page type of an index leaf.
-pub const PAGE_TYPE_LEAF: u8 = 0x04;
+/// Page type of an index leaf (single-sourced in [`crate::jet::page`]).
+pub use crate::jet::page::PAGE_TYPE_INDEX_LEAF as PAGE_TYPE_LEAF;
 /// First byte of the entry area; the bitmap occupies the bytes before it.
 pub const ENTRY_AREA_AT: usize = 0x1E0;
 /// Bitmap start.

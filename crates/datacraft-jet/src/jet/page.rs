@@ -11,6 +11,11 @@ pub const JET3_PAGE_SIZE: usize = 2048;
 pub const PAGE_TYPE_DATA: u8 = 0x01;
 /// Table definition page.
 pub const PAGE_TYPE_TDEF: u8 = 0x02;
+/// Intermediate index page (multi-page index B-trees; no observed instance
+/// in the fixtures, layout per the shared page header).
+pub const PAGE_TYPE_INTERMEDIATE_INDEX: u8 = 0x03;
+/// Index leaf page (single-page index B-trees; parent TDEF at offset 4).
+pub const PAGE_TYPE_INDEX_LEAF: u8 = 0x04;
 
 /// Reads the page-type byte from the start of a page.
 ///
