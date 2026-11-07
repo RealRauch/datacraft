@@ -229,6 +229,82 @@ ours: map type `0x00` rows, `0x4E` table type, id-ordered descriptors
 indistinguishable for that column set, no per-variable pointer list without
 long-value columns.
 
+### Engine-accepted create shape (2026-11-07, acceptance findings)
+
+The DAO oracle now accepts a DataCraft-created database *and* resolves the
+tables DataCraft created (`TableDefs` enumerates, rows read and written
+through the engine, engine-side `CREATE TABLE`/`INSERT`/`DROP` round-trip on
+the same file). Reaching that took four additional writer policies, each
+isolated by differential experiments against engine-written files:
+
+1. **TDEF trailer.** Every engine-written table definition ends with **eight
+   zero bytes** that `tdef_len` includes; a definition without it answers DAO
+   3049 ("not a recognizable database format"). Decoded before the trailer:
+   `… [per-variable usage-map pointers] ff ff`. DataCraft's encoder emits
+   `ff ff` + eight zero bytes.
+2. **TDEF page before the usage page.** The engine allocates a new table's
+   definition first and its usage page second. A file with the usage page at
+   the lower number is refused (3049); the order is mandatory, not cosmetic.
+3. **64-byte usage-map bitmap.** A fresh table's `used`/`free` map rows are
+   `[0x00][start_page u32][64-byte bitmap]` (69 bytes, 512-page window), even
+   when empty. DataCraft wrote 8-byte bitmaps (13-byte rows) and the engine
+   refused the table. Maps still grow deterministically beyond the window.
+4. **Object ACL rows.** A catalogued table without `MSysACEs` entries is
+   rejected with "no read permission". The engine's own create path writes
+   two full-control rows for the new object — the database owner's SID and the
+   workgroup SID it keeps on `MSysDb` — and gives the catalog row the
+   database owner's SID (`Owner`). The SIDs are per file (`0xDB13`/`0xDA13`
+   in the template, `0xE5A3`/`0xE4A3` in `testV2000.mdb`), so the writer
+   derives them from the file's own catalog and ACL instead of hardcoding;
+   the observed masks are `983294` (owner) and `1048319` (workgroup).
+5. **Head refinements** (observed, engine-verified): the `autonum_flag` byte
+   at block offset `0x10` is `0x01` only when the table carries an
+   AutoNumber column; every non-Numeric column's `misc` slot is the collation
+   `0x0409` (writing `0x0400` there also breaks catalog resolution).
+
+### Index sort keys and leaf maintenance (49.2)
+
+The catalog's `ParentIdName`/`Id` leaves and `MSysRelationships`' three text
+leaves are maintained by the writer on every row insert, update and delete
+(entries identify their row through the trailing `(page, row)` pointer).
+
+Sort-key grammar of the text keys (all observed on engine-written leaves):
+
+```text
+key = level1 [01 level2 [01 level3 [01 level4 [01 level5]]]] 00
+```
+
+- level 1: primary weights, one or two bytes per **sort element**; the
+  ligatures `Æ æ Œ œ ß Þ þ` contribute two elements.
+- level 2: one secondary byte per sort element up to the last element whose
+  secondary is not the default `0x02` (accent weights; trailing defaults
+  drop).
+- levels 3 and 4 stay empty (case folds into the primary weights).
+- level 5: ignorable characters, one block each:
+  `0x80|(code>>8), code&0xFF, 0x06, weight` with `code = 4*k + 7` and `k` the
+  number of sort elements emitted before the ignorable.
+- Separate levels are emitted up to the last non-empty one; a key with no
+  lower-level data carries exactly one `0x01` before its `0x00`.
+- Trailing spaces (`0x20`) are trimmed first; empty/all-space values encode
+  as `01 00`. Ignorable characters in CP1252: `'` (0x80), `-` (0x82),
+  U+00AD (0x83) and U+007F–U+009F (0x1D–0x3D).
+
+The full CP1252 weight table (Latin-1 plus the 27 CP1252 specials) is
+embedded in `crates/datacraft-jet/src/jet/collation.rs` as observed data;
+characters outside it answer a precise `Unsupported`. Non-text index keys
+use sort-ordered storage forms: LongInt `value ^ 0x8000_0000` big-endian,
+Int16 `^ 0x8000`, Currency/Double/DateTime `^ 0x8000_0000_0000_0000`,
+Single `^ 0x8000_0000`, Byte unsigned, Bool `0x00`/`0xFF`, GUID as its
+textual byte order split after eight bytes with the observed `0x09`/`0x08`
+markers. Index statistics' row-count dword tracks the distinct key count.
+
+**Open boundaries.** Leaves are rebuilt, never split: a multi-page index
+root and an overfull leaf answer `Unsupported` (splitting stays roadmap
+M15). The reader does not consume these leaves; they exist for the engine.
+A `DropTable` still leaves the dropped table's physical index pages
+allocated (the drop's page set comes from the used map, which does not track
+index pages) — tracked as a backlog item.
+
 ## Pages
 
 - Pages are 0-indexed regions of `page_size` bytes; page N at offset `N * page_size`.

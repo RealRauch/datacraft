@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-07T01:30
+# BACKLOG.md — Open items (As of: 2026-11-07T03:21
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -13,13 +13,10 @@
 > No open items.
 
 ### [ ] M63 — DataCraft-created .mdb files are refused by Access (zero-filled header-region fields) — 🔴
-- **Location:** `crates/datacraft-jet/src/jet/create.rs` (the create path's page-0 build and system-catalog layout).
-- **Problem:** Access refuses every DataCraft-created `.mdb` (user incident 2026-11-06, "Zu viele aktive Benutzer"; isolated via a local DAO oracle + differential experiments against Access-COM/jackcess references). TWO independent gates, both proven by byte-level bisection on the healthy reference:
-  1. **Page-0 tail (0xE00..0x1000) written as all-zero** — a healthy file with a zeroed tail reproduces "Zu viele aktive Benutzer" exactly; a healthy file with a 0x0100-filled tail opens. The tail is undocumented in HACKING/jabakobob; observed as 256 u16s, mostly 0x0100 filler with writer-specific leading words (Access-COM 23p: [0x0104]; DAO 21p: [0x0101, 0x0102]; jackcess 743p: [0x011D, 0x0131]).
-  2. **The system-catalog structure (pages 1+)** — a DataCraft file with a fully healthy page 0 swapped in still fails "Nicht erkennbares Datenbankformat" (and conversely, our page 1 on a healthy file opens, so the gate sits in pages 2+: the MSysObjects TDEF shape and/or the system rows our create path writes).
-  Additional region facts proven: the encrypted region needs the constant sequence 0x18: 0x100, 0x1C: 0x101, 0x20: 2, 0x24: 3, 0x28: 4, 0x2C: 5 (HACKING names none of these; observed in Access-COM AND jackcess files), 0x6A = the creating engine's build number per HACKING (we write 0), 0x6E = collation 0x0409; our password-mask derivation and creation date at 0x72 are CORRECT (verified: 46329 = 0xB4F9 matches the observed mask bytes).
-- **Approach:** (1) ~~Finish the catalog-level differential analysis~~ **done in 49.1** (2026-11-06): the tail gate is fully characterized (acceptance grammar in FORMAT-JET "Page-0 tail and create-path acceptance"), the region constant set is re-verified, and the catalog gate has a concrete work list against the fresh-DAO reference file. (2) ~~Fix the create path~~ **done in 49.2** (2026-11-07): the hand-built catalog shape was abandoned after the oracle loop proved the engine's remaining gates require its physical index B-trees; the create path now emits the embedded minimal engine-written template (`crates/datacraft-jet/src/jet/fresh_template.mdb`) verbatim + the uniform-0x0100 tail — the DAO open-test **accepts DataCraft-created files** (verdict "OK: accepted"; FORMAT-JET "Fresh-create template and the engine's open gates" documents the ACL anchor at the creation time-of-day — the date is never redated — and the full leaf-format evidence). TDEF descriptor constants (`0x659` head + per-column, misc `0x0409` as `JetColumn::misc`) are emitted for writer-created TDEFs. (3) **Remaining — user-table visibility:** the engine resolves the catalog through the **ParentIdName index B-tree** (surgical proof in FORMAT-JET: rolling back the leaf hides an engine-created table; stale Id leaf tolerated; index-less catalog TDEFs refused), and our appended catalog rows carry no leaf entries — DataCraft-created *tables* are invisible to the engine even though the file opens. The fix is B-tree **leaf maintenance** in the writer: decode/encode the leaf pages (format fully evidenced — header, entry bitmap at 0x1B, entries `[7F][key][3B page BE][1B row]`, LongInt keys big-endian with the top bit set) and rebuild page 7/8 on catalog-row inserts; text keys need the collation weight table (observed pairs in FORMAT-JET; does not match HACKING's simple ranges — extract the full CP1252 table via an oracle probe batch and embed it as observed data). Single-page leaves only (no splitting) — multi-page/splitting stays the M15 roadmap item. (4) Preserve the tail on writes/growth — done, pinned in the create suite. (5) FORMAT-JET documents every observed field honestly — ongoing.
-- **Acceptance:** A database created by DataCraft opens in real Access and vice versa without error (user-verified); **tables created by DataCraft are visible in Access** (the current gap); after DataCraft edits the file still opens in Access and after Access edits it still opens in DataCraft; create/update/delete round-trips keep both doors open; deterministic shape assertions in the create suites + the DAO oracle as the Windows-local verification; canonical verification set green.
+- **Location:** `crates/datacraft-jet/src/jet/` (create path, index-leaf maintenance, object ACL rows).
+- **Problem:** Access refused every DataCraft-created `.mdb` (user incident 2026-11-06, "Zu viele aktive Benutzer"). Byte-level bisection proved two independent gates: a zeroed page-0 tail and the hand-built system catalog. Step 49.1 characterized the tail; step 49.2 replaced the catalog with the embedded engine template and then closed the remaining engine gates one at a time (2026-11-07, DAO oracle).
+- **Approach:** (1) ~~Tail gate~~ and (2) ~~create path~~ done in 49.1/49.2: the fresh bytes are the engine-written template plus the uniform tail word; the DAO open-test accepts DataCraft files. (3) ~~User-table visibility~~ done in 49.2: the engine resolves the catalog through the `ParentIdName`/`Id` leaves, so the writer now keeps every physical index leaf in sync on insert/update/delete (`jet/index_pages.rs`, `jet/writer_indexes.rs`, `jet/collation.rs` with the observed CP1252 sort-key table; single-page leaves, splitting stays M15). (4) The engine's remaining gates were isolated by differential experiments and fixed: TDEF eight-byte trailer, TDEF-before-usage page order, 64-byte usage-map window, object ACL rows (`MSysACEs`) with the database owner's SID, the conditional autonumber head flag and the `0x0409` collation slot. (5) Evidence and every observed byte fact are recorded in FORMAT-JET ("Engine-accepted create shape", "Index sort keys and leaf maintenance"). **Remaining:** the human compatibility check against real Access (step 49.3) and the drop-path index-page leak (backlog item M66).
+- **Acceptance:** A database created by DataCraft opens in real Access and vice versa without error (user-verified); **tables created by DataCraft are visible and usable in Access** (DAO oracle: `TableDefs` enumerates them, rows read and written through the engine, engine-side CREATE/INSERT/DROP round-trip on the same file, DataCraft reopens the edited file); create/update/delete round-trips keep both doors open; deterministic shape assertions in the create suites (`jet_create_shape.rs`) + the DAO oracle as the Windows-local verification; canonical verification set green.
 
 ---
 
@@ -45,6 +42,12 @@
 - **Approach:** Record the trailing elements' rects through the layout_probe seam (full-shell render, like the H53 pin), extend the assertion to `trailing.bottom() <= status.top()` at 1280x800 and 960x600, and reproduce RED first. Then fix the space budget: the grid's row viewport reserves the trailing elements' measured heights (the count label and the new-record row render above the reserved space), so everything stays inside the workspace at any scale.
 - **Acceptance:** The trailing row-count label and the new-record row are fully above the status bar (rect pins at two window sizes); the datasheet still fills the viewport with rows; canonical verification set green.
 
+### [ ] H54 — README claims a 3-OS test matrix that CI no longer runs — 🟠
+- **Location:** `README.md:115` (test-matrix row), `.github/workflows/ci.yml:54` (matrix `[ubuntu-latest, windows-latest]`).
+- **Problem:** The README lists macOS in the test matrix, but CI has run ubuntu+windows only since 2026-11-03 (macOS paused, L10/L25). The README's own quality-gates table (`README.md:280`) states the pause correctly — the same file contradicts itself, and a user-facing claim that no longer holds (found in the 2026-11-07 repo review).
+- **Approach:** Align the matrix row with `ci.yml` (`ubuntu-latest`, `windows-latest`) and cross-reference L25 for the macOS re-admission; no other doc site (AGENTS/TESTING) may claim a 3-OS matrix.
+- **Acceptance:** The README matrix matches `ci.yml`; `docs_status` shows no new findings; canonical verification set green.
+
 ---
 
 ## 🟡 MEDIUM
@@ -68,6 +71,24 @@
 - **Problem:** The filter dialog accepts the engine's criteria dialect but never states it; the user asked for the syntax (walkthrough 2026-11-06). The dialect (M37 fence): quoted `Like` patterns with the Access wildcards `*` (any run), `?` (one char), `#` (one digit), and bare comparison criteria `=`, `<>`, `<`, `<=`, `>`, `>=` (e.g. `> 100`), literals coerced to the column's kind.
 - **Approach:** A short, localized help block under the dialog's criteria editor (weak text, wraps): the wildcards, the quoting rule, the comparison operators and one example each (`Like "A*"` / `> 100`). German catalog entry; the English source is the key.
 - **Acceptance:** The dialog shows the syntax summary in both languages (kittest tree pin), the text wraps inside the dialog width, canonical verification set green.
+
+### [ ] M64 — Coverage-gate wording drifts across the binding docs — 🟡
+- **Location:** `docs/PLAYBOOK.md:82` (canonical command set), `AGENTS.md` §4, `docs/TESTING.md:15-16`, `README.md:276`, `.github/workflows/ci.yml:105-110`.
+- **Problem:** The binding docs name `cargo llvm-cov … --fail-under-lines 95` as the enforcement, but CI deliberately parses `lcov.info` with Python because cargo-llvm-cov@0.9.1's embedded check diverges from its own export. PLAYBOOK's canonical set additionally omits `--exclude datacraft-ui` (registered coverage exception #1), so the documented command would fail the gate it defines (found in the 2026-11-07 repo review).
+- **Approach:** Unify all four doc sites on the CI's actual mechanism (the Python-parsed lcov gate, ≥ 95 % lines), reference the `datacraft-ui` exclusion via `docs/TESTING.md` §3 in the canonical set, and mark the local `--fail-under-lines` variant as an approximation where kept.
+- **Acceptance:** No doc site contradicts `ci.yml`; the PLAYBOOK canonical set as documented runs green; canonical verification set green.
+
+### [ ] M65 — `expect` on a real parse path in the expression lexer — 🟡
+- **Location:** `crates/datacraft-core/src/expr/lexer.rs:193` (float-token branch).
+- **Problem:** The float digits parse uses `.expect("digits form a float")` on a genuine parse path, contrary to AGENTS §6 ("no unwrap/expect on parse paths"). The string is built from `'0'..='9'` plus one `'.'`, so it cannot fail in practice — but the adjacent integer branch (lines 195-202) shows the house pattern: a precise `ExprError::Lex` on failure instead of a panic (found in the 2026-11-07 repo review).
+- **Approach:** Mirror the integer branch: attempt the parse and return a precise lexer error on failure instead of expecting; drop the panic.
+- **Acceptance:** No `expect`/`unwrap` remains on the lexer parse path; existing lexer and expression tests stay green; canonical verification set green.
+
+### [ ] M66 — Table drops leak the dropped table's physical index pages — 🟡
+- **Location:** `crates/datacraft-jet/src/jet/writer_drop.rs` (`drop_table`'s freed-page set).
+- **Problem:** A dropped table's physical index leaf pages are not returned to the global free map: the drop's page set comes from the table's used map, and the engine does not mark index pages there (observed on `testV2000.mdb`/ACE copies: the table's leaves stay allocated and unreachable after the TDEF is 0xFF-filled). The file therefore leaks those pages until a compaction. DataCraft-created tables are unaffected today (their index metadata carries `first_dp = 0`, no leaves), but any table dropped in an Access-created file leaks.
+- **Approach:** Extend the drop's page set with every physical index root of the dropped TDEF (and, defensively, the pages those roots own) before the 0xFF fill; add a contract test over an engine-written fixture table with physical indexes (leaf count before/after, global map bits).
+- **Acceptance:** Dropping an indexed table on an ACE/Jet fixture copy frees its index leaf pages (global map bit set, 0xFF-filled) and leaves no reachable reference; the drop contract tests stay green; canonical verification set green.
 
 ---
 
@@ -110,6 +131,60 @@
 - **Problem:** The expression window evaluates over an empty scope only. The core supports a row context (table + zero-based live-row index) — CLI/MCP agents can address it, but the window has no table/row picker, so GUI users cannot evaluate field expressions against a record (documented follow-up when M46 landed, step 41.2).
 - **Approach:** Add an optional row-context picker to the expression window (table + row selector fed from the snapshot), dispatching `RunExpression` with `Some(ExpressionContext)` when set; keep the contextless evaluation as the default state.
 - **Acceptance:** Picking a table and row makes the window evaluate against that record (field names resolve); clearing the picker returns to the empty scope; a kittest pins one contextual run; canonical verification set green.
+
+### [ ] L29 — German step titles in the PROGRESS permanent index — 🟢
+- **Location:** `PROGRESS.md` (permanent progress index, phase 11/12 rows, e.g. lines 135-150).
+- **Problem:** All project artifacts must be English (PLAYBOOK §2), but the permanent index keeps German step titles from phases 11/12 ("Nav-Pane-Löschflüsse", "Status-Leiste", …). The append-only archives stay untouched (found in the 2026-11-07 repo review).
+- **Approach:** Translate the affected rows of the permanent index in place; the archived detail blocks of phases 11/12 remain unchanged per the archive rule.
+- **Acceptance:** No German titles remain in `PROGRESS.md`; `docs_validate` passes.
+
+### [ ] L30 — ~15 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
+- **Location:** `crates/datacraft-core/tests/journal.rs` (498 lines), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-jet/tests/jet_table.rs` (495), `crates/datacraft-jet/src/jet/row.rs` (495), plus ~11 further files in the 480-499 band.
+- **Problem:** The <500-line file-size gate holds with zero violations, but ~15 files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review).
+- **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
+- **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
+
+### [ ] L31 — Oracle suite skips itself silently — 🟢
+- **Location:** `crates/datacraft-jet/tests/oracle.rs:80-83` (env-gate branch).
+- **Problem:** Without `DATACRAFT_ORACLE_MDB` the oracle test prints to stderr and returns Ok — a local Windows run looks like a green oracle but verifies nothing. The ubuntu CI job runs the real mdb-export comparison, so CI is covered; the silent self-skip invites false confidence locally (2026-11-07 repo review).
+- **Approach:** Make the skip observable — `#[ignore]` with the reason plus the CI job's `--ignored` filter, or a clearly named skip path whose output states "skipped".
+- **Acceptance:** A local skip is identifiable as skipped; the ubuntu oracle job still runs the real comparison; canonical verification set green.
+
+### [ ] L32 — Enforce the crate dependency boundaries with a CI guard script — 🟢
+- **Location:** `.github/workflows/ci.yml` (new step/job), `crates/*/Cargo.toml`.
+- **Problem:** The workspace dependency direction (AGENTS §1: only the binary composition roots may name `datacraft-storage`/`datacraft-csv`; the graph is acyclic) is enforced by review discipline only — drift is caught by humans, not by the pipeline (2026-11-07 repo review).
+- **Approach:** A small guard script that parses the workspace manifests, builds the crate graph and fails on cycles or on storage/csv dependencies outside the whitelisted binary targets; wire it into `ci.yml` with a self-test (a deliberately broken boundary must fail the guard). Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
+- **Acceptance:** The guard runs on CI and fails on an injected boundary violation; the current tree passes; AGENTS §1 cross-references the guard.
+
+### [ ] L33 — Gate rustdoc warnings in CI — 🟢
+- **Location:** `.github/workflows/ci.yml` (new step), workspace crate docs.
+- **Problem:** The public API documentation can rot silently — nothing fails the pipeline on broken intra-doc links or doc warnings today (2026-11-07 repo review).
+- **Approach:** A CI step running `cargo doc --workspace --all-features --no-deps --locked` with `RUSTDOCFLAGS: -D warnings`; fix the warnings the first run surfaces. Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
+- **Acceptance:** The doc build runs green on CI; a deliberately broken intra-doc link fails the job.
+
+### [ ] L34 — CLI smoke step in the CI test matrix — 🟢
+- **Location:** `.github/workflows/ci.yml` (test job), `crates/datacraft-cli`.
+- **Problem:** CI compiles and tests the CLI crate but never executes the shipped binary end-to-end; a broken startup path is only discovered on tag builds (the packaged smoke in `release.yml`) — late and expensive (2026-11-07 repo review).
+- **Approach:** After the tests, run a smoke step on each matrix OS, e.g. `cargo run --locked --no-default-features -p datacraft-cli -- --version` plus a fixture `open` against `fixtures/testV2000.mdb`; keep it fast. Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
+- **Acceptance:** The smoke step runs on ubuntu+windows; a startup or open-path regression fails the push instead of the release.
+
+### [ ] L35 — Deterministic fixture generators alongside the binary pins — 🟢
+- **Location:** `crates/datacraft-jet/tests/` or a new testkit helper, `crates/datacraft-storage/examples/`.
+- **Problem:** The binary fixtures are immutable, hash-pinned evidence, but there is no code path that regenerates equivalent databases from scratch — the create/write suites lean on the committed samples and the template, so canonical-create coverage beyond the pinned bytes is thin (2026-11-07 repo review).
+- **Approach:** Introduce deterministic Rust generator functions that build canonical test databases (empty catalog, typed columns, indexes) for create/write tests, asserted byte-deterministic. Generators complement — never replace — the fixture pins and the oracle; `fixtures/manifest` stays untouched.
+- **Acceptance:** Generated databases are byte-deterministic per input state; new create-path tests consume them; the pin and oracle suites are unchanged; canonical verification set green.
+
+### [ ] L36 — Split datacraft-expr (piggyback; resolve the types boundary first) — 🟢
+- **Location:** `crates/datacraft-core/src/expr/` (lexer, parser, evaluator, funcs, format, like, coerce — 10 files, ~3,100 lines), `crates/datacraft-core/src/schema/` (type boundary).
+- **Problem:** The expression engine is a pure, well-tested domain but lives inside core, so every core change recompiles it and it cannot ship its own semver story. Splitting is sanctioned by the crate-split policy (`docs/ROADMAP.md` §17) as the only clean split win.
+- **Approach:** Piggyback rule — execute only when a released step touches expr or schema anyway. First resolve the type boundary via a `datacraft-types` crate (NumericKind, field types) so `core → expr → types` stays acyclic, then move expr. New crates = Medium release gates per occurrence; direction review binding; update AGENTS §1, ARCHITECTURE §4, README and the crates.io order (31.4).
+- **Acceptance:** expr compiles and tests standalone (`--no-default-features` like the CI matrix), core depends on it without cycles, all expression tests green, canonical verification set green.
+
+### [ ] L37 — Split datacraft-query (optional; make the sql-engine boundary structural) — 🟢
+- **Location:** `crates/datacraft-core/src/native_exec/` (3 files, ~1,000 lines), QBE evaluation and saved-query execution paths behind the `sql-engine` feature (`crates/datacraft-core/Cargo.toml`).
+- **Problem:** The SQL dialect engine and native query execution are already feature-gated with optional rusqlite, but the optionality is not structural — the boundary exists only as a cargo feature, not as a crate. Second (optional) candidate of the crate-split policy (`docs/ROADMAP.md` §17).
+- **Approach:** Piggyback rule — execute only when a released step touches the query/native_exec area anyway. Move the SQL dialect, QBE evaluation and native execution into a `datacraft-query` crate so default core stays rusqlite-free; keep the `sql-engine` feature as the enabling switch. New crate = Medium release gate; direction review binding; update AGENTS §1, ARCHITECTURE §4, README and the crates.io order (31.4).
+- **Acceptance:** default-feature core builds without rusqlite; the query crate passes the standalone checks in the CI matrix style; all query/native-execution tests green; canonical verification set green.
 
 ---
 
