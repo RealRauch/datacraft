@@ -51,7 +51,12 @@ The automated DAO oracle (this harness) accepted the create path on
 minutes, in order — every step must hold before 49.3 is marked done:
 
 1. **Create.** `datacraft-cli exec "{\"CreateDatabaseFromTemplate\":{\"path\":\"C:\temp\m63.mdb\",\"template\":\"contacts\"}}"` (or the desktop: File ▸ New from template). Expected: no error.
-2. **Open in Access.** Double-click `m63.mdb`. Expected: opens without a repair prompt or security warning bar; the navigation pane shows **Contacts** plus the hidden system tables (Access options ▸ show system objects).
+2. **Open in Access.** Double-click `m63.mdb`. Expected: opens without a
+   repair prompt; the standard untrusted-location content bar may appear
+   (Access shows it for any database outside the Trusted Locations — enable
+   content or continue, it never gates table reads/writes); the navigation
+   pane shows **Contacts** plus the hidden system tables (Access options ▸
+   show system objects).
 3. **Read.** Open Contacts. Expected: the four template rows (Ada Lovelace, Grace Hopper, Edsger Dijkstra, Margaret Hamilton) with correct e-mail/phone/birthday cells.
 4. **Write from Access.** Add a row, edit a cell, delete the added row. Expected: all three work without a write-conflict message.
 5. **Reopen in DataCraft.** Open the same file in DataCraft. Expected: the edits from step 4 are visible; no decode errors.

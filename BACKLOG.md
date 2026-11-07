@@ -12,12 +12,6 @@
 
 > No open items.
 
-### [ ] M63 — DataCraft-created .mdb files are refused by Access (zero-filled header-region fields) — 🔴
-- **Location:** `crates/datacraft-jet/src/jet/` (create path, index-leaf maintenance, object ACL rows).
-- **Problem:** Access refused every DataCraft-created `.mdb` (user incident 2026-11-06, "Zu viele aktive Benutzer"). Byte-level bisection proved two independent gates: a zeroed page-0 tail and the hand-built system catalog. Step 49.1 characterized the tail; step 49.2 replaced the catalog with the embedded engine template and then closed the remaining engine gates one at a time (2026-11-07, DAO oracle).
-- **Approach:** (1) ~~Tail gate~~ and (2) ~~create path~~ done in 49.1/49.2: the fresh bytes are the engine-written template plus the uniform tail word; the DAO open-test accepts DataCraft files. (3) ~~User-table visibility~~ done in 49.2: the engine resolves the catalog through the `ParentIdName`/`Id` leaves, so the writer now keeps every physical index leaf in sync on insert/update/delete (`jet/index_pages.rs`, `jet/writer_indexes.rs`, `jet/collation.rs` with the observed CP1252 sort-key table; single-page leaves, splitting stays M15). (4) The engine's remaining gates were isolated by differential experiments and fixed: TDEF eight-byte trailer, TDEF-before-usage page order, 64-byte usage-map window, object ACL rows (`MSysACEs`) with the database owner's SID, the conditional autonumber head flag and the `0x0409` collation slot. (5) Evidence and every observed byte fact are recorded in FORMAT-JET ("Engine-accepted create shape", "Index sort keys and leaf maintenance"). **Remaining:** the human compatibility check against real Access (step 49.3) and the drop-path index-page leak (backlog item M66).
-- **Acceptance:** A database created by DataCraft opens in real Access and vice versa without error (user-verified); **tables created by DataCraft are visible and usable in Access** (DAO oracle: `TableDefs` enumerates them, rows read and written through the engine, engine-side CREATE/INSERT/DROP round-trip on the same file, DataCraft reopens the edited file); create/update/delete round-trips keep both doors open; deterministic shape assertions in the create suites (`jet_create_shape.rs`) + the DAO oracle as the Windows-local verification; canonical verification set green.
-
 ---
 
 ## 🟠 HIGH
@@ -367,3 +361,4 @@
 - F11 — Inline fix: useless u16 conversion in jet3.rs blocked clippy -D warnings — done (fixed in `da29925` (step 49.2))
 - M66 — Table drops leak the dropped table's physical index pages — done (fixed in `6ba2255` (drop scans index pages by their parent TDEF; contract test demands 0xFF-fill and global-map release))
 - K4 — DataCraft re-assigned the engine's last autonumber value (seed read as next) — done (`9ca0fc8` — fixed test-first within phase 49 (RED `c0174c2`); DAO-oracle re-verified both interop directions)
+- M63 — DataCraft-created .mdb files are refused by Access (zero-filled header-region fields) — done (completed by step 49.3 (2026-11-07): the ten-step real-Access checklist passed end to end (user-verified); DAO oracle + engine-side CREATE/INSERT/DROP round-trip green; the K4 seed defect found and fixed during the pre-flight (`9ca0fc8`); the drop-path leak was M66 (`6ba2255`))
