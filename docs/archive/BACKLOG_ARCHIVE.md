@@ -1566,3 +1566,12 @@
 - **Approach:** The navigation box reads the cursor its own `step_record` writes: `"form"` keeps `form_record`; the `_` arm (tables) reads `record_cursor` like queries do.
 - **Acceptance:** Clicking next on a 2-row table shows "2 of 2" and the record cursor is 1 (kittest over the real shell); the form path is unchanged; canonical verification set green.
 - **Done:** done in 7496d5b (red 0bc35e6) — step 48.1: the navigation box reads the cursor its own step_record writes (tables read record_cursor like queries; the form arm is explicit and unchanged); kittest over the real shell pins one next click on a 2-row table showing "2 of 2" with record cursor 1.
+
+---
+
+### [x] M62 — Filter dialog: document the criteria syntax (wildcards, quoting, operators) — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` (`filter_dialog_ui`).
+- **Problem:** The filter dialog accepts the engine's criteria dialect but never states it; the user asked for the syntax (walkthrough 2026-11-06). The dialect (M37 fence): quoted `Like` patterns with the Access wildcards `*` (any run), `?` (one char), `#` (one digit), and bare comparison criteria `=`, `<>`, `<`, `<=`, `>`, `>=` (e.g. `> 100`), literals coerced to the column's kind.
+- **Approach:** A short, localized help block under the dialog's criteria editor (weak text, wraps): the wildcards, the quoting rule, the comparison operators and one example each (`Like "A*"` / `> 100`). German catalog entry; the English source is the key.
+- **Acceptance:** The dialog shows the syntax summary in both languages (kittest tree pin), the text wraps inside the dialog width, canonical verification set green.
+- **Done:** done in d4353fe (red 2f3e1f3) — step 48.3: the filter dialog renders the localized syntax summary (FILTER_SYNTAX_HELP — wildcards, quoting rule, comparison operators, one example each); German catalog entry pinned by the pure i18n kernel test, the const key registered in the parity scanner's dynamic_keys.
