@@ -342,12 +342,28 @@ fn drop_table_removes_a_real_ace_table_and_frees_its_pages() {
         freed.extend(writer.data_pages_of(tdef));
         freed.push(writer.table_used_map(tdef).expect("used map").0.page);
         freed.push(writer.table_free_map(tdef).expect("free map").0.page);
+        // The table's physical index leaves belong to the drop's page set
+        // (M66): the used map does not track them, the global map must.
+        let index_pages = support::index_leaf_pages(&writer, tdef);
+        assert!(
+            !index_pages.is_empty(),
+            "{name}: Table1 has physical indexes"
+        );
+        freed.extend(index_pages.iter().copied());
         allowed.extend(freed.iter().copied());
 
         writer.drop_table(tdef).expect("drop the fixture table");
         let after = writer.into_file();
 
         assert_only_these_changed(&before, &after, &allowed, name);
+        let reopened_writer = Jet4Writer::new(after.clone()).expect("reopens");
+        let global = reopened_writer.global_free_map().expect("global map");
+        for page in &index_pages {
+            assert!(
+                global.owns_free(*page),
+                "{name}: index page {page} is released in the global map"
+            );
+        }
         // Every page the dropped table owned carries the documented freed
         // pattern; the catalog's pages keep their content.
         for page in &freed {
