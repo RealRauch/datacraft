@@ -371,3 +371,59 @@ fn record_navigation_places_previous_left_of_next() {
         "previous ({previous:?}) must sit left of next ({next:?})"
     );
 }
+
+/// The record-navigation counter reads the cursor the arrows write (step
+/// 48.1, item M60, user report 2026-11-06): clicking next on a 2-row
+/// table moves the counter to "2 of 2" and the record cursor to 1. The
+/// counter used to read the form cursor, which never moves for tables,
+/// so every click recomputed the same target from cursor 0 and the
+/// arrows appeared dead.
+#[test]
+fn record_navigation_clicks_move_the_table_counter() {
+    let mut port = MockPort::with_tables(vec![TableDef::new(
+        "Orders",
+        vec![
+            FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
+            FieldDef::new("item", FieldKind::Text { max_len: 50 }),
+        ],
+    )]);
+    port.with_row_data(
+        "Orders",
+        vec![
+            vec![FieldValue::Integer(1), FieldValue::Text("bolt".to_owned())],
+            vec![FieldValue::Integer(2), FieldValue::Text("nut".to_owned())],
+        ],
+    );
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Orders",
+    )));
+    let mut harness = Harness::new_ui_state(
+        move |ui, app: &mut App| {
+            datacraft_ui::theme::fonts::install(ui.ctx());
+            datacraft_ui::theme::apply(ui.ctx());
+            let mut frame = eframe::Frame::_new_kittest();
+            eframe::App::ui(app, ui, &mut frame);
+        },
+        app,
+    );
+    harness.run();
+    harness.get_by_label("▶").click();
+    harness.run();
+    let dump = tree_dump_shell(&harness);
+    assert!(
+        dump.contains("2 of 2"),
+        "one next click must advance the counter past the stale form cursor:\n{dump}"
+    );
+    let tab = harness.state().snapshot().tabs[0].clone();
+    assert_eq!(
+        harness.state().record_cursor(tab.id),
+        1,
+        "the arrow wrote the record cursor"
+    );
+}
