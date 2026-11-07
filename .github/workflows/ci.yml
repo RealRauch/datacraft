@@ -50,6 +50,19 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+      # H55 diagnosis (released 2026-11-07): the ubuntu test job died twice
+      # with `ld terminated with signal 7 [Bus error]` while linking core
+      # test binaries — the classic disk-exhaustion symptom on the migrated
+      # ubuntu-26 image. Record the disk state and free the preinstalled
+      # tooling this build never uses; the df lines stay in the log as
+      # evidence for the closure decision.
+      - name: Disk evidence and headroom (H55)
+        if: runner.os == 'Linux'
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/share/swift /opt/hostedtoolcache/CodeQL
+          df -h /
       - run: cargo test --workspace --all-features
 
   fixtures:

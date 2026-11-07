@@ -15,6 +15,13 @@
 
 - **50.1 Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54)**
 - **50.2 Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled)**
+### Phase 52 — CI ubuntu diagnosis
+
+**Scope (Steps):**
+
+- **52.1 Test job: disk evidence and headroom before the build (H55, High gate released 2026-11-07)**
+- **52.2 Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded)**
+
 
 
 
@@ -307,3 +314,5 @@
 | 50.2 | Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled) | ⬜ |
 | 51.1 | Changelog: per-phase cadence in policy and AGENTS, coarse Unreleased catch-up (L38) | ✅ |
 | 51.2 | Phase 51 Quality Gate Review | ✅ |
+| 52.1 | Test job: disk evidence and headroom before the build (H55, High gate released 2026-11-07) | 🔄 |
+| 52.2 | Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded) | ⬜ |
