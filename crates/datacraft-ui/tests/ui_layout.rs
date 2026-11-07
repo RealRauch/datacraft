@@ -375,6 +375,36 @@ fn record_navigation_places_previous_left_of_next() {
     );
 }
 
+/// The status bar names a detected Access lock file (step 53.2, item
+/// M59): the session opened read-only, and the localized notice — rendered
+/// from the snapshot's lock-file data — stands beside the database
+/// context on every frame.
+#[test]
+fn the_status_bar_names_the_access_lock_file() {
+    let mut port = MockPort::with_tables(vec![TableDef::new(
+        "Orders",
+        vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))],
+    )]);
+    let mut caps = datacraft_core::port::DriverCapabilities::full();
+    caps.write_rows = false;
+    caps.create_table = false;
+    caps.drop_table = false;
+    caps.alter_table = false;
+    caps.atomic_batch = false;
+    port.with_capabilities(caps);
+    port.with_lock_file("orders.ldb");
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "orders.mdb".into(),
+        password: None,
+    });
+    let (_rects, dump) = shell_frame(app, egui::vec2(1280.0, 800.0));
+    assert!(
+        dump.contains("Read-only — Access lock file orders.ldb"),
+        "the status bar names the lock file:\n{dump}"
+    );
+}
+
 /// The record-navigation counter reads the cursor the arrows write (step
 /// 48.1, item M60, user report 2026-11-06): clicking next on a 2-row
 /// table moves the counter to "2 of 2" and the record cursor to 1. The

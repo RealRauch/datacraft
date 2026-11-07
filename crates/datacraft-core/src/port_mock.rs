@@ -32,6 +32,10 @@ pub struct MockPort {
     /// Overrides the reported capabilities (phase 30, M17: restricted-
     /// driver simulations). `None` reports the honest mock default.
     reported_capabilities: Option<DriverCapabilities>,
+    /// The lock-file name `open` reports (step 53.2, item M59 —
+    /// simulated Access co-existence; combine with `with_capabilities`
+    /// for the read-only shape).
+    lock_file: Option<String>,
     /// Number of successful `open` calls (observability for tests).
     pub open_calls: usize,
     /// Number of `close` calls (observability for tests).
@@ -147,6 +151,14 @@ impl MockPort {
         self
     }
 
+    /// Builder: `open` reports a detected Access lock file (step 53.2,
+    /// item M59 — the name travels as data; combine with
+    /// `with_capabilities` for the read-only shape).
+    pub fn with_lock_file(&mut self, name: impl Into<String>) -> &mut Self {
+        self.lock_file = Some(name.into());
+        self
+    }
+
     /// Resolves a table definition case-insensitively.
     fn table_def(&self, table: &str) -> Result<&TableDef, PortError> {
         self.tables
@@ -216,7 +228,7 @@ impl StoragePort for MockPort {
             .get_or_insert(OpenedDatabase {
                 name,
                 format: DatabaseFormat::Jet4,
-                lock_file: None,
+                lock_file: self.lock_file.clone(),
             })
             .clone();
         Ok(opened)

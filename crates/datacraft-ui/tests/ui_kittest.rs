@@ -202,6 +202,42 @@ fn backstage_new_page_creates_from_a_template() {
     let _ = std::fs::remove_file(&path);
 }
 
+/// The Info backstage page names a detected Access lock file with the
+/// remedy (step 53.2, item M59): fact row plus the full localized detail.
+#[test]
+fn the_info_page_names_the_access_lock_file() {
+    let mut port = MockPort::with_tables(vec![customers()]);
+    let mut caps = datacraft_core::port::DriverCapabilities::full();
+    caps.write_rows = false;
+    caps.create_table = false;
+    caps.drop_table = false;
+    caps.alter_table = false;
+    caps.atomic_batch = false;
+    port.with_capabilities(caps);
+    port.with_lock_file("shop.ldb");
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+    });
+    app.backstage_page = datacraft_ui::backstage::BackstagePage::Info;
+    let mut harness = backstage_harness(app);
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("Access lock file"),
+        "the fact row names the lock file:\n{dump}"
+    );
+    assert!(
+        dump.contains("shop.ldb"),
+        "the fact row carries the file name:\n{dump}"
+    );
+    assert!(
+        dump.contains("remove the lock file"),
+        "the detail states the remedy:\n{dump}"
+    );
+}
+
 /// The Samples page (phase 29, H44): the dev-workspace samples resolve and
 /// one click opens the shipped database.
 #[test]
