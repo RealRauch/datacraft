@@ -504,3 +504,49 @@ record.
 `[workspace.dependencies]` — moved there on the next `Cargo.toml` touch
 (Medium gate). The M48 grouping-picker bookkeeping (delivered per
 PROGRESS 41.4, still open in BACKLOG) is reconciled at Phase 48 close.
+
+## 17. Crate-split policy — decision record
+
+**Decision (2026-11-07, human-approved):** the workspace keeps its current
+eight-crate cut. Further crate splits are deliberately limited to at most two,
+in this order: (1) `datacraft-expr` — the expression engine (lexer, parser,
+evaluator, function library, format, like, coerce; ~3,100 lines in
+`core/src/expr`) becomes its own crate, with the schema-type boundary
+(`NumericKind`, field types) resolved first via a shared `datacraft-types`
+crate; (2) `datacraft-query` — the SQL dialect engine, QBE evaluation and
+native query execution (`core/src/native_exec`) become their own crate,
+making the existing `sql-engine` feature structural. All other crates stay
+as they are. Work items are created only when a released step touches the
+crate in question (piggyback rule) — no dedicated split phases.
+
+**Rationale:**
+
+1. **Splits cost disproportionately here.** Every `Cargo.toml` change is a
+   Medium release gate per occurrence; every new crate passes the dependency
+   direction review (AGENTS §1) and updates ARCHITECTURE §4, AGENTS, README,
+   TESTING and the crates.io publishing order (31.4). At the current size
+   (~344 `.rs` files; core ≈ 18,200 lines in 78 files) the compile-time
+   payoff is modest, and the 500-line gate pressure is cheaper to solve with
+   module splits inside existing crates (L30) — a finer crate layering is a
+   consequence of scale, not a quality trait by itself.
+2. **expr is the one clean win.** Pure computation, no I/O, no backends, and
+   among the most-tested domains (~17 % of core's lines). As its own crate
+   it becomes a small, independently publishable library with its own semver
+   story, and core shrinks accordingly. The blocker is the type boundary:
+   expr consumes schema types, so the split ships with `datacraft-types`
+   first — `core → expr → types → (nothing)` stays acyclic and every edge
+   passes the direction review.
+3. **query is the optional second split.** The SQL dialect and native
+   execution already sit behind the `sql-engine` feature with optional
+   rusqlite; a crate boundary makes that optionality structural and keeps
+   default core dependency-free. The cut is larger (QBE, saved-query
+   execution, expression integration), hence optional and second.
+4. **Explicitly not split:** the command bus and dispatch (the single-bus
+   backbone of AGENTS §6), the snapshot/wire contracts (one ABI, one crate),
+   `datacraft-storage` (deliberately thin), `datacraft-jet` (cohesive format
+   knowledge — jet3/jet4 subcrates would risk cycles over shared page
+   primitives for no build win) and `datacraft-ui` (rendering glue by
+   definition; module splits cover its size pressure).
+
+**Downstream:** new crate = Medium release gate per occurrence; direction
+review binding; AGENTS §1 graph updated after each split.
