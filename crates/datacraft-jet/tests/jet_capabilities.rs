@@ -148,3 +148,88 @@ fn jet4_create_database_capability_is_honoured() {
     assert!(path.exists());
     let _ = std::fs::remove_file(&path);
 }
+
+/// A scratch-dir copy of `name` with an empty Access lock file beside it
+/// (M59 acceptance: fixture-built empty file in a scratch dir). The
+/// fixture itself is only ever read.
+fn locked_copy(name: &str, lock_extension: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "datacraft-ldb-{}-{}",
+        name.trim_end_matches(|c: char| c.is_ascii_alphabetic() || c == '.'),
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).expect("create the scratch dir");
+    let copy = dir.join(name);
+    std::fs::copy(fixture(name), &copy).expect("copy the fixture");
+    let lock = dir.join(format!(
+        "{}.{lock_extension}",
+        name.trim_end_matches(|c: char| c.is_ascii_alphabetic() || c == '.')
+    ));
+    std::fs::write(&lock, b"").expect("write the empty lock file");
+    copy
+}
+
+/// Co-existence (step 53.1, item M59, user incident 2026-11-06): a
+/// sibling `.ldb` means Access may hold the database open — the session
+/// downgrades to the Jet3 read-only shape and every write answers a
+/// precise `Unsupported`. DataCraft never creates or deletes lock files.
+#[test]
+fn a_sibling_lock_file_forces_a_read_only_jet4_session() {
+    let path = locked_copy("testV2000.mdb", "ldb");
+    let mut port = Jet4Port::new();
+    port.open(&path, None).expect("open the locked copy");
+    let caps = port.capabilities();
+    assert!(caps.read_tables);
+    assert!(caps.create_database, "creation is session-independent");
+    assert!(!caps.write_rows);
+    assert!(!caps.create_table);
+    assert!(!caps.drop_table);
+    assert!(!caps.alter_table);
+    assert!(!caps.atomic_batch);
+    assert_eq!(caps.autonumber, Support::No);
+
+    let first = port
+        .tables()
+        .first()
+        .expect("the fixture catalogues tables")
+        .clone();
+    let null_row = vec![FieldValue::Null; first.fields.len()];
+    let error = port
+        .insert_row(&first.name, &null_row)
+        .expect_err("insert_row is unsupported on a locked session");
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+    let error = port
+        .create_table(&any_table())
+        .expect_err("create_table is unsupported on a locked session");
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+}
+
+/// Without a lock file the session is unchanged — the reference
+/// read/write set (M59: the detection must not false-positive).
+#[test]
+fn without_a_lock_file_the_jet4_session_stays_writable() {
+    let dir = std::env::temp_dir().join(format!("datacraft-nolock-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("create the scratch dir");
+    let copy = dir.join("testV2000.mdb");
+    std::fs::copy(fixture("testV2000.mdb"), &copy).expect("copy the fixture");
+    let mut port = Jet4Port::new();
+    port.open(&copy, None).expect("open the unlocked copy");
+    let caps = port.capabilities();
+    assert!(caps.write_rows);
+    assert!(caps.alter_table);
+    assert!(caps.atomic_batch);
+    assert_eq!(caps.autonumber, Support::Yes);
+}
+
+/// ACE sources lock through their own extension: a sibling `.laccdb`
+/// downgrades the session just like an `.ldb` does for Jet.
+#[test]
+fn an_accdb_lock_file_is_detected_by_its_own_extension() {
+    let path = locked_copy("testV2007.accdb", "laccdb");
+    let mut port = Jet4Port::new();
+    port.open(&path, None).expect("open the locked accdb copy");
+    let caps = port.capabilities();
+    assert!(!caps.write_rows);
+    assert!(!caps.alter_table);
+    assert_eq!(caps.autonumber, Support::No);
+}
