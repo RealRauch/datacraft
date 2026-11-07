@@ -373,3 +373,22 @@ pub fn index_leaf_pages(writer: &datacraft_jet::jet::Jet4Writer, tdef_page: u32)
         .map(|index| index.root_page)
         .collect()
 }
+
+/// Pages a table creation touches in `MSysACEs`: the ACL table's definition,
+/// its data pages and its index leaves (step 49.2, item M63).
+pub fn aces_page_set(
+    reader: &datacraft_jet::jet::Jet4TableReader,
+    writer: &datacraft_jet::jet::Jet4Writer,
+) -> Vec<u32> {
+    let page = reader
+        .catalog()
+        .expect("catalog decodes")
+        .into_iter()
+        .find(|entry| entry.name == "MSysACEs")
+        .and_then(|entry| entry.tdef_page)
+        .expect("MSysACEs exists");
+    let mut pages = vec![page];
+    pages.extend(writer.data_pages_of(page));
+    pages.extend(index_leaf_pages(writer, page));
+    pages
+}

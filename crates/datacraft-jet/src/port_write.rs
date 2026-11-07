@@ -59,9 +59,13 @@ pub(crate) fn table_to_columns(definition: &TableDef) -> Result<Vec<JetColumn>, 
             0,
             len,
         );
-        // The misc slot carries `0x0400 | scale` on Numeric columns
-        // (DAO parity; FORMAT-JET).
-        column.misc = 0x0400 | u16::from(scale);
+        // The misc slot carries the `0x0409` collation on every column; only
+        // Numeric swaps it for `0x0400 | scale` (observed engine output,
+        // FORMAT-JET). Writing `0x0400` everywhere made the engine refuse the
+        // table during catalog enumeration (M63 acceptance, 2026-11-07).
+        if matches!(field.kind, FieldKind::Number(NumericKind::Decimal { .. })) {
+            column.misc = 0x0400 | u16::from(scale);
+        }
         column.indexed = field.properties.indexed;
         columns.push(column);
     }

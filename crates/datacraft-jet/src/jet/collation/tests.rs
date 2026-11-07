@@ -168,3 +168,15 @@ fn characters_outside_the_observed_table_are_refused() {
         }
     }
 }
+
+/// An ignorable whose position code exceeds the two-byte weight form is
+/// refused instead of silently truncated.
+#[test]
+fn overlong_ignorable_positions_are_refused() {
+    let name = format!("{}-", "a".repeat(8_200));
+    let error = text_sort_key(&name).expect_err("position code out of range");
+    assert!(
+        matches!(error, StorageError::Unsupported { .. }),
+        "{error:?}"
+    );
+}

@@ -23,7 +23,7 @@
 
 use crate::error::StorageError;
 use crate::jet::index_pages::{self, KeyPart, PhysicalIndex, RowPointer, entry_pointer};
-use crate::jet::tdef::{JetTableDef, JetType};
+use crate::jet::tdef::{JetColumn, JetTableDef, JetType};
 use crate::jet::writer::Jet4Writer;
 use crate::types::StorageValue;
 
@@ -121,6 +121,36 @@ impl Jet4Writer {
         Ok(())
     }
 
+    /// One key component for an indexed column. The casts mirror
+    /// `encode_row`'s storage narrowing, so the key always describes the
+    /// value actually written.
+    fn key_part<'a>(
+        column: &JetColumn,
+        value: &'a StorageValue,
+    ) -> Result<KeyPart<'a>, StorageError> {
+        Ok(match (column.data_type, value) {
+            (_, StorageValue::Null) => KeyPart::Null,
+            (JetType::Bool, StorageValue::Bit(bit)) => KeyPart::Boolean(*bit),
+            (JetType::Byte, StorageValue::Int(number)) => KeyPart::Byte(*number as u8),
+            (JetType::Int, StorageValue::Int(number)) => KeyPart::SmallInteger(*number as i16),
+            (JetType::LongInt, StorageValue::Int(number)) => KeyPart::Integer(*number),
+            (JetType::Currency, StorageValue::Currency(scaled)) => KeyPart::Currency(*scaled),
+            (JetType::Float, StorageValue::Float(number)) => KeyPart::Single(*number as f32),
+            (JetType::Double, StorageValue::Float(number)) => KeyPart::Double(*number),
+            (JetType::DateTime, StorageValue::DateTime(date)) => KeyPart::DateTime(*date),
+            (JetType::Guid, StorageValue::Guid(bytes)) => KeyPart::Guid(*bytes),
+            (JetType::Text, StorageValue::Text(text)) => KeyPart::Text(text),
+            (data_type, other) => {
+                return Err(StorageError::Unsupported {
+                    reason: format!(
+                        "index maintenance cannot encode the key of column {:?}                          ({data_type:?}); it carries {other:?}",
+                        column.name
+                    ),
+                });
+            }
+        })
+    }
+
     /// Builds one leaf entry for `values` according to the index's columns.
     fn index_entry(
         def: &JetTableDef,
@@ -143,30 +173,7 @@ impl Jet4Writer {
                 context: "index maintenance".into(),
                 detail: format!("row carries no value for indexed column {:?}", column.name),
             })?;
-            // The casts mirror `encode_row`'s storage narrowing, so the key
-            // always describes the value actually written.
-            parts.push(match (column.data_type, value) {
-                (_, StorageValue::Null) => KeyPart::Null,
-                (JetType::Bool, StorageValue::Bit(bit)) => KeyPart::Boolean(*bit),
-                (JetType::Byte, StorageValue::Int(number)) => KeyPart::Byte(*number as u8),
-                (JetType::Int, StorageValue::Int(number)) => KeyPart::SmallInteger(*number as i16),
-                (JetType::LongInt, StorageValue::Int(number)) => KeyPart::Integer(*number),
-                (JetType::Currency, StorageValue::Currency(scaled)) => KeyPart::Currency(*scaled),
-                (JetType::Float, StorageValue::Float(number)) => KeyPart::Single(*number as f32),
-                (JetType::Double, StorageValue::Float(number)) => KeyPart::Double(*number),
-                (JetType::DateTime, StorageValue::DateTime(date)) => KeyPart::DateTime(*date),
-                (JetType::Guid, StorageValue::Guid(bytes)) => KeyPart::Guid(*bytes),
-                (JetType::Text, StorageValue::Text(text)) => KeyPart::Text(text),
-                (data_type, other) => {
-                    return Err(StorageError::Unsupported {
-                        reason: format!(
-                            "index maintenance encodes LongInteger and Short Text keys only; \
-                             column {:?} ({data_type:?}) carries {other:?}",
-                            column.name
-                        ),
-                    });
-                }
-            });
+            parts.push(Self::key_part(column, value)?);
         }
         index_pages::leaf_entry(&parts, pointer)
     }
@@ -237,3 +244,6 @@ fn distinct_keys(entries: &[Vec<u8>]) -> usize {
     keys.dedup();
     keys.len()
 }
+
+#[cfg(test)]
+mod tests;

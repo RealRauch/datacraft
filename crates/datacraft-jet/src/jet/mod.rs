@@ -25,6 +25,7 @@ pub(crate) mod text;
 pub mod usage_map;
 pub mod vba;
 pub mod writer;
+pub mod writer_acl;
 pub mod writer_drop;
 pub mod writer_indexes;
 pub mod writer_rows;

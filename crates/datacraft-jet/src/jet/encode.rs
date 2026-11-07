@@ -329,7 +329,11 @@ pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
     block.extend_from_slice(&TDEF_CONSTANT.to_le_bytes()); // observed constant
     block.extend_from_slice(&def.num_rows.to_le_bytes());
     block.extend_from_slice(&def.autonumber.to_le_bytes());
-    block.push(0x01);
+    // The flag marks an AutoNumber column's presence (engines write 0 when
+    // the table has none — observed 2026-11-07).
+    block.push(u8::from(columns.iter().any(|column| {
+        column.flags & crate::jet::tdef::flags::AUTONUMBER != 0
+    })));
     block.extend_from_slice(&[0u8; 3]);
     block.extend_from_slice(&0u32.to_le_bytes()); // complex autonumber
     block.extend_from_slice(&[0u8; 8]);
@@ -371,6 +375,10 @@ pub fn encode_tdef(def: &JetTableDef) -> Vec<u8> {
     }
     block.extend_from_slice(&def.index_section);
     block.extend_from_slice(&0xFFFFu16.to_le_bytes()); // usage-pointer terminator
+    // Fixed eight-byte trailer: every engine-written TDEF ends with it, and
+    // the engine refuses a definition without it (DAO 3049; acceptance
+    // finding 2026-11-07). `tdef_len` includes the trailer.
+    block.extend_from_slice(&[0u8; 8]);
     let len = block.len() as u32;
     block[..4].copy_from_slice(&len.to_le_bytes());
     block

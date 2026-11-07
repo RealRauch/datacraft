@@ -268,7 +268,9 @@ fn create_table_appends_and_catalogues_on_ace_files() {
         let reader = Jet4TableReader::new(before.clone()).expect("pristine file decodes");
         let baseline = user_tables(&reader);
         let mut writer = Jet4Writer::new(before.clone()).expect("writer opens ACE");
-        let allowed = catalog_page_set(&writer);
+        // A created table also receives its ACL rows in MSysACEs (49.2).
+        let mut allowed = catalog_page_set(&writer);
+        allowed.extend(support::aces_page_set(&reader, &writer));
 
         let columns = vec![
             JetColumn::new("id", JetType::LongInt, 0x03, 0, 0, 4),

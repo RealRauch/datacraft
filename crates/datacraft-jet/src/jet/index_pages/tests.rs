@@ -253,3 +253,88 @@ fn decoded_leaves_report_their_parent_tdef() {
     let index: PhysicalIndex = physical_indexes(&catalog()).expect("indexes")[0].clone();
     assert!(!index.columns.is_empty());
 }
+
+#[test]
+fn decode_refuses_short_pages_and_inconsistent_metadata() {
+    assert!(matches!(
+        decode_leaf(1, &[0u8; 16]),
+        Err(StorageError::Corrupt { .. })
+    ));
+    let mut mismatched = page(7).to_vec();
+    mismatched[2..4].copy_from_slice(&0u16.to_le_bytes());
+    assert!(matches!(
+        decode_leaf(7, &mismatched),
+        Err(StorageError::Corrupt { .. })
+    ));
+    // One four-byte "entry" is shorter than flag + pointer.
+    let mut short = vec![0u8; PAGE_SIZE];
+    short[0] = 0x04;
+    short[2..4].copy_from_slice(&(PAGE_SIZE as u16 - 0x1E0 - 4).to_le_bytes());
+    short[0x1B] = 1 << 4; // end bit at offset 4
+    assert!(matches!(
+        decode_leaf(1, &short),
+        Err(StorageError::Corrupt { .. })
+    ));
+}
+
+#[test]
+fn encode_refuses_short_entries_and_out_of_range_offsets() {
+    let leaf = LeafPage {
+        parent: CATALOG_TDEF_PAGE,
+        entries: vec![vec![0x7F, 0x00]],
+    };
+    assert!(matches!(
+        encode_leaf(&leaf, PAGE_SIZE),
+        Err(StorageError::Corrupt { .. })
+    ));
+    // An entry that fits a 8 KiB page but whose end exceeds the bitmap range.
+    let big = LeafPage {
+        parent: CATALOG_TDEF_PAGE,
+        entries: vec![vec![0x7F; 4_000]],
+    };
+    let error = encode_leaf(&big, 8192).expect_err("bitmap cannot address it");
+    assert!(
+        matches!(error, StorageError::Unsupported { .. }),
+        "{error:?}"
+    );
+    let too_small = encode_leaf(&leaf, 16).expect_err("page too small");
+    assert!(matches!(too_small, StorageError::Unsupported { .. }));
+}
+
+#[test]
+fn index_metadata_and_key_parts_answer_precisely() {
+    let mut broken = catalog();
+    broken.real_index_count = 4;
+    assert!(matches!(
+        physical_indexes(&broken),
+        Err(StorageError::Corrupt { .. })
+    ));
+
+    let mut bad_tag = catalog();
+    let at = 0usize; // the first physical block starts the section
+    bad_tag.index_section[at..at + 4].copy_from_slice(&0u32.to_le_bytes());
+    assert!(matches!(
+        physical_indexes(&bad_tag),
+        Err(StorageError::Corrupt { .. })
+    ));
+
+    let pointer = RowPointer { page: 1, row: 0 };
+    assert!(matches!(
+        leaf_entry(&[], pointer),
+        Err(StorageError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        leaf_entry(
+            &[KeyPart::Integer(1)],
+            RowPointer {
+                page: 0x0100_0000,
+                row: 0
+            }
+        ),
+        Err(StorageError::Unsupported { .. })
+    ));
+    assert!(matches!(
+        entry_pointer(&[0x7F, 0x00]),
+        Err(StorageError::Corrupt { .. })
+    ));
+}

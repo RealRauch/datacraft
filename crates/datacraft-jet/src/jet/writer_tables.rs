@@ -33,6 +33,9 @@ const SYSTEM_TABLE_OWNER: [u8; 2] = [0xE4, 0xA1];
 const SYSTEM_TABLE_FLAGS: i64 = 0x8000_0000;
 /// Free-space reserve: pages below this are unmarked in the free map.
 const FREE_MAP_RESERVE: usize = 512;
+/// Bitmap bytes of a fresh table's usage maps (512-page window, the engine's
+/// own policy).
+const USAGE_WINDOW_BYTES: usize = 64;
 /// `MSysObjects` TDEF page (format constant, see `catalog.rs`).
 const CATALOG_TDEF: u32 = 2;
 
@@ -82,17 +85,23 @@ impl Jet4Writer {
         flags: i64,
         owner: [u8; 2],
     ) -> Result<u32, StorageError> {
-        // 1. Usage page (owner 0) with empty used/free rows.
+        // 1. TDEF page first, then its usage page. The engine's own writer
+        // allocates in this order, and it refuses a table whose usage page
+        // precedes the definition (acceptance finding, 2026-11-07): the DAO
+        // catalog enumeration answers 3049 otherwise.
+        let tdef_page = self.append_page()?;
         let usage_page = self.append_page()?;
+
+        // 2. Usage page (owner 0) with empty used/free rows.
+        // The engine writes a 64-byte bitmap (512-page window) even for a
+        // fresh table; a shorter map makes the DAO catalog enumeration answer
+        // 3049 (acceptance finding, 2026-11-07).
         let empty = UsageMap {
             start_page: 0,
-            bitmap: vec![0u8; 8],
+            bitmap: vec![0u8; USAGE_WINDOW_BYTES],
         }
         .encode_row();
         self.write_fresh_data_page(usage_page, 0, &[empty.clone(), empty])?;
-
-        // 2. TDEF page wired to the usage rows.
-        let tdef_page = self.append_page()?;
         let def = build_table_def(
             0x4E,
             0,
@@ -105,6 +114,17 @@ impl Jet4Writer {
         // 3. Catalog row (append into MSysObjects). The timestamp is the
         // writer's catalog date — construction time by default, pinned by
         // the deterministic template materializer (phase 29, step 29.2).
+        // The row's Owner is the database's own owner SID when the file
+        // exposes one (the engine's writer does the same).
+        let acl = self.object_acl()?;
+        let owner = acl.as_ref().map_or(owner, |acl| {
+            let bytes = &acl.owner_sid;
+            if bytes.len() == 2 {
+                [bytes[0], bytes[1]]
+            } else {
+                owner
+            }
+        });
         let catalog_def = JetTableDef::decode(&self.file, CATALOG_TDEF)?;
         let values = Self::catalog_row(
             &catalog_def,
@@ -115,6 +135,12 @@ impl Jet4Writer {
             owner,
         );
         self.insert_row(CATALOG_TDEF, &values)?;
+
+        // 4. The object's access-control entries (the engine refuses to read
+        // a catalogued table without them).
+        if let Some(acl) = acl {
+            self.grant_object_acl(tdef_page, &acl)?;
+        }
         Ok(tdef_page)
     }
 
