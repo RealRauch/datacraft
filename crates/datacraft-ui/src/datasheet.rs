@@ -235,6 +235,12 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     filter_dialog_ui(app, tab, &columns, ui);
 }
 
+/// The criteria syntax the dialog accepts (step 48.3, item M62): the
+/// M37-fenced dialect in one line — wildcards, quoting rule, comparison
+/// operators and one example each. The English source is the i18n key;
+/// the German catalog entry lives in `i18n/de/ui_chrome.rs`.
+pub(crate) const FILTER_SYNTAX_HELP: &str = "Criteria: quoted Like patterns with the wildcards * (any run), ? (one character), # (one digit) — e.g. Like \"A*\" — or a comparison =, <>, <, <=, >, >= with a literal coerced to the column's kind, e.g. > 100.";
+
 /// The column filter dialog (step 45.1, M55): egui menus do not host
 /// text editing — clicking the in-menu editor closed the whole menu —
 /// so the criteria editor lives in a small window (the mapper/sql

@@ -351,3 +351,23 @@ fn switching_between_two_tables_keeps_the_ribbon_tab() {
         "same-kind activation keeps the non-contextual tab"
     );
 }
+
+/// The filter dialog states the criteria syntax it accepts (step 48.3,
+/// item M62, user report 2026-11-06): the wildcards, the quoting rule,
+/// the comparison operators and one example each — in the dialog, not
+/// the docs. The German rendering follows from the same `t()` call; the
+/// catalog resolution is pinned separately in the i18n kernel tests.
+#[test]
+fn the_filter_dialog_documents_the_criteria_syntax() {
+    let mut harness = datasheet_harness(customers_two_rows_app());
+    harness.run();
+    harness.get_by_label("name").click_secondary();
+    harness.run();
+    harness.get_by_label("Filter…").click();
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("one digit"),
+        "the dialog shows the syntax summary:\n{dump}"
+    );
+}

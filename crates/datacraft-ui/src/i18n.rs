@@ -169,6 +169,23 @@ mod tests {
         assert_eq!(translate(Lang::German, "File"), "Datei");
     }
 
+    /// The filter dialog's syntax summary (step 48.3, item M62) resolves
+    /// through the German catalog — pure assertion, no global language
+    /// flip, so no cross-test leakage.
+    #[test]
+    fn the_filter_syntax_help_is_localized_in_german() {
+        let german = translate(Lang::German, crate::datasheet::FILTER_SYNTAX_HELP);
+        assert_ne!(
+            german,
+            crate::datasheet::FILTER_SYNTAX_HELP,
+            "the key has a German catalog entry"
+        );
+        assert!(
+            german.contains("beliebige Zeichenfolge"),
+            "the German text names the wildcard:\n{german}"
+        );
+    }
+
     #[test]
     fn locale_strings_map_to_languages() {
         for locale in ["de", "de-DE", "de_AT", "DE", "de-CH"] {
