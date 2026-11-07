@@ -280,6 +280,9 @@ fn filter_dialog_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &m
             {
                 app.set_filter_draft(tab.id, column, draft.clone());
             }
+            // The dialog states the dialect it accepts (step 48.3, item
+            // M62) — the user asked for the syntax in the walkthrough.
+            ui.label(egui::RichText::new(t(FILTER_SYNTAX_HELP)).weak());
             ui.horizontal(|ui| {
                 if ui.button(t("Apply Filter")).clicked() && !draft.trim().is_empty() {
                     app.dispatch(Command::SetTableFilter {

@@ -128,6 +128,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Apply Filter", "Filter anwenden"),
     ("Clear Filter", "Filter löschen"),
     (
+        "Criteria: quoted Like patterns with the wildcards * (any run), ? (one character), # (one digit) — e.g. Like \"A*\" — or a comparison =, <>, <, <=, >, >= with a literal coerced to the column's kind, e.g. > 100.",
+        "Kriterien: In Anführungszeichen gesetzte Like-Muster mit den Wildcards * (beliebige Zeichenfolge), ? (ein Zeichen), # (eine Ziffer) — z. B. Like \"A*\" — oder ein Vergleich =, <>, <, <=, >, >= mit einem an die Spaltenart angepassten Literal, z. B. > 100.",
+    ),
+    (
         "Click to clear all filters on this table.",
         "Klicken, um alle Filter dieser Tabelle zu löschen.",
     ),
