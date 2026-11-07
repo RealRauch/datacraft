@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-07T15:48
+# BACKLOG.md — Open items (As of: 2026-11-07T18:33
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -77,6 +77,12 @@
 - **Problem:** The float digits parse uses `.expect("digits form a float")` on a genuine parse path, contrary to AGENTS §6 ("no unwrap/expect on parse paths"). The string is built from `'0'..='9'` plus one `'.'`, so it cannot fail in practice — but the adjacent integer branch (lines 195-202) shows the house pattern: a precise `ExprError::Lex` on failure instead of a panic (found in the 2026-11-07 repo review).
 - **Approach:** Mirror the integer branch: attempt the parse and return a precise lexer error on failure instead of expecting; drop the panic.
 - **Acceptance:** No `expect`/`unwrap` remains on the lexer parse path; existing lexer and expression tests stay green; canonical verification set green.
+
+### [ ] M67 — SaveDatabaseAs inherits the source's page-0 state — it cannot repair a broken file — 🟡
+- **Location:** `crates/datacraft-jet/src/port_adapter/password.rs` (`save_as` — `reader.file.clone()` page copy), M14 contract (step 27.2).
+- **Problem:** found in the 49.4 recovery pre-flight (2026-11-07): `SaveDatabaseAs` copies the source's pages and rewrites only the password state, so a copy inherits the source's page-0 state verbatim. For the incident file (pre-49.2 zeroed tail + hand-built catalog) the Save-As copy is still engine-refused ("Zu viele aktive Benutzer" — the oracle rejected `database-access-ready.mdb` exactly like the original). Save-As is a password/format-state tool, not a repair tool.
+- **Approach:** keep the M14 page-copy contract (it preserves healthy sources byte-stably) and document the boundary; recovery runs through the 49.4 re-encode vehicle (`crates/datacraft-jet/examples/recover_mdb.rs`: decode → create-path re-encode through the port, the shape the 49.2/49.3 gates verified). A product-grade re-encoding save-as (e.g. a `SaveDatabaseAs` re-encode flag or a Repair command) is the future feature this item tracks.
+- **Acceptance:** the boundary is documented (README save-as row / FORMAT-JET); the recovery example is the documented vehicle for engine-refused files; healthy-source Save-As behavior is unchanged; canonical verification set green.
 
 ---
 
@@ -362,3 +368,4 @@
 - M66 — Table drops leak the dropped table's physical index pages — done (fixed in `6ba2255` (drop scans index pages by their parent TDEF; contract test demands 0xFF-fill and global-map release))
 - K4 — DataCraft re-assigned the engine's last autonumber value (seed read as next) — done (`9ca0fc8` — fixed test-first within phase 49 (RED `c0174c2`); DAO-oracle re-verified both interop directions)
 - M63 — DataCraft-created .mdb files are refused by Access (zero-filled header-region fields) — done (completed by step 49.3 (2026-11-07): the ten-step real-Access checklist passed end to end (user-verified); DAO oracle + engine-side CREATE/INSERT/DROP round-trip green; the K4 seed defect found and fixed during the pre-flight (`9ca0fc8`); the drop-path leak was M66 (`6ba2255`))
+- K5 — Verbatim restore writes left the autonumber seed behind (recovery collides) — done (`82c0bbf` — fixed test-first in 49.4 (RED `e481c51`); seed advances to max(seed, value) on verbatim restore writes)
