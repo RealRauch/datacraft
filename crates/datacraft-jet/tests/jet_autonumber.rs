@@ -74,7 +74,74 @@ fn the_writer_assigns_and_persists_the_counter() {
     assert_eq!(data.rows[0][0], StorageValue::Int(1));
     assert_eq!(data.rows[1][0], StorageValue::Int(2));
     let def = JetTableDef::decode(&written, tdef).expect("TDEF decodes");
-    assert_eq!(def.autonumber, 3, "the next value persists in the TDEF");
+    assert_eq!(
+        def.autonumber, 2,
+        "the last assigned value persists in the TDEF (the engine's seed \
+         semantics, observed 2026-11-07 via the DAO oracle)"
+    );
+    let _ = std::fs::remove_file(&path);
+}
+
+/// The engine stores the TDEF seed as "last assigned" and takes the next
+/// value from seed + 1 (observed 2026-11-07 via the DAO oracle: after the
+/// engine inserted ids 1..3, DataCraft's insert must take 4 — re-using the
+/// seed collided with the engine's row). This test simulates that
+/// engine-written state by patching the seed dword in a copy.
+#[test]
+fn an_engine_advanced_seed_assigns_one_past_it() {
+    let path = fixture_copy("advanced");
+    let file = std::fs::read(&path).expect("copy readable");
+    let mut writer = Jet4Writer::new(file).expect("writer opens");
+    let tdef = writer
+        .create_table(
+            "AutoAdvanced",
+            &[
+                JetColumn::new("id", JetType::LongInt, 0x05, 0, 0, 4),
+                JetColumn::new("note", JetType::Text, 0x02, 1, 0, 40),
+            ],
+        )
+        .expect("table created");
+    writer
+        .insert_row(
+            tdef,
+            &[
+                StorageValue::Null,
+                StorageValue::Text("seeded".to_owned()),
+            ],
+        )
+        .expect("row inserted");
+    std::fs::write(&path, writer.into_file()).expect("write the copy");
+
+    // Simulate the engine having assigned ids up to 3: the seed dword sits
+    // at page + 8 (block head) + 12 (the decode offset of `autonumber`).
+    let seed_at = tdef as usize * 4096 + 8 + 12;
+    let mut patched = std::fs::read(&path).expect("written file readable");
+    patched[seed_at..seed_at + 4].copy_from_slice(&3u32.to_le_bytes());
+    std::fs::write(&path, &patched).expect("patch the seed");
+
+    let mut writer = Jet4Writer::new(patched).expect("writer reopens");
+    writer
+        .insert_row(
+            tdef,
+            &[
+                StorageValue::Null,
+                StorageValue::Text("continues".to_owned()),
+            ],
+        )
+        .expect("row inserted");
+    let written = writer.into_file();
+    let reader = Jet4TableReader::new(written.clone()).expect("written file opens");
+    let data = reader.open_table("AutoAdvanced").expect("table reads");
+    assert_eq!(
+        data.rows[1][0],
+        StorageValue::Int(4),
+        "the insert continues one past the engine's last assigned value"
+    );
+    let def = JetTableDef::decode(&written, tdef).expect("TDEF decodes");
+    assert_eq!(
+        def.autonumber, 4,
+        "the assigned value is stored as the new seed"
+    );
     let _ = std::fs::remove_file(&path);
 }
 
