@@ -179,7 +179,10 @@ impl Jet4Writer {
     ) -> Result<(), StorageError> {
         let def = JetTableDef::decode(&self.file, tdef_page)?;
         // Engine-assigned AutoNumber values (step 24.1, item M8): Null on an
-        // AUTONUMBER column takes the table's next counter value.
+        // AUTONUMBER column takes the table's next counter value. The seed
+        // dword is the last assigned value (engine semantics, observed
+        // 2026-11-07 via the DAO oracle): the next value is seed + 1, and
+        // the assigned value becomes the new seed.
         let mut values = values.to_vec();
         let mut assigned = false;
         for (column, value) in def.columns.iter().zip(values.iter_mut()) {
@@ -187,7 +190,16 @@ impl Jet4Writer {
                 continue;
             }
             if matches!(value, StorageValue::Null) {
-                *value = StorageValue::Int(i64::from(def.autonumber.max(1)));
+                let next = i64::from(def.autonumber) + 1;
+                let assigned_value =
+                    i32::try_from(next).map_err(|_| StorageError::Corrupt {
+                        context: "row insert".into(),
+                        detail: format!(
+                            "table {tdef_page} autonumber seed {:#010x} exceeds LongInteger",
+                            def.autonumber
+                        ),
+                    })?;
+                *value = StorageValue::Int(i64::from(assigned_value));
                 assigned = true;
             }
         }
@@ -266,8 +278,10 @@ impl Jet4Writer {
         self.adjust_num_rows(tdef_page, 1)
     }
 
-    /// Advances the table's next AutoNumber value (`+12` in the TDEF head)
-    /// after an engine-assigned insert (step 24.1, item M8).
+    /// Stores the table's last assigned AutoNumber value (`+12` in the TDEF
+    /// head) after an engine-assigned insert (step 24.1, item M8; the seed
+    /// semantics follow the 2026-11-07 DAO observation — the engine reads
+    /// the dword as "last assigned" and takes seed + 1).
     fn bump_autonumber(&mut self, tdef_page: u32) -> Result<(), StorageError> {
         let base = self.header.page_offset(tdef_page)? as usize;
         let at = base + 8 + 12;
@@ -276,8 +290,7 @@ impl Jet4Writer {
             self.file[at + 1],
             self.file[at + 2],
             self.file[at + 3],
-        ])
-        .max(1);
+        ]);
         let next = current.saturating_add(1);
         self.file[at..at + 4].copy_from_slice(&next.to_le_bytes());
         Ok(())

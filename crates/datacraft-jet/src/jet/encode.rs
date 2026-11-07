@@ -282,17 +282,14 @@ pub fn build_table_def(
         })
         .collect();
     let (index_section, index_count, real_index_count) = crate::jet::index::build_section(&derived);
+    // A fresh table has assigned nothing: the seed dword is the last
+    // assigned AutoNumber value (engine semantics, observed 2026-11-07 via
+    // the DAO oracle), so the first insert takes 1. The alter path restores
+    // a rewritten table's real seed explicitly.
     JetTableDef {
         table_type,
         num_rows,
-        autonumber: if derived
-            .iter()
-            .any(|column| column.flags & crate::jet::tdef::flags::AUTONUMBER != 0)
-        {
-            1
-        } else {
-            0
-        },
+        autonumber: 0,
         columns: derived,
         used_pages,
         free_pages,
