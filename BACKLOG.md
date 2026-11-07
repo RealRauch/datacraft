@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-07T03:26
+# BACKLOG.md — Open items (As of: 2026-11-07T15:48
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -366,3 +366,4 @@
 - M58 — Activating an object does not surface its contextual ribbon tab — done (done in `0154080` (RED `db49f7d`) - step 47.1: the ribbon selection follows the active document's kind via the spec-derived core contextual_tab_id mapping; guards pin that the backstage is never yanked and same-kind activation changes nothing)
 - F11 — Inline fix: useless u16 conversion in jet3.rs blocked clippy -D warnings — done (fixed in `da29925` (step 49.2))
 - M66 — Table drops leak the dropped table's physical index pages — done (fixed in `6ba2255` (drop scans index pages by their parent TDEF; contract test demands 0xFF-fill and global-map release))
+- K4 — DataCraft re-assigned the engine's last autonumber value (seed read as next) — done (`9ca0fc8` — fixed test-first within phase 49 (RED `c0174c2`); DAO-oracle re-verified both interop directions)

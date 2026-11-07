@@ -1521,3 +1521,12 @@
 - **Approach:** Extend the drop's page set with every physical index root of the dropped TDEF (and, defensively, the pages those roots own) before the 0xFF fill; add a contract test over an engine-written fixture table with physical indexes (leaf count before/after, global map bits).
 - **Acceptance:** Dropping an indexed table on an ACE/Jet fixture copy frees its index leaf pages (global map bit set, 0xFF-filled) and leaves no reachable reference; the drop contract tests stay green; canonical verification set green.
 - **Done:** fixed in `6ba2255` (drop scans index pages by their parent TDEF; contract test demands 0xFF-fill and global-map release)
+
+---
+
+### [x] K4 — DataCraft re-assigned the engine's last autonumber value (seed read as next) — 🔴
+- **Location:** `crates/datacraft-jet/src/jet/writer_tables.rs` (`insert_row` assign, `bump_autonumber`), `crates/datacraft-jet/src/jet/encode.rs` (`derive_table_def` seed init).
+- **Problem:** found in the 49.3 DAO-oracle pre-flight (2026-11-07). DataCraft read the TDEF `+12` seed dword as the table's *next* AutoNumber value, while the real engine stores the *last assigned* value and takes dword + 1: after engine-written ids 1..3 a DataCraft insert re-assigned 3 (duplicate id, observed twice), and after DataCraft ids 1..4 the engine skipped to 6.
+- **Approach:** assign seed + 1, store the assigned value as the new seed, precise `Corrupt` for a crafted seed beyond LongInteger, fresh tables start at seed 0 (first value still 1). Fixed test-first: RED `c0174c2`, GREEN `9ca0fc8` (Jet samples regenerated, manifest hashes moved); seed semantics recorded in FORMAT-JET ("AutoNumber (LongInteger)").
+- **Acceptance:** DAO-oracle re-verification on fresh copies: engine 1..3 then DataCraft takes 4; DataCraft 1..4 then engine takes 5; DataCraft reopens the engine-edited file; `jet_autonumber` suite green including the engine-advanced-seed contract; canonical verification set green.
+- **Done:** `9ca0fc8` — fixed test-first within phase 49 (RED `c0174c2`); DAO-oracle re-verified both interop directions
