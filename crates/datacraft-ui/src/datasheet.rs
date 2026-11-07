@@ -222,7 +222,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     if let Some(row) = selected {
         app.set_record_cursor(tab.id, row, row_count);
     }
-    ui.label(egui::RichText::new(plural(row_count, "{count} row", "{count} rows")).small());
+    let count = ui.label(egui::RichText::new(plural(row_count, "{count} row", "{count} rows")).small());
+    crate::layout_probe::record("datasheet.row_count", count.rect);
     new_row_ui(app, tab, &columns, &widths, ui);
     filter_dialog_ui(app, tab, &columns, ui);
 }
@@ -338,6 +339,7 @@ fn new_row_ui(
                     }
                 }
             });
+        crate::layout_probe::record("datasheet.new_row_cells", ui.min_rect());
         });
     ui.horizontal(|ui| {
         ui.add_space(SELECTOR_WIDTH);
@@ -350,6 +352,7 @@ fn new_row_ui(
         if add_response.clicked() {
             add = true;
         }
+        crate::layout_probe::record("datasheet.new_row_add", add_response.rect);
         ui.weak(t("Empty cells are Null; AutoNumber assigns itself."));
     });
     app.set_new_row_cells(tab.id, cells);

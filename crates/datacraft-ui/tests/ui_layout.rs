@@ -263,6 +263,66 @@ fn the_status_filter_chip_clears_the_active_filters() {
     );
 }
 
+/// An app with a 60-row ServiceOrders table open — enough rows that the
+/// virtualized grid overflows the viewport and pushes the trailing
+/// panels against the workspace bottom.
+fn filled_datasheet_app() -> App {
+    let mut port = MockPort::with_tables(vec![TableDef::new(
+        "ServiceOrders",
+        vec![
+            FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger)),
+            FieldDef::new("Description", FieldKind::Text { max_len: 50 }),
+        ],
+    )]);
+    port.with_row_data(
+        "ServiceOrders",
+        (1..=60)
+            .map(|id| {
+                vec![
+                    FieldValue::Integer(id),
+                    FieldValue::Text(format!("service order {id}")),
+                ]
+            })
+            .collect(),
+    );
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "database.mdb".into(),
+        password: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "ServiceOrders",
+    )));
+    app
+}
+
+/// The datasheet's trailing panels — the row-count label, the new-record
+/// edit row and the Add-record button — stay above the status bar (step
+/// 48.2, M61): the grid must reserve their space budget instead of
+/// consuming the full workspace height and pushing them behind the
+/// footer. With the row behind the status bar the add path is
+/// unreachable — the user could not add a record at all (report
+/// 2026-11-07).
+#[test]
+fn datasheet_trailing_elements_stay_above_the_status_bar() {
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0)] {
+        let (rects, _dump) = shell_frame(filled_datasheet_app(), size);
+        let status = panel_rect(&rects, "shell.status_panel");
+        for id in [
+            "datasheet.row_count",
+            "datasheet.new_row_cells",
+            "datasheet.new_row_add",
+        ] {
+            let rect = panel_rect(&rects, id);
+            assert!(
+                rect.bottom() <= status.top() + 1.0,
+                "{id} paints at {rect:?}, below the status bar top ({status:?}) at {size:?} — the new-record row is unreachable (M61)"
+            );
+        }
+    }
+}
+
 /// The status bar's record navigation reads left-to-right (step 45.2,
 /// user report): the decrement (previous) button sits left of the
 /// increment (next) button — the outer right-to-left status layout
