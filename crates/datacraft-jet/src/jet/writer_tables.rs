@@ -185,21 +185,34 @@ impl Jet4Writer {
         // the assigned value becomes the new seed.
         let mut values = values.to_vec();
         let mut assigned = false;
+        let mut explicit_autonumber: Option<i32> = None;
         for (column, value) in def.columns.iter().zip(values.iter_mut()) {
             if column.flags & crate::jet::tdef::flags::AUTONUMBER == 0 {
                 continue;
             }
-            if matches!(value, StorageValue::Null) {
-                let next = i64::from(def.autonumber) + 1;
-                let assigned_value = i32::try_from(next).map_err(|_| StorageError::Corrupt {
-                    context: "row insert".into(),
-                    detail: format!(
-                        "table {tdef_page} autonumber seed {:#010x} exceeds LongInteger",
-                        def.autonumber
-                    ),
-                })?;
-                *value = StorageValue::Int(i64::from(assigned_value));
-                assigned = true;
+            match value {
+                StorageValue::Null => {
+                    let next = i64::from(def.autonumber) + 1;
+                    let assigned_value =
+                        i32::try_from(next).map_err(|_| StorageError::Corrupt {
+                            context: "row insert".into(),
+                            detail: format!(
+                                "table {tdef_page} autonumber seed {:#010x} exceeds LongInteger",
+                                def.autonumber
+                            ),
+                        })?;
+                    *value = StorageValue::Int(i64::from(assigned_value));
+                    assigned = true;
+                }
+                // A verbatim restore/recovery write (step 28.1, U14) carries
+                // the row's original engine-assigned value; the seed must
+                // advance past it or a recovered file re-assigns the same id.
+                StorageValue::Int(v) => {
+                    if let Ok(v) = i32::try_from(*v) {
+                        explicit_autonumber = Some(v);
+                    }
+                }
+                _ => {}
             }
         }
         let row = encode_row(&values, &def)?;
@@ -212,6 +225,8 @@ impl Jet4Writer {
         self.bump_num_rows(tdef_page)?;
         if assigned {
             self.bump_autonumber(tdef_page)?;
+        } else if let Some(value) = explicit_autonumber {
+            self.advance_autonumber_to(tdef_page, value)?;
         }
         self.update_free_bit(tdef_page, target)?;
         // Indexed tables (the catalog, MSysRelationships) resolve through
@@ -292,6 +307,27 @@ impl Jet4Writer {
         ]);
         let next = current.saturating_add(1);
         self.file[at..at + 4].copy_from_slice(&next.to_le_bytes());
+        Ok(())
+    }
+
+    /// Raises the table's AutoNumber seed to `value` when it is higher than
+    /// the current seed (a verbatim restore/recovery write makes that value
+    /// the last assigned one — the engine's observable rule). Never rewinds.
+    fn advance_autonumber_to(&mut self, tdef_page: u32, value: i32) -> Result<(), StorageError> {
+        let Ok(candidate) = u32::try_from(value) else {
+            return Ok(()); // a non-positive id never advances the seed
+        };
+        let base = self.header.page_offset(tdef_page)? as usize;
+        let at = base + 8 + 12;
+        let current = u32::from_le_bytes([
+            self.file[at],
+            self.file[at + 1],
+            self.file[at + 2],
+            self.file[at + 3],
+        ]);
+        if candidate > current {
+            self.file[at..at + 4].copy_from_slice(&candidate.to_le_bytes());
+        }
         Ok(())
     }
 
