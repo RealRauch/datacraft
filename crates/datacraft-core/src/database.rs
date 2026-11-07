@@ -40,6 +40,11 @@ impl crate::core::Core {
             Ok(opened) => {
                 let name = opened.name.clone();
                 let format = opened.format;
+                // Access co-existence (step 53.1, item M59): the port
+                // reports a detected sibling lock file as data — the
+                // session opened read-only and every client localizes the
+                // notice from this field (ADR-4).
+                let lock_file = opened.lock_file.clone();
                 // Driver identity and per-session capabilities (phase 30,
                 // M17; ADR-7) ride the open into state and snapshot.
                 let driver = self.port.driver_id();
@@ -120,6 +125,7 @@ impl crate::core::Core {
                     vba_project,
                     vba_error,
                     sidecar_error,
+                    lock_file,
                     undo: Vec::new(),
                     redo: Vec::new(),
                 });

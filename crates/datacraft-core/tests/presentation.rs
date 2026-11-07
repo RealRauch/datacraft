@@ -206,6 +206,7 @@ fn the_status_line_names_the_ace_format() {
         vba_project: None,
         vba_error: None,
         sidecar_error: None,
+        lock_file: None,
         undo: Vec::new(),
         redo: Vec::new(),
     });

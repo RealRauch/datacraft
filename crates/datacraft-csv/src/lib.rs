@@ -102,6 +102,7 @@ impl StoragePort for CsvPort {
         Ok(OpenedDatabase {
             name,
             format: DatabaseFormat::Csv,
+            lock_file: None,
         })
     }
 

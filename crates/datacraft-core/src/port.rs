@@ -143,6 +143,11 @@ pub struct OpenedDatabase {
     pub name: String,
     /// Binary format family.
     pub format: DatabaseFormat,
+    /// A sibling Access lock file detected at open (step 53.1, item M59):
+    /// the file NAME as data — Access may hold the database open, so the
+    /// session opened read-only. Language stays UI-owned (ADR-4); clients
+    /// localize the notice from this field. `None` = no lock file seen.
+    pub lock_file: Option<String>,
 }
 
 /// The storage seam of the command core. Implementors must be deterministic

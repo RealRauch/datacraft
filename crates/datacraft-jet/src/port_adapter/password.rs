@@ -20,6 +20,11 @@ pub(crate) fn save_as(
     path: &Path,
     password: Option<&str>,
 ) -> Result<(), PortError> {
+    if port.lock_file.is_some() {
+        // A locked session is read-only end to end (step 53.1, item M59) —
+        // the same boundary the Jet3 read-only session draws.
+        return Err(port.locked_error());
+    }
     let reader = port.reader.as_ref().ok_or_else(no_database)?;
     if reader.header.format == FormatVersion::Jet3 {
         return Err(PortError::Unsupported {
@@ -43,6 +48,11 @@ pub(crate) fn change_password(
     port: &mut Jet4Port,
     new_password: Option<&str>,
 ) -> Result<(), PortError> {
+    if port.lock_file.is_some() {
+        // Rewrites the open file — impossible while Access may hold it
+        // (step 53.1, item M59).
+        return Err(port.locked_error());
+    }
     let path = port.path.clone().ok_or_else(no_database)?;
     let (header, decrypted) = {
         let reader = port.reader.as_ref().ok_or_else(no_database)?;

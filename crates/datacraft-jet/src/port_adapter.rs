@@ -53,6 +53,10 @@ pub struct Jet4Port {
     /// Why the VBA extraction failed, if it did (observable degradation).
     vba_error: Option<String>,
     path: Option<PathBuf>,
+    /// A sibling Access lock file detected at open (step 53.1, item M59):
+    /// Access may hold the database open, so the session downgrades to
+    /// read-only. DataCraft never creates or deletes lock files.
+    lock_file: Option<PathBuf>,
 }
 
 impl Jet4Port {
@@ -65,6 +69,39 @@ impl Jet4Port {
     fn opened_format(&self) -> Option<FormatVersion> {
         self.reader.as_ref().map(|reader| reader.header().format)
     }
+
+    /// The precise refusal for a locked session (step 53.1, item M59):
+    /// the message names the lock file, the consequence and the remedy.
+    fn locked_error(&self) -> PortError {
+        let lock = self
+            .lock_file
+            .as_ref()
+            .map(|lock| lock.display().to_string())
+            .unwrap_or_default();
+        PortError::Unsupported {
+            reason: format!(
+                "an Access lock file ({lock}) exists — the database opens \
+                 read-only; close it in Access and remove the lock file to \
+                 write here"
+            ),
+        }
+    }
+}
+
+/// The Access lock-file co-existence boundary (step 53.1, item M59): a
+/// sibling `.ldb` (Jet) or `.laccdb` (ACE) means Access may hold the
+/// database open. Detection is existence-only — the lock protocol's
+/// contents are clean-room-unclear and out of scope (M59); DataCraft
+/// never creates or deletes lock files.
+fn detect_lock_file(path: &Path) -> Option<PathBuf> {
+    let extension = path.extension()?.to_str()?.to_ascii_lowercase();
+    let lock_extension = match extension.as_str() {
+        "mdb" => "ldb",
+        "accdb" => "laccdb",
+        _ => return None,
+    };
+    let lock = path.with_extension(lock_extension);
+    lock.exists().then_some(lock)
 }
 
 impl StoragePort for Jet4Port {
@@ -83,6 +120,19 @@ impl StoragePort for Jet4Port {
         caps.relationships = Support::Yes;
         caps.autonumber = Support::Yes; // LongInteger; ReplicationId answers Unsupported
         if self.opened_format() == Some(FormatVersion::Jet3) {
+            caps.write_rows = false;
+            caps.create_table = false;
+            caps.drop_table = false;
+            caps.alter_table = false;
+            caps.atomic_batch = false;
+            caps.autonumber = Support::No;
+        }
+        if self.lock_file.is_some() {
+            // A sibling Access lock file means Access may hold the database
+            // open — read-only co-existence (step 53.1, item M59), the
+            // Jet3 read-only shape. DataCraft never creates or deletes
+            // lock files; closing Access and removing the file restores
+            // the write session on the next open.
             caps.write_rows = false;
             caps.create_table = false;
             caps.drop_table = false;
@@ -128,7 +178,17 @@ impl StoragePort for Jet4Port {
         self.vba_error = vba_error;
         self.reader = Some(reader);
         self.path = Some(path.to_path_buf());
-        Ok(OpenedDatabase { name, format })
+        self.lock_file = detect_lock_file(path);
+        Ok(OpenedDatabase {
+            name,
+            format,
+            lock_file: self.lock_file.as_ref().map(|lock| {
+                lock.file_name().map_or_else(
+                    || lock.to_string_lossy().into_owned(),
+                    |name| name.to_string_lossy().into_owned(),
+                )
+            }),
+        })
     }
 
     fn close(&mut self) {
@@ -140,6 +200,7 @@ impl StoragePort for Jet4Port {
         self.vba = None;
         self.vba_error = None;
         self.path = None;
+        self.lock_file = None;
     }
 
     fn create_database(&mut self, path: &Path, format: DatabaseFormat) -> Result<(), PortError> {
@@ -379,6 +440,9 @@ impl Jet4Port {
         &mut self,
         op: impl FnOnce(&mut Jet4Writer) -> Result<T, StorageError>,
     ) -> Result<T, PortError> {
+        if self.lock_file.is_some() {
+            return Err(self.locked_error());
+        }
         let path = self.path.clone().ok_or_else(no_database)?;
         let (bytes, encryption) = {
             let reader = self.reader.as_ref().ok_or_else(no_database)?;

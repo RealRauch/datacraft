@@ -216,6 +216,7 @@ impl StoragePort for MockPort {
             .get_or_insert(OpenedDatabase {
                 name,
                 format: DatabaseFormat::Jet4,
+                lock_file: None,
             })
             .clone();
         Ok(opened)

@@ -154,6 +154,7 @@ impl StoragePort for SqlitePort {
         Ok(OpenedDatabase {
             name,
             format: DatabaseFormat::Sqlite,
+            lock_file: None,
         })
     }
 

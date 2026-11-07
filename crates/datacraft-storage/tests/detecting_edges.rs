@@ -65,6 +65,7 @@ impl StoragePort for PickyFallback {
                     .file_stem()
                     .map_or_else(|| "picky".to_owned(), |s| s.to_string_lossy().into_owned()),
                 format: DatabaseFormat::Csv,
+                lock_file: None,
             });
         }
         Err(PortError::OpenFailed {

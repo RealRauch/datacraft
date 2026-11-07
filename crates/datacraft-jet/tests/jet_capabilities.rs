@@ -177,7 +177,12 @@ fn locked_copy(name: &str, lock_extension: &str) -> PathBuf {
 fn a_sibling_lock_file_forces_a_read_only_jet4_session() {
     let path = locked_copy("testV2000.mdb", "ldb");
     let mut port = Jet4Port::new();
-    port.open(&path, None).expect("open the locked copy");
+    let opened = port.open(&path, None).expect("open the locked copy");
+    assert_eq!(
+        opened.lock_file.as_deref(),
+        Some("testV2000.ldb"),
+        "the lock file travels as data for every client to localize"
+    );
     let caps = port.capabilities();
     assert!(caps.read_tables);
     assert!(caps.create_database, "creation is session-independent");
@@ -227,7 +232,12 @@ fn without_a_lock_file_the_jet4_session_stays_writable() {
 fn an_accdb_lock_file_is_detected_by_its_own_extension() {
     let path = locked_copy("testV2007.accdb", "laccdb");
     let mut port = Jet4Port::new();
-    port.open(&path, None).expect("open the locked accdb copy");
+    let opened = port.open(&path, None).expect("open the locked accdb copy");
+    assert_eq!(
+        opened.lock_file.as_deref(),
+        Some("testV2007.laccdb"),
+        "ACE sources lock through .laccdb"
+    );
     let caps = port.capabilities();
     assert!(!caps.write_rows);
     assert!(!caps.alter_table);

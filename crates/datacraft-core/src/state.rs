@@ -118,6 +118,10 @@ pub struct DatabaseState {
     /// step 29.4): broken JSON or a foreign database name. A missing
     /// sidecar is not an error.
     pub sidecar_error: Option<String>,
+    /// A sibling Access lock file detected at open (step 53.1, item M59):
+    /// the file NAME as data — the session opened read-only. Absent when
+    /// no lock file exists beside the database.
+    pub lock_file: Option<String>,
     /// Row-write history, oldest first (step 28.1, item U14). Bounded by
     /// [`crate::undo::MAX_HISTORY`]; schema and batch writes clear it.
     #[serde(default)]

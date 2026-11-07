@@ -89,6 +89,11 @@ pub struct DatabaseSnapshot {
     /// Why the sibling `.datacraft` sidecar did not auto-load (phase 29,
     /// step 29.4); absent for a missing sidecar.
     pub sidecar_error: Option<String>,
+    /// A sibling Access lock file detected at open (step 53.1, item M59):
+    /// the file NAME as data — the session opened read-only. Clients
+    /// localize the notice from this field (ADR-4); absent when no lock
+    /// file exists beside the database.
+    pub lock_file: Option<String>,
 }
 
 /// Snapshot of the extracted VBA project (module tree only — source is
@@ -234,6 +239,7 @@ impl UiStateSnapshot {
                 }),
                 vba_error: db.vba_error.clone(),
                 sidecar_error: db.sidecar_error.clone(),
+                lock_file: db.lock_file.clone(),
                 queries: db
                     .queries
                     .iter()
