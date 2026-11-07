@@ -43,6 +43,11 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 - jet: page-0 tail emit/maintenance on the create path — DataCraft-created
   files open in real Access; the `recover_mdb` example re-encodes
   engine-refused files (49).
+- jet: Access co-existence — a sibling Access lock file (`.ldb`/`.laccdb`)
+  opens the database read-only, names the lock file in the snapshot (CLI/
+  MCP data), the status bar and the Info page, and answers a precise
+  refusal on every write; DataCraft never creates or deletes lock files
+  (53).
 
 ### Changed
 - workspace: `datacraft-storage` split into `datacraft-jet` (clean-room

@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 53 — Access co-existence
-
-**Scope (Steps):**
-
-- **53.1 Jet/ACE open: a sibling .ldb forces a read-only session with the lock-file notice in the snapshot (M59)**
-- **53.2 UI: status bar and Info backstage render the localized notice (M59)**
-- **53.3 CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59)**
-- **53.4 Phase 53 Quality Gate Review**
 
 
 
@@ -315,5 +307,5 @@
 | 52.2 | Phase 52 Quality Gate Review (Tests (ubuntu-latest) passes; root cause recorded) | ✅ |
 | 53.1 | Jet/ACE open: a sibling .ldb forces a read-only session with the lock-file notice in the snapshot (M59) | ✅ |
 | 53.2 | UI: status bar and Info backstage render the localized notice (M59) | ✅ |
-| 53.3 | CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59) | 🔄 |
-| 53.4 | Phase 53 Quality Gate Review | ⬜ |
+| 53.3 | CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59) | ✅ |
+| 53.4 | Phase 53 Quality Gate Review | ✅ |

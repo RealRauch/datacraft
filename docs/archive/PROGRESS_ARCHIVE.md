@@ -680,3 +680,15 @@ before the tag.
 - **50.1 Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54)**
 - **50.2 Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled)**
 **Verification:** Canonical verification green on CI main run 42411956901 (all 10 jobs success; the ubuntu coverage gate reads >= 95 % from the exported lcov, confirming the local Windows 94.94 % reading as the known non-comparable local number). macOS matrix re-admission (L25/H54) accepted on this run; the ubuntu diagnosis (H55) closed in phase 52. (checkpoint: ad5a1a5)
+
+---
+
+### Phase 53 — Access co-existence
+
+**Scope (Steps):**
+
+- **53.1 Jet/ACE open: a sibling .ldb forces a read-only session with the lock-file notice in the snapshot (M59)**
+- **53.2 UI: status bar and Info backstage render the localized notice (M59)**
+- **53.3 CLI/MCP wire surfacing + FORMAT-JET co-existence section + README matrix row (M59)**
+- **53.4 Phase 53 Quality Gate Review**
+**Verification:** Canonical set green on the final tree: fmt, clippy -D warnings, 160 workspace test suites, file-size and hygiene gates clean. Local coverage parse 94.93% (ui excluded; the binding gate is the ubuntu CI run this push triggers). CHANGELOG carries the phase entry per the L38 cadence. Steps: 53.1 (red a8c8fe1, feat fddc268), 53.2 (red 2c50188, feat 828ab0c), 53.3 (0dba93c). (checkpoint: 0dba93c)
