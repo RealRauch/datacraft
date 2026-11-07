@@ -9,6 +9,13 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 50 — CI macOS re-admission
+
+**Scope (Steps):**
+
+- **50.1 Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54)**
+- **50.2 Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled)**
+
 
 
 
@@ -295,3 +302,5 @@
 | 49.2 | Writer: emit + maintain the tail and the remaining region fields (M63) | ✅ |
 | 49.3 | Compatibility verification: DataCraft-created file opens in real Access (M63, user gate) | ✅ |
 | 49.4 | User data recovery through the fixed writer + Phase 49 gate | ✅ |
+| 50.1 | Re-admit macOS to the CI matrices (L25, High gate released 2026-11-07) and align the README matrix rows (H54) | 🔄 |
+| 50.2 | Phase 50 Quality Gate Review (a green CI run on main with the macOS jobs not cancelled) | ⬜ |

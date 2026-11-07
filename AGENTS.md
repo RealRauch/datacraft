@@ -173,8 +173,8 @@ Hard rules (CI-enforced):
   (`*.png`, `*.mdb`, `*.accdb`, …) stay binary.
 - `lcov.info` is generated and git-ignored; `.zcode/` holds local session
   artifacts and is never committed.
-- The oracle suite needs `mdbtools` (available on Ubuntu CI, not on Windows;
-  macOS runners are paused, re-admission tracked as L25):
+- The oracle suite needs `mdbtools` (available on Ubuntu/macOS CI, not on
+  Windows):
   `DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-jet --test oracle`.
 
 ## 9. Where to look

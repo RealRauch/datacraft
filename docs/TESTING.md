@@ -62,7 +62,7 @@ shrink, never hide, logic that wrongly migrated into the shell crate.
 | Property | `proptest` in unit/integration modules | parser/round-trip invariants (decode∘encode∘decode, serde round-trips) |
 | Golden file | `fixtures/*.mdb`/`*.accdb` (Phase 2) | byte-level compatibility against the pinned reference databases — provenance and creators per `fixtures/manifest` and docs/FIXTURE-SOURCES.md (jackcess-generated, mdb-reader test data and self-created Access fixtures) |
 | Fixture pin integrity | `fixtures/manifest` + CI `fixtures` job | committed sha256 per fixture (`repo@commit` provenance, docs/FIXTURE-SOURCES.md); a drifted or hand-edited fixture fails the build |
-| Oracle | `cfg(test)` libmdb backend (Phase 2) | strict schema/row cross-check of our decoder against libmdb (ubuntu CI; macOS runners paused, L25) |
+| Oracle | `cfg(test)` libmdb backend (Phase 2) | strict schema/row cross-check of our decoder against libmdb (ubuntu + macOS CI, re-admitted 2026-11-07 per L25) |
 | Port contract & capability invariants | `datacraft-core/tests/port_contract.rs` (M21), `availability.rs`, `driver_caps.rs`, `journal_caps.rs`, `crates/datacraft-{jet,sqlite}/tests/*_capabilities.rs` (phase 30+) | cross-driver seam contracts and the declared-capability/affordance vocabulary (ADR-7) |
 | Headless E2E | `crates/datacraft-ui/tests/server_e2e*.rs` (Phase 9+) | the full stack over the JSON-RPC wire against real fixture files — assert `UiStateSnapshot` JSON, never pixels |
 | Subprocess E2E | `crates/datacraft-cli/tests/cli_process.rs` (T4), `crates/datacraft-mcp/tests/mcp_process.rs` (T7) | the real binaries over real stdio: exit-code matrix, stderr routing, driver inventory |

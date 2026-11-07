@@ -170,9 +170,8 @@ echo '{"jsonrpc":"2.0","id":1,"method":"inspect"}' | cargo run -p datacraft-mcp
 cargo run -p datacraft-cli -- open fixtures/testV2000.mdb --json
 ```
 
-The libmdb oracle cross-check additionally runs in CI (ubuntu, with
-`mdbtools` installed there; macOS runners are paused, re-admission tracked as
-L25); golden-file tests run everywhere.
+The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
+`mdbtools` installed there); golden-file tests run everywhere.
 
 ```bash
 cargo llvm-cov --workspace --exclude datacraft-ui \
@@ -279,7 +278,7 @@ Mechanically enforced in CI on every push and pull request:
 | Source files < 500 lines | CI job fails on any `.rs` file ≥ 500 lines |
 | **No technical debt** | CI scan: no `TODO`/`FIXME`/`HACK`/`XXX` in tracked files (append-only archives excluded) |
 | Formatting & lints | `rustfmt --check`, `clippy -D warnings` |
-| Cross-platform tests | Matrix: ubuntu-latest, windows-latest (macOS runners paused, re-admission tracked as L25; the release workflow still builds and smokes macOS artifacts) |
+| Cross-platform tests | Matrix: ubuntu-latest, windows-latest, macos-latest (macOS re-admitted 2026-11-07, item L25; the release workflow still builds and smokes macOS artifacts) |
 | Format oracle | libmdb cross-check of the decoded Jet4/ACE fixture tables and rows |
 
 ## Design & branding
