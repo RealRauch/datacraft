@@ -142,6 +142,68 @@ fn an_engine_advanced_seed_assigns_one_past_it() {
     let _ = std::fs::remove_file(&path);
 }
 
+/// Restore/recovery writes carry the row's original AutoNumber value
+/// (`restore_row`, U14) and the writer takes it verbatim. The seed must
+/// advance past it — otherwise a fresh file recovered from row images
+/// leaves the seed at 0 and the next engine-assigned insert collides with
+/// the restored id (found in the 49.4 recovery pre-flight; the engine's
+/// observable rule is the same: an explicit AutoNumber write makes that
+/// value the last assigned one).
+#[test]
+fn an_explicit_autonumber_value_advances_the_seed() {
+    let path = fixture_copy("explicit");
+    let file = std::fs::read(&path).expect("copy readable");
+    let mut writer = Jet4Writer::new(file).expect("writer opens");
+    let tdef = writer
+        .create_table(
+            "AutoExplicit",
+            &[
+                JetColumn::new("id", JetType::LongInt, 0x05, 0, 0, 4),
+                JetColumn::new("note", JetType::Text, 0x02, 1, 0, 40),
+            ],
+        )
+        .expect("table created");
+    // A restored row image: id 5 written verbatim, seed still 0.
+    writer
+        .insert_row(
+            tdef,
+            &[
+                StorageValue::Int(5),
+                StorageValue::Text("restored".to_owned()),
+            ],
+        )
+        .expect("restored row inserted");
+    // The next engine-assigned insert must continue past the restored id.
+    writer
+        .insert_row(
+            tdef,
+            &[
+                StorageValue::Null,
+                StorageValue::Text("assigned".to_owned()),
+            ],
+        )
+        .expect("engine-assigned insert");
+    let written = writer.into_file();
+    let reader = Jet4TableReader::new(written.clone()).expect("written file opens");
+    let data = reader.open_table("AutoExplicit").expect("table reads");
+    assert_eq!(
+        data.rows[0][0],
+        StorageValue::Int(5),
+        "restored id verbatim"
+    );
+    assert_eq!(
+        data.rows[1][0],
+        StorageValue::Int(6),
+        "the engine-assigned insert continues past the explicit value"
+    );
+    let def = JetTableDef::decode(&written, tdef).expect("TDEF decodes");
+    assert_eq!(
+        def.autonumber, 6,
+        "the seed ends at the last assigned value"
+    );
+    let _ = std::fs::remove_file(&path);
+}
+
 #[test]
 fn the_port_assigns_values_that_survive_a_reopen() {
     let path = fixture_copy("port");
