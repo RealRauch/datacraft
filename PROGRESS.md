@@ -9,6 +9,48 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 55 — Docs truth pass
+
+**Scope (Steps):**
+
+- **55.1 Coverage-gate wording across the binding docs (M64)**
+- **55.2 Save-as boundary + recovery vehicle in FORMAT-JET/README (M67)**
+- **55.3 Journal batch commands documented headless-only (L26)**
+- **55.4 Translate the German step titles in the PROGRESS permanent index (L29)**
+- **55.5 Phase 55 Quality Gate Review**
+### Phase 56 — Release readiness
+
+**Scope (Steps):**
+
+- **56.1 Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release)**
+- **56.2 Lexer: drop the expect on the float parse path (M65)**
+- **56.3 Phase 56 Quality Gate Review (cargo package --list clean, no warnings)**
+### Phase 57 — Report grouping picker
+
+**Scope (Steps):**
+
+- **57.1 Report designer grouping picker dispatching SetReportGrouping (M48)**
+- **57.2 Phase 57 Quality Gate Review**
+### Phase 58 — Import File
+
+**Scope (Steps):**
+
+- **58.1 Import File flow: picker, preview, target name, write-path fill (M50)**
+- **58.2 Capability-disabled rendering pin + source-file byte-identity (M50)**
+- **58.3 Phase 58 Quality Gate Review**
+### Phase 59 — CI hardening
+
+**Scope (Steps):**
+
+- **59.1 Crate dependency-boundary guard script in CI (L32, High gate: needs the human release)**
+- **59.2 Gate rustdoc warnings with -D warnings (L33, High gate)**
+- **59.3 CLI smoke step on both matrix OSes (L34, High gate)**
+- **59.4 Phase 59 Quality Gate Review**
+
+
+
+
+
 
 
 
@@ -312,3 +354,20 @@
 | 53.4 | Phase 53 Quality Gate Review | ✅ |
 | 54.1 | Changelog next-version note + PUBLISHING policy wording (L39) | ✅ |
 | 54.2 | Phase 54 Quality Gate Review | ✅ |
+| 55.1 | Coverage-gate wording across the binding docs (M64) | ⬜ |
+| 55.2 | Save-as boundary + recovery vehicle in FORMAT-JET/README (M67) | ⬜ |
+| 55.3 | Journal batch commands documented headless-only (L26) | ⬜ |
+| 55.4 | Translate the German step titles in the PROGRESS permanent index (L29) | ⬜ |
+| 55.5 | Phase 55 Quality Gate Review | ⬜ |
+| 56.1 | Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release) | 🔄 |
+| 56.2 | Lexer: drop the expect on the float parse path (M65) | ⬜ |
+| 56.3 | Phase 56 Quality Gate Review (cargo package --list clean, no warnings) | ⬜ |
+| 57.1 | Report designer grouping picker dispatching SetReportGrouping (M48) | ⬜ |
+| 57.2 | Phase 57 Quality Gate Review | ⬜ |
+| 58.1 | Import File flow: picker, preview, target name, write-path fill (M50) | ⬜ |
+| 58.2 | Capability-disabled rendering pin + source-file byte-identity (M50) | ⬜ |
+| 58.3 | Phase 58 Quality Gate Review | ⬜ |
+| 59.1 | Crate dependency-boundary guard script in CI (L32, High gate: needs the human release) | ⬜ |
+| 59.2 | Gate rustdoc warnings with -D warnings (L33, High gate) | ⬜ |
+| 59.3 | CLI smoke step on both matrix OSes (L34, High gate) | ⬜ |
+| 59.4 | Phase 59 Quality Gate Review | ⬜ |

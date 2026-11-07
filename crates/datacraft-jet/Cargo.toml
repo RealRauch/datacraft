@@ -5,6 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
+repository.workspace = true
+readme.workspace = true
 description = "Clean-room pure-Rust Jet 3/4 and ACE backend for DataCraft (read path, Jet4 writer)"
 
 [dependencies]

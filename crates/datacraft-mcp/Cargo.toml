@@ -5,6 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
+repository.workspace = true
+readme.workspace = true
 description = "Headless stdio JSON-RPC 2.0 endpoint of the DataCraft command bus (standalone binary crate)"
 
 [dependencies]
