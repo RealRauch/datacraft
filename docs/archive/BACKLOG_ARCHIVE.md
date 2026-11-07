@@ -1575,3 +1575,12 @@
 - **Approach:** A short, localized help block under the dialog's criteria editor (weak text, wraps): the wildcards, the quoting rule, the comparison operators and one example each (`Like "A*"` / `> 100`). German catalog entry; the English source is the key.
 - **Acceptance:** The dialog shows the syntax summary in both languages (kittest tree pin), the text wraps inside the dialog width, canonical verification set green.
 - **Done:** done in d4353fe (red 2f3e1f3) — step 48.3: the filter dialog renders the localized syntax summary (FILTER_SYNTAX_HELP — wildcards, quoting rule, comparison operators, one example each); German catalog entry pinned by the pure i18n kernel test, the const key registered in the parity scanner's dynamic_keys.
+
+---
+
+### [x] L38 — Changelog: maintain per completed phase, coarse entries — and catch Unreleased up — 🟢
+- **Location:** `CHANGELOG.md` (Unreleased stops at the phase-26/31 entries), `docs/PUBLISHING.md` (§Changelog policy — prescribes per-commit maintenance), `AGENTS.md` §7 (living documents).
+- **Problem:** The changelog's `Unreleased` section was last touched around phase 31; the user-visible changes of phases 25–50 are missing, and the per-commit policy never held in practice. The human's call (2026-11-07): the changelog is maintained **per completed phase**, coarse level — no per-commit detail.
+- **Approach:** Reframe the PUBLISHING changelog policy to the per-phase cadence; wire CHANGELOG.md into the AGENTS §7 living-documents discipline; catch `Unreleased` up coarsely for the missed phases (grouped, crate-attributed bullets with phase references).
+- **Acceptance:** `Unreleased` covers the phases since the changelog began; PUBLISHING and AGENTS state the per-phase cadence; hygiene scan clean; canonical verification set green (docs-only).
+- **Done:** done in 482ec1c — step 51.1: per-phase changelog cadence replaces the per-commit policy (PUBLISHING §Changelog policy + AGENTS §7); Unreleased caught up with grouped coarse bullets for the missed phases.

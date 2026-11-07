@@ -650,3 +650,13 @@ before the tag.
 - **48.3 Filter dialog documents the criteria syntax (M62)**
 - **48.4 Phase 48 Quality Gate Review**
 **Verification:** Canonical verification set green on the final tree: fmt clean, clippy -D warnings clean, 160 workspace test suites ok, file-size gate clean. Coverage: ui excluded (registered exception #1); the local Windows lcov parse reads 94.94% — unchanged by the phase (0 ui entries in the export) and not comparable to the binding ubuntu CI gate, which has not run since 2026-11-03 (152 unpushed commits at gate time; push pending the human's call). Steps: 48.1 M60 (red 0bc35e6, feat 7496d5b), 48.2 M61 (red 2f4b86c, feat b0a41b6 — the add-record reachability fix), 48.3 M62 (red 2f3e1f3, feat d4353fe); executed 48.2 first per the human's add-record priority. (checkpoint: 1061922)
+
+---
+
+### Phase 51 — Changelog cadence
+
+**Scope (Steps):**
+
+- **51.1 Changelog: per-phase cadence in policy and AGENTS, coarse Unreleased catch-up (L38)**
+- **51.2 Phase 51 Quality Gate Review**
+**Verification:** Docs-only phase: the Rust tree is unchanged since the green canonical sweep at the phase 48 gate (01c261f); hygiene scan clean on all touched files; docs_validate green. The binding ubuntu CI gate is currently blocked by an infra-level linker failure (H55) — unrelated to this phase's docs. (checkpoint: 482ec1c)

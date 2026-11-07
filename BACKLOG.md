@@ -162,12 +162,6 @@
 - **Approach:** Piggyback rule — execute only when a released step touches the query/native_exec area anyway. Move the SQL dialect, QBE evaluation and native execution into a `datacraft-query` crate so default core stays rusqlite-free; keep the `sql-engine` feature as the enabling switch. New crate = Medium release gate; direction review binding; update AGENTS §1, ARCHITECTURE §4, README and the crates.io order (31.4).
 - **Acceptance:** default-feature core builds without rusqlite; the query crate passes the standalone checks in the CI matrix style; all query/native-execution tests green; canonical verification set green.
 
-### [ ] L38 — Changelog: maintain per completed phase, coarse entries — and catch Unreleased up — 🟢
-- **Location:** `CHANGELOG.md` (Unreleased stops at the phase-26/31 entries), `docs/PUBLISHING.md` (§Changelog policy — prescribes per-commit maintenance), `AGENTS.md` §7 (living documents).
-- **Problem:** The changelog's `Unreleased` section was last touched around phase 31; the user-visible changes of phases 25–50 are missing, and the per-commit policy never held in practice. The human's call (2026-11-07): the changelog is maintained **per completed phase**, coarse level — no per-commit detail.
-- **Approach:** Reframe the PUBLISHING changelog policy to the per-phase cadence; wire CHANGELOG.md into the AGENTS §7 living-documents discipline; catch `Unreleased` up coarsely for the missed phases (grouped, crate-attributed bullets with phase references).
-- **Acceptance:** `Unreleased` covers the phases since the changelog began; PUBLISHING and AGENTS state the per-phase cadence; hygiene scan clean; canonical verification set green (docs-only).
-
 ---
 
 ## 🔵 TEST GAPS
@@ -360,3 +354,4 @@
 - M61 — Datasheet trailing elements (row count, new-record row) paint behind the status bar — done (done in b0a41b6 (red 2f4b86c) — step 48.2: the grid reserves the trailing panels' space budget (probe pins datasheet.row_count / datasheet.new_row_cells / datasheet.new_row_add above the status bar at 1280x800 and 960x600); the 2026-11-07 add-record user report was M61's reachability consequence, the insert flow itself was already pinned; trailing panels live in the new datasheet/trailing.rs (L30 proactive split).)
 - M60 — Record navigation: the counter reads the form cursor while the arrows move the record cursor — done (done in 7496d5b (red 0bc35e6) — step 48.1: the navigation box reads the cursor its own step_record writes (tables read record_cursor like queries; the form arm is explicit and unchanged); kittest over the real shell pins one next click on a 2-row table showing "2 of 2" with record cursor 1.)
 - M62 — Filter dialog: document the criteria syntax (wildcards, quoting, operators) — done (done in d4353fe (red 2f3e1f3) — step 48.3: the filter dialog renders the localized syntax summary (FILTER_SYNTAX_HELP — wildcards, quoting rule, comparison operators, one example each); German catalog entry pinned by the pure i18n kernel test, the const key registered in the parity scanner's dynamic_keys.)
+- L38 — Changelog: maintain per completed phase, coarse entries — and catch Unreleased up — done (done in 482ec1c — step 51.1: per-phase changelog cadence replaces the per-commit policy (PUBLISHING §Changelog policy + AGENTS §7); Unreleased caught up with grouped coarse bullets for the missed phases.)
