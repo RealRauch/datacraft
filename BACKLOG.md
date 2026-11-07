@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-07T19:18
+# BACKLOG.md — Open items (As of: 2026-11-07T21:31
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -161,6 +161,12 @@
 - **Problem:** The SQL dialect engine and native query execution are already feature-gated with optional rusqlite, but the optionality is not structural — the boundary exists only as a cargo feature, not as a crate. Second (optional) candidate of the crate-split policy (`docs/ROADMAP.md` §17).
 - **Approach:** Piggyback rule — execute only when a released step touches the query/native_exec area anyway. Move the SQL dialect, QBE evaluation and native execution into a `datacraft-query` crate so default core stays rusqlite-free; keep the `sql-engine` feature as the enabling switch. New crate = Medium release gate; direction review binding; update AGENTS §1, ARCHITECTURE §4, README and the crates.io order (31.4).
 - **Acceptance:** default-feature core builds without rusqlite; the query crate passes the standalone checks in the CI matrix style; all query/native-execution tests green; canonical verification set green.
+
+### [ ] L38 — Changelog: maintain per completed phase, coarse entries — and catch Unreleased up — 🟢
+- **Location:** `CHANGELOG.md` (Unreleased stops at the phase-26/31 entries), `docs/PUBLISHING.md` (§Changelog policy — prescribes per-commit maintenance), `AGENTS.md` §7 (living documents).
+- **Problem:** The changelog's `Unreleased` section was last touched around phase 31; the user-visible changes of phases 25–50 are missing, and the per-commit policy never held in practice. The human's call (2026-11-07): the changelog is maintained **per completed phase**, coarse level — no per-commit detail.
+- **Approach:** Reframe the PUBLISHING changelog policy to the per-phase cadence; wire CHANGELOG.md into the AGENTS §7 living-documents discipline; catch `Unreleased` up coarsely for the missed phases (grouped, crate-attributed bullets with phase references).
+- **Acceptance:** `Unreleased` covers the phases since the changelog began; PUBLISHING and AGENTS state the per-phase cadence; hygiene scan clean; canonical verification set green (docs-only).
 
 ---
 

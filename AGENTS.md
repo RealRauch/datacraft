@@ -148,7 +148,9 @@ Hard rules (CI-enforced):
 
 - `README.md`, `PROGRESS.md`, `BACKLOG.md` are living documents. Update the
   step status (🔄 before, ✅ after verification), README on every behaviour
-  change, and BACKLOG on every found bug/risk/gap.
+  change, and BACKLOG on every found bug/risk/gap. `CHANGELOG.md` is updated
+  at every completed phase — coarse entries per the policy in
+  `docs/PUBLISHING.md` (§Changelog policy).
 - **No code without a step in `PROGRESS.md`; no known problem without an item
   in `BACKLOG.md`.**
 - Completed items/phases move unchanged into

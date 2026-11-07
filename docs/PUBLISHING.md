@@ -74,10 +74,12 @@ is a decision, not an oversight; revisit only if a library consumer appears.
   format with an `Unreleased` section between releases. Entries are
   crate-attributed (`core:`, `jet:`, …) because the family releases in
   lockstep.
-- Every user-visible change lands in `Unreleased` when committed: wire and
-  snapshot changes, behavior changes, capability changes, compatibility-matrix
-  claims, MSRV bumps. Internal refactors without observable surface do not
-  get an entry.
+- The changelog is maintained **per completed phase**: when a phase closes,
+  its user-visible changes land in `Unreleased` in one maintenance pass —
+  coarse level: grouped, crate-attributed bullets with phase references, no
+  per-commit detail. Counts as user-visible: wire and snapshot changes,
+  behavior changes, capability changes, compatibility-matrix claims, MSRV
+  bumps. Internal work without observable surface gets no entry.
 - The release step turns `Unreleased` into the version heading with the
   release date; nothing ships without its changelog section.
 
