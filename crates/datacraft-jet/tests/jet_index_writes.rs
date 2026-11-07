@@ -13,8 +13,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use datacraft_jet::StorageValue;
 use datacraft_jet::jet::create::create_jet4_file;
 use datacraft_jet::jet::data_page::DataPage;
-use datacraft_jet::jet::index_pages::{KeyPart, RowPointer, decode_leaf, entry_pointer, leaf_entry};
-use datacraft_jet::jet::{Jet4TableReader, JetTableDef, Jet4Writer, JetColumn, JetType};
+use datacraft_jet::jet::index_pages::{
+    KeyPart, RowPointer, decode_leaf, entry_pointer, leaf_entry,
+};
+use datacraft_jet::jet::{Jet4TableReader, Jet4Writer, JetColumn, JetTableDef, JetType};
 
 const PAGE: usize = 4096;
 const CATALOG: u32 = 2;
@@ -78,8 +80,11 @@ fn creating_a_table_grows_both_catalog_leaves() {
 
     // The Id leaf gained the new table's TDEF page as its key.
     let expected_id_prefix = {
-        let mut entry = leaf_entry(&[KeyPart::Integer(i64::from(tdef_page))], RowPointer { page: 0, row: 0 })
-            .expect("id entry");
+        let mut entry = leaf_entry(
+            &[KeyPart::Integer(i64::from(tdef_page))],
+            RowPointer { page: 0, row: 0 },
+        )
+        .expect("id entry");
         entry.truncate(entry.len() - 4);
         entry
     };
@@ -162,11 +167,8 @@ fn inserted_rows_grow_the_relationship_leaves() {
         assert_eq!(leaf.parent, RELATIONSHIPS);
         assert_eq!(leaf.entries.len(), 1, "leaf {leaf_page} gained one row");
         let expected = {
-            let mut entry = leaf_entry(
-                &[KeyPart::Text(text)],
-                RowPointer { page: 0, row: 0 },
-            )
-            .expect("entry");
+            let mut entry =
+                leaf_entry(&[KeyPart::Text(text)], RowPointer { page: 0, row: 0 }).expect("entry");
             entry.truncate(entry.len() - 4);
             entry
         };
@@ -180,14 +182,7 @@ fn inserted_rows_grow_the_relationship_leaves() {
 #[test]
 fn the_maintained_file_reopens_with_the_new_table() {
     let mut writer = Jet4Writer::new(fresh()).expect("fresh writer");
-    let columns = vec![JetColumn::new(
-        "name",
-        JetType::Text,
-        0x02,
-        0,
-        0,
-        40,
-    )];
+    let columns = vec![JetColumn::new("name", JetType::Text, 0x02, 0, 0, 40)];
     writer.create_table("People", &columns).expect("create");
     let path = scratch("reopen.mdb");
     let _ = std::fs::remove_file(&path);

@@ -17,6 +17,8 @@ use datacraft_jet::jet::{
     CATALOG_TDEF_PAGE, Jet4TableReader, Jet4Writer, JetColumn, JetType, OBJECT_TYPE_TABLE,
 };
 
+mod support;
+
 /// ACE page size (format-derived, same as Jet4).
 const PAGE: usize = 4096;
 
@@ -133,6 +135,9 @@ fn catalog_page_set(writer: &Jet4Writer) -> Vec<u32> {
         .expect("catalog free map");
     let mut pages = vec![1u32, CATALOG_TDEF_PAGE, used.page, free.page];
     pages.extend(writer.data_pages_of(CATALOG_TDEF_PAGE));
+    // The catalog's physical index leaves stay in sync with catalog rows
+    // (step 49.2, item M63): creates and drops rewrite them.
+    pages.extend(support::index_leaf_pages(writer, CATALOG_TDEF_PAGE));
     pages
 }
 
@@ -184,6 +189,7 @@ fn insert_row_extends_an_ace_table_and_preserves_every_other_page() {
         let mut writer = Jet4Writer::new(before.clone()).expect("writer opens ACE");
         let mut expected: Vec<u32> = writer.data_pages_of(tdef).collect();
         expected.push(tdef);
+        expected.extend(support::index_leaf_pages(&writer, tdef));
         writer
             .insert_row(tdef, &row)
             .expect("insert into the ACE table");
@@ -210,13 +216,17 @@ fn update_row_replaces_an_ace_fixture_row_in_place() {
         let large = rows[1].clone();
 
         let mut writer = Jet4Writer::new(before.clone()).expect("writer opens ACE");
-        let expected: Vec<u32> = writer.data_pages_of(tdef).collect();
+        let mut allowed: Vec<u32> = writer.data_pages_of(tdef).collect();
+        allowed.push(tdef);
+        allowed.extend(support::index_leaf_pages(&writer, tdef));
         writer
             .update_row(tdef, 0, &large)
             .expect("update overwrites the first row");
         let after = writer.into_file();
 
-        assert_changed_exactly(&before, &after, expected, name);
+        // The key image and the index statistics record change with the new
+        // value; nothing outside the table's own pages may move.
+        assert_only_these_changed(&before, &after, &allowed, name);
         let reopened = Jet4TableReader::new(after).expect("written file decodes");
         let rows = reopened.read_table(tdef).expect("table reads").rows;
         assert_eq!(rows.len(), 2, "{name}");
@@ -238,6 +248,7 @@ fn delete_row_marks_an_ace_row_deleted() {
         let mut writer = Jet4Writer::new(before.clone()).expect("writer opens ACE");
         let mut expected: Vec<u32> = writer.data_pages_of(tdef).collect();
         expected.push(tdef);
+        expected.extend(support::index_leaf_pages(&writer, tdef));
         writer.delete_row(tdef, 0).expect("delete the first row");
         let after = writer.into_file();
 

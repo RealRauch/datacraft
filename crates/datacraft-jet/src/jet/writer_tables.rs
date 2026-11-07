@@ -171,12 +171,16 @@ impl Jet4Writer {
             .marked_pages()
             .find(|&page| self.page_has_room(page, row.len()))
             .map_or_else(|| self.allocate_data_page(tdef_page), Ok)?;
-        self.append_row_to_page(target, &row)?;
+        let row_slot = self.append_row_to_page(target, &row)?;
         self.bump_num_rows(tdef_page)?;
         if assigned {
             self.bump_autonumber(tdef_page)?;
         }
         self.update_free_bit(tdef_page, target)?;
+        // Indexed tables (the catalog, MSysRelationships) resolve through
+        // physical B-trees: the row is invisible until its leaf entry exists
+        // (step 49.2, item M63).
+        self.maintain_indexes(tdef_page, &def, &values, target, row_slot)?;
         Ok(())
     }
 
@@ -206,8 +210,9 @@ impl Jet4Writer {
 
     /// Appends raw row bytes to a data page: the row lands between the
     /// offset table and the physically lowest row; its offset extends the
-    /// table (which is sorted by descending offset).
-    fn append_row_to_page(&mut self, page_no: u32, row: &[u8]) -> Result<(), StorageError> {
+    /// table (which is sorted by descending offset). Returns the row slot
+    /// index the row occupies on the page.
+    fn append_row_to_page(&mut self, page_no: u32, row: &[u8]) -> Result<usize, StorageError> {
         let base = self.header.page_offset(page_no)? as usize;
         let page_size = self.header.page_size;
         let decoded = DataPage::decode(&self.file[base..base + page_size])?;
@@ -227,7 +232,7 @@ impl Jet4Writer {
         self.file[base + 12..base + 14].copy_from_slice(&((count + 1) as u16).to_le_bytes());
         let free = start - floor;
         self.file[base + 2..base + 4].copy_from_slice(&(free as u16).to_le_bytes());
-        Ok(())
+        Ok(count)
     }
 
     /// `num_rows += 1` in the TDEF block head (in place, same size).

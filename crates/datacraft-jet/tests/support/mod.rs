@@ -360,3 +360,16 @@ pub fn touched_fixture() -> Option<std::path::PathBuf> {
         .join("testV2000-access-touched.mdb");
     workspace.exists().then_some(workspace)
 }
+
+/// Physical index leaf roots of a table — the writer maintains them on every
+/// row insert, update and delete (step 49.2, item M63).
+pub fn index_leaf_pages(writer: &datacraft_jet::jet::Jet4Writer, tdef_page: u32) -> Vec<u32> {
+    let definition =
+        datacraft_jet::jet::JetTableDef::decode(writer.file(), tdef_page).expect("TDEF decodes");
+    datacraft_jet::jet::index_pages::physical_indexes(&definition)
+        .expect("index metadata decodes")
+        .into_iter()
+        .filter(|index| index.root_page != 0)
+        .map(|index| index.root_page)
+        .collect()
+}

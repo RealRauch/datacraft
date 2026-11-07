@@ -67,6 +67,8 @@ impl Jet4Writer {
         let raw = u16::from_le_bytes([self.file[at], self.file[at + 1]]);
         self.file[at..at + 2].copy_from_slice(&(raw | DELETED).to_le_bytes());
         self.adjust_num_rows(tdef_page, -1)?;
+        let def = JetTableDef::decode(&self.file, tdef_page)?;
+        self.remove_index_entries(tdef_page, &def, page_no, slot)?;
         Ok(())
     }
 
@@ -101,6 +103,7 @@ impl Jet4Writer {
         let encoded = encode_row(values, &def)?;
         if encoded.len() == end - start {
             self.file[base + start..base + end].copy_from_slice(&encoded);
+            self.replace_index_entries(tdef_page, &def, page_no, slot, values)?;
             return Ok(());
         }
 
@@ -112,6 +115,7 @@ impl Jet4Writer {
         rows[slot].0 = encoded;
         self.repack_data_page(page_no, &rows)?;
         self.update_free_bit(tdef_page, page_no)?;
+        self.replace_index_entries(tdef_page, &def, page_no, slot, values)?;
         Ok(())
     }
 

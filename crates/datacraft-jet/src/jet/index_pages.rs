@@ -69,15 +69,44 @@ pub struct LeafPage {
 }
 
 /// One key component of a new entry.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+///
+/// The integer/float variants carry the domain value; their sort-ordered
+/// storage form is produced by [`leaf_entry`] (encodings observed on
+/// engine-written leaves, `docs/FORMAT-JET.md`).
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KeyPart<'a> {
     /// NULL key component (flag `0x00`, no data).
     Null,
+    /// Yes/No key (`0x00` false, `0xFF` true).
+    Boolean(bool),
+    /// Byte key (unsigned).
+    Byte(u8),
+    /// Integer (16-bit) key (`value ^ 0x8000`, big-endian).
+    SmallInteger(i16),
     /// LongInteger key (`value ^ 0x8000_0000`, big-endian).
     Integer(i64),
+    /// Currency key (`scaled ^ 0x8000_0000_0000_0000`, big-endian).
+    Currency(i64),
+    /// Single-precision key (IEEE bits `^ 0x8000_0000`).
+    Single(f32),
+    /// Double-precision key (IEEE bits `^ 0x8000_0000_0000_0000`).
+    Double(f64),
+    /// Date/time key (OLE automation bits, same flip as `Double`).
+    DateTime(f64),
+    /// GUID key (observed 18-byte collation image).
+    Guid([u8; 16]),
     /// Text key (collation sort key).
     Text(&'a str),
 }
+
+/// Sign bit of 64-bit sort-ordered keys.
+const SIGN_64: u64 = 0x8000_0000_0000_0000;
+/// Sign bit of 32-bit sort-ordered keys.
+const SIGN_32: u32 = 0x8000_0000;
+/// Marker bytes of the observed GUID key image (split after byte 8).
+const GUID_SPLIT_MARKER: u8 = 0x09;
+/// Terminator byte of the observed GUID key image.
+const GUID_END_MARKER: u8 = 0x08;
 
 /// One physical index of a table definition.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -157,13 +186,11 @@ pub fn decode_leaf(page_no: u32, page: &[u8]) -> Result<LeafPage, StorageError> 
         }
     }
     let area = page.len() - ENTRY_AREA_AT;
-    if let Some(last) = bits.last() {
-        if *last > area {
-            return Err(corrupt(
-                "index leaf",
-                &format!("page {page_no} marks an entry end at {last} beyond the entry area"),
-            ));
-        }
+    if bits.last().is_some_and(|last| *last > area) {
+        return Err(corrupt(
+            "index leaf",
+            &format!("page {page_no} marks an entry end beyond the entry area"),
+        ));
     }
     let declared_free = u16::from_le_bytes([page[2], page[3]]) as usize;
     let end = bits.last().copied().unwrap_or(0);
@@ -276,17 +303,48 @@ pub fn leaf_entry(keys: &[KeyPart<'_>], pointer: RowPointer) -> Result<Vec<u8>, 
     }
     let mut entry = Vec::with_capacity(keys.len() * 6 + 4);
     for key in keys {
+        if matches!(key, KeyPart::Null) {
+            entry.push(NULL_FLAG);
+            continue;
+        }
+        entry.push(KEY_FLAG);
         match key {
-            KeyPart::Null => entry.push(NULL_FLAG),
+            KeyPart::Null => unreachable!("handled above"),
+            KeyPart::Boolean(bit) => entry.push(if *bit { 0xFF } else { 0x00 }),
+            KeyPart::Byte(value) => entry.push(*value),
+            KeyPart::SmallInteger(value) => {
+                entry.extend_from_slice(&((*value as u16) ^ 0x8000).to_be_bytes());
+            }
             KeyPart::Integer(value) => {
-                entry.push(KEY_FLAG);
-                let ordered = (*value as i32 as u32) ^ 0x8000_0000;
-                entry.extend_from_slice(&ordered.to_be_bytes());
+                entry.extend_from_slice(&((*value as i32 as u32) ^ SIGN_32).to_be_bytes());
             }
-            KeyPart::Text(text) => {
-                entry.push(KEY_FLAG);
-                entry.extend_from_slice(&text_sort_key(text)?);
+            KeyPart::Currency(value) => {
+                entry.extend_from_slice(&((*value as u64) ^ SIGN_64).to_be_bytes());
             }
+            KeyPart::Single(value) => {
+                entry.extend_from_slice(&(value.to_bits() ^ SIGN_32).to_be_bytes());
+            }
+            KeyPart::Double(value) | KeyPart::DateTime(value) => {
+                entry.extend_from_slice(&(value.to_bits() ^ SIGN_64).to_be_bytes());
+            }
+            KeyPart::Guid(bytes) => {
+                // The engine orders GUIDs by their textual byte order; the
+                // image splits after eight bytes with the observed markers.
+                entry.extend_from_slice(&[
+                    bytes[3],
+                    bytes[2],
+                    bytes[1],
+                    bytes[0],
+                    bytes[5],
+                    bytes[4],
+                    bytes[7],
+                    bytes[6],
+                    GUID_SPLIT_MARKER,
+                ]);
+                entry.extend_from_slice(&bytes[8..16]);
+                entry.push(GUID_END_MARKER);
+            }
+            KeyPart::Text(text) => entry.extend_from_slice(&text_sort_key(text)?),
         }
     }
     entry.extend_from_slice(&pointer_bytes(pointer)?);
