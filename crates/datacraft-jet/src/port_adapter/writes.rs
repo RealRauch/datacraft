@@ -6,10 +6,10 @@
 use datacraft_core::port::PortError;
 use datacraft_core::schema::TableDef;
 
-use crate::jet::complex::ComplexCatalog;
-use crate::jet::writer::Jet4Writer;
-use crate::jet::reader::Jet4TableReader;
 use crate::error::StorageError;
+use crate::jet::complex::ComplexCatalog;
+use crate::jet::reader::Jet4TableReader;
+use crate::jet::writer::Jet4Writer;
 use crate::port_errors::{map_open, map_write, no_database};
 
 use super::Jet4Port;
