@@ -5,6 +5,7 @@
 
 pub mod access;
 pub mod catalog;
+pub mod collation;
 pub mod complex;
 pub mod create;
 pub mod crypto;
