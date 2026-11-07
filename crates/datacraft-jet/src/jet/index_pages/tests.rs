@@ -141,6 +141,56 @@ fn entry_parts_encode_as_observed() {
     );
 }
 
+/// Scalar keys are sort-ordered copies of the stored value (DAO probe batch
+/// 2026-11-07: one table per type, one index, observed leaf keys).
+#[test]
+fn scalar_key_parts_encode_as_observed() {
+    let pointer = RowPointer { page: 22, row: 1 };
+    let check = |part: KeyPart<'_>, expected: &[u8]| {
+        assert_eq!(
+            leaf_entry(&[part], pointer).expect("entry"),
+            [expected, &[0x00, 0x00, 0x16, 0x01]].concat()
+        );
+    };
+    check(KeyPart::Byte(0xC8), &[0x7F, 0xC8]);
+    check(KeyPart::Boolean(true), &[0x7F, 0xFF]);
+    check(KeyPart::Boolean(false), &[0x7F, 0x00]);
+    check(KeyPart::SmallInteger(-1), &[0x7F, 0x7F, 0xFF]);
+    check(KeyPart::SmallInteger(1), &[0x7F, 0x80, 0x01]);
+    check(KeyPart::Integer(-1), &[0x7F, 0x7F, 0xFF, 0xFF, 0xFF]);
+    check(
+        KeyPart::Currency(15_000),
+        &[0x7F, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3A, 0x98],
+    );
+    check(
+        KeyPart::Currency(-15_000),
+        &[0x7F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC5, 0x68],
+    );
+    check(
+        KeyPart::Single(1.5),
+        &[0x7F, 0xBF, 0xC0, 0x00, 0x00],
+    );
+    check(
+        KeyPart::Double(1.5),
+        &[0x7F, 0xBF, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
+    // 2020-01-01 as an OLE automation date (43831.0).
+    check(
+        KeyPart::DateTime(43_831.0),
+        &[0x7F, 0xC0, 0xE5, 0x66, 0xE0, 0x00, 0x00, 0x00, 0x00],
+    );
+    check(
+        KeyPart::Guid([
+            0xFF, 0x19, 0x96, 0x6F, 0x86, 0x8B, 0x11, 0xD0, 0xB4, 0x2D, 0x00, 0xC0, 0x4F, 0xC9,
+            0x64, 0xFF,
+        ]),
+        &[
+            0x7F, 0x6F, 0x96, 0x19, 0xFF, 0x8B, 0x86, 0xD0, 0x11, 0x09, 0xB4, 0x2D, 0x00, 0xC0,
+            0x4F, 0xC9, 0x64, 0xFF, 0x08,
+        ],
+    );
+}
+
 #[test]
 fn physical_indexes_carry_columns_roots_and_statistics_slots() {
     let indexes = physical_indexes(&catalog()).expect("catalog indexes");
