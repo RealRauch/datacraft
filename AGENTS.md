@@ -139,6 +139,10 @@ Hard rules (CI-enforced):
   shipped.
 - Clean-room is binding: format knowledge only from public specifications and
   own black-box observation. Never copy or quote MDB Tools source.
+- UI reference discipline: Microsoft's Access support documentation
+  (`support.microsoft.com/access`) is the structural idea source for UI work —
+  Microsoft graphics, icons, screenshots and other assets are never copied;
+  the visual language stays original (ARCHITECTURE §12).
 - Identifiers that reach the query engine pass the schema whitelist.
   Parameterized values do not protect identifiers.
 - Errors on malformed input are precise and locatable. No `unwrap`/`expect` or

@@ -345,6 +345,12 @@ datacraft/
   documents) and community format documentation — **never** MDB Tools source
   code, never decompiled Microsoft binaries. Review findings quoting internal
   upstream code are a High-class gate (LESSONS #12).
+- **UI reference discipline (2026-11-08):** Microsoft's Access support
+  documentation (`support.microsoft.com/access`) is the idea source for UI
+  structure — flows, affordances and surface organization are studied there,
+  nothing is copied: Microsoft graphics, icons, screenshots and other assets
+  are never used; longer descriptive texts are written in our own words. The
+  visual language stays the original token system (ADR-6).
 
 ## 13. Phase mapping
 

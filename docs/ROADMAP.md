@@ -489,6 +489,11 @@ record.
 - **Core owns decisions.** When touched, the known UI-side decision points
   move to core: view-order mapping (`datasheet.rs`), FormN/ReportN
   auto-naming (`ribbon.rs`), multi-command flow composition (`flows.rs`).
+- **Microsoft reference discipline.** UI work checks Microsoft's Access
+  support documentation (`support.microsoft.com/access`) for how the
+  corresponding surface is structured (flows, grouping, affordance order) —
+  as an idea source only; nothing is copied (graphics, icons, screenshots,
+  other assets), the visual language stays the original token system (ADR-6).
 - **i18n parity for every string.** The catalog grows with each stage; the
   one known violation (hardcoded "Delete Record" confirmation text,
   `datasheet.rs`) is an immediate inline fix, not roadmap work.
