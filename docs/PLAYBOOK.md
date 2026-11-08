@@ -79,8 +79,16 @@ Date/time entries in the four doc files always use **ISO 8601** `YYYY-MM-DDTHH:m
   cargo fmt --all -- --check
   cargo clippy --workspace --all-targets -- -D warnings
   cargo test --workspace
-  cargo llvm-cov --workspace --lcov --output-path lcov.info --fail-under-lines 95
+  cargo llvm-cov --workspace --exclude datacraft-ui \
+    --lcov --output-path lcov.info
   ```
+
+  The ≥ 95 % line gate is evaluated from the exported lcov — the same
+  explicit parse `ci.yml` runs — because the tool's embedded
+  `--fail-under-lines` check diverged from its own export (run
+  41727473021, M64). `datacraft-ui` is the registered coverage exception
+  #1 (`docs/TESTING.md` §3). A local `--fail-under-lines 95` run is an
+  approximation, not the gate.
 
   plus the file-size gate (no `.rs` file ≥ 500 lines; enforced by CI). All green — or the step is not done.
 - **Hard quality gates** (coverage ≥ 95 %, file size < 500 lines, clippy `-D warnings`) are enforced by CI and are **absolute** — they replace any smell budget. Soft smells (feature envy, god concept, naming) are findings → items in `BACKLOG.md`, never gates.

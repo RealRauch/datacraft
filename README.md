@@ -275,7 +275,7 @@ Mechanically enforced in CI on every push and pull request:
 
 | Gate | Enforcement |
 | --- | --- |
-| Test coverage > 95 % | `cargo-llvm-cov --fail-under-lines 95` |
+| Test coverage ≥ 95 % | CI exports lcov and evaluates ≥ 95 % lines with an explicit parse — the tool's embedded `--fail-under-lines` check diverged from its own export (M64); a local `--fail-under-lines 95` run is an approximation, `datacraft-ui` is the registered exception |
 | Source files < 500 lines | CI job fails on any `.rs` file ≥ 500 lines |
 | **No technical debt** | CI scan: no `TODO`/`FIXME`/`HACK`/`XXX` in tracked files (append-only archives excluded) |
 | Formatting & lints | `rustfmt --check`, `clippy -D warnings` |

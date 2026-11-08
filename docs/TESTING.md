@@ -13,8 +13,15 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo llvm-cov --workspace --exclude datacraft-ui \
-  --lcov --output-path lcov.info --fail-under-lines 95
+  --lcov --output-path lcov.info
 ```
+
+The ≥ 95 % line gate is evaluated from the exported lcov — the same
+explicit parse `ci.yml` runs — because the tool's embedded
+`--fail-under-lines` check diverged from its own export (run
+41727473021, M64). The `datacraft-ui` exclusion above is the registered
+coverage exception #1 (§3). A local `--fail-under-lines 95` run is an
+approximation, not the gate.
 
 plus the file-size gate (CI-side; local check with Git Bash):
 

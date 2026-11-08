@@ -347,7 +347,7 @@
 | 53.4 | Phase 53 Quality Gate Review | ✅ |
 | 54.1 | Changelog next-version note + PUBLISHING policy wording (L39) | ✅ |
 | 54.2 | Phase 54 Quality Gate Review | ✅ |
-| 55.1 | Coverage-gate wording across the binding docs (M64) | ⬜ |
+| 55.1 | Coverage-gate wording across the binding docs (M64) | 🔄 |
 | 55.2 | Save-as boundary + recovery vehicle in FORMAT-JET/README (M67) | ⬜ |
 | 55.3 | Journal batch commands documented headless-only (L26) | ⬜ |
 | 55.4 | Translate the German step titles in the PROGRESS permanent index (L29) | ⬜ |
