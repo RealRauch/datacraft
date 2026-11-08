@@ -21,6 +21,7 @@ pub mod design;
 pub mod designer_palette;
 pub mod dialogs;
 pub mod expression_window;
+pub mod failure_text;
 pub mod flows;
 pub mod form_design;
 pub mod form_runtime;

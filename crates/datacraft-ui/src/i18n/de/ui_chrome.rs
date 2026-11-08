@@ -134,6 +134,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Einstellungen konnten nicht gespeichert werden: {reason}",
     ),
     ("Sort Ascending", "Aufsteigend sortieren"),
+    (
+        "no database is open — open a database first",
+        "Keine Datenbank geöffnet — öffnen Sie zuerst eine Datenbank",
+    ),
     ("Row context", "Zeilenkontext"),
     ("no row context", "kein Zeilenkontext"),
     ("Row", "Zeile"),

@@ -426,7 +426,9 @@ impl App {
         for event in events {
             match event {
                 Event::ExpressionEvaluated { result } => self.expression_output = Some(result),
-                Event::Failed { reason, .. } => self.expression_error = Some(reason),
+                Event::Failed { code, reason } => {
+                    self.expression_error = Some(crate::failure_text::failure_text(code, &reason))
+                }
                 _ => {}
             }
         }
