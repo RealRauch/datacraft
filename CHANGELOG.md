@@ -57,6 +57,10 @@ fixes → patch per `docs/PUBLISHING.md`).*
   L7-inferred column kinds, create + row inserts over the ordinary write
   path, capability-gated); the window previews fields and leading rows and
   the source file stays byte-identical (58).
+- core/ui: every dispatch failure carries a stable machine-readable code
+  from the new `FailureCode` vocabulary alongside the English reason
+  (wire-additive; capability refusals map onto the affordance vocabulary);
+  the UI localizes known codes and keeps the English text otherwise (62).
 
 ### Changed
 - workspace: `datacraft-storage` split into `datacraft-jet` (clean-room
