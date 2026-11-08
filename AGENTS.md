@@ -17,7 +17,9 @@ It reads Jet3/Jet4 `.mdb`, ACE `.accdb`, SQLite databases and CSV directories,
 and writes verified Jet4/ACE and SQLite table/row paths. No COM, no OLE DB,
 no `winapi`, no async runtime.
 
-Workspace crates (dependency direction is review-enforced, never cyclic):
+Workspace crates (dependency direction is review- and CI-enforced — the
+boundary guard `.github/scripts/dependency_boundaries.py` fails the push on a
+violated direction or a cycle; never cyclic):
 
 ```text
 datacraft-ui  ──► datacraft-core, datacraft-storage, datacraft-csv

@@ -118,7 +118,7 @@ applied when the repository goes public — **after** the history rewrite
 | Secret scanning | enable, with push protection | blocks committing credentials; no secrets exist in the rewritten history |
 | Dependabot alerts | enable | dependency alerts for the Cargo/Actions ecosystems |
 | Dependabot version updates | deferred | needs a `.github/dependabot.yml`; decide when the first dependency bump cadence is wanted (High-class CI change, separate release) |
-| Branch protection on `main` | enable after M34: required checks = Formatting, Lints, Tests (matrix), Fixture pin integrity, Oracle, Coverage gate, Hygiene gates; require branches up to date; no force pushes afterwards | the CI job names come from `.github/workflows/ci.yml` |
+| Branch protection on `main` | enable after M34: required checks = Formatting, Lints, Tests (matrix, incl. the CLI smoke), Fixture pin integrity, Dependency boundary guard, Rustdoc gate, Oracle, Coverage gate, Hygiene gates; require branches up to date; no force pushes afterwards | the CI job names come from `.github/workflows/ci.yml` |
 | Issue templates | deferred | plain issues suffice for the initial public phase; templates are a later, independent change |
 | `GITHUB_TOKEN` permissions | leave the workflow-declared scopes (`release.yml` needs `contents: write` for the draft release) | no organization-level broad grants |
 | Forks / releases / clones | verify zero before the switch | the history rewrite (M34) is only valid while nothing external references the old history |

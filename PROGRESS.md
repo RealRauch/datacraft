@@ -338,7 +338,7 @@
 | 58.1 | Import File flow: picker, preview, target name, write-path fill (M50) | ✅ |
 | 58.2 | Capability-disabled rendering pin + source-file byte-identity (M50) | ✅ |
 | 58.3 | Phase 58 Quality Gate Review | ✅ |
-| 59.1 | Crate dependency-boundary guard script in CI (L32, High gate: needs the human release) | ⬜ |
-| 59.2 | Gate rustdoc warnings with -D warnings (L33, High gate) | ⬜ |
-| 59.3 | CLI smoke step on both matrix OSes (L34, High gate) | ⬜ |
-| 59.4 | Phase 59 Quality Gate Review | ⬜ |
+| 59.1 | Crate dependency-boundary guard script in CI (L32, High gate: needs the human release) | ✅ |
+| 59.2 | Gate rustdoc warnings with -D warnings (L33, High gate) | ✅ |
+| 59.3 | CLI smoke step on both matrix OSes (L34, High gate) | ✅ |
+| 59.4 | Phase 59 Quality Gate Review | 🔄 |
