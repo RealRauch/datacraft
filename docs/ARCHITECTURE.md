@@ -447,8 +447,10 @@ and a graceful fallback — a missing translation renders the English source.
 Language selection: setting `"auto"` (default) → system detection via
 `sys-locale` (`de*` → German, anything else → English), overridable by the
 `DATACRAFT_LANGUAGE` environment variable. V1 scope is the UI surface
-(ribbon, nav pane, views, status bar, toasts); `Event::Failed.reason` texts
-stay English until core carries stable failure codes (BACKLOG I6).
+(ribbon, nav pane, views, status bar, toasts). `Event::Failed` carries a
+stable machine-readable `code` (step 62.1, item I6) alongside the English
+`reason`: the wire text stays English (agents key on the code), and the
+UI localizes known codes while unknown reasons render English unchanged.
 
 **Decision record (ADR-5, 2026-11-01): app settings live in a UI-owned
 `ui.json`, strictly separate from the sidecar.** The `.datacraft` sidecar is
@@ -502,9 +504,9 @@ the UI sources in both directions — no untranslated key, no orphaned catalog
 entry — and enforce identical placeholder sets; layout tests measure the
 German strings against the ribbon and status-bar budgets with egui's real
 font metrics. `sys-locale` (already in the dependency tree transitively) is
-now a direct UI-only dependency. Deliberately absent: the language switcher
-and the `ui.json` settings store (Phase 19) and `Event::Failed.reason`
-localization, which waits on core failure codes (BACKLOG I6).
+now a direct UI-only dependency. Deliberately absent at the time: the language switcher
+and the `ui.json` settings store (Phase 19); `Event::Failed.reason`
+localization followed with the failure codes (item I6, phase 62).
 
 **Implemented scope (Phase 19, 2026-11-01):** the UI-owned settings store
 lands in `crates/datacraft-ui/src/settings.rs`:

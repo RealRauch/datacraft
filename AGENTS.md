@@ -189,8 +189,9 @@ Hard rules (CI-enforced):
 - `lcov.info` is generated and git-ignored; `.zcode/` holds local session
   artifacts and is never committed.
 - The oracle suite needs `mdbtools` (available on Ubuntu/macOS CI, not on
-  Windows):
-  `DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-jet --test oracle`.
+  Windows) and is `#[ignore]` by default — a local skip reads as `ignored`
+  (L31):
+  `DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-jet --test oracle -- --ignored`.
 
 ## 9. Where to look
 

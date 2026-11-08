@@ -448,10 +448,11 @@ the owning phase starts.
 - **WASM/browser:** a browser build of the UI is a non-goal for now — the
   headless clients (CLI/MCP) already cover remote automation. Deliberate
   statement, not a gap.
-- **Distribution:** installers/signing/auto-update are a post-first-tag
-  topic; the release workflow (M13) governs tags, the CHANGELOG stays
-  human-reviewed. As of 2026-11-06 the family is unpublished at 0.1.0 and
-  carries no tag — the first-tag gate remains the entry-point docs sweep.
+- **Distribution:** installers/signing/auto-update are a post-tag topic;
+  the release workflow (M13) governs tags, the CHANGELOG stays
+  human-reviewed. v0.1.0 was published on 2026-11-08: all six crates are
+  on crates.io, the tag `v0.1.0` exists, and the three platform archives
+  carry checksums in the draft GitHub release.
 - **Hygiene (2026-11-06):** §5 M4 corrected from ✅ to ⬜ — the
   designer/preview phases landed, the events/requery runtime of §2 Ring 4
   did not; §3's VBA re-evaluation gate keys on the runtime, not the designer.
@@ -467,14 +468,14 @@ user cannot see it (H52, H53, M61), and dishonest affordances (M49's planned
 Import). The strategy is a ladder: fix the feedback class first, then close
 the missing interaction vocabulary, then designer parity, then
 discoverability, then the power-user surface. Work items are created when
-the owning phase starts; open Phase 48 (M60–M62) stays untouched by this
-record.
+the owning phase starts; Phase 48 (M60–M62) has since closed under this
+ladder's Stage-0 sweep.
 
 **Stage ladder:**
 
 | Stage | Content | Basis |
 |-------|---------|-------|
-| 0 — Feedback & honesty sweep | Ctrl+Z/Ctrl+Y (the undo/redo commands exist — only the keys are missing), tooltips for every ribbon/backstage control (17 hover sites today), a busy/progress affordance, a notice/error history (today: one transient status-bar line), localized failure reasons (I6), a shortcuts help page, and the deferred M42 subjective polish pass on the token system | the recurring Phase 44–48 bug classes, fixed as a class instead of per instance |
+| 0 — Feedback & honesty sweep | Ctrl+Z/Ctrl+Y (the undo/redo commands exist — only the keys are missing), tooltips for every ribbon/backstage control (17 hover sites today), a busy/progress affordance, a notice/error history (today: one transient status-bar line), localized failure reasons (I6 — delivered 2026-11-08), a shortcuts help page, and the deferred M42 subjective polish pass on the token system | the recurring Phase 44–48 bug classes, fixed as a class instead of per instance |
 | 1 — Datasheet completeness | filter-by-value dialog (a value list, not the raw criteria string — M62 documents that dialect today), multi-select + cell copy/paste, find/replace, column drag-reorder, a visual Null marker, and windowed row reads in core (today: full-scan cache per tab) | M54: the user's stated bar is "wie z. B. in Excel" |
 | 2 — Designer parity | control property sheet (today only table-design fields have one), resize handles (move-only today), z-order/tab order, preview zoom (hard-coded 0.9), drag-drop field binding (click-to-add today) | ADR-1's WYSIWYG contract (M57 was its first breach) |
 | 3 — Discoverability & onboarding | nav-pane search/filter, the category model (the "All Access Objects" menu is a stub), object counts per group, nav-pane drag-drop, teaching empty states ("what can I do next"), QAT customization | the M52–M58 walkthroughs: users must find affordances unaided today |

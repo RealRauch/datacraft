@@ -10,7 +10,7 @@ navigation pane, tabbed documents, datasheet and design views, the QBE query
 builder and a form/report canvas. It reads Jet3/Jet4 `.mdb`, ACE `.accdb`,
 SQLite databases and CSV directories, and writes Jet4/ACE and SQLite on
 verified table/row paths (the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-07) states
+[compatibility matrix](#compatibility-matrix-verified-2026-11-08) states
 exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
@@ -56,7 +56,7 @@ API.
 > maximized; ADR-5). Expect breaking changes. The honest, step-by-step
 > picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
 > the verified compatibility claims are in
-> [Compatibility matrix](#compatibility-matrix-verified-2026-11-07).
+> [Compatibility matrix](#compatibility-matrix-verified-2026-11-08).
 
 ## Why DataCraft
 
@@ -65,7 +65,7 @@ API.
   canvas — rendered in an original, minimal visual language of its own.
 - **Your files.** Verified read paths for `.mdb` (Jet3/Jet4) and `.accdb`
   (ACE), plus verified Jet4 and ACE write paths, in pure Rust. The
-  [compatibility matrix](#compatibility-matrix-verified-2026-11-07) names
+  [compatibility matrix](#compatibility-matrix-verified-2026-11-08) names
   every covered and unsupported path — no blanket "bit-for-bit" claim. No
   COM, OLE DB, ADO or winapi anywhere.
 - **Clean-room.** Format knowledge comes only from public specifications and
@@ -199,7 +199,8 @@ JSON-RPC / MCP (datacraft-mcp) ──────────┘                
                                                                   └─ datacraft-csv (CSV directories)
 ```
 
-Dependency direction is one-way and review-enforced: `jet → core`,
+Dependency direction is one-way and review- and CI-enforced (the
+boundary guard fails the push on a violation): `jet → core`,
 `sqlite → core`, `csv → core`, `storage → jet, sqlite`, `core → nothing`;
 the three client binaries (`datacraft-ui`, `datacraft-cli`,
 `datacraft-mcp`) name `core + storage + csv` and are the composition
@@ -261,13 +262,28 @@ Delivered phases and the open work:
 | 45 — Walkthrough Fixes | column filter dialog replaces the in-menu editor (menus cannot host text editing), record-navigation arrow order | ✅ |
 | 46 — Form Runtime Layout | the runtime renders the designed layout: the shared designer canvas, controls at their stored rects and sizes | ✅ |
 | 47 — Walkthrough Fixes II | activating an object surfaces its contextual ribbon tab (backstage and same-kind switches never yank) | ✅ |
+| 48 — Walkthrough Fixes III | record counter reads its cursor, datasheet trailing panels stay above the status bar (the add-record path), filter-dialog criteria syntax | ✅ |
+| 49 — Page-0 Tail & Access Compatibility | the writer emits and maintains the tail and remaining region fields; DataCraft-created files open in real Access; the recovery example re-encodes engine-refused files | ✅ |
+| 50 — CI macOS Re-Admission | macOS back in the test and oracle matrices; README/AGENTS/TESTING aligned | ✅ |
+| 51 — Changelog Cadence | per-phase changelog maintenance (coarse entries) and the Unreleased catch-up | ✅ |
+| 52 — CI Ubuntu Diagnosis | the ld SIGBUS root-caused to disk exhaustion on the migrated ubuntu-26 image; the headroom step keeps the job green | ✅ |
+| 53 — Access Co-existence | a sibling lock file (`.ldb`/`.laccdb`) opens the database read-only with the localized notice; DataCraft never creates or deletes lock files | ✅ |
+| 54 — Next-Version Note | the unreleased set names its target version at every phase close | ✅ |
+| 55 — Docs Truth Pass | coverage-gate wording, the save-as repair boundary, the headless-only journal batch, the German step titles | ✅ |
+| 56 — Release Readiness | publish metadata, workspace dependency versions and the lexer's last `expect` — the six crates publish cleanly | ✅ |
+| 57 — Report Grouping Bookkeeping | the M48 grouping picker reconciled (delivered in 41.4) | ✅ |
+| 58 — Import File | external CSV files import as tables of the open Jet4/SQLite database over one bus chain (preview, inferred kinds, capability-gated) | ✅ |
+| 59 — CI Hardening | dependency-boundary guard, rustdoc `-D warnings` and the CLI smoke join the gates | ✅ |
+| 60 — Small Closes | the expression window's row context; the oracle skip is visible as `ignored` | ✅ |
+| 61 — Fixture Generators | deterministic canonical-database generators beside the pins | ✅ |
+| 62 — Failure Codes | every dispatch failure carries a stable machine-readable code; the UI localizes known codes | ✅ |
 
 **Scope note:** compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
 interpreter or runtime**; VBA is extracted, displayed and statically analyzed
 only (Phase 17, ADR-2). The ring model and rationale are in
 [docs/ROADMAP.md](docs/ROADMAP.md); the verified claim set is the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-07).
+[compatibility matrix](#compatibility-matrix-verified-2026-11-08).
 
 ## Quality gates
 
