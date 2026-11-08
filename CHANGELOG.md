@@ -6,9 +6,10 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
 
-*Next version: **0.1.0** — the first public release carries this set; the
-line is reassessed at every phase close (breaking → minor, additions and
-fixes → patch per `docs/PUBLISHING.md`).*
+*Next version: reassessed at every phase close (breaking → minor, additions
+and fixes → patch per `docs/PUBLISHING.md`).*
+
+## [0.1.0] — 2026-11-08
 
 ### Added
 - core: `DriverCapabilities::none()` — the conservative declaration a minimal
