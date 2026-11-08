@@ -24,12 +24,6 @@
 
 > No open items.
 
-### [ ] M48 — Report designer cannot set grouping (SetReportGrouping) — 🟡
-- **Location:** `crates/datacraft-ui/src/report_design.rs` (dispatches only `SetReportControlRect`/`DeleteReportControl`), `crates/datacraft-core/src/reports.rs:241` (`set_report_grouping`), `command.rs` (`SetReportGrouping` — headless only)
-- **Problem:** The report preview renders group header/footer bands, but the designer offers no control to set or clear a report's grouping field, so GUI users cannot produce grouped reports; only CLI/MCP can (found in the command/GUI parity audit 2026-11-04).
-- **Approach:** A grouping picker in the report designer listing the record source's fields plus a "no grouping" entry, dispatching one `SetReportGrouping` per change; the preview re-renders the bands from the refreshed snapshot.
-- **Acceptance:** Setting and clearing the grouping from the designer updates the preview bands over the bus; a kittest pins both directions; canonical verification set green.
-
 ### [ ] M50 — Import File: import an external file as new tables into the open database — 🟡
 - **Location:** `crates/datacraft-core/src/ribbon.rs` (`import_file` action, decided 2026-11-04 to keep the button with an honest disabled state until this exists), `crates/datacraft-ui/src/ribbon.rs`, External Data ribbon group; the backstage CSV open path (ADR-7) is the model to follow
 - **Problem:** DataCraft has no path that imports an external file's content as new tables into the currently open database (Jet4/SQLite). CSV directories open only as a read-only driver source through the backstage folder dialog. The ribbon's "Import File" button today claims a "Phase 9" future that has passed; the decision (M49) keeps the button visible but honestly disabled until this feature is built, so it needs a real item to drive it.
@@ -312,3 +306,4 @@
 - M67 — SaveDatabaseAs inherits the source's page-0 state — it cannot repair a broken file — done (done in 97b180b — step 55.2: the boundary is documented in FORMAT-JET (Save-as copies page state — not a repair tool; recovery runs through the create-path re-encode, examples/recover_mdb.rs) and cross-referenced from the README matrix Jet4 row (which already carried the 49.4 recovery note); healthy-source Save-As behavior unchanged (no code touched).)
 - L26 — Document the journal batch commands as headless-only — done (done in 3d0978d — step 55.3: docs-only pass; the four command doc comments and the ARCHITECTURE §5 vocabulary state that the batch is the headless affordance and the GUI's equivalence is the immediate row commands plus Undo/Redo.)
 - L29 — German step titles in the PROGRESS permanent index — done (done in 1a586a2 — step 55.4: the permanent progress index is English (24 rows translated in place; the archived detail blocks of phases 11/12+ stay untouched per the archive rule).)
+- M48 — Report designer cannot set grouping (SetReportGrouping) — done (delivered at step 41.4 (the picker, both-direction kittest pins and the catalog entries); reconciled 2026-11-08 at step 57.1 — the item stayed open past its delivery and the Phase 48 gate missed the ROADMAP §16 reconciliation note; closed with no code change, the grouping suite green (2/2).)

@@ -503,7 +503,9 @@ record.
 **Hygiene notes:** eframe 0.37 is pinned per-crate, not in
 `[workspace.dependencies]` — moved there on the next `Cargo.toml` touch
 (Medium gate). The M48 grouping-picker bookkeeping (delivered per
-PROGRESS 41.4, still open in BACKLOG) is reconciled at Phase 48 close.
+PROGRESS 41.4) is reconciled: the picker, both-direction kittest pins
+and the catalog entries exist since 41.4 — the item closed 2026-11-08 at
+step 57.1.
 
 ## 17. Crate-split policy — decision record
 

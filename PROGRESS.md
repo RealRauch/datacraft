@@ -9,12 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 57 — Report grouping picker
-
-**Scope (Steps):**
-
-- **57.1 Report designer grouping picker dispatching SetReportGrouping (M48)**
-- **57.2 Phase 57 Quality Gate Review**
 ### Phase 58 — Import File
 
 **Scope (Steps):**
@@ -346,8 +340,8 @@
 | 56.1 | Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release) | ✅ |
 | 56.2 | Lexer: drop the expect on the float parse path (M65) | ✅ |
 | 56.3 | Phase 56 Quality Gate Review (cargo package --list clean, no warnings) | ✅ |
-| 57.1 | Report designer grouping picker dispatching SetReportGrouping (M48) | ⬜ |
-| 57.2 | Phase 57 Quality Gate Review | ⬜ |
+| 57.1 | Report designer grouping picker dispatching SetReportGrouping (M48) | ✅ |
+| 57.2 | Phase 57 Quality Gate Review | ✅ |
 | 58.1 | Import File flow: picker, preview, target name, write-path fill (M50) | ⬜ |
 | 58.2 | Capability-disabled rendering pin + source-file byte-identity (M50) | ⬜ |
 | 58.3 | Phase 58 Quality Gate Review | ⬜ |

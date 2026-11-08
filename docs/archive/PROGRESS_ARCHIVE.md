@@ -726,3 +726,13 @@ before the tag.
 - **55.4 Translate the German step titles in the PROGRESS permanent index (L29)**
 - **55.5 Phase 55 Quality Gate Review**
 **Verification:** Canonical set green on the final tree: fmt, clippy -D warnings, 160 workspace suites, file-size gate; the local coverage parse reads 94.91% (the only Rust change is command.rs doc comments — the binding gate is the ubuntu CI run this push triggers). No changelog entry per policy (no observable surface). Steps: 55.1 M64 (42d6862), 55.2 M67 (97b180b), 55.3 L26 (3d0978d), 55.4 L29 (1a586a2). (checkpoint: 1a586a2)
+
+---
+
+### Phase 57 — Report grouping picker
+
+**Scope (Steps):**
+
+- **57.1 Report designer grouping picker dispatching SetReportGrouping (M48)**
+- **57.2 Phase 57 Quality Gate Review**
+**Verification:** No Rust change in this phase (ROADMAP §16 hygiene note + stepwell files only); the canonical set stands from the 55.5 gate on the identical Rust tree (fmt, clippy, 160 suites, size gate) and the grouping suite re-ran green (2/2) as the M48 acceptance evidence; the phase 55 CI run is the binding arbiter. (checkpoint: 1a586a2)

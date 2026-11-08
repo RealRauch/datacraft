@@ -1683,3 +1683,12 @@
 - **Approach:** Translate the affected rows of the permanent index in place; the archived detail blocks of phases 11/12 remain unchanged per the archive rule.
 - **Acceptance:** No German titles remain in `PROGRESS.md`; `docs_validate` passes.
 - **Done:** done in 1a586a2 — step 55.4: the permanent progress index is English (24 rows translated in place; the archived detail blocks of phases 11/12+ stay untouched per the archive rule).
+
+---
+
+### [x] M48 — Report designer cannot set grouping (SetReportGrouping) — 🟡
+- **Location:** `crates/datacraft-ui/src/report_design.rs` (dispatches only `SetReportControlRect`/`DeleteReportControl`), `crates/datacraft-core/src/reports.rs:241` (`set_report_grouping`), `command.rs` (`SetReportGrouping` — headless only)
+- **Problem:** The report preview renders group header/footer bands, but the designer offers no control to set or clear a report's grouping field, so GUI users cannot produce grouped reports; only CLI/MCP can (found in the command/GUI parity audit 2026-11-04).
+- **Approach:** A grouping picker in the report designer listing the record source's fields plus a "no grouping" entry, dispatching one `SetReportGrouping` per change; the preview re-renders the bands from the refreshed snapshot.
+- **Acceptance:** Setting and clearing the grouping from the designer updates the preview bands over the bus; a kittest pins both directions; canonical verification set green.
+- **Done:** delivered at step 41.4 (the picker, both-direction kittest pins and the catalog entries); reconciled 2026-11-08 at step 57.1 — the item stayed open past its delivery and the Phase 48 gate missed the ROADMAP §16 reconciliation note; closed with no code change, the grouping suite green (2/2).
