@@ -792,3 +792,14 @@ before the tag.
 - **62.3 Wire consumers switch to code assertions (command_errors, cli_contract, server_e2e, driver_caps) (I6)**
 - **62.4 Phase 62 Quality Gate Review**
 **Verification:** Every gate green on the final tree: fmt, clippy -D warnings, 163 suites, file-size gate (database/rows.rs is the L30 split forced by the sweep's code arguments); the local coverage parse reads 94.51% — the binding gate is the ubuntu CI run this push triggers. Changelog entry per the L38 cadence (the wire change is observable). Steps: 62.1 f00dbbe, 62.2 b5631cf, 62.3 4ee7572. (checkpoint: 494a47f)
+
+---
+
+### Phase 63 — Control content editing
+
+**Scope (Steps):**
+
+- **63.1 Core: SetFormControlContent/SetReportControlContent with precise validation (H56)**
+- **63.2 UI: the selected-control content panel in both designers, kittest-pinned (H56)**
+- **63.3 Phase 63 Quality Gate Review**
+**Verification:** Canonical set green on the final tree (fmt, clippy -D warnings, 165 suites, file-size gate after the two splits); changelog entry per the L38 cadence (user-visible designer feature); the GUI relaunches from this build. (checkpoint: f3615dd)
