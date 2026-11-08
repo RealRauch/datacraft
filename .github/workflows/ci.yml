@@ -81,6 +81,7 @@ jobs:
 
   boundaries:
     name: Dependency boundary guard (AGENTS §1)
+    runs-on: ubuntu-latest
     needs: preflight
     if: needs.preflight.outputs.has_workspace == 'true'
     steps:
@@ -94,6 +95,7 @@ jobs:
 
   docs:
     name: Rustdoc gate (-D warnings)
+    runs-on: ubuntu-latest
     needs: preflight
     if: needs.preflight.outputs.has_workspace == 'true'
     env:
