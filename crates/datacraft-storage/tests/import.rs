@@ -53,8 +53,11 @@ fn assert_import_chain(format: DatabaseFormat) {
     });
 
     let source = sample_csv(&dir);
+    // The source's bytes before the import — M50: the import never
+    // touches the file it reads (58.2 pin).
+    let source_before = std::fs::read(&source).expect("the source exists");
     let events = core.dispatch(Command::ImportFile {
-        source,
+        source: source.clone(),
         table: "inventory".into(),
     });
     assert!(
@@ -88,11 +91,22 @@ fn assert_import_chain(format: DatabaseFormat) {
         .expect("the imported table is catalogued");
     assert_eq!(table.fields.len(), 3);
     assert_eq!(table.fields[0].name, "sku");
-    assert!(matches!(table.fields[0].kind, datacraft_core::schema::FieldKind::Number(_)));
+    assert!(matches!(
+        table.fields[0].kind,
+        datacraft_core::schema::FieldKind::Number(_)
+    ));
     assert!(matches!(
         table.fields[1].kind,
         datacraft_core::schema::FieldKind::Text { .. }
     ));
+
+    // The source file stays byte-identical (58.2): the import reads, it
+    // never writes back.
+    let source_after = std::fs::read(&source).expect("the source still exists");
+    assert_eq!(
+        source_before, source_after,
+        "the import source is byte-identical after the import"
+    );
 }
 
 #[test]

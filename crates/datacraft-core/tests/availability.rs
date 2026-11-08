@@ -58,6 +58,10 @@ fn restricted_capabilities_disable_the_matching_affordances() {
                 datacraft_core::availability::DisabledReason::CreateTables,
             ),
             (
+                "import_file".to_owned(),
+                datacraft_core::availability::DisabledReason::CreateTables,
+            ),
+            (
                 "nav.delete".to_owned(),
                 datacraft_core::availability::DisabledReason::DropTables,
             ),

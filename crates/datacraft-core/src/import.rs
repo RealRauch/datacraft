@@ -113,7 +113,12 @@ pub fn infer_field_kinds(records: &[Vec<String>], mask: &[Vec<bool>]) -> Vec<Fie
     let Some(header) = records.first() else {
         return Vec::new();
     };
-    let mut kinds = vec![FieldKind::Text { max_len: MAX_TEXT_LEN }; header.len()];
+    let mut kinds = vec![
+        FieldKind::Text {
+            max_len: MAX_TEXT_LEN
+        };
+        header.len()
+    ];
     for (col, kind) in kinds.iter_mut().enumerate() {
         let mut any = false;
         let mut all_int = true;
@@ -152,7 +157,9 @@ pub fn infer_field_kinds(records: &[Vec<String>], mask: &[Vec<bool>]) -> Vec<Fie
         } else if all_date {
             FieldKind::DateTime
         } else {
-            FieldKind::Text { max_len: MAX_TEXT_LEN }
+            FieldKind::Text {
+                max_len: MAX_TEXT_LEN,
+            }
         };
     }
     kinds
@@ -251,8 +258,14 @@ mod tests {
         let text = "sku,price,day,label\n1,1.5,2026-01-02,bolt\n2,2.5,2026-01-03,nut\n";
         let table = read_csv_text(text).expect("the source parses");
         assert_eq!(table.fields.len(), 4);
-        assert!(matches!(table.fields[0].kind, FieldKind::Number(NumericKind::LongInteger)));
-        assert!(matches!(table.fields[1].kind, FieldKind::Number(NumericKind::Double)));
+        assert!(matches!(
+            table.fields[0].kind,
+            FieldKind::Number(NumericKind::LongInteger)
+        ));
+        assert!(matches!(
+            table.fields[1].kind,
+            FieldKind::Number(NumericKind::Double)
+        ));
         assert!(matches!(table.fields[2].kind, FieldKind::DateTime));
         assert!(matches!(table.fields[3].kind, FieldKind::Text { .. }));
         assert_eq!(table.rows.len(), 2);

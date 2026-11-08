@@ -386,3 +386,26 @@ pub(crate) fn notice_for(events: &[Event]) -> Option<String> {
         _ => None,
     })
 }
+
+impl App {
+    /// The Import File window's source path buffer (step 58.1, item M50;
+    /// moved from `app.rs` for the size gate).
+    pub fn import_source(&self) -> &str {
+        &self.import_source
+    }
+
+    /// Replaces the Import File window's source path buffer.
+    pub fn set_import_source(&mut self, text: impl Into<String>) {
+        self.import_source = text.into();
+    }
+
+    /// The Import File window's target table buffer.
+    pub fn import_table(&self) -> &str {
+        &self.import_table
+    }
+
+    /// Replaces the Import File window's target table buffer.
+    pub fn set_import_table(&mut self, text: impl Into<String>) {
+        self.import_table = text.into();
+    }
+}

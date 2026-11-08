@@ -188,7 +188,9 @@ pub static RIBBON: LazyLock<RibbonSpec> = LazyLock::new(|| RibbonSpec {
                 actions: vec![RibbonAction {
                     id: "import_file",
                     label: "Import File",
-                    state: ActionState::Planned,
+                    // The Import File window exists (step 58.1, item M50);
+                    // the availability map gates the open source.
+                    state: ActionState::Enabled,
                 }],
             }],
         },

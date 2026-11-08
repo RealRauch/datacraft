@@ -74,8 +74,9 @@ pub struct App {
     sql_error: Option<String>,
     /// Import File window buffers (presentation state; the source and the
     /// target table run through the command bus, step 58.1, item M50).
-    import_source: String,
-    import_table: String,
+    /// Crate-visible: the accessors live in `flows.rs` (size gate).
+    pub(crate) import_source: String,
+    pub(crate) import_table: String,
     /// Expression window editor text (presentation state; the expression
     /// runs through the command bus, step 41.2).
     expression_text: String,
@@ -267,26 +268,6 @@ impl App {
     /// Replaces the SQL editor text.
     pub fn set_sql_text(&mut self, text: impl Into<String>) {
         self.sql_text = text.into();
-    }
-
-    /// The Import File window's source path buffer (step 58.1, item M50).
-    pub fn import_source(&self) -> &str {
-        &self.import_source
-    }
-
-    /// Replaces the Import File window's source path buffer.
-    pub fn set_import_source(&mut self, text: impl Into<String>) {
-        self.import_source = text.into();
-    }
-
-    /// The Import File window's target table buffer.
-    pub fn import_table(&self) -> &str {
-        &self.import_table
-    }
-
-    /// Replaces the Import File window's target table buffer.
-    pub fn set_import_table(&mut self, text: impl Into<String>) {
-        self.import_table = text.into();
     }
 
     /// Runs the editor's statement through the bus and caches the outcome.

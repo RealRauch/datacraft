@@ -8,7 +8,7 @@
 
 use datacraft_core::ribbon::{ActionState, rendered_tabs, ribbon_spec};
 
-const DISPATCHABLE_ACTIONS: [&str; 10] = [
+const DISPATCHABLE_ACTIONS: [&str; 11] = [
     "ribbon.home.view.toggle_nav_pane",
     "ribbon.home.views.view_mode",
     "ribbon.create.queries.query_design",
@@ -19,6 +19,7 @@ const DISPATCHABLE_ACTIONS: [&str; 10] = [
     "ribbon.database_tools.relationships.relationships",
     "ribbon.database_tools.queries.query_sql",
     "ribbon.database_tools.queries.query_expression",
+    "ribbon.external_data.import.import_file",
 ];
 
 #[test]
@@ -253,8 +254,8 @@ fn create_tab_table_design_is_enabled_and_import_file_is_planned() {
         .find(|action| action.id == "import_file")
         .expect("import_file action");
     assert!(
-        matches!(import_file.state, ActionState::Planned),
-        "the import flow is a planned feature, not a past phase"
+        matches!(import_file.state, ActionState::Enabled),
+        "the import flow is shipped (step 58.1, item M50) — the open source's capabilities gate it"
     );
 }
 

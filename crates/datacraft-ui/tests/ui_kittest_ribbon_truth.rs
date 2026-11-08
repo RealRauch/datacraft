@@ -32,23 +32,6 @@ fn ribbon_harness(mut app: App, tab: &'static str) -> Harness<'static, App> {
     )
 }
 
-/// Semantic tree dump: role + label + value + disabled state of every
-/// labelled node, in traversal order. Deterministic across DPI and fonts.
-fn tree_dump<State>(harness: &Harness<'_, State>) -> String {
-    let mut lines = Vec::new();
-    for node in harness.root().children_recursive() {
-        let node = node.accesskit_node();
-        let label = node.label().unwrap_or_default();
-        let value = node.value().unwrap_or_default();
-        if label.is_empty() && value.is_empty() {
-            continue;
-        }
-        let disabled = if node.is_disabled() { " disabled" } else { "" };
-        lines.push(format!("{:?}|{label}|{value}{disabled}", node.role()));
-    }
-    lines.join("\n")
-}
-
 /// Clicking Table Design creates the Access-default table and opens it
 /// in the design view — the same flow the nav pane's Design menu uses.
 #[test]
@@ -78,30 +61,23 @@ fn table_design_opens_a_new_table_in_the_design_view() {
     assert!(harness.state().last_error().is_none());
 }
 
-/// Import File renders disabled with the planned-feature reason — no
-/// phase claim remains.
+/// Import File is enabled and opens the Import File window (step 58.1,
+/// item M50) — the planned-state claim is gone. A source that cannot
+/// import renders the availability reason instead (pinned over the full
+/// shell in `ui_kittest_import.rs`).
 #[test]
-fn import_file_renders_an_honest_planned_state() {
+fn import_file_opens_the_import_window() {
     let mut harness = ribbon_harness(ribbon_app(), "external_data");
     harness.run();
     let import = harness.get_by_label("Import File");
     assert!(
-        import.accesskit_node().is_disabled(),
-        "the planned feature renders disabled"
+        !import.accesskit_node().is_disabled(),
+        "the import button is enabled for a writable source"
     );
-
-    let tooltip_text = {
-        let rect = import.rect();
-        harness.hover_at(rect.center());
-        harness.run();
-        tree_dump(&harness)
-    };
+    import.click();
+    harness.run();
     assert!(
-        tooltip_text.contains("planned — not available yet"),
-        "the tooltip names the planned state:\n{tooltip_text}"
-    );
-    assert!(
-        !tooltip_text.contains("arrives in"),
-        "no phase claim remains:\n{tooltip_text}"
+        harness.state().snapshot().import_window_open,
+        "the button opens the Import File window"
     );
 }
