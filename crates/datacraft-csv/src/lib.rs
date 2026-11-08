@@ -20,13 +20,12 @@
 //! is the user's escape hatch: one quoted cell pins the whole column to
 //! Short Text, and empty cells don't vote. Cell **values** still read as
 //! text; only the schema kind is inferred (the datasheet formats and
-//! parses by the declared kind).
-
-mod infer;
+//! parses by the declared kind). The inference and the quote mask live in
+//! `datacraft_core::import` — shared with the `ImportFile` chain (M50).
 
 use std::path::{Path, PathBuf};
 
-use infer::{infer_field_kinds, quote_mask};
+use datacraft_core::import::{infer_field_kinds, quote_mask};
 
 use datacraft_core::port::{
     DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
