@@ -156,40 +156,40 @@
 | 10.10 | Phase 10 Quality Gate Review | ✅ |
 | 11.1 | Port Write-Through (insert_row, Jet4Port, port_write.rs) | ✅ |
 | 11.2 | Core: InsertRow-Command | ✅ |
-| 11.3 | Ribbon + Neue-Tabelle-Flow | ✅ |
-| 11.4 | Nav-Pane-Löschflüsse | ✅ |
-| 11.5 | QBE: Run + Criteria-Clear | ✅ |
-| 11.6 | Designer-Paletten + Quellen-Wahl | ✅ |
-| 11.7 | Datasheet: Neue-Zeile | ✅ |
-| 11.8 | Sidecar-UI + Aufräumen + access_gate-Beispiel | ✅ |
+| 11.3 | Ribbon + New-Table Flow | ✅ |
+| 11.4 | Nav-Pane Delete Flows | ✅ |
+| 11.5 | QBE: Run + Criteria Clear | ✅ |
+| 11.6 | Designer Palettes + Source Choice | ✅ |
+| 11.7 | Datasheet: New-Record Row | ✅ |
+| 11.8 | Sidecar UI + Cleanup + access_gate Example | ✅ |
 | 11.9 | Phase 11 Quality Gate Review | ✅ |
-| 12.1 | Theme-Modul: ArtCraft-Palette + egui Visuals | ✅ |
-| 12.2 | Ribbon: Access-Struktur (Tab-Zeile, Gruppen-Captions, Trenner) | ✅ |
-| 12.3 | Nav-Pane: Collapsing-Gruppen im Access-Stil | ✅ |
-| 12.4 | Status-Leiste: Kontext + Record-Navigation (core-seitig) | ✅ |
-| 12.5 | Datasheet im Icon-Look (Teal-Header, Zeilenselektor) | ✅ |
+| 12.1 | Theme Module: ArtCraft Palette + egui Visuals | ✅ |
+| 12.2 | Ribbon: Access Structure (Tab Row, Group Captions, Separators) | ✅ |
+| 12.3 | Nav Pane: Access-Style Collapsing Groups | ✅ |
+| 12.4 | Status Bar: Context + Record Navigation (core-side) | ✅ |
+| 12.5 | Datasheet in the Icon Look (Teal Header, Row Selector) | ✅ |
 | 12.6 | Phase 12 Quality Gate Review | ✅ |
 | 11.10 | Jet4 Update/Delete-Writes (H40) | ✅ |
 | 11.11 | Journaled Write-Profile (M2) | ✅ |
-| 13.1 | SQLite-Datenquelle & Detection (H35) | ✅ |
-| 13.2 | SQLite-Writes & InsertRow-Command (H36) | ✅ |
-| 13.3 | SQL-Engine & UI-Fenster (H37) | ✅ |
+| 13.1 | SQLite Data Source & Detection (H35) | ✅ |
+| 13.2 | SQLite Writes & InsertRow Command (H36) | ✅ |
+| 13.3 | SQL Engine & UI Window (H37) | ✅ |
 | 13.4 | Phase 13 Quality Gate Review | ✅ |
-| 14.1 | ACCDB-Fixtures pinnen (H38) | ✅ |
-| 14.2 | ACCDB-Read-Pfad (H39) | ✅ |
+| 14.1 | Pin the ACCDB Fixtures (H38) | ✅ |
+| 14.2 | ACCDB Read Path (H39) | ✅ |
 | 14.3 | Phase 14 Quality Gate Review | ✅ |
-| 15.1 | Expression-Kern: Evaluator & Funktionen (H41) | ✅ |
-| 15.2 | Anschlüsse: Default Values, Validation Rules, Calculated Fields (H41) | ✅ |
+| 15.1 | Expression Core: Evaluator & Functions (H41) | ✅ |
+| 15.2 | Wiring: Default Values, Validation Rules, Calculated Fields (H41) | ✅ |
 | 15.3 | Native Saved Queries: MSysQueries (M3) | ✅ |
 | 15.4 | Phase 15 Quality Gate Review | ✅ |
 | 16.1 | Complex Values/Multivalue (M4) | ✅ |
-| 16.2 | Verschlüsselung/Passwort (M5) | ✅ |
-| 16.3 | Jet3-Reste: Jump-Table & TDEF-Ketten (L3) | ✅ |
+| 16.2 | Encryption/Password (M5) | ✅ |
+| 16.3 | Jet3 Remainders: Jump Table & TDEF Chains (L3) | ✅ |
 | 16.4 | Phase 16 Quality Gate Review | ✅ |
-| 17.1 | Makro-Inventur (L4) | ✅ |
+| 17.1 | Macro Inventory (L4) | ✅ |
 | 17.2 | VBA-Extraction & Viewer (L5) | ✅ |
-| 17.3 | Statische Analyse headless (L5) | ✅ |
-| 17.4 | Doku-Genauigkeit: Kompatibilitätsmatrix (M6) | ✅ |
+| 17.3 | Headless Static Analysis (L5) | ✅ |
+| 17.4 | Documentation Accuracy: Compatibility Matrix (M6) | ✅ |
 | 17.5 | Phase 17 Quality Gate Review | ✅ |
 | 18.1 | i18n kernel in the UI crate (I1) | ✅ |
 | 18.2 | All UI literals through t() (I2) | ✅ |
@@ -223,7 +223,7 @@
 | 24.2 | Jet table drops through the writer (M7) | ✅ |
 | 24.3 | Design-time schema editing, ALTER TABLE (M9) | ✅ |
 | 24.4 | Phase 24 Quality Gate Review | ✅ |
-| 25.1 | ACCDB-Write-Verträge (H42) | ✅ |
+| 25.1 | ACCDB Write Contracts (H42) | ✅ |
 | 25.2 | ACCDB-Port-Write-Through + Bus-E2E (H43) | ✅ |
 | 25.3 | Phase 25 Quality Gate Review | ✅ |
 | 26.1 | Release-Workflow: Matrix, Checksums, Notices (M13) | ✅ |
@@ -349,8 +349,8 @@
 | 54.2 | Phase 54 Quality Gate Review | ✅ |
 | 55.1 | Coverage-gate wording across the binding docs (M64) | ✅ |
 | 55.2 | Save-as boundary + recovery vehicle in FORMAT-JET/README (M67) | ✅ |
-| 55.3 | Journal batch commands documented headless-only (L26) | 🔄 |
-| 55.4 | Translate the German step titles in the PROGRESS permanent index (L29) | ⬜ |
+| 55.3 | Journal batch commands documented headless-only (L26) | ✅ |
+| 55.4 | Translate the German step titles in the PROGRESS permanent index (L29) | 🔄 |
 | 55.5 | Phase 55 Quality Gate Review | ⬜ |
 | 56.1 | Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release) | ✅ |
 | 56.2 | Lexer: drop the expect on the float parse path (M65) | ✅ |
