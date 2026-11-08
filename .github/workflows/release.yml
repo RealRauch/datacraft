@@ -177,7 +177,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # The job runs without a checkout: `gh` needs the repository
+          # passed explicitly (the first tag run failed on "not a git repository").
           gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "DataCraft ${GITHUB_REF_NAME}" \
             --generate-notes \
             --draft \
