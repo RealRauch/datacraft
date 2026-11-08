@@ -190,7 +190,18 @@ fn scan_number(
         }
     }
     let token = if is_float {
-        Token::Float(digits.parse::<f64>().expect("digits form a float"))
+        // The digits are `[0-9]+(\.[0-9]+)?`, so the parse cannot fail —
+        // f64 saturates to infinity instead. The house pattern (AGENTS §6)
+        // still answers a precise error instead of expecting.
+        match digits.parse::<f64>() {
+            Ok(value) => Token::Float(value),
+            Err(_) => {
+                return Err(ExprError::Lex {
+                    position: start,
+                    detail: "float literal is not representable".to_owned(),
+                });
+            }
+        }
     } else {
         match digits.parse::<i64>() {
             Ok(value) => Token::Integer(value),
