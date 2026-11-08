@@ -44,6 +44,9 @@ pub enum DisabledReason {
 pub mod ids {
     /// Ribbon Create ▸ Tables (the new-table flow).
     pub const CREATE_TABLE: &str = "table";
+    /// Ribbon External Data ▸ Import File (step 58.1, item M50). The
+    /// chain creates the table and writes its rows.
+    pub const IMPORT_FILE: &str = "import_file";
     /// Ribbon Database Tools ▸ Relationships (the mapper pane).
     pub const RELATIONSHIPS: &str = "relationships";
     /// Relationship-mapper create affordance (step 41.1, item M45).
@@ -83,6 +86,11 @@ pub fn affordances(caps: &DriverCapabilities) -> BTreeMap<String, DisabledReason
     let mut map = BTreeMap::new();
     if !caps.create_table {
         map.insert(ids::CREATE_TABLE.to_owned(), DisabledReason::CreateTables);
+    }
+    if !caps.create_table {
+        map.insert(ids::IMPORT_FILE.to_owned(), DisabledReason::CreateTables);
+    } else if !caps.write_rows {
+        map.insert(ids::IMPORT_FILE.to_owned(), DisabledReason::WriteRows);
     }
     if !caps.drop_table {
         map.insert(ids::NAV_DELETE.to_owned(), DisabledReason::DropTables);

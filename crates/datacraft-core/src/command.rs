@@ -260,6 +260,15 @@ pub enum Command {
     },
     /// Shows or hides the SQL window (step 13.3, H37).
     ToggleSqlWindow,
+    /// Opens or closes the Import File window (step 58.1, item M50).
+    ToggleImportWindow,
+    /// Parses an external CSV file and stores its import preview (field
+    /// names, inferred kinds, the first rows) for the Import File window
+    /// (step 58.1, item M50). The source is only ever read.
+    PreviewImportFile {
+        /// The CSV file to read.
+        source: std::path::PathBuf,
+    },
     /// Shows or hides the expression window (step 41.2, item M46).
     ToggleExpressionWindow,
     /// Runs exactly one SELECT/WITH statement over the loaded tables in a

@@ -231,7 +231,7 @@ impl crate::core::Core {
     /// rules all apply per row. The source file is never touched. A row
     /// that fails coercion stops the chain with the precise field-named
     /// reason; the rows inserted before it stay (Access-like import
-    /// semantics).
+    /// semantics). A full import closes the window and drops the preview.
     pub(crate) fn import_file(&mut self, source: &Path, table: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
             return failed("no database is open — open a database first");
@@ -271,7 +271,37 @@ impl crate::core::Core {
                 }
             }
         }
+        self.state.import_window_open = false;
+        self.state.import_preview = None;
         events
+    }
+
+    /// Parses an external CSV file into the Import File window's preview
+    /// (step 58.1, item M50): field names, inferred kinds and the leading
+    /// rows land in state; the snapshot carries them to every client. The
+    /// source is only ever read.
+    pub(crate) fn preview_import_file(&mut self, source: &Path) -> Vec<Event> {
+        if self.state.database.is_none() {
+            return failed("no database is open — open a database first");
+        }
+        let parsed = match crate::import::read_csv_file(source) {
+            Ok(parsed) => parsed,
+            Err(reason) => {
+                self.state.import_preview = None;
+                return failed(format!("{}: {reason}", source.display()));
+            }
+        };
+        let table = source
+            .file_stem()
+            .map_or_else(|| "imported".to_owned(), |stem| stem.to_string_lossy().into_owned());
+        let total_rows = parsed.rows.len();
+        self.state.import_preview = Some(crate::import::ImportPreview {
+            table,
+            fields: parsed.fields,
+            rows: parsed.rows.into_iter().take(crate::import::PREVIEW_ROWS).collect(),
+            total_rows,
+        });
+        Vec::new()
     }
 
     /// Appends one row (step 13.2, H36; step 15.2 wires defaults,

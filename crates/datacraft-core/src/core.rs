@@ -219,6 +219,11 @@ impl Core {
                     open: self.state.sql_window_open,
                 }]
             }
+            Command::ToggleImportWindow => {
+                self.state.import_window_open = !self.state.import_window_open;
+                Vec::new()
+            }
+            Command::PreviewImportFile { source } => self.preview_import_file(&source),
             Command::ToggleExpressionWindow => {
                 self.state.expression_window_open = !self.state.expression_window_open;
                 vec![Event::ExpressionWindowToggled {

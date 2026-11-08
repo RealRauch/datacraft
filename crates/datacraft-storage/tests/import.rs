@@ -38,7 +38,7 @@ fn assert_import_chain(format: DatabaseFormat) {
         _ => dir.join("import.mdb"),
     };
     let _ = std::fs::remove_file(&db_path);
-    let mut port: Box<dyn datacraft_core::port::StoragePort> = match format {
+    let port: Box<dyn datacraft_core::port::StoragePort> = match format {
         DatabaseFormat::Sqlite => Box::new(SqlitePort::new()),
         _ => Box::new(Jet4Port::new()),
     };

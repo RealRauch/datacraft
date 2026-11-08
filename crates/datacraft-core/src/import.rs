@@ -24,6 +24,26 @@ pub struct CsvTable {
     pub rows: Vec<Vec<String>>,
 }
 
+/// The Import File window's preview (step 58.1, item M50): field names
+/// with the inferred kinds plus the leading rows, stored in state and
+/// carried by the snapshot for every client.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ImportPreview {
+    /// The suggested table name (the file stem).
+    pub table: String,
+    /// The inferred field definitions in column order.
+    pub fields: Vec<FieldDef>,
+    /// The leading rows as raw text cells (the preview cap, not the
+    /// import size — `total_rows` names the real count).
+    pub rows: Vec<Vec<String>>,
+    /// The full data-row count of the source.
+    pub total_rows: usize,
+}
+
+/// The preview row cap: the window renders these rows, the count names
+/// the rest.
+pub const PREVIEW_ROWS: usize = 8;
+
 /// Reads and parses one CSV file: UTF-8 text with a leading BOM stripped,
 /// ragged rows and invalid CSV fail with a locatable reason (LESSONS #4).
 /// The source file is only ever read.
