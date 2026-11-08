@@ -49,7 +49,7 @@ fn control() -> ControlDef {
     }
 }
 
-fn form_with_control(core: &mut Core) -> () {
+fn form_with_control(core: &mut Core) {
     core.dispatch(Command::CreateForm {
         name: "Card".into(),
     });

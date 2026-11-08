@@ -16,6 +16,7 @@ pub mod app;
 pub mod appearance;
 pub mod availability;
 pub mod backstage;
+pub mod control_content;
 pub mod datasheet;
 pub mod design;
 pub mod designer_palette;

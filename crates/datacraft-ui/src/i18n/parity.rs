@@ -99,6 +99,10 @@ fn dynamic_keys() -> BTreeSet<String> {
         crate::datasheet::FILTER_SYNTAX_HELP,
         crate::shell::LOCK_NOTICE_STATUS,
         crate::shell::LOCK_NOTICE_DETAIL,
+        // The control-content panel's kind-specific accessor labels
+        // (step 63.2, item H56) ride `content_of` as variables.
+        "Text",
+        "Control source",
     ] {
         keys.insert(key.to_owned());
     }

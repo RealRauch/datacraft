@@ -40,6 +40,23 @@ pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         ui.separator();
         ui.vertical(|ui| {
             crate::designer_palette::designer_palette_ui(app, ObjectKind::Report, &report.name, ui);
+            // The selected control's content (step 63.2, item H56).
+            let mut apply = |app: &mut App, control: &str, value: &str| {
+                app.dispatch(Command::SetReportControlContent {
+                    report: report.name.clone(),
+                    control: control.to_owned(),
+                    value: value.to_owned(),
+                });
+            };
+            crate::control_content::control_content_ui(
+                app,
+                tab.id,
+                app.report_selection(tab.id),
+                &report.controls,
+                true,
+                &mut apply,
+                ui,
+            );
             ui.separator();
             grouping_picker(app, &report, ui);
         });

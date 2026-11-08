@@ -43,7 +43,24 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         });
         ui.separator();
         ui.vertical(|ui| {
-            crate::designer_palette::designer_palette_ui(app, ObjectKind::Form, &form.name, ui)
+            crate::designer_palette::designer_palette_ui(app, ObjectKind::Form, &form.name, ui);
+            // The selected control's content (step 63.2, item H56).
+            let mut apply = |app: &mut App, control: &str, value: &str| {
+                app.dispatch(Command::SetFormControlContent {
+                    form: form.name.clone(),
+                    control: control.to_owned(),
+                    value: value.to_owned(),
+                });
+            };
+            crate::control_content::control_content_ui(
+                app,
+                tab.id,
+                app.form_selection(tab.id),
+                &form.controls,
+                false,
+                &mut apply,
+                ui,
+            );
         });
     });
 }

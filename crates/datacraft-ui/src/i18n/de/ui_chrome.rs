@@ -139,6 +139,23 @@ pub static TABLE: &[(&str, &str)] = &[
         "Keine Datenbank geöffnet — öffnen Sie zuerst eine Datenbank",
     ),
     ("Row context", "Zeilenkontext"),
+    ("Text", "Text"),
+    ("Apply", "Übernehmen"),
+    ("Control source", "Steuerelementinhalt"),
+    ("Control {name}", "Steuerelement {name}"),
+    (
+        "The text renders when the view runs.",
+        "Der Text erscheint, wenn die Ansicht läuft.",
+    ),
+    (
+        "An existing form name.",
+        "Der Name eines vorhandenen Formulars.",
+    ),
+    (
+        "A field of the source table, or =expression.",
+        "Ein Feld der Quelltabelle oder =Ausdruck.",
+    ),
+    ("A field of the source table.", "Ein Feld der Quelltabelle."),
     ("no row context", "kein Zeilenkontext"),
     ("Row", "Zeile"),
     ("0 = first record", "0 = erster Datensatz"),

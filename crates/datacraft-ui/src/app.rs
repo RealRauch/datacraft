@@ -48,6 +48,9 @@ pub struct App {
     results: HashMap<TabId, QueryResult>,
     /// Selected control per form-design tab.
     form_selection: HashMap<TabId, String>,
+    /// Content drafts of the designer's control panel, keyed by tab and
+    /// control (step 63.2, item H56); cleared on apply and selection.
+    pub(crate) control_content_drafts: HashMap<(TabId, String), String>,
     /// Drag accumulation per (tab, control): (dx, dy), present while dragging.
     drags: HashMap<(TabId, String), (f32, f32)>,
     /// Current runtime record index per form tab.
@@ -173,6 +176,7 @@ impl App {
             rows: HashMap::new(),
             results: HashMap::new(),
             form_selection: HashMap::new(),
+            control_content_drafts: HashMap::new(),
             preview_page: HashMap::new(),
             previews: HashMap::new(),
             record_cursor: HashMap::new(),

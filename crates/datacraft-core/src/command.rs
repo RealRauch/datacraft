@@ -16,14 +16,9 @@ use crate::ids::TabId;
 use crate::qbe::{QbeRow, QbeValue, SortOrder};
 use crate::schema::TableDef;
 
-/// Row context of `Command::RunExpression` (step 15.2, H41).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ExpressionContext {
-    /// Source table name (case-insensitive).
-    pub table: String,
-    /// Zero-based index in the table's live-row order.
-    pub row: usize,
-}
+mod contexts;
+
+pub use contexts::ExpressionContext;
 
 /// One user-visible action.
 ///

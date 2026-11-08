@@ -388,6 +388,25 @@ pub(crate) fn notice_for(events: &[Event]) -> Option<String> {
 }
 
 impl App {
+    /// The content draft of one designer control (step 63.2, item H56).
+    pub fn control_content_draft(&self, tab_id: TabId, control: &str) -> Option<&str> {
+        self.control_content_drafts
+            .get(&(tab_id, control.to_owned()))
+            .map(String::as_str)
+    }
+
+    /// Replaces the content draft of one designer control.
+    pub fn set_control_content_draft(&mut self, tab_id: TabId, control: &str, text: String) {
+        self.control_content_drafts
+            .insert((tab_id, control.to_owned()), text);
+    }
+
+    /// Clears every content draft of one tab (selection and after apply).
+    pub fn clear_control_content_draft(&mut self, tab_id: TabId) {
+        self.control_content_drafts
+            .retain(|(tab, _), _| *tab != tab_id);
+    }
+
     /// The expression window's picked row context (step 60.1, item L27;
     /// moved from `app.rs` for the size gate): the table plus the
     /// zero-based row as typed text.
