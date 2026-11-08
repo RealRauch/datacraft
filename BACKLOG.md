@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-08T20:20
+# BACKLOG.md — Open items (As of: 2026-11-08T22:48
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -23,6 +23,18 @@
 ## 🟡 MEDIUM
 
 > No open items.
+
+### [ ] M68 — Form runtime: bound fields are read-only although the update path ships — and the disclaimer blames shipped H40 — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (`render_control`: the TextBox renders `interactive(false)`; the disclaimer at lines 123-126 points at "step 11.10, BACKLOG H40").
+- **Problem:** Bound text boxes in the form runtime are read-only while the Jet update path (step 11.10, item H40) has shipped long ago — the in-app disclaimer names a delivered item as the future blocker, so the runtime's actual limitation (no write wiring in the form view) is misdocumented. Found during the 2026-11-08 GUI walkthrough question ("what can I do with each control").
+- **Approach:** Make the text box editable for writable sources: Enter/blur commits one `UpdateRow` for the bound field (the in-place datasheet editor's pattern, step 40.4), with a precise failure path and read-only gating on `write_rows`. Update the disclaimer to name what remains (if anything) instead of H40. The kittest pins one edit round-trip.
+- **Acceptance:** Editing a bound field in the form runtime dispatches one `UpdateRow` and the record shows the new value after reopen; read-only sources keep the inert rendering with the availability reason; the stale H40 disclaimer is gone; canonical verification set green.
+
+### [ ] M69 — Command buttons have no action model — clicks are discarded — 🟡
+- **Location:** `crates/datacraft-core/src/form.rs` (`ControlKind::Button { caption }` — caption only), `crates/datacraft-ui/src/form_runtime.rs` (the button renders and ignores clicks; the comment blames "the write path (H9)", shipped).
+- **Problem:** Command buttons have no action model at all — no `OnClick`/action property in the domain, nothing to choose in the designer, and a runtime click is discarded. The comment names H9 (delivered) as the blocker, which misstates the gap as scheduling rather than a missing model. Found in the 2026-11-08 GUI walkthrough question.
+- **Approach:** Decide the action vocabulary first (the honest minimal set: run a saved query, open a form/report, apply a filter; macros/VBA stay out per ADR-2), add the action property to `Button` with the content-panel surface (`SetFormControlContent`-style command or a sibling), and wire the runtime click through the bus (a dispatch, never direct state surgery). A decision record in ARCHITECTURE §5 before implementation.
+- **Acceptance:** A button carries a chosen action; a runtime click dispatches exactly one command (kittest-pinned); an empty/unknown action answers precisely; the decision record exists; canonical verification set green.
 
 ---
 
