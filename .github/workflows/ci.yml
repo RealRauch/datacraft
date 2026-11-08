@@ -86,6 +86,16 @@ jobs:
       - name: The current tree passes
         run: python3 .github/scripts/dependency_boundaries.py .
 
+  docs:
+    name: Rustdoc gate (-D warnings)
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo doc --workspace --all-features --no-deps --locked
+
   oracle:
     name: Oracle (mdb-tools cross-check)
     needs: preflight
