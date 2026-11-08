@@ -335,7 +335,11 @@ pub enum Event {
     /// A command could not be executed; the reason is precise and
     /// user-renderable (LESSONS #4 — no silent swallowing).
     Failed {
-        /// Why the command failed.
+        /// The failure class (step 62.1, item I6): stable and
+        /// machine-readable; agents key on it, the UI localizes known
+        /// codes and falls back to `reason` (ADR-4).
+        code: crate::failure::FailureCode,
+        /// Why the command failed (English; the precise, locatable text).
         reason: String,
     },
     /// The database is password-protected and the open command carried no

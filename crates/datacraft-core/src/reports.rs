@@ -7,14 +7,19 @@
 
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 
 impl crate::core::Core {
     pub(crate) fn create_report(&mut self, name: &str) -> Vec<Event> {
         if self.state.database.is_none() {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         }
         if name.trim().is_empty() {
             return failed(
+                FailureCode::InvalidInput,
                 crate::schema::SchemaError::InvalidName {
                     detail: "names must not be empty or whitespace-only".to_owned(),
                 }
@@ -27,7 +32,10 @@ impl crate::core::Core {
             .iter()
             .any(|r| r.name.to_lowercase() == name.to_lowercase())
         {
-            return failed(format!("duplicate report name {name:?}"));
+            return failed(
+                FailureCode::Duplicate,
+                format!("duplicate report name {name:?}"),
+            );
         }
         self.state
             .database
@@ -42,14 +50,17 @@ impl crate::core::Core {
 
     pub(crate) fn delete_report(&mut self, name: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(pos) = db
             .reports
             .iter()
             .position(|r| r.name.to_lowercase() == name.to_lowercase())
         else {
-            return failed(format!("report {name:?} not found"));
+            return failed(FailureCode::NotFound, format!("report {name:?} not found"));
         };
         let canonical = db.reports.remove(pos).name;
         vec![Event::ReportDropped { name: canonical }]
@@ -61,38 +72,50 @@ impl crate::core::Core {
         mut control: crate::form::ControlDef,
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .reports
             .iter_mut()
             .find(|r| r.name.to_lowercase() == report.to_lowercase())
         else {
-            return failed(format!("report {report:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("report {report:?} not found"),
+            );
         };
         if control.name.trim().is_empty() {
-            return failed("control names must not be empty");
+            return failed(FailureCode::InvalidInput, "control names must not be empty");
         }
         if def
             .controls
             .iter()
             .any(|c| c.name.to_lowercase() == control.name.to_lowercase())
         {
-            return failed(format!("duplicate control name {:?}", control.name));
+            return failed(
+                FailureCode::Duplicate,
+                format!("duplicate control name {:?}", control.name),
+            );
         }
         if let Some(bound) = bound_field(&control)
             && let Some(detail) = validate_binding(def, &db.tables, &bound)
         {
-            return failed(detail);
+            return failed(FailureCode::InvalidInput, detail);
         }
         control.rect = crate::canvas::snap_rect(control.rect, def.grid);
         if control.rect.x + control.rect.width > def.page.width
             || control.rect.y + control.rect.height > def.page.height
         {
-            return failed(format!(
-                "control {:?} exceeds the page bounds ({} x {})",
-                control.name, def.page.width, def.page.height
-            ));
+            return failed(
+                FailureCode::InvalidInput,
+                format!(
+                    "control {:?} exceeds the page bounds ({} x {})",
+                    control.name, def.page.width, def.page.height
+                ),
+            );
         }
         let name = control.name.clone();
         def.controls.push(control);
@@ -109,30 +132,42 @@ impl crate::core::Core {
         rect: crate::canvas::Rect,
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .reports
             .iter_mut()
             .find(|r| r.name.to_lowercase() == report.to_lowercase())
         else {
-            return failed(format!("report {report:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("report {report:?} not found"),
+            );
         };
         let Some(target) = def
             .controls
             .iter_mut()
             .find(|c| c.name.to_lowercase() == control.to_lowercase())
         else {
-            return failed(format!("control {control:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("control {control:?} not found"),
+            );
         };
         let snapped = crate::canvas::snap_rect(rect, def.grid);
         if snapped.x + snapped.width > def.page.width
             || snapped.y + snapped.height > def.page.height
         {
-            return failed(format!(
-                "control {control:?} exceeds the page bounds ({} x {})",
-                def.page.width, def.page.height
-            ));
+            return failed(
+                FailureCode::InvalidInput,
+                format!(
+                    "control {control:?} exceeds the page bounds ({} x {})",
+                    def.page.width, def.page.height
+                ),
+            );
         }
         target.rect = snapped;
         vec![Event::ReportControlRectSet {
@@ -143,21 +178,30 @@ impl crate::core::Core {
 
     pub(crate) fn delete_report_control(&mut self, report: &str, control: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .reports
             .iter_mut()
             .find(|r| r.name.to_lowercase() == report.to_lowercase())
         else {
-            return failed(format!("report {report:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("report {report:?} not found"),
+            );
         };
         let Some(pos) = def
             .controls
             .iter()
             .position(|c| c.name.to_lowercase() == control.to_lowercase())
         else {
-            return failed(format!("control {control:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("control {control:?} not found"),
+            );
         };
         let canonical = def.controls.remove(pos).name;
         vec![Event::ReportControlDropped {
@@ -170,14 +214,20 @@ impl crate::core::Core {
     /// bound control at the next free page slot (step 11.6).
     pub(crate) fn add_report_field(&mut self, report: &str, field: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .reports
             .iter()
             .find(|r| r.name.eq_ignore_ascii_case(report))
         else {
-            return failed(format!("report {report:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("report {report:?} not found"),
+            );
         };
         let canonical = def.name.clone();
         let bounds = (def.page.width, def.page.height);
@@ -190,7 +240,7 @@ impl crate::core::Core {
             &def.controls,
         ) {
             Ok(control) => control,
-            Err(reason) => return failed(reason),
+            Err(reason) => return failed(FailureCode::InvalidInput, reason),
         };
         self.add_report_control(&canonical, control)
     }
@@ -198,14 +248,20 @@ impl crate::core::Core {
     /// Assigns the source table (whitelist + re-validation of bindings).
     pub(crate) fn set_report_source(&mut self, report: &str, table: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(source) = db
             .tables
             .iter()
             .find(|t| t.name.to_lowercase() == table.to_lowercase())
         else {
-            return failed(crate::port::PortError::TableNotFound(table.to_owned()).to_string());
+            return failed(
+                FailureCode::NotFound,
+                crate::port::PortError::TableNotFound(table.to_owned()).to_string(),
+            );
         };
         let canonical = source.name.clone();
         let Some(def) = db
@@ -213,7 +269,10 @@ impl crate::core::Core {
             .iter_mut()
             .find(|r| r.name.to_lowercase() == report.to_lowercase())
         else {
-            return failed(format!("report {report:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("report {report:?} not found"),
+            );
         };
         for control in &def.controls {
             if let Some(bound) = bound_field(control)
@@ -223,10 +282,13 @@ impl crate::core::Core {
                     .iter()
                     .any(|f| f.name.to_lowercase() == bound.to_lowercase())
             {
-                return failed(format!(
-                    "field {bound:?} not found in {:?} — rebind the control first",
-                    canonical
-                ));
+                return failed(
+                    FailureCode::NotFound,
+                    format!(
+                        "field {bound:?} not found in {:?} — rebind the control first",
+                        canonical
+                    ),
+                );
             }
         }
         def.source = canonical.clone();
@@ -244,35 +306,47 @@ impl crate::core::Core {
         group_by: Option<String>,
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .reports
             .iter_mut()
             .find(|r| r.name.to_lowercase() == report.to_lowercase())
         else {
-            return failed(format!("report {report:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("report {report:?} not found"),
+            );
         };
         if let Some(field) = &group_by {
             if def.source.is_empty() {
-                return failed("set the report's source table before grouping");
+                return failed(
+                    FailureCode::InvalidInput,
+                    "set the report's source table before grouping",
+                );
             }
             let Some(source) = db
                 .tables
                 .iter()
                 .find(|t| t.name.to_lowercase() == def.source.to_lowercase())
             else {
-                return failed(format!("source table {:?} not found", def.source));
+                return failed(
+                    FailureCode::NotFound,
+                    format!("source table {:?} not found", def.source),
+                );
             };
             if !source
                 .fields
                 .iter()
                 .any(|f| f.name.to_lowercase() == field.to_lowercase())
             {
-                return failed(format!(
-                    "group field {field:?} not found in {:?}",
-                    source.name
-                ));
+                return failed(
+                    FailureCode::NotFound,
+                    format!("group field {field:?} not found in {:?}", source.name),
+                );
             }
         }
         def.group_by = group_by;

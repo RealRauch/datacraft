@@ -5,6 +5,7 @@
 
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::vba::{VbaModule, VbaProject};
 
 impl crate::core::Core {
@@ -20,19 +21,28 @@ impl crate::core::Core {
 
     pub(crate) fn load_vba_module(&mut self, name: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         if let Some(reason) = &db.vba_error {
-            return failed(reason.clone());
+            return failed(FailureCode::Unsupported, reason.clone());
         }
         let Some(project) = db.vba_project.as_ref() else {
-            return failed("the open database has no VBA project");
+            return failed(
+                FailureCode::NotFound,
+                "the open database has no VBA project",
+            );
         };
         match project.module(name) {
             Some(module) => vec![Event::VbaModuleLoaded {
                 module: module.clone(),
             }],
-            None => failed(format!("VBA module {name:?} not found")),
+            None => failed(
+                FailureCode::NotFound,
+                format!("VBA module {name:?} not found"),
+            ),
         }
     }
 
@@ -60,7 +70,7 @@ impl crate::core::Core {
     pub(crate) fn analyze_vba_command(&mut self) -> Vec<Event> {
         match self.analyze_vba() {
             Ok(analysis) => vec![Event::VbaAnalyzed { analysis }],
-            Err(reason) => failed(reason),
+            Err(reason) => failed(FailureCode::NotFound, reason),
         }
     }
 }
@@ -102,7 +112,7 @@ mod tests {
         assert!(core.vba_module("utilities").is_some());
         let events = core.load_vba_module("Missing");
         assert!(
-            matches!(events.as_slice(), [Event::Failed { reason }] if reason.contains("Missing")),
+            matches!(events.as_slice(), [Event::Failed { reason, .. }] if reason.contains("Missing")),
             "{events:?}"
         );
     }

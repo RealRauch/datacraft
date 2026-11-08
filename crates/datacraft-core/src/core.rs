@@ -7,6 +7,7 @@
 
 use crate::command::Command;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::port::{PortError, StoragePort};
 use crate::snapshot::UiStateSnapshot;
 use crate::state::AppState;
@@ -169,7 +170,7 @@ impl Core {
             }
             Err(reason) => {
                 self.state.sql_result = None;
-                failed(reason)
+                failed(FailureCode::Parse, reason)
             }
         }
     }
@@ -377,8 +378,9 @@ fn clears_history(command: &Command) -> bool {
     )
 }
 
-pub(crate) fn failed(reason: impl Into<String>) -> Vec<Event> {
+pub(crate) fn failed(code: crate::failure::FailureCode, reason: impl Into<String>) -> Vec<Event> {
     vec![Event::Failed {
+        code,
         reason: reason.into(),
     }]
 }

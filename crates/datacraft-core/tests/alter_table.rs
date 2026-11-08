@@ -43,7 +43,7 @@ fn fields(core: &Core) -> Vec<String> {
 
 fn failed_reason(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected single Failed event, got {other:?}"),
     }
 }
@@ -148,7 +148,7 @@ fn alter_table_gates_are_precise() {
     let reason = events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .expect("closed core refuses");
@@ -176,7 +176,7 @@ fn alter_table_gates_are_precise() {
     let reason = events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .expect("restricted core refuses");
@@ -206,7 +206,7 @@ fn delete_row_out_of_range_is_reported() {
     let reason = events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .expect("out of range refuses");

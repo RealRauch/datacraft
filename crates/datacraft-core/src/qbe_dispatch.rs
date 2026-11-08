@@ -4,16 +4,21 @@
 use crate::ObjectKind;
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::ids::TabId;
 use crate::port::PortError;
 
 impl crate::core::Core {
     pub(crate) fn create_query(&mut self, name: &str) -> Vec<Event> {
         if self.state.database.is_none() {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         }
         if name.trim().is_empty() {
             return failed(
+                FailureCode::InvalidInput,
                 crate::schema::SchemaError::InvalidName {
                     detail: "names must not be empty or whitespace-only".to_owned(),
                 }
@@ -26,7 +31,10 @@ impl crate::core::Core {
             .iter()
             .any(|q| q.name.to_lowercase() == name.to_lowercase())
         {
-            return failed(format!("duplicate query name {name:?}"));
+            return failed(
+                FailureCode::Duplicate,
+                format!("duplicate query name {name:?}"),
+            );
         }
         let canonical = db
             .tables
@@ -51,14 +59,17 @@ impl crate::core::Core {
         value: crate::qbe::QbeValue,
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .queries
             .iter_mut()
             .find(|q| q.name.to_lowercase() == query.to_lowercase())
         else {
-            return failed(format!("query {query:?} not found"));
+            return failed(FailureCode::NotFound, format!("query {query:?} not found"));
         };
         // Whitelists (LESSONS #5): the table against the database, fields
         // against their source table.
@@ -66,14 +77,17 @@ impl crate::core::Core {
         match row {
             crate::qbe::QbeRow::Table => {
                 let crate::qbe::QbeValue::Text(table) = &value else {
-                    return failed("the Table row takes a name");
+                    return failed(FailureCode::InvalidInput, "the Table row takes a name");
                 };
                 if !db
                     .tables
                     .iter()
                     .any(|t| t.name.to_lowercase() == table.to_lowercase())
                 {
-                    return failed(PortError::TableNotFound(table.clone()).to_string());
+                    return failed(
+                        FailureCode::NotFound,
+                        PortError::TableNotFound(table.clone()).to_string(),
+                    );
                 }
                 if let crate::qbe::QbeValue::Text(chosen) = &mut value
                     && let Some(matched) = db
@@ -86,21 +100,24 @@ impl crate::core::Core {
             }
             crate::qbe::QbeRow::Field => {
                 let crate::qbe::QbeValue::Text(field) = &value else {
-                    return failed("the Field row takes a name");
+                    return failed(FailureCode::InvalidInput, "the Field row takes a name");
                 };
                 let Some(source) = db
                     .tables
                     .iter()
                     .find(|t| t.name.to_lowercase() == def.table.to_lowercase())
                 else {
-                    return failed("set the source table first");
+                    return failed(FailureCode::InvalidInput, "set the source table first");
                 };
                 if !source
                     .fields
                     .iter()
                     .any(|f| f.name.to_lowercase() == field.to_lowercase())
                 {
-                    return failed(format!("field {field:?} not found in {:?}", source.name));
+                    return failed(
+                        FailureCode::NotFound,
+                        format!("field {field:?} not found in {:?}", source.name),
+                    );
                 }
                 value = crate::qbe::QbeValue::Text(
                     source
@@ -115,7 +132,7 @@ impl crate::core::Core {
             _ => {}
         }
         match def.set_cell(row, col, value) {
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(()) => vec![Event::QbeCellSet {
                 query: def.name.clone(),
             }],
@@ -124,14 +141,17 @@ impl crate::core::Core {
 
     pub(crate) fn clear_qbe_criteria(&mut self, query: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .queries
             .iter_mut()
             .find(|q| q.name.eq_ignore_ascii_case(query))
         else {
-            return failed(format!("query {query:?} not found"));
+            return failed(FailureCode::NotFound, format!("query {query:?} not found"));
         };
         for field in &mut def.fields {
             field.criteria.clear();
@@ -143,14 +163,17 @@ impl crate::core::Core {
 
     pub(crate) fn delete_query(&mut self, name: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(pos) = db
             .queries
             .iter()
             .position(|q| q.name.to_lowercase() == name.to_lowercase())
         else {
-            return failed(format!("query {name:?} not found"));
+            return failed(FailureCode::NotFound, format!("query {name:?} not found"));
         };
         let canonical = db.queries.remove(pos).name;
         let dependent: Vec<TabId> = self
@@ -188,7 +211,7 @@ impl crate::core::Core {
                 query: canonical.unwrap_or_else(|| query.to_owned()),
                 rows: result.rows.len(),
             }],
-            Err(reason) => failed(reason),
+            Err(reason) => failed(FailureCode::InvalidInput, reason),
         }
     }
 }

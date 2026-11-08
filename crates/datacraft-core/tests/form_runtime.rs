@@ -61,7 +61,7 @@ fn text_box(name: &str, bound: Option<&str>) -> ControlDef {
 
 fn failed_reason(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected single Failed event, got {other:?}"),
     }
 }
@@ -239,7 +239,7 @@ fn sidecar_io_failures_surface_as_failed_events() {
         .dispatch(Command::SaveDesignDocument { path: dir.clone() })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("write failed"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("write failed"), "{reason}"),
         other => panic!("{other:?}"),
     }
     match core
@@ -248,7 +248,7 @@ fn sidecar_io_failures_surface_as_failed_events() {
         })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("read failed"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("read failed"), "{reason}"),
         other => panic!("{other:?}"),
     }
 }
@@ -262,7 +262,7 @@ fn form_guards_name_the_missing_object() {
         })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("not found"), "{reason}"),
         other => panic!("{other:?}"),
     }
     match core
@@ -272,7 +272,7 @@ fn form_guards_name_the_missing_object() {
         })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("not found"), "{reason}"),
         other => panic!("{other:?}"),
     }
     match core
@@ -288,7 +288,7 @@ fn form_guards_name_the_missing_object() {
         })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("not found"), "{reason}"),
         other => panic!("{other:?}"),
     }
 }

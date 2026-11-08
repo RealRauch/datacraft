@@ -14,7 +14,7 @@ use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 
 fn reason(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected Failed, got {other:?}"),
     }
 }

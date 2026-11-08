@@ -68,7 +68,7 @@ fn rows(core: &Core) -> Vec<Vec<FieldValue>> {
 
 fn failure(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected a single Failed event, got {other:?}"),
     }
 }

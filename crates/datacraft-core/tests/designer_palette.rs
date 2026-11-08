@@ -70,7 +70,7 @@ fn report(core: &Core) -> ReportDef {
 
 fn failed_reason(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected single Failed event, got {other:?}"),
     }
 }

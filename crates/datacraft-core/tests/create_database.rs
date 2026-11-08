@@ -87,7 +87,7 @@ fn port_failures_become_failed_events() {
         format: DatabaseFormat::Jet4,
     });
     match events.first() {
-        Some(Event::Failed { reason }) => assert!(reason.contains("disk is full"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("disk is full"), "{reason}"),
         other => panic!("expected a Failed event, got {other:?}"),
     }
 }

@@ -156,7 +156,7 @@ fn duplicate_form_names_are_rejected() {
         })
         .as_slice()
     {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected Failed, got {other:?}"),
     };
     assert!(reason.contains("duplicate"), "{reason}");
@@ -187,7 +187,7 @@ fn forms_need_an_open_database() {
         })
         .as_slice()
     {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected Failed, got {other:?}"),
     };
     assert!(reason.contains("no database"), "{reason}");

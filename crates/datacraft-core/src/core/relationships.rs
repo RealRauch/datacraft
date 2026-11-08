@@ -8,6 +8,7 @@
 
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::port::{DriverCapabilities, PortError, Relationship, Support};
 use crate::schema::{FieldDef, FieldKind, TableDef};
 
@@ -16,38 +17,45 @@ impl crate::core::Core {
     /// list and table definitions (new indexes).
     pub(crate) fn create_relationship(&mut self, relationship: Relationship) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         if db.capabilities.relationships != Support::Yes {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "create relationships for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::NoRelationships),
+                DriverCapabilities::unsupported(&db.driver, "create relationships for this source"),
+            );
         }
         if let Err(reason) = validate_relationship(db, &relationship) {
-            return failed(reason);
+            return failed(FailureCode::InvalidInput, reason);
         }
         if db
             .relationships
             .iter()
             .any(|existing| same_relationship(existing, &relationship))
         {
-            return failed(format!(
-                "duplicate relationship {:?}.{:?} → {:?}.{:?}",
-                relationship.table,
-                relationship.column,
-                relationship.related_table,
-                relationship.related_column
-            ));
+            return failed(
+                FailureCode::Duplicate,
+                format!(
+                    "duplicate relationship {:?}.{:?} → {:?}.{:?}",
+                    relationship.table,
+                    relationship.column,
+                    relationship.related_table,
+                    relationship.related_column
+                ),
+            );
         }
         let old_tables = db.tables.clone();
         if let Err(error) = self.port.create_relationship(&relationship) {
-            return failed(error.to_string());
+            return failed(FailureCode::Port, error.to_string());
         }
         if let Err(reason) = self.refresh_relationships(old_tables) {
-            return failed(format!(
-                "the relationship was created but the snapshot refresh failed: {reason}"
-            ));
+            return failed(
+                FailureCode::Port,
+                format!("the relationship was created but the snapshot refresh failed: {reason}"),
+            );
         }
         vec![Event::RelationshipCreated { relationship }]
     }
@@ -55,35 +63,42 @@ impl crate::core::Core {
     /// Deletes one relationship and refreshes the snapshot.
     pub(crate) fn delete_relationship(&mut self, relationship: Relationship) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         if db.capabilities.relationships != Support::Yes {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "delete relationships for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::NoRelationships),
+                DriverCapabilities::unsupported(&db.driver, "delete relationships for this source"),
+            );
         }
         if !db
             .relationships
             .iter()
             .any(|existing| same_relationship(existing, &relationship))
         {
-            return failed(format!(
-                "relationship {:?}.{:?} → {:?}.{:?} not found",
-                relationship.table,
-                relationship.column,
-                relationship.related_table,
-                relationship.related_column
-            ));
+            return failed(
+                FailureCode::NotFound,
+                format!(
+                    "relationship {:?}.{:?} → {:?}.{:?} not found",
+                    relationship.table,
+                    relationship.column,
+                    relationship.related_table,
+                    relationship.related_column
+                ),
+            );
         }
         let old_tables = db.tables.clone();
         if let Err(error) = self.port.delete_relationship(&relationship) {
-            return failed(error.to_string());
+            return failed(FailureCode::Port, error.to_string());
         }
         if let Err(reason) = self.refresh_relationships(old_tables) {
-            return failed(format!(
-                "the relationship was deleted but the snapshot refresh failed: {reason}"
-            ));
+            return failed(
+                FailureCode::Port,
+                format!("the relationship was deleted but the snapshot refresh failed: {reason}"),
+            );
         }
         vec![Event::RelationshipDeleted { relationship }]
     }

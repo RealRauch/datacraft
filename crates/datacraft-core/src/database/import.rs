@@ -6,6 +6,7 @@ use std::path::Path;
 
 use crate::core::{Core, failed};
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::port::DriverCapabilities;
 use crate::schema::TableDef;
 
@@ -21,28 +22,33 @@ impl Core {
     /// semantics). A full import closes the window and drops the preview.
     pub(crate) fn import_file(&mut self, source: &Path, table: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // The chain needs both write affordances; answer before parsing so
         // a read-only source never reads its import source in vain.
         if !db.capabilities.create_table {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "create tables for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::CreateTables),
+                DriverCapabilities::unsupported(&db.driver, "create tables for this source"),
+            );
         }
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         if table.trim().is_empty() {
-            return failed("the target table name is empty");
+            return failed(FailureCode::InvalidInput, "the target table name is empty");
         }
         let parsed = match crate::import::read_csv_file(source) {
             Ok(parsed) => parsed,
-            Err(reason) => return failed(format!("{}: {reason}", source.display())),
+            Err(reason) => {
+                return failed(FailureCode::Io, format!("{}: {reason}", source.display()));
+            }
         };
         let definition = TableDef::new(table.to_owned(), parsed.fields.clone());
         let mut events = self.create_table(definition);
@@ -56,7 +62,10 @@ impl Core {
             match crate::row_edit::row_values(&parsed.fields, cells) {
                 Ok(values) => events.extend(self.insert_row(table, &values)),
                 Err(reason) => {
-                    events.extend(failed(format!("row {}: {reason}", index + 1)));
+                    events.extend(failed(
+                        FailureCode::InvalidInput,
+                        format!("row {}: {reason}", index + 1),
+                    ));
                     return events;
                 }
             }
@@ -72,13 +81,16 @@ impl Core {
     /// source is only ever read.
     pub(crate) fn preview_import_file(&mut self, source: &Path) -> Vec<Event> {
         if self.state.database.is_none() {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         }
         let parsed = match crate::import::read_csv_file(source) {
             Ok(parsed) => parsed,
             Err(reason) => {
                 self.state.import_preview = None;
-                return failed(format!("{}: {reason}", source.display()));
+                return failed(FailureCode::Io, format!("{}: {reason}", source.display()));
             }
         };
         let table = source.file_stem().map_or_else(

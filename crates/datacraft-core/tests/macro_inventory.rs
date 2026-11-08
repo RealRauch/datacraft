@@ -98,7 +98,7 @@ fn macros_open_read_only_tabs_and_unknown_macros_fail_precisely() {
         "Missing",
     )));
     assert!(
-        matches!(events.as_slice(), [Event::Failed { reason }] if reason.contains("Missing")),
+        matches!(events.as_slice(), [Event::Failed { reason, .. }] if reason.contains("Missing")),
         "{events:?}"
     );
 }

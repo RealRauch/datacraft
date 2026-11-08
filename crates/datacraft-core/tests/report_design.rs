@@ -49,7 +49,7 @@ fn label(name: &str, text: &str, x: f32, y: f32) -> ControlDef {
 
 fn failed_reason(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected single Failed event, got {other:?}"),
     }
 }
@@ -282,7 +282,7 @@ fn snapshot_lists_reports_and_derives_navigation_ids() {
 
 fn failed_of(events: Vec<Event>) -> String {
     match events.first() {
-        Some(Event::Failed { reason }) => reason.clone(),
+        Some(Event::Failed { reason, .. }) => reason.clone(),
         other => panic!("expected Failed, got {other:?}"),
     }
 }

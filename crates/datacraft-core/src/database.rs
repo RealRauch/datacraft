@@ -6,6 +6,7 @@
 use crate::ObjectKind;
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::ids::TabId;
 use crate::port::{DriverCapabilities, PortError, SchemaChange};
 use crate::schema::{FieldValue, TableDef};
@@ -26,7 +27,10 @@ impl crate::core::Core {
         password: Option<String>,
     ) -> Vec<Event> {
         if self.state.database.is_some() {
-            return failed("a database is already open — close it first");
+            return failed(
+                FailureCode::Lifecycle,
+                "a database is already open — close it first",
+            );
         }
         match self.port.open(&path, password.as_deref()) {
             // Dedicated events let every client react without parsing prose
@@ -37,7 +41,7 @@ impl crate::core::Core {
             Err(PortError::WrongPassword { .. }) => {
                 vec![Event::PasswordRejected { path }]
             }
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(opened) => {
                 let name = opened.name.clone();
                 let format = opened.format;
@@ -146,7 +150,7 @@ impl crate::core::Core {
 
     pub(crate) fn close_database(&mut self) -> Vec<Event> {
         if self.state.database.is_none() {
-            return failed("no database is open");
+            return failed(FailureCode::NoDatabase, "no database is open");
         }
         let mut events: Vec<Event> = self
             .state
@@ -180,40 +184,46 @@ impl crate::core::Core {
         // Capability gate (phase 30, M17): the driver declared creation
         // impossible — refuse before the port, same Failed shape.
         if !self.port.capabilities().create_database {
-            return failed(DriverCapabilities::unsupported(
-                &self.port.driver_id(),
-                "create database files",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::NoRelationships),
+                DriverCapabilities::unsupported(&self.port.driver_id(), "create database files"),
+            );
         }
         match self.port.create_database(&path, format) {
             Ok(()) => vec![Event::DatabaseCreated { path, format }],
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
         }
     }
 
     pub(crate) fn create_table(&mut self, definition: TableDef) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // Capability gate (phase 30, M17; ADR-7).
         if !db.capabilities.create_table {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "create tables for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::CreateTables),
+                DriverCapabilities::unsupported(&db.driver, "create tables for this source"),
+            );
         }
         if let Err(e) = definition.validate() {
-            return failed(e.to_string());
+            return failed(FailureCode::Port, e.to_string());
         }
         if db
             .tables
             .iter()
             .any(|t| t.name.to_lowercase() == definition.name.to_lowercase())
         {
-            return failed(format!("duplicate table name {:?}", definition.name));
+            return failed(
+                FailureCode::Duplicate,
+                format!("duplicate table name {:?}", definition.name),
+            );
         }
         match self.port.create_table(&definition) {
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(()) => {
                 let name = definition.name.clone();
                 db.tables.push(definition);
@@ -231,30 +241,36 @@ impl crate::core::Core {
         values: &[crate::schema::FieldValue],
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // Capability gate (phase 30, M17; ADR-7): a source the driver
         // declared read-only never reaches the port.
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         let Some(def) = db
             .tables
             .iter()
             .find(|t| t.name.eq_ignore_ascii_case(table))
         else {
-            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+            return failed(
+                FailureCode::NotFound,
+                PortError::TableNotFound(table.to_owned()).to_string(),
+            );
         };
         let canonical = def.name.clone();
         let prepared = match crate::field_expressions::prepare_insert(def, values) {
             Ok(prepared) => prepared,
-            Err(reason) => return failed(reason),
+            Err(reason) => return failed(FailureCode::InvalidInput, reason),
         };
         match self.port.insert_row(&canonical, &prepared) {
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(()) => {
                 self.record_insert(&canonical);
                 vec![Event::RowInserted { table: canonical }]
@@ -272,46 +288,60 @@ impl crate::core::Core {
         values: &[FieldValue],
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // Capability gate (phase 30, M17; ADR-7).
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         let Some(def) = db
             .tables
             .iter()
             .find(|t| t.name.eq_ignore_ascii_case(table))
         else {
-            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+            return failed(
+                FailureCode::NotFound,
+                PortError::TableNotFound(table.to_owned()).to_string(),
+            );
         };
         let canonical = def.name.clone();
         let fields = def.fields.clone();
         if values.len() != fields.len() {
-            return failed(format!(
-                "update {:?}: expected {} values, found {}",
-                canonical,
-                fields.len(),
-                values.len()
-            ));
+            return failed(
+                FailureCode::InvalidInput,
+                format!(
+                    "update {:?}: expected {} values, found {}",
+                    canonical,
+                    fields.len(),
+                    values.len()
+                ),
+            );
         }
         let current = match self
             .port
             .read_rows(&canonical, crate::port::RowRange { start: row, len: 1 })
         {
             Ok(rows) if rows.len() == 1 => rows.into_iter().next().expect("length checked"),
-            Ok(_) => return failed(format!("row {row} of {canonical:?} is out of range")),
-            Err(e) => return failed(e.to_string()),
+            Ok(_) => {
+                return failed(
+                    FailureCode::OutOfRange,
+                    format!("row {row} of {canonical:?} is out of range"),
+                );
+            }
+            Err(e) => return failed(FailureCode::Port, e.to_string()),
         };
         let prepared = match crate::field_expressions::prepare_update(def, &current, values) {
             Ok(prepared) => prepared,
-            Err(reason) => return failed(reason),
+            Err(reason) => return failed(FailureCode::InvalidInput, reason),
         };
         match self.port.update_row(&canonical, row, &prepared) {
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(()) => {
                 self.record_update(&canonical, &current, &prepared);
                 vec![Event::RowUpdated {
@@ -325,21 +355,27 @@ impl crate::core::Core {
     /// Deletes one row (step 11.10, H40).
     pub(crate) fn delete_row(&mut self, table: &str, row: usize) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // Capability gate (phase 30, M17; ADR-7).
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         let Some(def) = db
             .tables
             .iter()
             .find(|t| t.name.eq_ignore_ascii_case(table))
         else {
-            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+            return failed(
+                FailureCode::NotFound,
+                PortError::TableNotFound(table.to_owned()).to_string(),
+            );
         };
         let canonical = def.name.clone();
         let current = match self
@@ -347,11 +383,16 @@ impl crate::core::Core {
             .read_rows(&canonical, crate::port::RowRange { start: row, len: 1 })
         {
             Ok(rows) if rows.len() == 1 => rows.into_iter().next().expect("length checked"),
-            Ok(_) => return failed(format!("row {row} of {canonical:?} is out of range")),
-            Err(e) => return failed(e.to_string()),
+            Ok(_) => {
+                return failed(
+                    FailureCode::OutOfRange,
+                    format!("row {row} of {canonical:?} is out of range"),
+                );
+            }
+            Err(e) => return failed(FailureCode::Port, e.to_string()),
         };
         match self.port.delete_row(&canonical, row) {
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(()) => {
                 self.record_delete(&canonical, &current);
                 vec![Event::RowDeleted {
@@ -364,17 +405,20 @@ impl crate::core::Core {
 
     pub(crate) fn drop_table(&mut self, table: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // Capability gate (phase 30, M17; ADR-7).
         if !db.capabilities.drop_table {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "drop tables for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::DropTables),
+                DriverCapabilities::unsupported(&db.driver, "drop tables for this source"),
+            );
         }
         let canonical = match self.port.drop_table(table) {
-            Err(e) => return failed(e.to_string()),
+            Err(e) => return failed(FailureCode::Port, e.to_string()),
             Ok(canonical) => canonical,
         };
         // The dropped table's datasheet view state goes with it
@@ -415,14 +459,17 @@ impl crate::core::Core {
     /// catalog; the in-memory definition is refreshed from the backend.
     pub(crate) fn alter_table(&mut self, table: &str, change: SchemaChange) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // Capability gate (phase 30, M17; ADR-7).
         if !db.capabilities.alter_table {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "alter the schema for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::AlterTables),
+                DriverCapabilities::unsupported(&db.driver, "alter the schema for this source"),
+            );
         }
         let Some(def) = db
             .tables
@@ -430,20 +477,26 @@ impl crate::core::Core {
             .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
             .cloned()
         else {
-            return failed(PortError::TableNotFound(table.to_owned()).to_string());
+            return failed(
+                FailureCode::NotFound,
+                PortError::TableNotFound(table.to_owned()).to_string(),
+            );
         };
         let mut trial = def.clone();
         let field = match alter::apply_schema_change(&mut trial, &change) {
             Ok(field) => field,
-            Err(reason) => return failed(reason),
+            Err(reason) => return failed(FailureCode::InvalidInput, reason),
         };
         if let Err(error) = trial.validate() {
-            return failed(format!("invalid schema change: {error}"));
+            return failed(
+                FailureCode::InvalidInput,
+                format!("invalid schema change: {error}"),
+            );
         }
         let canonical = def.name.clone();
         let old_tables = db.tables.clone();
         if let Err(error) = self.port.alter_table(&canonical, change) {
-            return failed(error.to_string());
+            return failed(FailureCode::Port, error.to_string());
         }
         let mut tables = self.port.tables();
         // The physical catalog carries no property blocks (H45): keep the

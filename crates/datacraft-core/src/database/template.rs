@@ -3,6 +3,7 @@
 
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::port::DriverCapabilities;
 
 impl crate::core::Core {
@@ -18,31 +19,37 @@ impl crate::core::Core {
         template: String,
     ) -> Vec<Event> {
         if self.state.database.is_some() {
-            return failed("close the open database before creating a database from a template");
+            return failed(
+                FailureCode::Lifecycle,
+                "close the open database before creating a database from a template",
+            );
         }
         if !self.port.capabilities().create_database {
-            return failed(DriverCapabilities::unsupported(
-                &self.port.driver_id(),
-                "create database files",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::NoRelationships),
+                DriverCapabilities::unsupported(&self.port.driver_id(), "create database files"),
+            );
         }
         let Some(template) = crate::templates::find_template(&template) else {
             let available: Vec<&str> = crate::templates::templates()
                 .iter()
                 .map(|entry| entry.name)
                 .collect();
-            return failed(format!(
-                "unknown template {template:?} — available: {}",
-                available.join(", ")
-            ));
+            return failed(
+                FailureCode::NotFound,
+                format!(
+                    "unknown template {template:?} — available: {}",
+                    available.join(", ")
+                ),
+            );
         };
         let format = template.format;
         if let Err(e) = self.port.create_database(&path, format) {
-            return failed(e.to_string());
+            return failed(FailureCode::Port, e.to_string());
         }
         if let Err(e) = self.materialize_template_tables(&path, &template.tables) {
             let _ = std::fs::remove_file(&path);
-            return failed(e);
+            return failed(FailureCode::Port, e);
         }
         vec![Event::DatabaseCreated { path, format }]
     }

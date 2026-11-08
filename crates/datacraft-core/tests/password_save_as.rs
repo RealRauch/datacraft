@@ -168,7 +168,7 @@ fn event_reason(events: &[Event]) -> String {
     events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .unwrap_or_else(|| panic!("expected a Failed event: {events:?}"))

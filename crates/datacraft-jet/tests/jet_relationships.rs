@@ -207,7 +207,7 @@ fn a_unique_parent_index_over_duplicates_is_refused() {
     let reason = events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .expect("duplicate parent values block the unique index");

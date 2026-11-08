@@ -27,7 +27,7 @@ fn core() -> Core {
 
 fn failure(events: &[Event]) -> String {
     match events.first() {
-        Some(Event::Failed { reason }) => reason.clone(),
+        Some(Event::Failed { reason, .. }) => reason.clone(),
         other => panic!("expected Failed, got {other:?}"),
     }
 }

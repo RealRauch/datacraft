@@ -250,14 +250,14 @@ fn database_and_table_guards_answer_precisely() {
     let mut core = Core::new(Box::new(MockPort::new()));
     // Guards on an empty core:
     match core.dispatch(Command::CloseDatabase {}).first() {
-        Some(Event::Failed { reason }) => assert!(reason.contains("no database"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("no database"), "{reason}"),
         other => panic!("{other:?}"),
     }
     match core
         .dispatch(Command::CreateQuery { name: "q".into() })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("no database"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("no database"), "{reason}"),
         other => panic!("{other:?}"),
     }
 
@@ -274,7 +274,9 @@ fn database_and_table_guards_answer_precisely() {
         .dispatch(Command::CreateTable { definition })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("disk on strike"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => {
+            assert!(reason.contains("disk on strike"), "{reason}")
+        }
         other => panic!("{other:?}"),
     }
 }
@@ -290,14 +292,14 @@ fn query_and_tab_guards_name_the_missing_object() {
         .dispatch(Command::RunQuery { query: "q".into() })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("not found"), "{reason}"),
         other => panic!("{other:?}"),
     }
     match core
         .dispatch(Command::DeleteQuery { name: "q".into() })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(reason.contains("not found"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("not found"), "{reason}"),
         other => panic!("{other:?}"),
     }
     match core
@@ -306,7 +308,7 @@ fn query_and_tab_guards_name_the_missing_object() {
         })
         .first()
     {
-        Some(Event::Failed { reason }) => assert!(!reason.is_empty(), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(!reason.is_empty(), "{reason}"),
         other => panic!("{other:?}"),
     }
 }

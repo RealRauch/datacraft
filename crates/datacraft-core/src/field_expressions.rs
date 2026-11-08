@@ -20,6 +20,7 @@ use crate::command::ExpressionContext;
 use crate::core::failed;
 use crate::event::Event;
 use crate::expr::{self, Scope};
+use crate::failure::FailureCode;
 use crate::schema::{FieldDef, FieldKind, FieldValue, TableDef};
 
 /// Prepares a new row: defaults, calculated values, rules, schema.
@@ -218,7 +219,7 @@ impl crate::core::Core {
             }],
             Err(reason) => {
                 self.state.expression_result = None;
-                failed(reason)
+                failed(FailureCode::Parse, reason)
             }
         }
     }

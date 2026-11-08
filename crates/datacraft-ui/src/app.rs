@@ -222,7 +222,7 @@ impl App {
         let events = self.core.dispatch(command);
         self.snapshot = self.core.inspect();
         self.last_error = events.iter().find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         });
         self.last_notice = if self.last_error.is_some() {
@@ -282,7 +282,7 @@ impl App {
             sql: self.sql_text.clone(),
         });
         self.sql_error = events.iter().find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         });
     }
@@ -365,7 +365,7 @@ impl App {
         for event in events {
             match event {
                 Event::VbaAnalyzed { analysis } => self.vba_analysis = Some(analysis),
-                Event::Failed { reason } => self.vba_analysis_error = Some(reason),
+                Event::Failed { reason, .. } => self.vba_analysis_error = Some(reason),
                 _ => {}
             }
         }

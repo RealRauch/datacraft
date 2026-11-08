@@ -13,6 +13,7 @@ pub mod core;
 mod database;
 pub mod event;
 pub mod expr;
+pub mod failure;
 pub mod field_expressions;
 pub mod form;
 mod forms;

@@ -70,7 +70,7 @@ fn rejected_statements_become_precise_failed_events() {
         sql: "DELETE FROM customers".into(),
     });
     match &events[0] {
-        Event::Failed { reason } => assert!(reason.contains("only SELECT"), "{reason}"),
+        Event::Failed { reason, .. } => assert!(reason.contains("only SELECT"), "{reason}"),
         other => panic!("expected Failed, got {other:?}"),
     }
 }
@@ -82,7 +82,7 @@ fn sql_requires_an_open_database() {
         sql: "SELECT 1".into(),
     });
     match &events[0] {
-        Event::Failed { reason } => assert!(reason.contains("no database"), "{reason}"),
+        Event::Failed { reason, .. } => assert!(reason.contains("no database"), "{reason}"),
         other => panic!("expected Failed, got {other:?}"),
     }
     assert!(core.run_sql("SELECT 1").is_err());

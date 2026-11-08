@@ -135,7 +135,7 @@ fn view_command_violations_fail_precisely() {
     assert!(
         events
             .iter()
-            .any(|e| matches!(e, Event::Failed { reason } if reason.contains("Ghost"))),
+            .any(|e| matches!(e, Event::Failed { reason, .. } if reason.contains("Ghost"))),
         "{events:?}"
     );
 
@@ -147,7 +147,7 @@ fn view_command_violations_fail_precisely() {
     assert!(
         events
             .iter()
-            .any(|e| matches!(e, Event::Failed { reason } if reason.contains("ghost"))),
+            .any(|e| matches!(e, Event::Failed { reason, .. } if reason.contains("ghost"))),
         "{events:?}"
     );
 

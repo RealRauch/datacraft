@@ -105,7 +105,7 @@ fn modules_open_read_only_tabs_and_load_their_source_over_the_bus() {
         module: "Missing".to_owned(),
     });
     assert!(
-        matches!(events.as_slice(), [Event::Failed { reason }] if reason.contains("Missing")),
+        matches!(events.as_slice(), [Event::Failed { reason, .. }] if reason.contains("Missing")),
         "{events:?}"
     );
 }
@@ -135,7 +135,7 @@ fn a_failed_extraction_stays_visible_and_does_not_block_opening() {
         module: "Utilities".to_owned(),
     });
     assert!(
-        matches!(events.as_slice(), [Event::Failed { reason }] if reason.contains("dir stream")),
+        matches!(events.as_slice(), [Event::Failed { reason, .. }] if reason.contains("dir stream")),
         "{events:?}"
     );
 }
@@ -170,7 +170,7 @@ fn analyze_vba_returns_the_headless_analysis_over_the_bus() {
     let mut bare = Core::new(Box::new(MockPort::new()));
     assert!(matches!(
         bare.dispatch(Command::AnalyzeVba).as_slice(),
-        [Event::Failed { reason }] if reason.contains("no database")
+        [Event::Failed { reason, .. }] if reason.contains("no database")
     ));
     let mut no_project = Core::new(Box::new(MockPort::new()));
     no_project.dispatch(Command::OpenDatabase {
@@ -179,7 +179,7 @@ fn analyze_vba_returns_the_headless_analysis_over_the_bus() {
     });
     assert!(matches!(
         no_project.dispatch(Command::AnalyzeVba).as_slice(),
-        [Event::Failed { reason }] if reason.contains("no VBA project")
+        [Event::Failed { reason, .. }] if reason.contains("no VBA project")
     ));
 }
 
@@ -194,6 +194,6 @@ fn analyze_vba_reports_the_extraction_failure_precisely() {
     });
     assert!(matches!(
         core.dispatch(Command::AnalyzeVba).as_slice(),
-        [Event::Failed { reason }] if reason.contains("dir stream")
+        [Event::Failed { reason, .. }] if reason.contains("dir stream")
     ));
 }

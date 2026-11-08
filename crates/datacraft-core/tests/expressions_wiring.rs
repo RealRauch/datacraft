@@ -74,7 +74,7 @@ fn rows(core: &Core) -> Vec<Vec<FieldValue>> {
 
 fn failure(events: &[Event]) -> String {
     let reason = events.iter().find_map(|event| match event {
-        Event::Failed { reason } => Some(reason.clone()),
+        Event::Failed { reason, .. } => Some(reason.clone()),
         _ => None,
     });
     reason.expect("the dispatch must fail")

@@ -61,7 +61,7 @@ fn insert(table: &str, values: Vec<FieldValue>) -> Command {
 
 fn failure(events: &[Event]) -> &str {
     match events.first() {
-        Some(Event::Failed { reason }) => reason,
+        Some(Event::Failed { reason, .. }) => reason,
         other => panic!("expected a Failed event, got {other:?}"),
     }
 }

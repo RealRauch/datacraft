@@ -184,7 +184,7 @@ fn unsupported_index_kinds_are_refused_by_the_core() {
     let reason = events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .expect("memo index rejected");

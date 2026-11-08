@@ -9,6 +9,7 @@
 use crate::core::Core;
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::qbe::SortOrder;
 use crate::state::TableViewState;
 
@@ -21,14 +22,17 @@ impl Core {
         order: SortOrder,
     ) -> Vec<Event> {
         let Some(db) = Core::mutable_table(self, table) else {
-            return failed(format!("unknown table {table:?}"));
+            return failed(FailureCode::NotFound, format!("unknown table {table:?}"));
         };
         let Some(column) =
             db.0.iter()
                 .find(|f| f.name.eq_ignore_ascii_case(field))
                 .cloned()
         else {
-            return failed(format!("field {field:?} is not a field of {table:?}"));
+            return failed(
+                FailureCode::NotFound,
+                format!("field {field:?} is not a field of {table:?}"),
+            );
         };
         let view = db.1;
         if order == SortOrder::None {
@@ -50,14 +54,17 @@ impl Core {
         criteria: Option<&str>,
     ) -> Vec<Event> {
         let Some(db) = Core::mutable_table(self, table) else {
-            return failed(format!("unknown table {table:?}"));
+            return failed(FailureCode::NotFound, format!("unknown table {table:?}"));
         };
         let Some(column) =
             db.0.iter()
                 .find(|f| f.name.eq_ignore_ascii_case(field))
                 .cloned()
         else {
-            return failed(format!("field {field:?} is not a field of {table:?}"));
+            return failed(
+                FailureCode::NotFound,
+                format!("field {field:?} is not a field of {table:?}"),
+            );
         };
         let view = db.1;
         match criteria {
@@ -65,7 +72,7 @@ impl Core {
                 // Fail loudly at set time (M54): garbage criteria must
                 // never silently filter nothing at render time.
                 if let Err(error) = crate::query_criteria::parse_predicate(text, field, &column) {
-                    return failed(error.to_string());
+                    return failed(FailureCode::Port, error.to_string());
                 }
                 view.filters.insert(column.name.clone(), text.to_owned());
             }
@@ -80,7 +87,7 @@ impl Core {
     /// status chip's one-click clear.
     pub(crate) fn clear_table_filters(&mut self, table: &str) -> Vec<Event> {
         let Some(db) = Core::mutable_table(self, table) else {
-            return failed(format!("unknown table {table:?}"));
+            return failed(FailureCode::NotFound, format!("unknown table {table:?}"));
         };
         db.1.filters.clear();
         Vec::new()

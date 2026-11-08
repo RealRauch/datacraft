@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::port::{DriverCapabilities, RowRange, RowWriteOp};
 use crate::schema::{AutoKind, BinaryKind, FieldKind, FieldValue, TableDef};
 
@@ -252,24 +253,30 @@ impl crate::core::Core {
     /// Previews a write batch and stores it as the pending journal.
     pub(crate) fn preview_write(&mut self, table: &str, ops: Vec<WriteOp>) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         // ADR-7: the dispatcher refuses before the port is asked (L14).
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         if let Some(reason) = atomic_batch_reason(db, ops.len()) {
-            return failed(reason);
+            return failed(FailureCode::Unsupported, reason);
         }
         let Some(def) = db
             .tables
             .iter()
             .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
         else {
-            return failed(crate::port::PortError::TableNotFound(table.to_owned()).to_string());
+            return failed(
+                FailureCode::NotFound,
+                crate::port::PortError::TableNotFound(table.to_owned()).to_string(),
+            );
         };
         let def = def.clone();
         let rows = match self.port.read_rows(
@@ -280,11 +287,11 @@ impl crate::core::Core {
             },
         ) {
             Ok(rows) => rows,
-            Err(e) => return failed(e.to_string()),
+            Err(e) => return failed(FailureCode::Port, e.to_string()),
         };
         let (prepared, changes) = match preview(&def, &rows, &ops) {
             Ok(result) => result,
-            Err(reason) => return failed(reason),
+            Err(reason) => return failed(FailureCode::InvalidInput, reason),
         };
         let token = self.state.next_write_token;
         self.state.next_write_token += 1;
@@ -304,27 +311,36 @@ impl crate::core::Core {
     /// Applies the pending journal after re-validating its preview.
     pub(crate) fn apply_write(&mut self, token: u64) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         let Some(pending) = self.state.pending_write.clone() else {
-            return failed("no pending write journal — preview a batch first");
+            return failed(
+                FailureCode::Lifecycle,
+                "no pending write journal — preview a batch first",
+            );
         };
         if pending.token != token {
-            return failed(format!(
-                "stale write token {token} (pending journal is {})",
-                pending.token
-            ));
+            return failed(
+                FailureCode::Stale,
+                format!(
+                    "stale write token {token} (pending journal is {})",
+                    pending.token
+                ),
+            );
         }
         if let Some(db) = self.state.database.as_ref()
             && let Some(reason) = atomic_batch_reason(db, pending.ops.len())
         {
-            return failed(reason);
+            return failed(FailureCode::Unsupported, reason);
         }
         let Some(def) = self
             .state
@@ -338,6 +354,7 @@ impl crate::core::Core {
             .cloned()
         else {
             return failed(
+                FailureCode::NotFound,
                 crate::port::PortError::TableNotFound(pending.table.clone()).to_string(),
             );
         };
@@ -349,19 +366,27 @@ impl crate::core::Core {
             },
         ) {
             Ok(rows) => rows,
-            Err(e) => return failed(e.to_string()),
+            Err(e) => return failed(FailureCode::Port, e.to_string()),
         };
         let fresh = match preview(&def, &rows, &pending.ops) {
             Ok((_, changes)) => changes,
-            Err(reason) => return failed(format!("the table changed since the preview: {reason}")),
+            Err(reason) => {
+                return failed(
+                    FailureCode::Stale,
+                    format!("the table changed since the preview: {reason}"),
+                );
+            }
         };
         if fresh != pending.changes {
-            return failed("the table changed since the preview — preview the batch again");
+            return failed(
+                FailureCode::Stale,
+                "the table changed since the preview — preview the batch again",
+            );
         }
         let rollback = rollback_ops(&pending.changes);
         let ops = to_row_write_ops(&pending.ops);
         match self.port.write_row_ops(&pending.table, &ops) {
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(()) => {
                 let count = |kind: ChangeKind| {
                     pending
@@ -391,26 +416,35 @@ impl crate::core::Core {
     /// Rolls the last applied journal back (inverse operations).
     pub(crate) fn rollback_write(&mut self, token: u64) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         let Some(applied) = self.state.last_applied.clone() else {
-            return failed("no applied write journal to roll back");
+            return failed(
+                FailureCode::Lifecycle,
+                "no applied write journal to roll back",
+            );
         };
         if applied.token != token {
-            return failed(format!(
-                "stale rollback token {token} (last applied journal is {})",
-                applied.token
-            ));
+            return failed(
+                FailureCode::Stale,
+                format!(
+                    "stale rollback token {token} (last applied journal is {})",
+                    applied.token
+                ),
+            );
         }
         let ops = to_row_write_ops(&applied.rollback);
         match self.port.write_row_ops(&applied.table, &ops) {
-            Err(e) => failed(e.to_string()),
+            Err(e) => failed(FailureCode::Port, e.to_string()),
             Ok(()) => {
                 self.state.last_applied = None;
                 vec![Event::WriteRolledBack {
@@ -424,13 +458,19 @@ impl crate::core::Core {
     /// Discards the pending journal without writing anything.
     pub(crate) fn discard_write(&mut self, token: u64) -> Vec<Event> {
         let Some(pending) = self.state.pending_write.as_ref() else {
-            return failed("no pending write journal to discard");
+            return failed(
+                FailureCode::Lifecycle,
+                "no pending write journal to discard",
+            );
         };
         if pending.token != token {
-            return failed(format!(
-                "stale write token {token} (pending journal is {})",
-                pending.token
-            ));
+            return failed(
+                FailureCode::Stale,
+                format!(
+                    "stale write token {token} (pending journal is {})",
+                    pending.token
+                ),
+            );
         }
         self.state.pending_write = None;
         vec![Event::WriteDiscarded { token }]

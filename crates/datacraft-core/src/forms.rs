@@ -5,14 +5,19 @@
 
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 
 impl crate::core::Core {
     pub(crate) fn create_form(&mut self, name: &str) -> Vec<Event> {
         if self.state.database.is_none() {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         }
         if name.trim().is_empty() {
             return failed(
+                FailureCode::InvalidInput,
                 crate::schema::SchemaError::InvalidName {
                     detail: "names must not be empty or whitespace-only".to_owned(),
                 }
@@ -25,7 +30,10 @@ impl crate::core::Core {
             .iter()
             .any(|f| f.name.to_lowercase() == name.to_lowercase())
         {
-            return failed(format!("duplicate form name {name:?}"));
+            return failed(
+                FailureCode::Duplicate,
+                format!("duplicate form name {name:?}"),
+            );
         }
         self.state
             .database
@@ -40,14 +48,17 @@ impl crate::core::Core {
 
     pub(crate) fn delete_form(&mut self, name: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(pos) = db
             .forms
             .iter()
             .position(|f| f.name.to_lowercase() == name.to_lowercase())
         else {
-            return failed(format!("form {name:?} not found"));
+            return failed(FailureCode::NotFound, format!("form {name:?} not found"));
         };
         let canonical = db.forms.remove(pos).name;
         vec![Event::FormDropped { name: canonical }]
@@ -59,39 +70,48 @@ impl crate::core::Core {
         mut control: crate::form::ControlDef,
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .forms
             .iter_mut()
             .find(|f| f.name.to_lowercase() == form.to_lowercase())
         else {
-            return failed(format!("form {form:?} not found"));
+            return failed(FailureCode::NotFound, format!("form {form:?} not found"));
         };
         if control.name.trim().is_empty() {
-            return failed("control names must not be empty");
+            return failed(FailureCode::InvalidInput, "control names must not be empty");
         }
         if def
             .controls
             .iter()
             .any(|c| c.name.to_lowercase() == control.name.to_lowercase())
         {
-            return failed(format!("duplicate control name {:?}", control.name));
+            return failed(
+                FailureCode::Duplicate,
+                format!("duplicate control name {:?}", control.name),
+            );
         }
         if let Some(bound) = bound_field(&control) {
             let detail = validate_binding(def, &db.tables, &bound);
             if let Some(detail) = detail {
-                return failed(detail);
+                return failed(FailureCode::InvalidInput, detail);
             }
         }
         control.rect = crate::canvas::snap_rect(control.rect, def.grid);
         if control.rect.x + control.rect.width > def.size.width
             || control.rect.y + control.rect.height > def.size.height
         {
-            return failed(format!(
-                "control {:?} exceeds the canvas bounds ({} x {})",
-                control.name, def.size.width, def.size.height
-            ));
+            return failed(
+                FailureCode::InvalidInput,
+                format!(
+                    "control {:?} exceeds the canvas bounds ({} x {})",
+                    control.name, def.size.width, def.size.height
+                ),
+            );
         }
         let name = control.name.clone();
         def.controls.push(control);
@@ -108,30 +128,39 @@ impl crate::core::Core {
         rect: crate::canvas::Rect,
     ) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .forms
             .iter_mut()
             .find(|f| f.name.to_lowercase() == form.to_lowercase())
         else {
-            return failed(format!("form {form:?} not found"));
+            return failed(FailureCode::NotFound, format!("form {form:?} not found"));
         };
         let Some(target) = def
             .controls
             .iter_mut()
             .find(|c| c.name.to_lowercase() == control.to_lowercase())
         else {
-            return failed(format!("control {control:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("control {control:?} not found"),
+            );
         };
         let snapped = crate::canvas::snap_rect(rect, def.grid);
         if snapped.x + snapped.width > def.size.width
             || snapped.y + snapped.height > def.size.height
         {
-            return failed(format!(
-                "control {control:?} exceeds the canvas bounds ({} x {})",
-                def.size.width, def.size.height
-            ));
+            return failed(
+                FailureCode::InvalidInput,
+                format!(
+                    "control {control:?} exceeds the canvas bounds ({} x {})",
+                    def.size.width, def.size.height
+                ),
+            );
         }
         target.rect = snapped;
         vec![Event::ControlRectSet {
@@ -142,21 +171,27 @@ impl crate::core::Core {
 
     pub(crate) fn delete_control(&mut self, form: &str, control: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db
             .forms
             .iter_mut()
             .find(|f| f.name.to_lowercase() == form.to_lowercase())
         else {
-            return failed(format!("form {form:?} not found"));
+            return failed(FailureCode::NotFound, format!("form {form:?} not found"));
         };
         let Some(pos) = def
             .controls
             .iter()
             .position(|c| c.name.to_lowercase() == control.to_lowercase())
         else {
-            return failed(format!("control {control:?} not found"));
+            return failed(
+                FailureCode::NotFound,
+                format!("control {control:?} not found"),
+            );
         };
         let canonical = def.controls.remove(pos).name;
         vec![Event::ControlDropped {
@@ -168,10 +203,13 @@ impl crate::core::Core {
     /// bound control at the next free slot (step 11.6).
     pub(crate) fn add_form_field(&mut self, form: &str, field: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(def) = db.forms.iter().find(|f| f.name.eq_ignore_ascii_case(form)) else {
-            return failed(format!("form {form:?} not found"));
+            return failed(FailureCode::NotFound, format!("form {form:?} not found"));
         };
         let canonical = def.name.clone();
         let bounds = (def.size.width, def.size.height);
@@ -184,7 +222,7 @@ impl crate::core::Core {
             &def.controls,
         ) {
             Ok(control) => control,
-            Err(reason) => return failed(reason),
+            Err(reason) => return failed(FailureCode::InvalidInput, reason),
         };
         self.add_control(&canonical, control)
     }
@@ -192,14 +230,20 @@ impl crate::core::Core {
     /// Assigns the source table (whitelist + re-validation of bindings).
     pub(crate) fn set_form_source(&mut self, form: &str, table: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let Some(source) = db
             .tables
             .iter()
             .find(|t| t.name.to_lowercase() == table.to_lowercase())
         else {
-            return failed(crate::port::PortError::TableNotFound(table.to_owned()).to_string());
+            return failed(
+                FailureCode::NotFound,
+                crate::port::PortError::TableNotFound(table.to_owned()).to_string(),
+            );
         };
         let canonical = source.name.clone();
         let Some(def) = db
@@ -207,7 +251,7 @@ impl crate::core::Core {
             .iter_mut()
             .find(|f| f.name.to_lowercase() == form.to_lowercase())
         else {
-            return failed(format!("form {form:?} not found"));
+            return failed(FailureCode::NotFound, format!("form {form:?} not found"));
         };
         for control in &def.controls {
             if let Some(bound) = bound_field(control)
@@ -216,10 +260,13 @@ impl crate::core::Core {
                     .iter()
                     .any(|f| f.name.to_lowercase() == bound.to_lowercase())
             {
-                return failed(format!(
-                    "field {bound:?} not found in {:?} — rebind the control first",
-                    canonical
-                ));
+                return failed(
+                    FailureCode::NotFound,
+                    format!(
+                        "field {bound:?} not found in {:?} — rebind the control first",
+                        canonical
+                    ),
+                );
             }
         }
         def.source = canonical.clone();
@@ -233,7 +280,10 @@ impl crate::core::Core {
     /// bytes).
     pub(crate) fn save_design_document(&mut self, path: &std::path::Path) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let document = crate::schema::SchemaDocument {
             schema_version: crate::schema::SCHEMA_VERSION,
@@ -247,7 +297,10 @@ impl crate::core::Core {
             Ok(()) => vec![Event::DesignDocumentSaved {
                 path: path.to_path_buf(),
             }],
-            Err(e) => failed(format!("sidecar write failed: {e}")),
+            Err(e) => failed(
+                FailureCode::DesignDocument,
+                format!("sidecar write failed: {e}"),
+            ),
         }
     }
 
@@ -255,35 +308,55 @@ impl crate::core::Core {
     /// database-name check; the table list comes from the database file).
     pub(crate) fn load_design_document(&mut self, path: &std::path::Path) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let expected = db.name.clone();
         let json = match std::fs::read_to_string(path) {
             Ok(json) => json,
-            Err(e) => return failed(format!("sidecar read failed: {e}")),
+            Err(e) => {
+                return failed(
+                    FailureCode::DesignDocument,
+                    format!("sidecar read failed: {e}"),
+                );
+            }
         };
         let document = match crate::schema::SchemaDocument::from_json(&json) {
             Ok(document) => document,
-            Err(e) => return failed(e.to_string()),
+            Err(e) => return failed(FailureCode::Port, e.to_string()),
         };
         if let Err(e) = document.validate() {
-            return failed(format!("sidecar validation failed: {e}"));
+            return failed(
+                FailureCode::DesignDocument,
+                format!("sidecar validation failed: {e}"),
+            );
         }
         if document.database_name != expected {
-            return failed(format!(
-                "the sidecar belongs to {:?}, not to {:?}",
-                document.database_name, expected
-            ));
+            return failed(
+                FailureCode::DesignDocument,
+                format!(
+                    "the sidecar belongs to {:?}, not to {:?}",
+                    document.database_name, expected
+                ),
+            );
         }
         let forms = document.forms.len();
         let queries = document.queries.len();
         let reports = document.reports.len();
         let mut tables = db.tables.clone();
         if let Err(e) = document.apply_table_properties(&mut tables) {
-            return failed(format!("sidecar property overlay failed: {e}"));
+            return failed(
+                FailureCode::DesignDocument,
+                format!("sidecar property overlay failed: {e}"),
+            );
         }
         let Some(db) = self.state.database.as_mut() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         db.tables = tables;
         db.forms = document.forms;

@@ -47,7 +47,7 @@ fn unknown_templates_name_the_available_set() {
         template: "nope".into(),
     });
     match events.first() {
-        Some(Event::Failed { reason }) => {
+        Some(Event::Failed { reason, .. }) => {
             assert!(reason.contains("nope"), "{reason}");
             assert!(
                 reason.contains("blank"),
@@ -122,7 +122,7 @@ fn creating_from_a_template_leaves_an_open_database_untouched() {
     assert!(
         matches!(
             events.as_slice(),
-            [Event::Failed { reason }] if reason.contains("close the open database")
+            [Event::Failed { reason, .. }] if reason.contains("close the open database")
         ),
         "{events:?}"
     );
@@ -149,7 +149,7 @@ fn a_failing_creation_reports_the_port_reason() {
         template: "blank".into(),
     });
     match events.first() {
-        Some(Event::Failed { reason }) => assert!(reason.contains("disk full"), "{reason}"),
+        Some(Event::Failed { reason, .. }) => assert!(reason.contains("disk full"), "{reason}"),
         other => panic!("expected Failed, got {other:?}"),
     }
     assert!(core.inspect().database.is_none());

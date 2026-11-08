@@ -41,7 +41,7 @@ fn label(name: &str, text: &str, x: f32, y: f32) -> ControlDef {
 
 fn failed_reason(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected single Failed event, got {other:?}"),
     }
 }

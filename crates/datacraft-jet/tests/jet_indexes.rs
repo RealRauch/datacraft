@@ -282,7 +282,7 @@ fn the_bus_reports_a_precise_unique_violation() {
     let reason = events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .expect("duplicate rejected");
@@ -310,7 +310,7 @@ fn memo_and_binary_fields_cannot_be_indexed() {
     let reason = events
         .iter()
         .find_map(|event| match event {
-            Event::Failed { reason } => Some(reason.clone()),
+            Event::Failed { reason, .. } => Some(reason.clone()),
             _ => None,
         })
         .expect("memo index rejected");

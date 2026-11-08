@@ -45,7 +45,7 @@ fn core_with(caps: DriverCapabilities) -> Core {
 /// Exactly one `Failed` event, with its reason.
 fn failed_reason(events: &[Event]) -> String {
     match events {
-        [Event::Failed { reason }] => reason.clone(),
+        [Event::Failed { reason, .. }] => reason.clone(),
         other => panic!("expected exactly one Failed event, got {other:?}"),
     }
 }

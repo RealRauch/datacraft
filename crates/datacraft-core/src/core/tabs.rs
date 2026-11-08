@@ -4,6 +4,7 @@
 use crate::ObjectKind;
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::ids::TabId;
 use crate::port::PortError;
 use crate::state::{TabMode, TabState};
@@ -18,14 +19,20 @@ impl crate::core::Core {
         mode: Option<TabMode>,
     ) -> Vec<Event> {
         if mode.is_some() && !object.kind.has_design_view() {
-            return failed(format!(
-                "the {} object {:?} has no design view",
-                object.kind.slug(),
-                object.name
-            ));
+            return failed(
+                FailureCode::Unsupported,
+                format!(
+                    "the {} object {:?} has no design view",
+                    object.kind.slug(),
+                    object.name
+                ),
+            );
         }
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         let exists = match object.kind {
             ObjectKind::Table => db
@@ -59,7 +66,10 @@ impl crate::core::Core {
                 .is_some_and(|project| project.module(&object.name).is_some()),
         };
         if !exists {
-            return failed(PortError::TableNotFound(object.name).to_string());
+            return failed(
+                FailureCode::NotFound,
+                PortError::TableNotFound(object.name).to_string(),
+            );
         }
         if let Some(existing) = self
             .state
@@ -101,7 +111,7 @@ impl crate::core::Core {
 
     pub(crate) fn close_tab(&mut self, tab_id: TabId) -> Vec<Event> {
         if !self.state.tabs.iter().any(|tab| tab.id == tab_id) {
-            return failed(format!("unknown tab {tab_id}"));
+            return failed(FailureCode::NotFound, format!("unknown tab {tab_id}"));
         }
         self.remove_tab(tab_id);
         if self.state.active_tab == Some(tab_id) {
@@ -119,7 +129,7 @@ impl crate::core::Core {
     /// stays open and becomes active.
     pub(crate) fn close_other_tabs(&mut self, tab_id: TabId) -> Vec<Event> {
         if !self.state.tabs.iter().any(|tab| tab.id == tab_id) {
-            return failed(format!("unknown tab {tab_id}"));
+            return failed(FailureCode::NotFound, format!("unknown tab {tab_id}"));
         }
         let closed: Vec<TabId> = self
             .state
@@ -145,7 +155,7 @@ impl crate::core::Core {
     /// Closes every tab (step 21.6, item U10); the workspace ends empty.
     pub(crate) fn close_all_tabs(&mut self) -> Vec<Event> {
         if self.state.tabs.is_empty() {
-            return failed("no tabs are open");
+            return failed(FailureCode::Lifecycle, "no tabs are open");
         }
         let closed: Vec<TabId> = self.state.tabs.iter().map(|tab| tab.id).collect();
         self.state.tabs.clear();
@@ -160,7 +170,7 @@ impl crate::core::Core {
 
     pub(crate) fn set_active_tab(&mut self, tab_id: TabId) -> Vec<Event> {
         if !self.state.tabs.iter().any(|tab| tab.id == tab_id) {
-            return failed(format!("unknown tab {tab_id}"));
+            return failed(FailureCode::NotFound, format!("unknown tab {tab_id}"));
         }
         self.state.active_tab = Some(tab_id);
         vec![Event::ActiveTabChanged {
@@ -172,14 +182,17 @@ impl crate::core::Core {
     /// design view accept the switch; the failure is precise.
     pub(crate) fn set_tab_mode(&mut self, tab_id: TabId, mode: TabMode) -> Vec<Event> {
         let Some(tab) = self.state.tabs.iter_mut().find(|tab| tab.id == tab_id) else {
-            return failed(format!("unknown tab {tab_id}"));
+            return failed(FailureCode::NotFound, format!("unknown tab {tab_id}"));
         };
         if !tab.object.kind.has_design_view() {
-            return failed(format!(
-                "the {} tab {:?} has no design view",
-                tab.object.kind.slug(),
-                tab.object.name
-            ));
+            return failed(
+                FailureCode::Unsupported,
+                format!(
+                    "the {} tab {:?} has no design view",
+                    tab.object.kind.slug(),
+                    tab.object.name
+                ),
+            );
         }
         tab.mode = mode;
         vec![Event::TabModeSet { tab_id, mode }]

@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::failed;
 use crate::event::Event;
+use crate::failure::FailureCode;
 use crate::port::{DriverCapabilities, RowRange};
 use crate::schema::FieldValue;
 
@@ -67,24 +68,30 @@ impl crate::core::Core {
 
     fn move_history(&mut self, undo: bool) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
-            return failed("no database is open — open a database first");
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
         };
         if !db.capabilities.write_rows {
-            return failed(DriverCapabilities::unsupported(
-                &db.driver,
-                "write rows for this source",
-            ));
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::WriteRows),
+                DriverCapabilities::unsupported(&db.driver, "write rows for this source"),
+            );
         }
         let entry = {
             let db = self.state.database.as_mut().expect("checked above");
             if undo { db.undo.pop() } else { db.redo.pop() }
         };
         let Some(entry) = entry else {
-            return failed(if undo {
-                "nothing to undo"
-            } else {
-                "nothing to redo"
-            });
+            return failed(
+                FailureCode::Lifecycle,
+                if undo {
+                    "nothing to undo"
+                } else {
+                    "nothing to redo"
+                },
+            );
         };
         let ops = if undo {
             entry.undo.clone()
@@ -119,7 +126,7 @@ impl crate::core::Core {
                         db.redo.push(entry);
                     }
                 }
-                failed(reason)
+                failed(FailureCode::Port, reason)
             }
         }
     }
