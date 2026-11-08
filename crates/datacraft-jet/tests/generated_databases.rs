@@ -14,10 +14,7 @@ use datacraft_jet::port_adapter::Jet4Port;
 use support::generators::{generated_empty, generated_indexed, generated_typed};
 
 fn scratch(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!(
-        "datacraft-generated-{name}-{}",
-        std::process::id()
-    ))
+    std::env::temp_dir().join(format!("datacraft-generated-{name}-{}", std::process::id()))
 }
 
 /// Every generator is byte-deterministic per input state (L35
@@ -49,14 +46,8 @@ fn the_generated_typed_database_reopens() {
         .find(|table| table.name == "Typed")
         .expect("the typed table is catalogued");
     assert_eq!(table.fields.len(), 5);
-    assert!(matches!(
-        table.fields[1].kind,
-        FieldKind::Number(_)
-    ));
-    assert!(matches!(
-        table.fields[4].kind,
-        FieldKind::Boolean { .. }
-    ));
+    assert!(matches!(table.fields[1].kind, FieldKind::Number(_)));
+    assert!(matches!(table.fields[4].kind, FieldKind::Boolean { .. }));
 }
 
 /// The generated indexed database reopens with the index metadata the
