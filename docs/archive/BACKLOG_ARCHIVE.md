@@ -1647,3 +1647,39 @@
 - **Approach:** Mirror the integer branch: attempt the parse and return a precise lexer error on failure instead of expecting; drop the panic.
 - **Acceptance:** No `expect`/`unwrap` remains on the lexer parse path; existing lexer and expression tests stay green; canonical verification set green.
 - **Done:** done in 31190fb — step 56.2: the lexer float branch mirrors the integer branch (precise ExprError::Lex instead of expect); no expect/unwrap remains on the lexer parse path; the existing lexer/expression suites pin the behavior (no honest RED exists — the digits make the parse infallible).
+
+---
+
+### [x] M64 — Coverage-gate wording drifts across the binding docs — 🟡
+- **Location:** `docs/PLAYBOOK.md:82` (canonical command set), `AGENTS.md` §4, `docs/TESTING.md:15-16`, `README.md:276`, `.github/workflows/ci.yml:105-110`.
+- **Problem:** The binding docs name `cargo llvm-cov … --fail-under-lines 95` as the enforcement, but CI deliberately parses `lcov.info` with Python because cargo-llvm-cov@0.9.1's embedded check diverges from its own export. PLAYBOOK's canonical set additionally omits `--exclude datacraft-ui` (registered coverage exception #1), so the documented command would fail the gate it defines (found in the 2026-11-07 repo review).
+- **Approach:** Unify all four doc sites on the CI's actual mechanism (the Python-parsed lcov gate, ≥ 95 % lines), reference the `datacraft-ui` exclusion via `docs/TESTING.md` §3 in the canonical set, and mark the local `--fail-under-lines` variant as an approximation where kept.
+- **Acceptance:** No doc site contradicts `ci.yml`; the PLAYBOOK canonical set as documented runs green; canonical verification set green.
+- **Done:** done in 42d6862 — step 55.1: PLAYBOOK/AGENTS/TESTING carry the corrected canonical set (lcov export with the registered datacraft-ui exclusion) plus the gate-evaluation paragraph, and the README gate row states the explicit CI parse; ci.yml remains the reference.
+
+---
+
+### [x] M67 — SaveDatabaseAs inherits the source's page-0 state — it cannot repair a broken file — 🟡
+- **Location:** `crates/datacraft-jet/src/port_adapter/password.rs` (`save_as` — `reader.file.clone()` page copy), M14 contract (step 27.2).
+- **Problem:** found in the 49.4 recovery pre-flight (2026-11-07): `SaveDatabaseAs` copies the source's pages and rewrites only the password state, so a copy inherits the source's page-0 state verbatim. For the incident file (pre-49.2 zeroed tail + hand-built catalog) the Save-As copy is still engine-refused ("Zu viele aktive Benutzer" — the oracle rejected `database-access-ready.mdb` exactly like the original). Save-As is a password/format-state tool, not a repair tool.
+- **Approach:** keep the M14 page-copy contract (it preserves healthy sources byte-stably) and document the boundary; recovery runs through the 49.4 re-encode vehicle (`crates/datacraft-jet/examples/recover_mdb.rs`: decode → create-path re-encode through the port, the shape the 49.2/49.3 gates verified). A product-grade re-encoding save-as (e.g. a `SaveDatabaseAs` re-encode flag or a Repair command) is the future feature this item tracks.
+- **Acceptance:** the boundary is documented (README save-as row / FORMAT-JET); the recovery example is the documented vehicle for engine-refused files; healthy-source Save-As behavior is unchanged; canonical verification set green.
+- **Done:** done in 97b180b — step 55.2: the boundary is documented in FORMAT-JET (Save-as copies page state — not a repair tool; recovery runs through the create-path re-encode, examples/recover_mdb.rs) and cross-referenced from the README matrix Jet4 row (which already carried the 49.4 recovery note); healthy-source Save-As behavior unchanged (no code touched).
+
+---
+
+### [x] L26 — Document the journal batch commands as headless-only — 🟢
+- **Location:** `crates/datacraft-core/src/command.rs` (`PreviewWrite`/`ApplyWrite`/`RollbackWrite`/`DiscardWrite` doc comments), `docs/ARCHITECTURE.md` (command-vocabulary section)
+- **Problem:** The journaled batch-write commands have no GUI path, while the GUI writes immediately through the row commands with Undo/Redo (separate history in `undo.rs`, item U14 — not the journal tokens). That split is intentional — Access-like immediate datasheet writes for humans, preview/apply batches for agents — but nothing records it, so the next GUI-parity audit flags it again (found in the command/GUI parity audit 2026-11-04; decision made in the same session).
+- **Approach:** One docs-only pass: state in the four command doc comments and the ARCHITECTURE command vocabulary that the batch is the headless affordance and the GUI's equivalence is Insert/Update/Delete + Undo/Redo. No behavior change, no new command.
+- **Acceptance:** The four command doc comments and the ARCHITECTURE section state the headless-only role of the batch flow; docs-only change; canonical verification set green.
+- **Done:** done in 3d0978d — step 55.3: docs-only pass; the four command doc comments and the ARCHITECTURE §5 vocabulary state that the batch is the headless affordance and the GUI's equivalence is the immediate row commands plus Undo/Redo.
+
+---
+
+### [x] L29 — German step titles in the PROGRESS permanent index — 🟢
+- **Location:** `PROGRESS.md` (permanent progress index, phase 11/12 rows, e.g. lines 135-150).
+- **Problem:** All project artifacts must be English (PLAYBOOK §2), but the permanent index keeps German step titles from phases 11/12 ("Nav-Pane-Löschflüsse", "Status-Leiste", …). The append-only archives stay untouched (found in the 2026-11-07 repo review).
+- **Approach:** Translate the affected rows of the permanent index in place; the archived detail blocks of phases 11/12 remain unchanged per the archive rule.
+- **Acceptance:** No German titles remain in `PROGRESS.md`; `docs_validate` passes.
+- **Done:** done in 1a586a2 — step 55.4: the permanent progress index is English (24 rows translated in place; the archived detail blocks of phases 11/12+ stay untouched per the archive rule).

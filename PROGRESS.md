@@ -9,15 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 55 — Docs truth pass
-
-**Scope (Steps):**
-
-- **55.1 Coverage-gate wording across the binding docs (M64)**
-- **55.2 Save-as boundary + recovery vehicle in FORMAT-JET/README (M67)**
-- **55.3 Journal batch commands documented headless-only (L26)**
-- **55.4 Translate the German step titles in the PROGRESS permanent index (L29)**
-- **55.5 Phase 55 Quality Gate Review**
 ### Phase 57 — Report grouping picker
 
 **Scope (Steps):**
@@ -350,8 +341,8 @@
 | 55.1 | Coverage-gate wording across the binding docs (M64) | ✅ |
 | 55.2 | Save-as boundary + recovery vehicle in FORMAT-JET/README (M67) | ✅ |
 | 55.3 | Journal batch commands documented headless-only (L26) | ✅ |
-| 55.4 | Translate the German step titles in the PROGRESS permanent index (L29) | 🔄 |
-| 55.5 | Phase 55 Quality Gate Review | ⬜ |
+| 55.4 | Translate the German step titles in the PROGRESS permanent index (L29) | ✅ |
+| 55.5 | Phase 55 Quality Gate Review | ✅ |
 | 56.1 | Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release) | ✅ |
 | 56.2 | Lexer: drop the expect on the float parse path (M65) | ✅ |
 | 56.3 | Phase 56 Quality Gate Review (cargo package --list clean, no warnings) | ✅ |

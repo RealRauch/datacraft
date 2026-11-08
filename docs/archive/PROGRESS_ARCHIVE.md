@@ -713,3 +713,16 @@ before the tag.
 - **56.2 Lexer: drop the expect on the float parse path (M65)**
 - **56.3 Phase 56 Quality Gate Review (cargo package --list clean, no warnings)**
 **Verification:** Canonical set green on the final tree (fmt, clippy -D warnings, 160 suites, size gate; tree clean — LESSONS #14 sequence followed). No changelog entry per policy: crate metadata and an unreachable-path refactor carry no observable surface. The publish-relevant facts live in the README/PUBLISHING docs and the L24 archive note. (checkpoint: 31190fb)
+
+---
+
+### Phase 55 — Docs truth pass
+
+**Scope (Steps):**
+
+- **55.1 Coverage-gate wording across the binding docs (M64)**
+- **55.2 Save-as boundary + recovery vehicle in FORMAT-JET/README (M67)**
+- **55.3 Journal batch commands documented headless-only (L26)**
+- **55.4 Translate the German step titles in the PROGRESS permanent index (L29)**
+- **55.5 Phase 55 Quality Gate Review**
+**Verification:** Canonical set green on the final tree: fmt, clippy -D warnings, 160 workspace suites, file-size gate; the local coverage parse reads 94.91% (the only Rust change is command.rs doc comments — the binding gate is the ubuntu CI run this push triggers). No changelog entry per policy (no observable surface). Steps: 55.1 M64 (42d6862), 55.2 M67 (97b180b), 55.3 L26 (3d0978d), 55.4 L29 (1a586a2). (checkpoint: 1a586a2)
