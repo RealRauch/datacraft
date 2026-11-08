@@ -73,6 +73,19 @@ jobs:
       - name: Verify pinned fixture hashes (docs/FIXTURE-SOURCES.md §6)
         run: cd fixtures && grep -v '^#' manifest | sha256sum -c -
 
+  boundaries:
+    name: Dependency boundary guard (AGENTS §1)
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      # The guard validates itself first (L32): a broken boundary must
+      # fail the guard, or the real check proves nothing.
+      - name: Self-test
+        run: python3 .github/scripts/dependency_boundaries.py --self-test
+      - name: The current tree passes
+        run: python3 .github/scripts/dependency_boundaries.py .
+
   oracle:
     name: Oracle (mdb-tools cross-check)
     needs: preflight
