@@ -900,6 +900,7 @@ dependencies = [
 name = "datacraft-core"
 version = "0.1.0"
 dependencies = [
+ "csv",
  "proptest",
  "rusqlite",
  "serde",

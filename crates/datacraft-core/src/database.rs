@@ -225,11 +225,53 @@ impl crate::core::Core {
 
     /// Imports an external CSV file as a new table into the open database
     /// (step 58.1, item M50): parse and infer the source, then create and
-    /// fill the table over the ordinary write path. The source file is
-    /// never touched.
+    /// fill the table over the ordinary write path — this handler
+    /// orchestrates the same `CreateTable`/`InsertRow` handlers every
+    /// other client uses, so capability gates, validation, defaults and
+    /// rules all apply per row. The source file is never touched. A row
+    /// that fails coercion stops the chain with the precise field-named
+    /// reason; the rows inserted before it stay (Access-like import
+    /// semantics).
     pub(crate) fn import_file(&mut self, source: &Path, table: &str) -> Vec<Event> {
-        let _ = (source, table);
-        failed("importing files is not implemented yet (M50)")
+        let Some(db) = self.state.database.as_ref() else {
+            return failed("no database is open — open a database first");
+        };
+        // The chain needs both write affordances; answer before parsing so
+        // a read-only source never reads its import source in vain.
+        if !db.capabilities.create_table {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "create tables for this source",
+            ));
+        }
+        if !db.capabilities.write_rows {
+            return failed(DriverCapabilities::unsupported(
+                &db.driver,
+                "write rows for this source",
+            ));
+        }
+        if table.trim().is_empty() {
+            return failed("the target table name is empty");
+        }
+        let parsed = match crate::import::read_csv_file(source) {
+            Ok(parsed) => parsed,
+            Err(reason) => return failed(format!("{}: {reason}", source.display())),
+        };
+        let definition = TableDef::new(table.to_owned(), parsed.fields.clone());
+        let mut events = self.create_table(definition);
+        if events.iter().any(|event| matches!(event, Event::Failed { .. })) {
+            return events;
+        }
+        for (index, cells) in parsed.rows.iter().enumerate() {
+            match crate::row_edit::row_values(&parsed.fields, cells) {
+                Ok(values) => events.extend(self.insert_row(table, &values)),
+                Err(reason) => {
+                    events.extend(failed(format!("row {}: {reason}", index + 1)));
+                    return events;
+                }
+            }
+        }
+        events
     }
 
     /// Appends one row (step 13.2, H36; step 15.2 wires defaults,
