@@ -129,9 +129,9 @@ visibility → tag the first public release per the checklist above.
 
 **Status (2026-11-08):** the visibility switch happened (repository is
 public; the rewrite is final — never rewrite again). Branch protection
-was **not yet applied at the switch** — apply it before the first tag
-(required checks as listed above). The crates.io release awaits the
-maintainer's `cargo login` token.
+was applied the same day — 12 required checks (the list above, strict
+"branches up to date", force-pushes and deletions blocked). The only
+remaining release prerequisite is the maintainer's `cargo login` token.
 
 ## History rewrite (pre-public, M34)
 
