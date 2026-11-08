@@ -9,7 +9,6 @@ use datacraft_core::command::Command;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
 use datacraft_ui::app::App;
-use eframe::egui;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 
