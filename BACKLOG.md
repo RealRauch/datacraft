@@ -24,12 +24,6 @@
 
 > No open items.
 
-### [ ] M50 — Import File: import an external file as new tables into the open database — 🟡
-- **Location:** `crates/datacraft-core/src/ribbon.rs` (`import_file` action, decided 2026-11-04 to keep the button with an honest disabled state until this exists), `crates/datacraft-ui/src/ribbon.rs`, External Data ribbon group; the backstage CSV open path (ADR-7) is the model to follow
-- **Problem:** DataCraft has no path that imports an external file's content as new tables into the currently open database (Jet4/SQLite). CSV directories open only as a read-only driver source through the backstage folder dialog. The ribbon's "Import File" button today claims a "Phase 9" future that has passed; the decision (M49) keeps the button visible but honestly disabled until this feature is built, so it needs a real item to drive it.
-- **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
-- **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
-
 ---
 
 ## 🟢 LOW
@@ -307,3 +301,4 @@
 - L26 — Document the journal batch commands as headless-only — done (done in 3d0978d — step 55.3: docs-only pass; the four command doc comments and the ARCHITECTURE §5 vocabulary state that the batch is the headless affordance and the GUI's equivalence is the immediate row commands plus Undo/Redo.)
 - L29 — German step titles in the PROGRESS permanent index — done (done in 1a586a2 — step 55.4: the permanent progress index is English (24 rows translated in place; the archived detail blocks of phases 11/12+ stay untouched per the archive rule).)
 - M48 — Report designer cannot set grouping (SetReportGrouping) — done (delivered at step 41.4 (the picker, both-direction kittest pins and the catalog entries); reconciled 2026-11-08 at step 57.1 — the item stayed open past its delivery and the Phase 48 gate missed the ROADMAP §16 reconciliation note; closed with no code change, the grouping suite green (2/2).)
+- M50 — Import File: import an external file as new tables into the open database — done (done across f6caf40 (red), 26c0e43 (core chain), c828dd8 (driver refactor), 7e6f487 (window state + preview), 4bdbe25 (UI window), b558ae4 (pins + spec), f9d8d51 (docs) — phase 58: External Data > Import File imports a CSV as a table of the open Jet4/SQLite database over one bus chain (parse + L7 inference in core, shared with the driver; the window previews fields/rows; capability-gated; the source stays byte-identical). The csv workspace crate became a datacraft-core dependency (Medium gate, released with the phase).)

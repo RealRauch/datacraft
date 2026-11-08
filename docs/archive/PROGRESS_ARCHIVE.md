@@ -736,3 +736,14 @@ before the tag.
 - **57.1 Report designer grouping picker dispatching SetReportGrouping (M48)**
 - **57.2 Phase 57 Quality Gate Review**
 **Verification:** No Rust change in this phase (ROADMAP §16 hygiene note + stepwell files only); the canonical set stands from the 55.5 gate on the identical Rust tree (fmt, clippy, 160 suites, size gate) and the grouping suite re-ran green (2/2) as the M48 acceptance evidence; the phase 55 CI run is the binding arbiter. (checkpoint: 1a586a2)
+
+---
+
+### Phase 58 — Import File
+
+**Scope (Steps):**
+
+- **58.1 Import File flow: picker, preview, target name, write-path fill (M50)**
+- **58.2 Capability-disabled rendering pin + source-file byte-identity (M50)**
+- **58.3 Phase 58 Quality Gate Review**
+**Verification:** Canonical set green on the final tree: fmt, clippy -D warnings, 162 workspace suites (the two import kittests included), file-size gate clean after the L30 splits; local coverage parse 94.72% (the binding gate is the ubuntu CI run this push triggers). Changelog entry per the L38 cadence; README feature row added. (checkpoint: f9d8d51)
