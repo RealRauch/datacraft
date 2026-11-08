@@ -1746,3 +1746,12 @@
 - **Approach:** Add an optional row-context picker to the expression window (table + row selector fed from the snapshot), dispatching `RunExpression` with `Some(ExpressionContext)` when set; keep the contextless evaluation as the default state.
 - **Acceptance:** Picking a table and row makes the window evaluate against that record (field names resolve); clearing the picker returns to the empty scope; a kittest pins one contextual run; canonical verification set green.
 - **Done:** done in ed8cbff (red) + e22ef4f + 334bc88 — step 60.1: the expression window's Row-context picker (combo over the open tables, zero-based row field, localized unparsable-number failure) wires Some(ExpressionContext) through run_expression; both L27 pins green, the M46 pins unchanged; run_expression moved to flows.rs (L30).
+
+---
+
+### [x] L35 — Deterministic fixture generators alongside the binary pins — 🟢
+- **Location:** `crates/datacraft-jet/tests/` or a new testkit helper, `crates/datacraft-storage/examples/`.
+- **Problem:** The binary fixtures are immutable, hash-pinned evidence, but there is no code path that regenerates equivalent databases from scratch — the create/write suites lean on the committed samples and the template, so canonical-create coverage beyond the pinned bytes is thin (2026-11-07 repo review).
+- **Approach:** Introduce deterministic Rust generator functions that build canonical test databases (empty catalog, typed columns, indexes) for create/write tests, asserted byte-deterministic. Generators complement — never replace — the fixture pins and the oracle; `fixtures/manifest` stays untouched.
+- **Acceptance:** Generated databases are byte-deterministic per input state; new create-path tests consume them; the pin and oracle suites are unchanged; canonical verification set green.
+- **Done:** done in cf87575 (red) + c62ff1a — step 61.1: deterministic canonical-database generators (empty / typed / NoDuplicates-indexed) in crates/datacraft-jet/tests/support/generators.rs, built over the public deterministic materializer with the pinned template date; byte-determinism, reopen and distinctness pinned by tests/generated_databases.rs; fixtures/manifest and the pin/oracle suites unchanged.

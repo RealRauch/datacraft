@@ -770,3 +770,13 @@ before the tag.
 - **60.2 Oracle skip observable: #[ignore] + the CI oracle job runs --ignored (L31)**
 - **60.3 Phase 60 Quality Gate Review**
 **Verification:** Every gate green with explicit exit codes (fmt, clippy -D warnings, 162 suites, file-size gate). Coverage unchanged by construction: the only Rust changes live in the excluded ui crate and a test file (oracle.rs) — the binding gate is the ubuntu CI run this push triggers. No changelog entry per policy (no observable crate surface). (checkpoint: 3e6f808)
+
+---
+
+### Phase 61 — Fixture generators
+
+**Scope (Steps):**
+
+- **61.1 Deterministic generator functions for canonical test databases, byte-deterministic, alongside the binary pins (L35)**
+- **61.2 Phase 61 Quality Gate Review**
+**Verification:** Every gate green with explicit exit codes: fmt, clippy -D warnings, 163 suites (the new generated_databases suite included), file-size gate, and the fixture manifest hash check — the pins and the oracle suite are untouched. No changelog entry per policy (test infrastructure). (checkpoint: c62ff1a)

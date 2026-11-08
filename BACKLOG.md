@@ -48,12 +48,6 @@
 - **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
 
-### [ ] L35 — Deterministic fixture generators alongside the binary pins — 🟢
-- **Location:** `crates/datacraft-jet/tests/` or a new testkit helper, `crates/datacraft-storage/examples/`.
-- **Problem:** The binary fixtures are immutable, hash-pinned evidence, but there is no code path that regenerates equivalent databases from scratch — the create/write suites lean on the committed samples and the template, so canonical-create coverage beyond the pinned bytes is thin (2026-11-07 repo review).
-- **Approach:** Introduce deterministic Rust generator functions that build canonical test databases (empty catalog, typed columns, indexes) for create/write tests, asserted byte-deterministic. Generators complement — never replace — the fixture pins and the oracle; `fixtures/manifest` stays untouched.
-- **Acceptance:** Generated databases are byte-deterministic per input state; new create-path tests consume them; the pin and oracle suites are unchanged; canonical verification set green.
-
 ### [ ] L36 — Split datacraft-expr (piggyback; resolve the types boundary first) — 🟢
 - **Location:** `crates/datacraft-core/src/expr/` (lexer, parser, evaluator, funcs, format, like, coerce — 10 files, ~3,100 lines), `crates/datacraft-core/src/schema/` (type boundary).
 - **Problem:** The expression engine is a pure, well-tested domain but lives inside core, so every core change recompiles it and it cannot ship its own semver story. Splitting is sanctioned by the crate-split policy (`docs/ROADMAP.md` §17) as the only clean split win.
@@ -277,3 +271,4 @@
 - L34 — CLI smoke step in the CI test matrix — done (done in 1bc2337 — step 59.3: the CLI smoke runs the shipped binary's fixture open --json on both matrix OSes after the tests; the item's --version example command does not exist in the CLI vocabulary — the open smoke is the stronger startup+bus+port+wire check; verified locally (exit 0).)
 - L31 — Oracle suite skips itself silently — done (done in 3e6f808 — step 60.2: the oracle test carries #[ignore] with the reason; a local Windows run now shows `1 ignored` instead of a silently green oracle; the CI oracle job runs --ignored --nocapture with DATACRAFT_ORACLE_MDB set.)
 - L27 — Expression window: row-context evaluation for RunExpression — done (done in ed8cbff (red) + e22ef4f + 334bc88 — step 60.1: the expression window's Row-context picker (combo over the open tables, zero-based row field, localized unparsable-number failure) wires Some(ExpressionContext) through run_expression; both L27 pins green, the M46 pins unchanged; run_expression moved to flows.rs (L30).)
+- L35 — Deterministic fixture generators alongside the binary pins — done (done in cf87575 (red) + c62ff1a — step 61.1: deterministic canonical-database generators (empty / typed / NoDuplicates-indexed) in crates/datacraft-jet/tests/support/generators.rs, built over the public deterministic materializer with the pinned template date; byte-determinism, reopen and distinctness pinned by tests/generated_databases.rs; fixtures/manifest and the pin/oracle suites unchanged.)
