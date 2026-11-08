@@ -75,11 +75,16 @@ fn mdb_export_available() -> bool {
         .is_ok_and(|o| o.status.success() || !o.stderr.is_empty())
 }
 
+/// Ignored by default (step 60.2, item L31): without
+/// `DATACRAFT_ORACLE_MDB` the comparison verifies nothing, and a silent
+/// skip read like a green oracle on a local run. The skip is now the
+/// visible `ignored` state; the CI oracle job runs the real comparison
+/// with `-- --ignored` where the variable is set.
 #[test]
+#[ignore = "requires DATACRAFT_ORACLE_MDB (the libmdb oracle) — run with --ignored where mdb-export is installed"]
 fn oracle_fixture_decodes_and_matches_mdb_tools() {
     let Some(paths) = fixture_paths() else {
-        eprintln!("oracle skipped: DATACRAFT_ORACLE_MDB not set");
-        return;
+        panic!("DATACRAFT_ORACLE_MDB is not set — the oracle cannot run where it was requested")
     };
     for path in &paths {
         check_fixture(path);
