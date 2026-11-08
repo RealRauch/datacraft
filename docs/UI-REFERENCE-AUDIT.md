@@ -14,14 +14,15 @@
 
 Reference side (fetched 2026-11-08):
 
-- Microsoft's *Basic tasks for an Access desktop database* support article —
-  the documented top-level workflow: create/open a database, add a table,
+- [Basic tasks for an Access desktop database](https://support.microsoft.com/en-gb/access/basic-tasks-for-an-access-desktop-database)
+  — the documented top-level workflow: create/open a database, add a table,
   edit it datasheet-first, import or link data, analyze, then queries/forms/
   reports as next steps.
-- Microsoft's *Use the Navigation Pane* article — categories, groups,
-  context-menu commands, sorting, search, hidden objects.
-- Microsoft's *Show or hide the Navigation Pane* article — the F11 toggle
-  and the shutter-bar affordance.
+- [Use the Navigation Pane](https://support.microsoft.com/en-us/access/use-the-navigation-pane)
+  — categories, groups, context-menu commands, sorting, search, hidden
+  objects.
+- [Show or hide the Navigation Pane](https://support.microsoft.com/en-us/access/show-or-hide-the-navigation-pane-in-access)
+  — the F11 toggle and the shutter-bar affordance.
 
 Implementation side: the core-owned ribbon spec
 (`crates/datacraft-core/src/ribbon.rs`), the backstage modules
