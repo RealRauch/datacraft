@@ -310,6 +310,10 @@ fn run_sql_over_the_wire() {
     let events = &result_of(&responses[1])["events"];
     assert_eq!(events[0]["SqlRan"]["rows"], 1, "{events}");
     let failed = &result_of(&responses[2])["events"];
+    assert_eq!(
+        failed[0]["Failed"]["code"], "parse",
+        "the wire carries the stable failure code (I6): {failed}"
+    );
     assert!(
         failed[0]["Failed"]["reason"]
             .as_str()

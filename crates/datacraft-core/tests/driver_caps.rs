@@ -43,6 +43,13 @@ fn core_with(caps: DriverCapabilities) -> Core {
 }
 
 /// Exactly one `Failed` event, with its reason.
+fn failed_code(events: &[Event]) -> datacraft_core::failure::FailureCode {
+    match events.first() {
+        Some(Event::Failed { code, .. }) => *code,
+        other => panic!("expected Failed, got {other:?}"),
+    }
+}
+
 fn failed_reason(events: &[Event]) -> String {
     match events {
         [Event::Failed { reason, .. }] => reason.clone(),
@@ -140,11 +147,18 @@ fn dispatch_rejects_row_writes_the_driver_declared_impossible() {
     let mut caps = DriverCapabilities::full();
     caps.write_rows = false;
     let mut core = core_with(caps);
-    let reason = failed_reason(&core.dispatch(Command::InsertRow {
+    let events = core.dispatch(Command::InsertRow {
         table: "Customers".to_owned(),
         values: vec![FieldValue::Integer(1)],
-    }));
-    assert!(reason.contains("unsupported"), "{reason}");
+    });
+    assert_eq!(
+        failed_code(&events),
+        datacraft_core::failure::FailureCode::Capability(
+            datacraft_core::availability::DisabledReason::WriteRows
+        ),
+        "{events:?}"
+    );
+    let reason = failed_reason(&events);
     assert!(reason.contains("write"), "{reason}");
 
     let events = core.dispatch(Command::UpdateRow {
@@ -175,10 +189,17 @@ fn dispatch_rejects_schema_writes_the_driver_declared_impossible() {
     caps.alter_table = false;
     let mut core = core_with(caps);
 
-    let reason = failed_reason(&core.dispatch(Command::CreateTable {
+    let events = core.dispatch(Command::CreateTable {
         definition: one_field_table(),
-    }));
-    assert!(reason.contains("unsupported"), "{reason}");
+    });
+    assert_eq!(
+        failed_code(&events),
+        datacraft_core::failure::FailureCode::Capability(
+            datacraft_core::availability::DisabledReason::CreateTables
+        ),
+        "{events:?}"
+    );
+    let reason = failed_reason(&events);
     assert!(reason.contains("create"), "{reason}");
 
     let reason = failed_reason(&core.dispatch(Command::DropTable {

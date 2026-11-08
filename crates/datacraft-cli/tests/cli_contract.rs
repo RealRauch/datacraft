@@ -72,10 +72,12 @@ fn exec_reaches_every_command_and_reports_failures() {
         &mut out,
     );
     assert_eq!(outcome, Outcome::CommandFailed);
+    let text = String::from_utf8(out).unwrap();
     assert!(
-        String::from_utf8(out).unwrap().contains("no database"),
-        "failure reason printed"
+        text.contains("NoDatabase"),
+        "the stable failure code is printed (I6): {text}"
     );
+    assert!(text.contains("no database"), "failure reason printed");
 }
 
 #[test]
