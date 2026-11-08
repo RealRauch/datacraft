@@ -79,12 +79,17 @@ pub struct App {
     pub(crate) import_table: String,
     /// Expression window editor text (presentation state; the expression
     /// runs through the command bus, step 41.2).
-    expression_text: String,
+    pub(crate) expression_text: String,
+    /// The expression window's picked row context (presentation state;
+    /// the table plus the zero-based row as typed text — step 60.1,
+    /// item L27). `None` evaluates over the empty scope. Crate-visible:
+    /// the accessors live in `flows.rs` (size gate).
+    pub(crate) expression_context: Option<(String, String)>,
     /// Display form of the last successful expression run (the window
     /// renders it, step 41.2).
-    expression_output: Option<String>,
+    pub(crate) expression_output: Option<String>,
     /// Reason of the last failed expression run (the window renders it).
-    expression_error: Option<String>,
+    pub(crate) expression_error: Option<String>,
     /// Reason of the last failed command (status bar).
     pub(crate) last_error: Option<String>,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
@@ -184,6 +189,7 @@ impl App {
             import_table: String::new(),
             sql_error: None,
             expression_text: String::new(),
+            expression_context: None,
             expression_output: None,
             expression_error: None,
             last_error: None,
@@ -294,24 +300,6 @@ impl App {
     /// Replaces the expression editor text.
     pub fn set_expression_text(&mut self, text: impl Into<String>) {
         self.expression_text = text.into();
-    }
-
-    /// Runs the editor's expression through the bus without row context
-    /// and caches the outcome (step 41.2, item M46).
-    pub fn run_expression(&mut self) {
-        let events = self.dispatch(Command::RunExpression {
-            context: None,
-            expression: self.expression_text.clone(),
-        });
-        self.expression_output = None;
-        self.expression_error = None;
-        for event in events {
-            match event {
-                Event::ExpressionEvaluated { result } => self.expression_output = Some(result),
-                Event::Failed { reason } => self.expression_error = Some(reason),
-                _ => {}
-            }
-        }
     }
 
     /// Display form of the last successful expression run.

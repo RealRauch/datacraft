@@ -388,6 +388,50 @@ pub(crate) fn notice_for(events: &[Event]) -> Option<String> {
 }
 
 impl App {
+    /// The expression window's picked row context (step 60.1, item L27;
+    /// moved from `app.rs` for the size gate): the table plus the
+    /// zero-based row as typed text.
+    pub fn expression_context(&self) -> Option<&(String, String)> {
+        self.expression_context.as_ref()
+    }
+
+    /// Replaces the expression window's picked row context.
+    pub fn set_expression_context(&mut self, context: Option<(String, String)>) {
+        self.expression_context = context;
+    }
+
+    /// Runs the editor's expression through the bus and caches the
+    /// outcome (step 41.2, item M46; moved from `app.rs` for the size
+    /// gate). The picked context resolves the row at run time (step 60.1,
+    /// item L27); an unparsable row number answers the localized failure
+    /// instead of silently dropping the context.
+    pub fn run_expression(&mut self) {
+        let context = self
+            .expression_context
+            .as_ref()
+            .and_then(|(table, row)| row.parse::<usize>().ok().map(|row| (table.clone(), row)));
+        if self.expression_context.is_some() && context.is_none() {
+            self.expression_output = None;
+            self.expression_error =
+                Some(crate::i18n::t("the row number must be a whole number (0-based)").to_owned());
+            return;
+        }
+        let events = self.dispatch(Command::RunExpression {
+            context: context
+                .map(|(table, row)| datacraft_core::command::ExpressionContext { table, row }),
+            expression: self.expression_text.clone(),
+        });
+        self.expression_output = None;
+        self.expression_error = None;
+        for event in events {
+            match event {
+                Event::ExpressionEvaluated { result } => self.expression_output = Some(result),
+                Event::Failed { reason } => self.expression_error = Some(reason),
+                _ => {}
+            }
+        }
+    }
+
     /// The Import File window's source path buffer (step 58.1, item M50;
     /// moved from `app.rs` for the size gate).
     pub fn import_source(&self) -> &str {

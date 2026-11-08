@@ -23,16 +23,27 @@ pub fn expression_window(app: &mut App, ui: &mut egui::Ui) {
     let tokens = tokens(ui.visuals());
     let mut close = false;
     let mut run = false;
+    let mut editor_label: Option<egui::Response> = None;
+    let mut context_changed = false;
     let mut text = app.expression_text().to_owned();
     let output = app.expression_output().map(str::to_owned);
     let error = app.expression_error().map(str::to_owned);
+    let mut context = app.expression_context().cloned();
+    let mut picked: Option<Option<(String, String)>> = None;
+    let tables: Vec<String> = app
+        .snapshot()
+        .database
+        .as_ref()
+        .map(|db| db.tables.iter().map(|table| table.name.clone()).collect())
+        .unwrap_or_default();
 
     egui::Window::new(t("Expression"))
-        .id(egui::Id::unique("datacraft.expression"))
+        .id(egui::Id::unique("datacraft.expression".to_owned()))
         .default_width(420.0)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.label(t("Expression"));
+                let label = ui.label(t("Expression"));
+                editor_label = Some(label);
                 if ui.small_button(t("Close")).clicked() {
                     close = true;
                 }
@@ -43,14 +54,57 @@ pub fn expression_window(app: &mut App, ui: &mut egui::Ui) {
                     .desired_width(f32::INFINITY)
                     .hint_text("[qty] * 1.19"),
             );
+            if let Some(label) = &editor_label {
+                editor.clone().labelled_by(label.id);
+            }
             if editor.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter)) {
                 run = true;
+            }
+            // The optional row context (step 60.1, item L27): a table
+            // plus the zero-based record index — with one set, field
+            // names resolve against that record.
+            ui.horizontal(|ui| {
+                egui::ComboBox::from_label(t("Row context"))
+                    .selected_text(match &context {
+                        None => t("no row context").to_owned(),
+                        Some((table, row)) => format!("{table} · {row}"),
+                    })
+                    .show_ui(ui, |ui| {
+                        if ui
+                            .selectable_label(context.is_none(), t("no row context"))
+                            .clicked()
+                        {
+                            picked = Some(None);
+                        }
+                        for table in &tables {
+                            let is_current = context
+                                .as_ref()
+                                .is_some_and(|(current, _)| current.eq_ignore_ascii_case(table));
+                            if ui.selectable_label(is_current, table).clicked() {
+                                let row = context
+                                    .as_ref()
+                                    .map_or_else(|| "0".to_owned(), |(_, row)| row.clone());
+                                picked = Some(Some((table.clone(), row)));
+                            }
+                        }
+                    });
+            });
+            if let Some((_, row_text)) = &mut context {
+                ui.horizontal(|ui| {
+                    let row_label = ui.label(t("Row"));
+                    let field = ui.add(egui::TextEdit::singleline(row_text).desired_width(60.0));
+                    field.labelled_by(row_label.id);
+                    ui.weak(t("0 = first record"));
+                });
+                context_changed = true;
             }
             ui.horizontal(|ui| {
                 if ui.button(t("Run")).clicked() {
                     run = true;
                 }
-                ui.weak(t("evaluates over an empty scope (no row context)"));
+                if context.is_none() {
+                    ui.weak(t("evaluates over an empty scope (no row context)"));
+                }
             });
             if let Some(output) = &output {
                 ui.strong(format!("= {output}"));
@@ -60,6 +114,11 @@ pub fn expression_window(app: &mut App, ui: &mut egui::Ui) {
             }
         });
 
+    if let Some(new_context) = picked {
+        app.set_expression_context(new_context);
+    } else if context_changed {
+        app.set_expression_context(context);
+    }
     app.set_expression_text(text);
     if run {
         app.run_expression();

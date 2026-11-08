@@ -106,7 +106,10 @@ fn customers_app() -> App {
         "Customers",
         vec![FieldDef::new("name", FieldKind::Text { max_len: 50 })],
     )]);
-    port.with_row_data("Customers", vec![vec![FieldValue::Text("alpha".to_owned())]]);
+    port.with_row_data(
+        "Customers",
+        vec![vec![FieldValue::Text("alpha".to_owned())]],
+    );
     let mut app = App::new(Box::new(port));
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
@@ -146,7 +149,9 @@ fn a_row_context_resolves_the_record_fields() {
 
     let output = harness.state().expression_output().map(str::to_owned);
     assert!(
-        output.as_deref().is_some_and(|output| output.contains("alpha")),
+        output
+            .as_deref()
+            .is_some_and(|output| output.contains("alpha")),
         "the row context resolved the record's field: {output:?}"
     );
 }
