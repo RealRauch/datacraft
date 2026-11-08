@@ -30,12 +30,6 @@
 
 > No open items.
 
-### [ ] I6 — Failure-reason localization (post-V1) — 🟢
-- **Location:** `crates/datacraft-core/src/core.rs` + dispatch modules (stable failure codes first), `crates/datacraft-ui/src/i18n/` (UI-side mapping); ADR-4
-- **Problem:** `Event::Failed.reason` strings are English on the wire (~120 sites plus the Phase-30 capability rejections, e.g. `unsupported: the {driver} driver cannot write rows for this source`); localizing them inside core would put language into core (ADR-4 violation), so V1 keeps them English — agents key on data, not prose.
-- **Approach:** Two steps, post-V1: (1) core gains stable machine-readable failure codes (enum or code prefix) alongside the English text — a domain concern, not a setting; the capability-rejection reasons map onto the `DisabledReason` vocabulary where they overlap; (2) the UI maps known codes to localized text via its catalog; unknown reasons render in English unchanged.
-- **Acceptance:** Every dispatch failure carries a stable code (including the capability gates); the UI renders localized text for known codes and English otherwise; the wire gains codes without breaking existing consumers; English-substring tests (command_errors.rs, cli_contract.rs, server_e2e.rs, driver_caps.rs) switch to code assertions.
-
 ### [ ] L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — 🟢
 - **Location:** `crates/datacraft-core/src/command.rs` (`OpenDatabase`/`CreateDatabase`), `state.rs`/`snapshot.rs` (path → source), UI backstage, sidecar path derivation (ADR-1)
 - **Problem:** The driver model is ready for server drivers (Postgres/SQL Server per ADR-7's documented future path), but the wire and the UI assume a filesystem path (`path: PathBuf`, file-stem names, a sidecar next to the file).
@@ -272,3 +266,4 @@
 - L31 — Oracle suite skips itself silently — done (done in 3e6f808 — step 60.2: the oracle test carries #[ignore] with the reason; a local Windows run now shows `1 ignored` instead of a silently green oracle; the CI oracle job runs --ignored --nocapture with DATACRAFT_ORACLE_MDB set.)
 - L27 — Expression window: row-context evaluation for RunExpression — done (done in ed8cbff (red) + e22ef4f + 334bc88 — step 60.1: the expression window's Row-context picker (combo over the open tables, zero-based row field, localized unparsable-number failure) wires Some(ExpressionContext) through run_expression; both L27 pins green, the M46 pins unchanged; run_expression moved to flows.rs (L30).)
 - L35 — Deterministic fixture generators alongside the binary pins — done (done in cf87575 (red) + c62ff1a — step 61.1: deterministic canonical-database generators (empty / typed / NoDuplicates-indexed) in crates/datacraft-jet/tests/support/generators.rs, built over the public deterministic materializer with the pinned template date; byte-determinism, reopen and distinctness pinned by tests/generated_databases.rs; fixtures/manifest and the pin/oracle suites unchanged.)
+- I6 — Failure-reason localization (post-V1) — done (done across f00dbbe (core codes), b5631cf (UI localization), 4ee7572 (wire consumers), 494a47f (gate) — phase 62: Event::Failed carries FailureCode alongside the English reason (wire-additive; capability refusals map onto the DisabledReason vocabulary); the UI localizes NoDatabase and capability codes via failure_text, everything else stays English; command_errors/driver_caps/server_e2e/cli_contract assert codes beside the locatable reasons.)

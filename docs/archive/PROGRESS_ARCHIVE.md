@@ -780,3 +780,15 @@ before the tag.
 - **61.1 Deterministic generator functions for canonical test databases, byte-deterministic, alongside the binary pins (L35)**
 - **61.2 Phase 61 Quality Gate Review**
 **Verification:** Every gate green with explicit exit codes: fmt, clippy -D warnings, 163 suites (the new generated_databases suite included), file-size gate, and the fixture manifest hash check — the pins and the oracle suite are untouched. No changelog entry per policy (test infrastructure). (checkpoint: c62ff1a)
+
+---
+
+### Phase 62 — Failure codes
+
+**Scope (Steps):**
+
+- **62.1 Core: stable machine-readable failure codes alongside the English text, capability rejections mapped onto the DisabledReason vocabulary (I6 step 1)**
+- **62.2 UI: known codes render localized, unknown codes stay English (I6 step 2)**
+- **62.3 Wire consumers switch to code assertions (command_errors, cli_contract, server_e2e, driver_caps) (I6)**
+- **62.4 Phase 62 Quality Gate Review**
+**Verification:** Every gate green on the final tree: fmt, clippy -D warnings, 163 suites, file-size gate (database/rows.rs is the L30 split forced by the sweep's code arguments); the local coverage parse reads 94.51% — the binding gate is the ubuntu CI run this push triggers. Changelog entry per the L38 cadence (the wire change is observable). Steps: 62.1 f00dbbe, 62.2 b5631cf, 62.3 4ee7572. (checkpoint: 494a47f)

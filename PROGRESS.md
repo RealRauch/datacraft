@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 62 — Failure codes
-
-**Scope (Steps):**
-
-- **62.1 Core: stable machine-readable failure codes alongside the English text, capability rejections mapped onto the DisabledReason vocabulary (I6 step 1)**
-- **62.2 UI: known codes render localized, unknown codes stay English (I6 step 2)**
-- **62.3 Wire consumers switch to code assertions (command_errors, cli_contract, server_e2e, driver_caps) (I6)**
-- **62.4 Phase 62 Quality Gate Review**
 
 
 
@@ -353,4 +345,4 @@
 | 62.1 | Core: stable machine-readable failure codes alongside the English text, capability rejections mapped onto the DisabledReason vocabulary (I6 step 1) | ✅ |
 | 62.2 | UI: known codes render localized, unknown codes stay English (I6 step 2) | ✅ |
 | 62.3 | Wire consumers switch to code assertions (command_errors, cli_contract, server_e2e, driver_caps) (I6) | ✅ |
-| 62.4 | Phase 62 Quality Gate Review | 🔄 |
+| 62.4 | Phase 62 Quality Gate Review | ✅ |
