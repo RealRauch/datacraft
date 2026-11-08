@@ -15,7 +15,6 @@ exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
 
-_By the ArtCraft team._
 
 [![Written in Rust](https://img.shields.io/badge/written%20in-Rust-0F8B7E?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Runs on macOS, Windows and Linux](https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows%20%7C%20Linux-0F8B7E?style=flat-square)](#)
