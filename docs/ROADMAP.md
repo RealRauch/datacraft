@@ -481,6 +481,38 @@ ladder's Stage-0 sweep.
 | 3 — Discoverability & onboarding | nav-pane search/filter, the category model (the "All Access Objects" menu is a stub), object counts per group, nav-pane drag-drop, teaching empty states ("what can I do next"), QAT customization | the M52–M58 walkthroughs: users must find affordances unaided today |
 | 4 — Power users & agents | command palette (Ctrl+K) projecting the core ribbon spec — the spec already lives in core, so the palette is a UI projection of the same list; full Alt key-tip phases (Legacy/Backstage currently out of scope); ribbon collapse | the command-bus principle: every UI action is already a named Command |
 
+### Control capabilities as of v0.1.0 (2026-11-08)
+
+The honest state of the form/report toolbox — what each control does on
+every surface, and where the gaps are tracked. Placement: a toolbox click
+adds the control at the next free slot (snap-to-grid, auto-named,
+kind-specific defaults); **Add Existing Fields** click-adds a control
+bound to a source field (Boolean → checkbox, everything else → text box;
+binary fields are not bindable). Controls move by drag; **no resize
+handles** (Stage 2), no z-order/tab order, no style/format property sheet.
+The selected control's one content property is edited in the designer
+panel (label text, button caption, bound field or subform name) and
+persists in the `.datacraft` sidecar — never in the database file.
+
+| Control | Form runtime | Report (print preview) |
+|---|---|---|
+| Label | static bold text | **literal** text — a `=` in a label is not evaluated |
+| Text box | the current record's field value, **read-only** (M68) | the value, or a `=expression` |
+| Check box | shows the bound Boolean; **clicks do nothing** | the value as text |
+| Combo box | the value as text — **no dropdown** | the value as text |
+| Command button | caption rendered; **clicks do nothing** (M69) | the caption as text |
+| Subform | a `[subform: name]` placeholder — **not embedded** | **renders nothing** |
+
+Report specifics: the page sequence with `group_by` is group header → one
+detail page per record → group footer; footer text boxes evaluate
+top-level `Sum/Count/Min/Max/Avg` over the group's rows (`Count(*)` counts
+rows, the others skip Nulls), detail pages evaluate per record, and a
+record-less source renders expressions empty. Form runtime record
+navigation (◀/▶) works over the source rows. The two deliberate gaps are
+tracked as M68 (editable bound fields — the update path exists, only the
+wiring is missing) and M69 (a button action model — decision needed first;
+macros/VBA stay out per ADR-2).
+
 **Principles binding every stage:**
 
 - **No affordance without feedback.** A new control ships with visible state
