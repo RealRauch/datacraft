@@ -5,6 +5,8 @@
 
 use datacraft_jet::jet::{JetColumn, PAGE_TYPE_DATA, PAGE_TYPE_TDEF};
 
+pub mod generators;
+
 pub const PAGE: usize = 4096;
 
 /// Builds a valid Jet4 file shell (header page + `pages` zero pages).
