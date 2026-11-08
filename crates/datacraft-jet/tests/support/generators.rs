@@ -8,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
-use datacraft_core::schema::{FieldDef, FieldKind, IndexMode, NumericKind, TableDef};
+use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, IndexMode, NumericKind, TableDef};
 
 /// The pinned creation timestamp every generated database carries — the
 /// create template's own date (OLE days; the engine validates the
@@ -23,8 +23,11 @@ fn scratch(dir: &Path, name: &str) -> PathBuf {
 }
 
 /// A freshly created, empty Jet4 database (empty user catalog).
-pub fn generated_empty(_dir: &Path, _name: &str) -> PathBuf {
-    unimplemented!("the empty generator (L35)");
+pub fn generated_empty(dir: &Path, name: &str) -> PathBuf {
+    let path = scratch(dir, name);
+    datacraft_jet::jet::create::create_jet4_file(&path, CREATED)
+        .expect("create the empty database");
+    path
 }
 
 /// The canonical typed table: the value families the writer maps natively.
@@ -55,11 +58,20 @@ pub fn indexed_table() -> TableDef {
 }
 
 /// An empty database plus the canonical typed table (no rows).
-pub fn generated_typed(_dir: &Path, _name: &str) -> PathBuf {
-    unimplemented!("the typed generator (L35)");
+pub fn generated_typed(dir: &Path, name: &str) -> PathBuf {
+    materialize(dir, name, &[(typed_table(), Vec::new())])
 }
 
 /// An empty database plus the canonical indexed table (no rows).
-pub fn generated_indexed(_dir: &Path, _name: &str) -> PathBuf {
-    unimplemented!("the indexed generator (L35)");
+pub fn generated_indexed(dir: &Path, name: &str) -> PathBuf {
+    materialize(dir, name, &[(indexed_table(), Vec::new())])
+}
+
+/// Materializes the tables into a fresh file through the public
+/// deterministic materializer (every timestamp pinned to [`CREATED`]).
+fn materialize(dir: &Path, name: &str, tables: &[(TableDef, Vec<Vec<FieldValue>>)]) -> PathBuf {
+    let path = scratch(dir, name);
+    datacraft_jet::jet::create::materialize_jet4_template(&path, CREATED, tables)
+        .expect("materialize the canonical database");
+    path
 }
