@@ -293,6 +293,7 @@ impl Core {
             Command::SaveDatabaseAs { path, password } => self.save_database_as(path, password),
             Command::ChangePassword { new_password } => self.change_password(new_password),
             Command::CreateTable { definition } => self.create_table(definition),
+            Command::ImportFile { source, table } => self.import_file(&source, &table),
             Command::DropTable { table } => self.drop_table(&table),
             Command::AddField { table, field } => {
                 self.alter_table(&table, crate::port::SchemaChange::AddField { field })
@@ -360,6 +361,7 @@ fn clears_history(command: &Command) -> bool {
         Command::OpenDatabase { .. }
             | Command::CloseDatabase
             | Command::CreateTable { .. }
+            | Command::ImportFile { .. }
             | Command::DropTable { .. }
             | Command::AddField { .. }
             | Command::DropField { .. }

@@ -3,6 +3,8 @@
 //! open/close database and create/drop table, including dependent-tab
 //! closing on drop.
 
+use std::path::Path;
+
 use crate::ObjectKind;
 use crate::core::failed;
 use crate::event::Event;
@@ -219,6 +221,15 @@ impl crate::core::Core {
                 vec![Event::TableCreated { table: name }]
             }
         }
+    }
+
+    /// Imports an external CSV file as a new table into the open database
+    /// (step 58.1, item M50): parse and infer the source, then create and
+    /// fill the table over the ordinary write path. The source file is
+    /// never touched.
+    pub(crate) fn import_file(&mut self, source: &Path, table: &str) -> Vec<Event> {
+        let _ = (source, table);
+        failed("importing files is not implemented yet (M50)")
     }
 
     /// Appends one row (step 13.2, H36; step 15.2 wires defaults,

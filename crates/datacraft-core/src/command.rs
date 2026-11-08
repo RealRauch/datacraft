@@ -88,6 +88,17 @@ pub enum Command {
         /// Full field-level definition.
         definition: TableDef,
     },
+    /// Imports an external CSV file as a new table into the open
+    /// database (step 58.1, item M50): the source is parsed and its
+    /// column kinds inferred, then the table is created and filled over
+    /// the ordinary write path — the source file is never touched.
+    /// GUI, CLI and MCP share this one chain.
+    ImportFile {
+        /// The CSV file to read (header row + records).
+        source: std::path::PathBuf,
+        /// Target table name.
+        table: String,
+    },
     /// Drops a table (name matched case-insensitively); dependent tabs
     /// close first.
     DropTable {

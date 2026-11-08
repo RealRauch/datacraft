@@ -342,7 +342,7 @@
 | 56.3 | Phase 56 Quality Gate Review (cargo package --list clean, no warnings) | ✅ |
 | 57.1 | Report designer grouping picker dispatching SetReportGrouping (M48) | ✅ |
 | 57.2 | Phase 57 Quality Gate Review | ✅ |
-| 58.1 | Import File flow: picker, preview, target name, write-path fill (M50) | ⬜ |
+| 58.1 | Import File flow: picker, preview, target name, write-path fill (M50) | 🔄 |
 | 58.2 | Capability-disabled rendering pin + source-file byte-identity (M50) | ⬜ |
 | 58.3 | Phase 58 Quality Gate Review | ⬜ |
 | 59.1 | Crate dependency-boundary guard script in CI (L32, High gate: needs the human release) | ⬜ |
