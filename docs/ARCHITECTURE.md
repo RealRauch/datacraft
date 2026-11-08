@@ -115,6 +115,15 @@ event vocabulary in `event.rs` and the serializable state surface in
 templates/samples, capability-gated dispatch (ADR-7) and the UI-parity
 commands of phases 38–42 all speak it.
 
+**Journaled batches are the headless affordance** (L26):
+`PreviewWrite`/`ApplyWrite`/`RollbackWrite`/`DiscardWrite` serve agents
+that want preview-then-commit over the wire. The GUI has no batch path —
+by design its equivalent is the immediate row commands
+(`InsertRow`/`UpdateRow`/`DeleteRow`) plus `UndoWrite`/`RedoWrite` (a
+separate bounded history in `undo.rs`, item U14, not the journal
+tokens). Nothing records this split in the command enum beyond the doc
+comments.
+
 ```rust
 /// Every user-visible action, GUI or agent, is exactly one command.
 pub enum Command { /* the authoritative list is command.rs */ }

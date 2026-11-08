@@ -158,6 +158,12 @@ pub enum Command {
     },
     /// Previews a journaled write batch and stores it for confirmation
     /// (step 11.11, M2). Nothing is written until `ApplyWrite`.
+    ///
+    /// **Headless-only affordance** (L26): the batch flow serves agents
+    /// (CLI/MCP) that want preview-then-commit; the GUI's equivalent is
+    /// the immediate row commands (`InsertRow`/`UpdateRow`/`DeleteRow`)
+    /// plus `UndoWrite`/`RedoWrite` — a separate history, not the journal
+    /// tokens.
     PreviewWrite {
         /// Target table name (case-insensitive).
         table: String,
@@ -165,16 +171,19 @@ pub enum Command {
         ops: Vec<crate::journal::WriteOp>,
     },
     /// Applies the pending journal identified by `token` (step 11.11, M2).
+    /// Headless-only — see `PreviewWrite` (L26).
     ApplyWrite {
         /// Token from the preview.
         token: u64,
     },
     /// Rolls the last applied journal back (inverse operations).
+    /// Headless-only — see `PreviewWrite` (L26).
     RollbackWrite {
         /// Token of the applied journal.
         token: u64,
     },
     /// Discards the pending journal without writing anything.
+    /// Headless-only — see `PreviewWrite` (L26).
     DiscardWrite {
         /// Token from the preview.
         token: u64,
