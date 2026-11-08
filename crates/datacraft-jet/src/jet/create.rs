@@ -2,7 +2,7 @@
 //! 29.1/29.2, item H44; engine-shaped fresh catalog step 49.2, item M63).
 //!
 //! A brand-new database is the embedded minimal engine-written template
-//! ([`FRESH_TEMPLATE`], 19 pages), carried verbatim except the page-0
+//! (`FRESH_TEMPLATE`, 19 pages), carried verbatim except the page-0
 //! tail's first word (normalized to the uniform `0x0100` writer policy).
 //! The template is DataCraft's own black-box product
 //! (`tools/dao-oracle/oracle.ps1 new-db`; clean-room rule untouched,
