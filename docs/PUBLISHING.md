@@ -130,8 +130,10 @@ visibility → tag the first public release per the checklist above.
 **Status (2026-11-08):** the visibility switch happened (repository is
 public; the rewrite is final — never rewrite again). Branch protection
 was applied the same day — 12 required checks (the list above, strict
-"branches up to date", force-pushes and deletions blocked). The only
-remaining release prerequisite is the maintainer's `cargo login` token.
+"branches up to date", force-pushes and deletions blocked) — and the
+security settings were enabled: secret scanning with push protection,
+Dependabot alerts and security updates. The only remaining release
+prerequisite is the maintainer's `cargo login` token.
 
 ## History rewrite (pre-public, M34)
 
