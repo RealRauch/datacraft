@@ -64,6 +64,12 @@ jobs:
             /usr/share/swift /opt/hostedtoolcache/CodeQL
           df -h /
       - run: cargo test --workspace --all-features
+      # CLI smoke (L34): the shipped binary starts and opens the pinned
+      # fixture over the wire — a startup or open-path regression fails
+      # the push instead of the release.
+      - name: CLI smoke
+        run: |
+          cargo run --locked --no-default-features -p datacraft-cli --             open fixtures/testV2000.mdb --json
 
   fixtures:
     name: Fixture pin integrity
