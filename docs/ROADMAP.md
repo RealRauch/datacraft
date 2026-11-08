@@ -552,3 +552,61 @@ crate in question (piggyback rule) — no dedicated split phases.
 
 **Downstream:** new crate = Medium release gate per occurrence; direction
 review binding; AGENTS §1 graph updated after each split.
+
+## 18. Performance benchmarking vs. Access — decision record
+
+**Decision (2026-11-08, human-approved):** DataCraft measures itself against
+Access with a two-family benchmark methodology, evidence-first like the
+compatibility matrix. **Family A — engine-level (reproducible):** DataCraft
+headless (bus/CLI) against `DAO.DBEngine.120` (the engine under Access) via
+COM automation — the `tools/dao-oracle` precedent — on the same machine
+against the same generated Jet4 `.mdb`. **Family B — UX/task-level:**
+app-start-to-first-row, datasheet scrolling and report-preview rendering are
+measured as task times with a documented methodology, never as
+millisecond-precision claims. Results live in a `docs/BENCHMARKS.md` created
+when the owning step starts. A mixed scoreboard is the expected, honest
+outcome — the benchmark is an honesty and target-metric instrument first,
+never a marketing surface.
+
+**Measurement points (family A, with the honest expectation today):**
+
+| Measurement | Method | Honest expectation today |
+|---|---|---|
+| Cold open (file → catalog/first row) | `OpenDatabase` + `inspect()` vs DAO `OpenDatabase` | DataCraft likely ahead |
+| Full scan (1M rows) | `read_rows` vs a DAO `MoveNext` loop | open — warm runs are disk-I/O bound |
+| Filtered query (indexed field, few hits of many) | native exec/QBE vs DAO `OpenRecordset` | **Access wins** — the full-scan cache (§16 stage 1) and the M15 index leaves are open |
+| Join query | native exec vs DAO | Access wins (dialect coverage) |
+| Insert throughput (single rows + journal batch) | Jet writer vs DAO `AddNew`/`Execute` | undecided — that is what the measurement is for |
+| RAM footprint (large database open) | host process memory | likely DataCraft |
+| Datasheet scroll at 1M rows | our frame time vs the 60 FPS design target; the Access side as task time | measured against our own design target, not a direct duel |
+| Compact | DAO `CompactDatabase` vs — | honest gap: §10 compact does not exist yet |
+
+**Method controls.** The Access build number, Windows build, hardware and
+power plan travel with every number; Name AutoCorrect is off; the
+Defender/indexing handling for the scratch directory is documented; the warm
+file cache is the documented default (cold is not cleanly enforceable on
+Windows); N ≥ 10 runs, median + spread; one identical Jet4 `.mdb` per run
+(our verified format); size classes 10k/100k/1M rows × narrow/wide.
+
+**Implementation strategy.** Fixtures are generated deterministically at
+bench time (the dao-oracle `new-db`/`exec` pattern and the SQLite
+scratch-path pattern) — never committed, so no fixture gates apply; only the
+generator recipe is committed. The Access side extends `tools/dao-oracle/`
+with a timing harness; the DataCraft side times bus/CLI calls with
+`std::time::Instant` — **no criterion dependency** (a new dependency is a
+Medium gate and buys nothing here). Benchmarks never run in CI (runner
+variance); CI at most smoke-checks the generator. Clean-room discipline is
+untouched: timing is own black-box observation, the same rule the
+dao-oracle README already states.
+
+**Claims hygiene.** Every number carries its evidence (command, hardware,
+date, versions) in the compatibility-matrix style — no "x times faster"
+headlines. The README "Fast" bullet (60 FPS with million-row scrolling as a
+design target) becomes a measured claim only when the harness supports it.
+The measurement points also serve as the target-metric source for §16
+stage-1 windowed row reads and the §6 M15 index-page work — they define what
+those items have to deliver, without re-ordering them.
+
+**Gates:** work items are created only when the owning phase starts
+(`BACKLOG.md`, L-series) and implementation starts only after the human
+release; this docs-level decision itself is Low.
