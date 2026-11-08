@@ -135,6 +135,14 @@ security settings were enabled: secret scanning with push protection,
 Dependabot alerts and security updates. The only remaining release
 prerequisite is the maintainer's `cargo login` token.
 
+**v0.1.0 (2026-11-08):** all six crates published (each dry-run-verified
+immediately before its publish, except core whose workspace dry-run
+stood in); `cargo install datacraft-mcp` verified from the registry; the
+tag run built and checksum-verified the three archives; the draft
+release was recreated from the run's bundle after the draft job's
+missing-repo bug (fixed in `5a22d82` for the next tag). The draft awaits
+the maintainer's review and publication.
+
 ## History rewrite (pre-public, M34)
 
 Executed 2026-11-03 with `git filter-repo --invert-paths` (step 37.5) on the

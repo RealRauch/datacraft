@@ -118,12 +118,13 @@ The honest picture, phase by phase, is in
 [docs/ROADMAP.md](docs/ROADMAP.md); the format facts are catalogued in
 [docs/FORMAT-JET.md](docs/FORMAT-JET.md).
 
-## Compatibility matrix (verified 2026-11-07)
+## Compatibility matrix (verified 2026-11-08)
 
 Every compatibility claim below names its evidence; unsupported paths are
-stated in the same row. Re-verified 2026-11-07 for the engine-accepted
-create path (phase 49.2, item M63): the Jet engine accepts DataCraft-created
-databases and resolves the tables DataCraft creates. **Read** means decode through the `StoragePort`;
+stated in the same row. Re-verified 2026-11-08 for the v0.1.0 release:
+every evidence suite named below is green on CI `main` (the mechanical
+claim); the real-engine checks stand from the 2026-11-07 Access walkthrough
+and the DAO create-path oracle (phase 49.2, item M63). **Read** means decode through the `StoragePort`;
 **write** means the path is exercised against a real file in the named
 suite. Writes are verified as Access-readable and usage-map-consistent —
 byte-identical output to Microsoft Access is **not** claimed.
