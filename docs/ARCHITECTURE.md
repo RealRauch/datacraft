@@ -13,7 +13,7 @@ Jet 4 write path for tables and rows — every compatibility claim is bounded by
 the matrix in `README.md` — the classic Access UX paradigm (Ribbon,
 Navigation Pane, tabbed documents, Datasheet/Design views, QBE query builder,
 Form/Report canvas) rendered in an original, minimal, hardware-accelerated
-ArtCraft aesthetic — and a headless core that AI agents can drive exactly like
+visual language of its own — and a headless core that AI agents can drive exactly like
 the GUI does.
 
 ## 2. Principles → mechanisms
@@ -21,7 +21,7 @@ the GUI does.
 | # | Principle (binding) | Concrete mechanism | Enforced by |
 |---|---------------------|--------------------|-------------|
 | 1 | Clean-room reverse engineering | Format knowledge only from public specs + own black-box observation; `libmdb` used exclusively as test oracle | `docs/LESSONS.md` #12; storage decision §6; High content gate |
-| 2 | Visual originality | No Microsoft assets of any kind; original egui vector iconography; Access UX paradigm, ArtCraft styling | Review; no MS binary assets in repo |
+| 2 | Visual originality | No Microsoft assets of any kind; original egui vector iconography; Access UX paradigm, own styling | Review; no MS binary assets in repo |
 | 3 | MCP & headless automation | Every GUI action = one `Command`; UI is a thin projection of the headless core; JSON-RPC/MCP transport over the same command bus | §5; crate graph rules §4 |
 | 4 | Autonomous testability | Deterministic test IDs (`ui_test_id()`), state query API returning serializable snapshots, no pixel assertions | `datacraft-core::ObjectId`; Phases 4/9 |
 | 5 | Cross-platform portability | No COM/OLE DB/ADO/winapi anywhere; pure Rust + portable FFI (test-time only) | CI matrix Linux/macOS/Windows; `unsafe_code = forbid` |

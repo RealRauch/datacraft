@@ -110,15 +110,14 @@ SVG, so any of the suite's `packaging/icons.sh` pipelines can generate them.
 - [x] Database cylinder + datasheet reads at 32 px.
 - [x] Header in the app colour; selected cell in ink.
 - [x] macOS render on the 824/1024 grid; Windows/Linux full bleed.
-- [x] Original geometry — no vendor database logo and no ArtCraft icon copied.
+- [x] Original geometry — no vendor database logo and no third-party icon copied.
 
 ---
 
 ## 7. Legal note
 
-The ArtCraft name, wordmark, "A" mark and the existing Crafting App icons are the
-ArtCraft Team's trademarks/artwork and are **not** open source. This icon borrows the
-*visual grammar* of the office apps (three colours, paper-and-ink symbol, tile geometry)
-for an original DataCraft drawing. It contains no ArtCraft mark, no vendor logo and no
-copied artwork. If DataCraft is ever published as an official Crafting App, follow the
-ArtCraft brand licence (`docs/brand/LICENSE-brand.txt` in the Crafting App repositories).
+The Crafting Apps' names, wordmarks and icons are their authors'
+trademarks/artwork and are **not** open source. This icon borrows the
+*visual grammar* of the office apps (three colours, paper-and-ink symbol,
+tile geometry) for an original DataCraft drawing. It contains no
+third-party mark, no vendor logo and no copied artwork.

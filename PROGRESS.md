@@ -148,7 +148,7 @@
 | 11.7 | Datasheet: New-Record Row | ✅ |
 | 11.8 | Sidecar UI + Cleanup + access_gate Example | ✅ |
 | 11.9 | Phase 11 Quality Gate Review | ✅ |
-| 12.1 | Theme Module: ArtCraft Palette + egui Visuals | ✅ |
+| 12.1 | Theme Module: Original Palette + egui Visuals | ✅ |
 | 12.2 | Ribbon: Access Structure (Tab Row, Group Captions, Separators) | ✅ |
 | 12.3 | Nav Pane: Access-Style Collapsing Groups | ✅ |
 | 12.4 | Status Bar: Context + Record Navigation (core-side) | ✅ |

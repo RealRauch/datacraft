@@ -36,7 +36,7 @@ GridCraft `#1F9D55`, DeckCraft `#F26B1D`, CADCraft `#14A3C7`) and from PdfCraft
 
 Original geometry, hand-written for this repository. The three-colour palette, the
 paper-and-ink object, the −6° rotation and the tile geometry follow the public
-Crafting Apps office icons (WordCraft, GridCraft, DeckCraft). No ArtCraft icon, wordmark
+Crafting Apps office icons (WordCraft, GridCraft, DeckCraft). No third-party icon, wordmark
 or vendor database logo was copied, traced or recoloured. Licence: same as the repository
 (MIT OR Apache-2.0).
 

@@ -15,7 +15,6 @@ exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
 
-
 [![Written in Rust](https://img.shields.io/badge/written%20in-Rust-0F8B7E?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Runs on macOS, Windows and Linux](https://img.shields.io/badge/runs%20on-macOS%20%7C%20Windows%20%7C%20Linux-0F8B7E?style=flat-square)](#)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-0F8B7E?style=flat-square)](#license-and-credits)
@@ -63,7 +62,7 @@ API.
 
 - **Familiar.** The Access workflow reimagined: ribbon, navigation pane,
   tabbed documents, datasheet and design views, the QBE grid, form and report
-  canvas — rendered in an original, minimal ArtCraft aesthetic.
+  canvas — rendered in an original, minimal visual language of its own.
 - **Your files.** Verified read paths for `.mdb` (Jet3/Jet4) and `.accdb`
   (ACE), plus verified Jet4 and ACE write paths, in pure Rust. The
   [compatibility matrix](#compatibility-matrix-verified-2026-11-07) names
@@ -228,7 +227,7 @@ Delivered phases and the open work:
 | 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep | ✅ |
 | 10 — Jet4 Writer, Reports & Release | Jet4 writer workstream, Jet3 read, report designer + print preview, fixture pin integrity | ✅ |
 | 11 — Port Write-Through & Journal | insert/update/delete through the port, journaled write profiles | ✅ |
-| 12 — Access Look & Theme | ArtCraft palette, Access ribbon/nav-pane/status/datasheet styling | ✅ |
+| 12 — Access Look & Theme | Original palette, Access ribbon/nav-pane/status/datasheet styling | ✅ |
 | 13 — SQLite & SQL | SQLite source backend, SQL window, insert flows | ✅ |
 | 14 — ACCDB Read | ACE fixtures and the ACE read path | ✅ |
 | 15 — Expressions & Saved Queries | expression service, field wiring, `MSysQueries` decode | ✅ |
@@ -283,8 +282,8 @@ Mechanically enforced in CI on every push and pull request:
 
 ## Design & branding
 
-The app icon follows the **office-symbol** branch of the ArtCraft Crafting
-Apps (WordCraft, GridCraft, DeckCraft): a 512-unit rounded tile in **exactly
+The app icon follows the **office-symbol** visual grammar of the sibling
+Crafting Apps (WordCraft, GridCraft, DeckCraft): a 512-unit rounded tile in **exactly
 three colours** — ink `#0B0B0C`, paper `#EFE9DC` and DataCraft teal `#0F8B7E`
 — with a flat paper-and-ink object rotated −6°. DataCraft's object is a
 database cylinder whose front is a datasheet. Construction, palette and
