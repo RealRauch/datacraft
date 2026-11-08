@@ -9,13 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 60 — Small closes
-
-**Scope (Steps):**
-
-- **60.1 Expression window: row-context picker dispatching RunExpression with Some(ExpressionContext) (L27)**
-- **60.2 Oracle skip observable: #[ignore] + the CI oracle job runs --ignored (L31)**
-- **60.3 Phase 60 Quality Gate Review**
 ### Phase 61 — Fixture generators
 
 **Scope (Steps):**
@@ -359,8 +352,8 @@
 | 59.3 | CLI smoke step on both matrix OSes (L34, High gate) | ✅ |
 | 59.4 | Phase 59 Quality Gate Review | ✅ |
 | 60.1 | Expression window: row-context picker dispatching RunExpression with Some(ExpressionContext) (L27) | ✅ |
-| 60.2 | Oracle skip observable: #[ignore] + the CI oracle job runs --ignored (L31) | 🔄 |
-| 60.3 | Phase 60 Quality Gate Review | ⬜ |
+| 60.2 | Oracle skip observable: #[ignore] + the CI oracle job runs --ignored (L31) | ✅ |
+| 60.3 | Phase 60 Quality Gate Review | ✅ |
 | 61.1 | Deterministic generator functions for canonical test databases, byte-deterministic, alongside the binary pins (L35) | ⬜ |
 | 61.2 | Phase 61 Quality Gate Review | ⬜ |
 | 62.1 | Core: stable machine-readable failure codes alongside the English text, capability rejections mapped onto the DisabledReason vocabulary (I6 step 1) | ⬜ |

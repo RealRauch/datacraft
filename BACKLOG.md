@@ -42,23 +42,11 @@
 - **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
 - **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
 
-### [ ] L27 — Expression window: row-context evaluation for RunExpression — 🟢
-- **Location:** `crates/datacraft-ui/src/expression_window.rs` (editor dispatches `RunExpression { context: None }` only), `crates/datacraft-core/src/field_expressions.rs` (`run_expression` already supports `Some(ExpressionContext { table, row })`)
-- **Problem:** The expression window evaluates over an empty scope only. The core supports a row context (table + zero-based live-row index) — CLI/MCP agents can address it, but the window has no table/row picker, so GUI users cannot evaluate field expressions against a record (documented follow-up when M46 landed, step 41.2).
-- **Approach:** Add an optional row-context picker to the expression window (table + row selector fed from the snapshot), dispatching `RunExpression` with `Some(ExpressionContext)` when set; keep the contextless evaluation as the default state.
-- **Acceptance:** Picking a table and row makes the window evaluate against that record (field names resolve); clearing the picker returns to the empty scope; a kittest pins one contextual run; canonical verification set green.
-
 ### [ ] L30 — ~15 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
 - **Location:** `crates/datacraft-core/tests/journal.rs` (498 lines), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-jet/tests/jet_table.rs` (495), `crates/datacraft-jet/src/jet/row.rs` (495), plus ~11 further files in the 480-499 band.
 - **Problem:** The <500-line file-size gate holds with zero violations, but ~15 files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review).
 - **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
-
-### [ ] L31 — Oracle suite skips itself silently — 🟢
-- **Location:** `crates/datacraft-jet/tests/oracle.rs:80-83` (env-gate branch).
-- **Problem:** Without `DATACRAFT_ORACLE_MDB` the oracle test prints to stderr and returns Ok — a local Windows run looks like a green oracle but verifies nothing. The ubuntu CI job runs the real mdb-export comparison, so CI is covered; the silent self-skip invites false confidence locally (2026-11-07 repo review).
-- **Approach:** Make the skip observable — `#[ignore]` with the reason plus the CI job's `--ignored` filter, or a clearly named skip path whose output states "skipped".
-- **Acceptance:** A local skip is identifiable as skipped; the ubuntu oracle job still runs the real comparison; canonical verification set green.
 
 ### [ ] L35 — Deterministic fixture generators alongside the binary pins — 🟢
 - **Location:** `crates/datacraft-jet/tests/` or a new testkit helper, `crates/datacraft-storage/examples/`.
@@ -287,3 +275,5 @@
 - L32 — Enforce the crate dependency boundaries with a CI guard script — done (done in b1905d6 — step 59.1: .github/scripts/dependency_boundaries.py enforces acyclicity and the composition-root direction over the runtime graph, with a mandatory self-test (which caught two fixture bugs of its own before shipping); the ci.yml boundaries job runs self-test then the real check; AGENTS §1 cross-references the guard.)
 - L33 — Gate rustdoc warnings in CI — done (done in a74e640 + c90ea69 — step 59.2: the docs job runs cargo doc --workspace --all-features --no-deps --locked with RUSTDOCFLAGS=-D warnings; the first local run surfaced exactly one broken intra-doc link (create.rs → the private FRESH_TEMPLATE), fixed; green locally.)
 - L34 — CLI smoke step in the CI test matrix — done (done in 1bc2337 — step 59.3: the CLI smoke runs the shipped binary's fixture open --json on both matrix OSes after the tests; the item's --version example command does not exist in the CLI vocabulary — the open smoke is the stronger startup+bus+port+wire check; verified locally (exit 0).)
+- L31 — Oracle suite skips itself silently — done (done in 3e6f808 — step 60.2: the oracle test carries #[ignore] with the reason; a local Windows run now shows `1 ignored` instead of a silently green oracle; the CI oracle job runs --ignored --nocapture with DATACRAFT_ORACLE_MDB set.)
+- L27 — Expression window: row-context evaluation for RunExpression — done (done in ed8cbff (red) + e22ef4f + 334bc88 — step 60.1: the expression window's Row-context picker (combo over the open tables, zero-based row field, localized unparsable-number failure) wires Some(ExpressionContext) through run_expression; both L27 pins green, the M46 pins unchanged; run_expression moved to flows.rs (L30).)

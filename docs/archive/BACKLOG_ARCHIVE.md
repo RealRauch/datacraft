@@ -1728,3 +1728,21 @@
 - **Approach:** After the tests, run a smoke step on each matrix OS, e.g. `cargo run --locked --no-default-features -p datacraft-cli -- --version` plus a fixture `open` against `fixtures/testV2000.mdb`; keep it fast. Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
 - **Acceptance:** The smoke step runs on ubuntu+windows; a startup or open-path regression fails the push instead of the release.
 - **Done:** done in 1bc2337 — step 59.3: the CLI smoke runs the shipped binary's fixture open --json on both matrix OSes after the tests; the item's --version example command does not exist in the CLI vocabulary — the open smoke is the stronger startup+bus+port+wire check; verified locally (exit 0).
+
+---
+
+### [x] L31 — Oracle suite skips itself silently — 🟢
+- **Location:** `crates/datacraft-jet/tests/oracle.rs:80-83` (env-gate branch).
+- **Problem:** Without `DATACRAFT_ORACLE_MDB` the oracle test prints to stderr and returns Ok — a local Windows run looks like a green oracle but verifies nothing. The ubuntu CI job runs the real mdb-export comparison, so CI is covered; the silent self-skip invites false confidence locally (2026-11-07 repo review).
+- **Approach:** Make the skip observable — `#[ignore]` with the reason plus the CI job's `--ignored` filter, or a clearly named skip path whose output states "skipped".
+- **Acceptance:** A local skip is identifiable as skipped; the ubuntu oracle job still runs the real comparison; canonical verification set green.
+- **Done:** done in 3e6f808 — step 60.2: the oracle test carries #[ignore] with the reason; a local Windows run now shows `1 ignored` instead of a silently green oracle; the CI oracle job runs --ignored --nocapture with DATACRAFT_ORACLE_MDB set.
+
+---
+
+### [x] L27 — Expression window: row-context evaluation for RunExpression — 🟢
+- **Location:** `crates/datacraft-ui/src/expression_window.rs` (editor dispatches `RunExpression { context: None }` only), `crates/datacraft-core/src/field_expressions.rs` (`run_expression` already supports `Some(ExpressionContext { table, row })`)
+- **Problem:** The expression window evaluates over an empty scope only. The core supports a row context (table + zero-based live-row index) — CLI/MCP agents can address it, but the window has no table/row picker, so GUI users cannot evaluate field expressions against a record (documented follow-up when M46 landed, step 41.2).
+- **Approach:** Add an optional row-context picker to the expression window (table + row selector fed from the snapshot), dispatching `RunExpression` with `Some(ExpressionContext)` when set; keep the contextless evaluation as the default state.
+- **Acceptance:** Picking a table and row makes the window evaluate against that record (field names resolve); clearing the picker returns to the empty scope; a kittest pins one contextual run; canonical verification set green.
+- **Done:** done in ed8cbff (red) + e22ef4f + 334bc88 — step 60.1: the expression window's Row-context picker (combo over the open tables, zero-based row field, localized unparsable-number failure) wires Some(ExpressionContext) through run_expression; both L27 pins green, the M46 pins unchanged; run_expression moved to flows.rs (L30).

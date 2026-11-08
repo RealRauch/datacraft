@@ -759,3 +759,14 @@ before the tag.
 - **59.3 CLI smoke step on both matrix OSes (L34, High gate)**
 - **59.4 Phase 59 Quality Gate Review**
 **Verification:** Every gate green on the final tree — including the three new ones run locally (guard self-test + tree check, rustdoc -D warnings, CLI smoke exit 0) — plus fmt, clippy, 162 suites, file-size gate. AGENTS §1 cross-references the guard; the README CI row and the PUBLISHING required-checks list carry the new gates. No changelog entry per policy (no crate surface). (checkpoint: 68de28f)
+
+---
+
+### Phase 60 — Small closes
+
+**Scope (Steps):**
+
+- **60.1 Expression window: row-context picker dispatching RunExpression with Some(ExpressionContext) (L27)**
+- **60.2 Oracle skip observable: #[ignore] + the CI oracle job runs --ignored (L31)**
+- **60.3 Phase 60 Quality Gate Review**
+**Verification:** Every gate green with explicit exit codes (fmt, clippy -D warnings, 162 suites, file-size gate). Coverage unchanged by construction: the only Rust changes live in the excluded ui crate and a test file (oracle.rs) — the binding gate is the ubuntu CI run this push triggers. No changelog entry per policy (no observable crate surface). (checkpoint: 3e6f808)
