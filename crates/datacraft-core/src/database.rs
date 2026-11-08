@@ -222,7 +222,6 @@ impl crate::core::Core {
         }
     }
 
-
     /// Appends one row (step 13.2, H36; step 15.2 wires defaults,
     /// calculated fields and rules): row preparation first, then the port
     /// write, then the event — a rejected row never reaches storage.

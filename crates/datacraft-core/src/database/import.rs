@@ -4,7 +4,7 @@
 
 use std::path::Path;
 
-use crate::core::{failed, Core};
+use crate::core::{Core, failed};
 use crate::event::Event;
 use crate::port::DriverCapabilities;
 use crate::schema::TableDef;

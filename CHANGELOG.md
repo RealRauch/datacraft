@@ -52,6 +52,11 @@ fixes → patch per `docs/PUBLISHING.md`).*
   MCP data), the status bar and the Info page, and answers a precise
   refusal on every write; DataCraft never creates or deletes lock files
   (53).
+- core/ui: the Import File flow — an external CSV file becomes a table in
+  the open Jet4/SQLite database over one bus chain (`ImportFile`: parse,
+  L7-inferred column kinds, create + row inserts over the ordinary write
+  path, capability-gated); the window previews fields and leading rows and
+  the source file stays byte-identical (58).
 
 ### Changed
 - workspace: `datacraft-storage` split into `datacraft-jet` (clean-room
