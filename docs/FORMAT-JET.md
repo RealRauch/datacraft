@@ -578,6 +578,26 @@ path draws an honest, implementable boundary:
 - Evidence runs on **scratch-dir copies** with an empty sibling lock
   file — the pinned fixtures are never touched.
 
+## Save-as copies page state — the repair boundary (2026-11-08 — step 55.2, item M67)
+
+`SaveDatabaseAs` (M14) copies the source's pages verbatim and rewrites
+only the password state (`port_adapter/password.rs` — the
+`reader.file.clone()` page copy): a copy **inherits the source's page-0
+state**. For a healthy source that byte-stable page copy is the M14
+contract; for an engine-refused source the copy is engine-refused too —
+the 49.4 recovery pre-flight showed the oracle rejecting the save-as
+copy of the incident file exactly like the original.
+
+- **Save-as is a password/format-state tool, not a repair tool.**
+- Engine-refused files are recovered by **re-encoding through the create
+  path**: decode → re-encode through the port — the shape the 49.2/49.3
+  gates verified (`crates/datacraft-jet/examples/recover_mdb.rs`,
+  step 49.4).
+- A product-grade re-encoding save-as (a `SaveDatabaseAs` re-encode flag
+  or a Repair command) is the future feature this boundary tracks; the
+  README compatibility matrix (Jet4 row, known limits) states the same
+  boundary.
+
 ## Usage maps (writer — verified 2026-11-01, step 10.1)
 
 Black-box verified against the Access-written fixture by decoding the TDEF
