@@ -260,6 +260,11 @@ impl Core {
             Command::CreateForm { name } => self.create_form(&name),
             Command::DeleteForm { name } => self.delete_form(&name),
             Command::AddFormControl { form, control } => self.add_control(&form, control),
+            Command::SetFormControlContent {
+                form,
+                control,
+                value,
+            } => self.set_control_content(&form, &control, &value),
             Command::SetFormControlRect {
                 form,
                 control,
@@ -273,6 +278,11 @@ impl Core {
             Command::AddReportControl { report, control } => {
                 self.add_report_control(&report, control)
             }
+            Command::SetReportControlContent {
+                report,
+                control,
+                value,
+            } => self.set_report_control_content(&report, &control, &value),
             Command::SetReportControlRect {
                 report,
                 control,

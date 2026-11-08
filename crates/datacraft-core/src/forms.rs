@@ -169,6 +169,95 @@ impl crate::core::Core {
         }]
     }
 
+    /// Sets the one content property a placed control carries (step 63.1,
+    /// item H56): the label text, button caption, bound source field or
+    /// embedded form. Validation runs before the mutation — unknown
+    /// fields and unknown subforms answer precisely.
+    pub(crate) fn set_control_content(
+        &mut self,
+        form: &str,
+        control: &str,
+        value: &str,
+    ) -> Vec<Event> {
+        let Some(db) = self.state.database.as_mut() else {
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
+        };
+        let Some(pos) = db
+            .forms
+            .iter()
+            .position(|f| f.name.to_lowercase() == form.to_lowercase())
+        else {
+            return failed(FailureCode::NotFound, format!("form {form:?} not found"));
+        };
+        let Some(control_pos) = db.forms[pos]
+            .controls
+            .iter()
+            .position(|c| c.name.to_lowercase() == control.to_lowercase())
+        else {
+            return failed(
+                FailureCode::NotFound,
+                format!("control {control:?} not found"),
+            );
+        };
+        let source = db.forms[pos].source.clone();
+        let kind_is_binding = matches!(
+            db.forms[pos].controls[control_pos].kind,
+            crate::form::ControlKind::TextBox { .. }
+                | crate::form::ControlKind::CheckBox { .. }
+                | crate::form::ControlKind::ComboBox { .. }
+        );
+        let kind_is_subform = matches!(
+            db.forms[pos].controls[control_pos].kind,
+            crate::form::ControlKind::SubForm { .. }
+        );
+        if kind_is_binding
+            && !value.trim().is_empty()
+            && let Some(detail) = binding_error(&source, &db.tables, value)
+        {
+            return failed(FailureCode::InvalidInput, detail);
+        }
+        if kind_is_subform {
+            let trimmed = value.trim();
+            if trimmed.is_empty()
+                || !db
+                    .forms
+                    .iter()
+                    .any(|f| f.name.eq_ignore_ascii_case(trimmed))
+            {
+                return failed(
+                    FailureCode::InvalidInput,
+                    format!("subform {value:?} not found"),
+                );
+            }
+        }
+        let form_name = db.forms[pos].name.clone();
+        let control_name = db.forms[pos].controls[control_pos].name.clone();
+        let target = &mut db.forms[pos].controls[control_pos];
+        match &mut target.kind {
+            crate::form::ControlKind::Label { text } => *text = value.to_owned(),
+            crate::form::ControlKind::Button { caption } => *caption = value.to_owned(),
+            crate::form::ControlKind::TextBox { bound_field }
+            | crate::form::ControlKind::CheckBox { bound_field }
+            | crate::form::ControlKind::ComboBox { bound_field } => {
+                *bound_field = if value.trim().is_empty() {
+                    None
+                } else {
+                    Some(value.to_owned())
+                };
+            }
+            crate::form::ControlKind::SubForm { form: embedded } => {
+                *embedded = value.trim().to_owned();
+            }
+        }
+        vec![Event::ControlContentSet {
+            form: form_name,
+            control: control_name,
+        }]
+    }
+
     pub(crate) fn delete_control(&mut self, form: &str, control: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
             return failed(
@@ -388,14 +477,25 @@ fn validate_binding(
     tables: &[crate::schema::TableDef],
     bound: &str,
 ) -> Option<String> {
-    if def.source.is_empty() {
-        return Some("set the form's source table before binding fields".to_owned());
+    binding_error(&def.source, tables, bound)
+}
+
+/// The shared binding whitelist (LESSONS #5): a source must be assigned
+/// and the field must exist in it. Forms and reports share the rule
+/// (step 63.1, item H56).
+pub(crate) fn binding_error(
+    source: &str,
+    tables: &[crate::schema::TableDef],
+    bound: &str,
+) -> Option<String> {
+    if source.is_empty() {
+        return Some("set the source table before binding fields".to_owned());
     }
     let Some(source) = tables
         .iter()
-        .find(|t| t.name.to_lowercase() == def.source.to_lowercase())
+        .find(|t| t.name.to_lowercase() == source.to_lowercase())
     else {
-        return Some(format!("source table {:?} not found", def.source));
+        return Some(format!("source table {source:?} not found"));
     };
     if !source
         .fields

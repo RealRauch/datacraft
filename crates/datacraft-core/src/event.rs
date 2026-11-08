@@ -200,6 +200,14 @@ pub enum Event {
         control: String,
     },
     /// A control was moved/resized.
+    /// The one content property of a placed form control changed
+    /// (step 63.1, item H56).
+    ControlContentSet {
+        /// Form name.
+        form: String,
+        /// Control name.
+        control: String,
+    },
     ControlRectSet {
         /// Canonical form name.
         form: String,
@@ -259,6 +267,14 @@ pub enum Event {
         control: String,
     },
     /// A report control was moved/resized.
+    /// The one content property of a placed report control changed
+    /// (step 63.1, item H56).
+    ReportControlContentSet {
+        /// Report name.
+        report: String,
+        /// Control name.
+        control: String,
+    },
     ReportControlRectSet {
         /// Canonical report name.
         report: String,

@@ -375,6 +375,18 @@ pub enum Command {
         /// New canvas rect.
         rect: Rect,
     },
+    /// Sets the content property a placed control carries (step 63.1,
+    /// item H56): the label text, the button caption, the bound source
+    /// field or the embedded form — one property per kind, by the model's
+    /// design. An empty value clears a binding.
+    SetFormControlContent {
+        /// Target form name (case-insensitive).
+        form: String,
+        /// Control name (case-insensitive).
+        control: String,
+        /// The content value.
+        value: String,
+    },
     /// Removes a control.
     DeleteFormControl {
         /// Target form name (case-insensitive).
@@ -424,6 +436,18 @@ pub enum Command {
         control: String,
         /// New page rect.
         rect: Rect,
+    },
+    /// Sets the content property a placed report control carries (step
+    /// 63.1, item H56): the label text, the button caption, the bound
+    /// source field (or a `=expression`) or the embedded form. An empty
+    /// value clears a binding.
+    SetReportControlContent {
+        /// Target report name (case-insensitive).
+        report: String,
+        /// Control name (case-insensitive).
+        control: String,
+        /// The content value.
+        value: String,
     },
     /// Removes a report control.
     DeleteReportControl {

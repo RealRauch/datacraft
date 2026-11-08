@@ -176,6 +176,99 @@ impl crate::core::Core {
         }]
     }
 
+    /// Sets the one content property a placed report control carries
+    /// (step 63.1, item H56): the label text, button caption, bound
+    /// source field — a value starting with `=` is an expression and is
+    /// validated at render time — or the embedded form. An empty value
+    /// clears a binding; unknown fields and subforms answer precisely.
+    pub(crate) fn set_report_control_content(
+        &mut self,
+        report: &str,
+        control: &str,
+        value: &str,
+    ) -> Vec<Event> {
+        let Some(db) = self.state.database.as_mut() else {
+            return failed(
+                FailureCode::NoDatabase,
+                "no database is open — open a database first",
+            );
+        };
+        let Some(pos) = db
+            .reports
+            .iter()
+            .position(|r| r.name.to_lowercase() == report.to_lowercase())
+        else {
+            return failed(
+                FailureCode::NotFound,
+                format!("report {report:?} not found"),
+            );
+        };
+        let Some(control_pos) = db.reports[pos]
+            .controls
+            .iter()
+            .position(|c| c.name.to_lowercase() == control.to_lowercase())
+        else {
+            return failed(
+                FailureCode::NotFound,
+                format!("control {control:?} not found"),
+            );
+        };
+        let source = db.reports[pos].source.clone();
+        let kind_is_binding = matches!(
+            db.reports[pos].controls[control_pos].kind,
+            crate::form::ControlKind::TextBox { .. }
+                | crate::form::ControlKind::CheckBox { .. }
+                | crate::form::ControlKind::ComboBox { .. }
+        );
+        let kind_is_subform = matches!(
+            db.reports[pos].controls[control_pos].kind,
+            crate::form::ControlKind::SubForm { .. }
+        );
+        let trimmed = value.trim();
+        if kind_is_binding
+            && !trimmed.is_empty()
+            && !trimmed.starts_with('=')
+            && let Some(detail) = crate::forms::binding_error(&source, &db.tables, value)
+        {
+            return failed(FailureCode::InvalidInput, detail);
+        }
+        if kind_is_subform
+            && (trimmed.is_empty()
+                || !db
+                    .forms
+                    .iter()
+                    .any(|f| f.name.eq_ignore_ascii_case(trimmed)))
+        {
+            return failed(
+                FailureCode::InvalidInput,
+                format!("subform {value:?} not found"),
+            );
+        }
+        let report_name = db.reports[pos].name.clone();
+        let control_name = db.reports[pos].controls[control_pos].name.clone();
+        let target = &mut db.reports[pos].controls[control_pos];
+        match &mut target.kind {
+            crate::form::ControlKind::Label { text } => *text = value.to_owned(),
+            crate::form::ControlKind::Button { caption } => *caption = value.to_owned(),
+            crate::form::ControlKind::TextBox { bound_field }
+            | crate::form::ControlKind::CheckBox { bound_field }
+            | crate::form::ControlKind::ComboBox { bound_field } => {
+                *bound_field = if value.trim().is_empty() {
+                    None
+                } else {
+                    Some(value.to_owned())
+                };
+            }
+            crate::form::ControlKind::SubForm { form: embedded } => {
+                *embedded = value.trim().to_owned();
+            }
+        }
+        vec![Event::ReportControlContentSet {
+            report: report_name,
+            control: control_name,
+        }]
+    }
+
     pub(crate) fn delete_report_control(&mut self, report: &str, control: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
             return failed(
