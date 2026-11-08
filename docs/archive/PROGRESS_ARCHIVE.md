@@ -702,3 +702,14 @@ before the tag.
 - **54.1 Changelog next-version note + PUBLISHING policy wording (L39)**
 - **54.2 Phase 54 Quality Gate Review**
 **Verification:** Docs-only phase: hygiene scan clean, fmt/clippy/tests green (160 suites); the Rust tree is unchanged since the phase 53 gate. (checkpoint: cfd8b1f)
+
+---
+
+### Phase 56 — Release readiness
+
+**Scope (Steps):**
+
+- **56.1 Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release)**
+- **56.2 Lexer: drop the expect on the float parse path (M65)**
+- **56.3 Phase 56 Quality Gate Review (cargo package --list clean, no warnings)**
+**Verification:** Canonical set green on the final tree (fmt, clippy -D warnings, 160 suites, size gate; tree clean — LESSONS #14 sequence followed). No changelog entry per policy: crate metadata and an unreachable-path refactor carry no observable surface. The publish-relevant facts live in the README/PUBLISHING docs and the L24 archive note. (checkpoint: 31190fb)

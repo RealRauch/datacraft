@@ -18,13 +18,6 @@
 - **55.3 Journal batch commands documented headless-only (L26)**
 - **55.4 Translate the German step titles in the PROGRESS permanent index (L29)**
 - **55.5 Phase 55 Quality Gate Review**
-### Phase 56 — Release readiness
-
-**Scope (Steps):**
-
-- **56.1 Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release)**
-- **56.2 Lexer: drop the expect on the float parse path (M65)**
-- **56.3 Phase 56 Quality Gate Review (cargo package --list clean, no warnings)**
 ### Phase 57 — Report grouping picker
 
 **Scope (Steps):**
@@ -360,8 +353,8 @@
 | 55.4 | Translate the German step titles in the PROGRESS permanent index (L29) | ⬜ |
 | 55.5 | Phase 55 Quality Gate Review | ⬜ |
 | 56.1 | Publish metadata: repository + readme fields on the six crates (L24, Medium gate: Cargo.toml touch — needs the human release) | ✅ |
-| 56.2 | Lexer: drop the expect on the float parse path (M65) | 🔄 |
-| 56.3 | Phase 56 Quality Gate Review (cargo package --list clean, no warnings) | ⬜ |
+| 56.2 | Lexer: drop the expect on the float parse path (M65) | ✅ |
+| 56.3 | Phase 56 Quality Gate Review (cargo package --list clean, no warnings) | ✅ |
 | 57.1 | Report designer grouping picker dispatching SetReportGrouping (M48) | ⬜ |
 | 57.2 | Phase 57 Quality Gate Review | ⬜ |
 | 58.1 | Import File flow: picker, preview, target name, write-path fill (M50) | ⬜ |
