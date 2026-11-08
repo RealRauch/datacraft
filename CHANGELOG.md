@@ -9,6 +9,13 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+### Added
+- ui/core: the designers edit the selected control's content — the one
+  property each kind carries (label text, button caption, bound source
+  field or embedded form) with precise validation; `SetFormControlContent`
+  / `SetReportControlContent` are ordinary bus commands and the
+  runtime/preview re-renders from the refreshed snapshot (63).
+
 ## [0.1.0] — 2026-11-08
 
 ### Added

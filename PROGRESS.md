@@ -9,6 +9,14 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 63 — Control content editing
+
+**Scope (Steps):**
+
+- **63.1 Core: SetFormControlContent/SetReportControlContent with precise validation (H56)**
+- **63.2 UI: the selected-control content panel in both designers, kittest-pinned (H56)**
+- **63.3 Phase 63 Quality Gate Review**
+
 
 
 
@@ -346,3 +354,6 @@
 | 62.2 | UI: known codes render localized, unknown codes stay English (I6 step 2) | ✅ |
 | 62.3 | Wire consumers switch to code assertions (command_errors, cli_contract, server_e2e, driver_caps) (I6) | ✅ |
 | 62.4 | Phase 62 Quality Gate Review | ✅ |
+| 63.1 | Core: SetFormControlContent/SetReportControlContent with precise validation (H56) | ✅ |
+| 63.2 | UI: the selected-control content panel in both designers, kittest-pinned (H56) | ✅ |
+| 63.3 | Phase 63 Quality Gate Review | 🔄 |
