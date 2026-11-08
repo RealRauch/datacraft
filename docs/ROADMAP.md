@@ -512,6 +512,18 @@ PROGRESS 41.4) is reconciled: the picker, both-direction kittest pins
 and the catalog entries exist since 41.4 — the item closed 2026-11-08 at
 step 57.1.
 
+**Reference-audit adaptation (2026-11-08):** the Microsoft-reference audit
+(`docs/UI-REFERENCE-AUDIT.md`) compared every implemented workflow against
+the Access documentation. Its §4 fix candidates — the unintended
+divergences: import naming ("Import" vs Access's "Import & Link"/"New Data
+Source"), the missing F11 navigation-pane toggle, First/Last
+record-navigation buttons, datasheet-first editing (double-click rename,
+Click to Add), pane-top sorting, Ctrl+N/O base shortcuts and the Expression
+Builder embedding — are **slated for later adaptation**, not shelved: they
+fold into the owning stage of this ladder when that stage starts (work
+items are created at stage start, per this section's rule), rather than as
+standalone items today.
+
 ## 17. Crate-split policy — decision record
 
 **Decision (2026-11-07, human-approved):** the workspace keeps its current
