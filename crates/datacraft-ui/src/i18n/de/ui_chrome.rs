@@ -53,6 +53,18 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Forms", "Formulare"),
     ("Home", "Start"),
     ("Import", "Importieren"),
+    ("Source file", "Quelldatei"),
+    ("Load Preview", "Vorschau laden"),
+    ("No preview loaded.", "Keine Vorschau geladen."),
+    ("Target table", "Zieltabelle"),
+    (
+        "The source file is not modified.",
+        "Die Quelldatei wird nicht verändert.",
+    ),
+    (
+        "{total} rows detected — showing the first {shown}",
+        "{total} Zeilen erkannt — die ersten {shown} werden gezeigt",
+    ),
     ("Import File", "Datei importieren"),
     ("Info", "Info"),
     ("Label", "Bezeichnungsfeld"),

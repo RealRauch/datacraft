@@ -152,6 +152,7 @@ impl eframe::App for App {
 
         crate::relationships::mapper_window(self, ui);
         crate::sql_window::sql_window(self, ui);
+        crate::import_window::import_window_ui(self, ui);
         crate::expression_window::expression_window(self, ui);
         crate::password_prompt::password_prompt(self, ui);
     }

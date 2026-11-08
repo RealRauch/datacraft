@@ -26,6 +26,7 @@ pub mod form_design;
 pub mod form_runtime;
 pub mod i18n;
 pub mod icons;
+pub mod import_window;
 pub mod keys;
 pub mod labels;
 pub mod layout_probe;

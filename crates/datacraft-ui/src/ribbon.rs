@@ -350,6 +350,7 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
         "load_design" => Some(Command::LoadDesignDocument {
             path: app.sidecar_path.clone().into(),
         }),
+        "import_file" => Some(Command::ToggleImportWindow),
         "query_sql" => Some(Command::ToggleSqlWindow),
         "query_expression" => Some(Command::ToggleExpressionWindow),
         "query_design" => Some(Command::CreateQuery {
