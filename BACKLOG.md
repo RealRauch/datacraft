@@ -60,24 +60,6 @@
 - **Approach:** Make the skip observable — `#[ignore]` with the reason plus the CI job's `--ignored` filter, or a clearly named skip path whose output states "skipped".
 - **Acceptance:** A local skip is identifiable as skipped; the ubuntu oracle job still runs the real comparison; canonical verification set green.
 
-### [ ] L32 — Enforce the crate dependency boundaries with a CI guard script — 🟢
-- **Location:** `.github/workflows/ci.yml` (new step/job), `crates/*/Cargo.toml`.
-- **Problem:** The workspace dependency direction (AGENTS §1: only the binary composition roots may name `datacraft-storage`/`datacraft-csv`; the graph is acyclic) is enforced by review discipline only — drift is caught by humans, not by the pipeline (2026-11-07 repo review).
-- **Approach:** A small guard script that parses the workspace manifests, builds the crate graph and fails on cycles or on storage/csv dependencies outside the whitelisted binary targets; wire it into `ci.yml` with a self-test (a deliberately broken boundary must fail the guard). Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
-- **Acceptance:** The guard runs on CI and fails on an injected boundary violation; the current tree passes; AGENTS §1 cross-references the guard.
-
-### [ ] L33 — Gate rustdoc warnings in CI — 🟢
-- **Location:** `.github/workflows/ci.yml` (new step), workspace crate docs.
-- **Problem:** The public API documentation can rot silently — nothing fails the pipeline on broken intra-doc links or doc warnings today (2026-11-07 repo review).
-- **Approach:** A CI step running `cargo doc --workspace --all-features --no-deps --locked` with `RUSTDOCFLAGS: -D warnings`; fix the warnings the first run surfaces. Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
-- **Acceptance:** The doc build runs green on CI; a deliberately broken intra-doc link fails the job.
-
-### [ ] L34 — CLI smoke step in the CI test matrix — 🟢
-- **Location:** `.github/workflows/ci.yml` (test job), `crates/datacraft-cli`.
-- **Problem:** CI compiles and tests the CLI crate but never executes the shipped binary end-to-end; a broken startup path is only discovered on tag builds (the packaged smoke in `release.yml`) — late and expensive (2026-11-07 repo review).
-- **Approach:** After the tests, run a smoke step on each matrix OS, e.g. `cargo run --locked --no-default-features -p datacraft-cli -- --version` plus a fixture `open` against `fixtures/testV2000.mdb`; keep it fast. Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
-- **Acceptance:** The smoke step runs on ubuntu+windows; a startup or open-path regression fails the push instead of the release.
-
 ### [ ] L35 — Deterministic fixture generators alongside the binary pins — 🟢
 - **Location:** `crates/datacraft-jet/tests/` or a new testkit helper, `crates/datacraft-storage/examples/`.
 - **Problem:** The binary fixtures are immutable, hash-pinned evidence, but there is no code path that regenerates equivalent databases from scratch — the create/write suites lean on the committed samples and the template, so canonical-create coverage beyond the pinned bytes is thin (2026-11-07 repo review).
@@ -302,3 +284,6 @@
 - L29 — German step titles in the PROGRESS permanent index — done (done in 1a586a2 — step 55.4: the permanent progress index is English (24 rows translated in place; the archived detail blocks of phases 11/12+ stay untouched per the archive rule).)
 - M48 — Report designer cannot set grouping (SetReportGrouping) — done (delivered at step 41.4 (the picker, both-direction kittest pins and the catalog entries); reconciled 2026-11-08 at step 57.1 — the item stayed open past its delivery and the Phase 48 gate missed the ROADMAP §16 reconciliation note; closed with no code change, the grouping suite green (2/2).)
 - M50 — Import File: import an external file as new tables into the open database — done (done across f6caf40 (red), 26c0e43 (core chain), c828dd8 (driver refactor), 7e6f487 (window state + preview), 4bdbe25 (UI window), b558ae4 (pins + spec), f9d8d51 (docs) — phase 58: External Data > Import File imports a CSV as a table of the open Jet4/SQLite database over one bus chain (parse + L7 inference in core, shared with the driver; the window previews fields/rows; capability-gated; the source stays byte-identical). The csv workspace crate became a datacraft-core dependency (Medium gate, released with the phase).)
+- L32 — Enforce the crate dependency boundaries with a CI guard script — done (done in b1905d6 — step 59.1: .github/scripts/dependency_boundaries.py enforces acyclicity and the composition-root direction over the runtime graph, with a mandatory self-test (which caught two fixture bugs of its own before shipping); the ci.yml boundaries job runs self-test then the real check; AGENTS §1 cross-references the guard.)
+- L33 — Gate rustdoc warnings in CI — done (done in a74e640 + c90ea69 — step 59.2: the docs job runs cargo doc --workspace --all-features --no-deps --locked with RUSTDOCFLAGS=-D warnings; the first local run surfaced exactly one broken intra-doc link (create.rs → the private FRESH_TEMPLATE), fixed; green locally.)
+- L34 — CLI smoke step in the CI test matrix — done (done in 1bc2337 — step 59.3: the CLI smoke runs the shipped binary's fixture open --json on both matrix OSes after the tests; the item's --version example command does not exist in the CLI vocabulary — the open smoke is the stronger startup+bus+port+wire check; verified locally (exit 0).)

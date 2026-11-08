@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 59 — CI hardening
-
-**Scope (Steps):**
-
-- **59.1 Crate dependency-boundary guard script in CI (L32, High gate: needs the human release)**
-- **59.2 Gate rustdoc warnings with -D warnings (L33, High gate)**
-- **59.3 CLI smoke step on both matrix OSes (L34, High gate)**
-- **59.4 Phase 59 Quality Gate Review**
 
 
 
@@ -341,4 +333,4 @@
 | 59.1 | Crate dependency-boundary guard script in CI (L32, High gate: needs the human release) | ✅ |
 | 59.2 | Gate rustdoc warnings with -D warnings (L33, High gate) | ✅ |
 | 59.3 | CLI smoke step on both matrix OSes (L34, High gate) | ✅ |
-| 59.4 | Phase 59 Quality Gate Review | 🔄 |
+| 59.4 | Phase 59 Quality Gate Review | ✅ |

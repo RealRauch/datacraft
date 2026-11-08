@@ -747,3 +747,15 @@ before the tag.
 - **58.2 Capability-disabled rendering pin + source-file byte-identity (M50)**
 - **58.3 Phase 58 Quality Gate Review**
 **Verification:** Canonical set green on the final tree: fmt, clippy -D warnings, 162 workspace suites (the two import kittests included), file-size gate clean after the L30 splits; local coverage parse 94.72% (the binding gate is the ubuntu CI run this push triggers). Changelog entry per the L38 cadence; README feature row added. (checkpoint: f9d8d51)
+
+---
+
+### Phase 59 — CI hardening
+
+**Scope (Steps):**
+
+- **59.1 Crate dependency-boundary guard script in CI (L32, High gate: needs the human release)**
+- **59.2 Gate rustdoc warnings with -D warnings (L33, High gate)**
+- **59.3 CLI smoke step on both matrix OSes (L34, High gate)**
+- **59.4 Phase 59 Quality Gate Review**
+**Verification:** Every gate green on the final tree — including the three new ones run locally (guard self-test + tree check, rustdoc -D warnings, CLI smoke exit 0) — plus fmt, clippy, 162 suites, file-size gate. AGENTS §1 cross-references the guard; the README CI row and the PUBLISHING required-checks list carry the new gates. No changelog entry per policy (no crate surface). (checkpoint: 68de28f)

@@ -1701,3 +1701,30 @@
 - **Approach:** An Access-like Import File flow in the External Data ribbon group: file picker (CSV first, ADR-7 driver model makes later sources additive), a preview of rows and inferred column types, a target table name field, then create + fill the table through the existing write path (create-table and InsertRow commands, one dispatch chain) — never touching the source file. Capability-gated on the create/insert affordances with localized disabled reasons.
 - **Acceptance:** Importing a CSV into an open Jet4 and SQLite database creates and fills the table over the real write path; the source file stays byte-identical; capability-disabled rendering is pinned by a kittest; canonical verification set green.
 - **Done:** done across f6caf40 (red), 26c0e43 (core chain), c828dd8 (driver refactor), 7e6f487 (window state + preview), 4bdbe25 (UI window), b558ae4 (pins + spec), f9d8d51 (docs) — phase 58: External Data > Import File imports a CSV as a table of the open Jet4/SQLite database over one bus chain (parse + L7 inference in core, shared with the driver; the window previews fields/rows; capability-gated; the source stays byte-identical). The csv workspace crate became a datacraft-core dependency (Medium gate, released with the phase).
+
+---
+
+### [x] L32 — Enforce the crate dependency boundaries with a CI guard script — 🟢
+- **Location:** `.github/workflows/ci.yml` (new step/job), `crates/*/Cargo.toml`.
+- **Problem:** The workspace dependency direction (AGENTS §1: only the binary composition roots may name `datacraft-storage`/`datacraft-csv`; the graph is acyclic) is enforced by review discipline only — drift is caught by humans, not by the pipeline (2026-11-07 repo review).
+- **Approach:** A small guard script that parses the workspace manifests, builds the crate graph and fails on cycles or on storage/csv dependencies outside the whitelisted binary targets; wire it into `ci.yml` with a self-test (a deliberately broken boundary must fail the guard). Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
+- **Acceptance:** The guard runs on CI and fails on an injected boundary violation; the current tree passes; AGENTS §1 cross-references the guard.
+- **Done:** done in b1905d6 — step 59.1: .github/scripts/dependency_boundaries.py enforces acyclicity and the composition-root direction over the runtime graph, with a mandatory self-test (which caught two fixture bugs of its own before shipping); the ci.yml boundaries job runs self-test then the real check; AGENTS §1 cross-references the guard.
+
+---
+
+### [x] L33 — Gate rustdoc warnings in CI — 🟢
+- **Location:** `.github/workflows/ci.yml` (new step), workspace crate docs.
+- **Problem:** The public API documentation can rot silently — nothing fails the pipeline on broken intra-doc links or doc warnings today (2026-11-07 repo review).
+- **Approach:** A CI step running `cargo doc --workspace --all-features --no-deps --locked` with `RUSTDOCFLAGS: -D warnings`; fix the warnings the first run surfaces. Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
+- **Acceptance:** The doc build runs green on CI; a deliberately broken intra-doc link fails the job.
+- **Done:** done in a74e640 + c90ea69 — step 59.2: the docs job runs cargo doc --workspace --all-features --no-deps --locked with RUSTDOCFLAGS=-D warnings; the first local run surfaced exactly one broken intra-doc link (create.rs → the private FRESH_TEMPLATE), fixed; green locally.
+
+---
+
+### [x] L34 — CLI smoke step in the CI test matrix — 🟢
+- **Location:** `.github/workflows/ci.yml` (test job), `crates/datacraft-cli`.
+- **Problem:** CI compiles and tests the CLI crate but never executes the shipped binary end-to-end; a broken startup path is only discovered on tag builds (the packaged smoke in `release.yml`) — late and expensive (2026-11-07 repo review).
+- **Approach:** After the tests, run a smoke step on each matrix OS, e.g. `cargo run --locked --no-default-features -p datacraft-cli -- --version` plus a fixture `open` against `fixtures/testV2000.mdb`; keep it fast. Note: touching `.github/workflows/*` is High-class — explicit human release required before implementation.
+- **Acceptance:** The smoke step runs on ubuntu+windows; a startup or open-path regression fails the push instead of the release.
+- **Done:** done in 1bc2337 — step 59.3: the CLI smoke runs the shipped binary's fixture open --json on both matrix OSes after the tests; the item's --version example command does not exist in the CLI vocabulary — the open smoke is the stronger startup+bus+port+wire check; verified locally (exit 0).
