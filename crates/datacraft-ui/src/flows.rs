@@ -264,7 +264,7 @@ impl App {
             (
                 definition.name.clone(),
                 definition.fields.get(col).map(|field| {
-                    datacraft_core::row_edit::parse_value(&field.kind, &text)
+                    datacraft_core::row_edit::parse_field_value(field, &text)
                         .map_err(|reason| format!("field {:?}: {reason}", field.name))
                 }),
                 definition.fields.len(),

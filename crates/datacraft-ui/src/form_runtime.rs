@@ -1,14 +1,16 @@
-//! Form runtime view (step 8.3, item H30).
+//! Form runtime view (step 8.3, item H30; phase 64, items M68/M70; ADR-8).
 //!
-//! Renders bound control values for the current record; navigation is
-//! per-tab UI state, values come from the per-tab row cache (the source
-//! table's rows). Read-only — bound-field edits land with the Jet update
-//! path (step 11.10, BACKLOG H40); the view says so instead of pretending.
+//! Renders bound control values for the current record. Typing edits a
+//! per-record buffer (Enter or focus loss stages the control value; the
+//! record is written with exactly one `UpdateRow` when it is left). `Esc`
+//! reverts the field first, the whole record on the second press.
 
 use eframe::egui;
 
+use datacraft_core::availability::DisabledReason;
 use datacraft_core::form::{ControlDef, ControlKind};
-use datacraft_core::schema::FieldValue;
+use datacraft_core::ids::TabId;
+use datacraft_core::schema::{FieldDef, FieldValue};
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
@@ -35,16 +37,14 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         });
         return;
     }
-    let field_names: Vec<String> = snapshot
-        .database
-        .as_ref()
-        .and_then(|db| db.tables.iter().find(|t| t.name == form.source))
-        .map(|t| t.fields.iter().map(|f| f.name.clone()).collect())
+    let fields = app
+        .table_definition(&form.source)
+        .map(|table| table.fields.clone())
         .unwrap_or_default();
     let index_of = |name: &str| {
-        field_names
+        fields
             .iter()
-            .position(|f| f.eq_ignore_ascii_case(name))
+            .position(|f| f.name.eq_ignore_ascii_case(name))
     };
     let Some(rows) = app.rows_for(tab.id) else {
         ui.label(t("Loading rows…"));
@@ -58,8 +58,17 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let row_count = rows.len();
     let record = app.form_record(tab.id).min(row_count - 1);
     let row = rows[record].clone();
+    // ADR-8: a read-only source keeps the inert rendering and names why.
+    let restriction =
+        crate::availability::restricted(&snapshot, datacraft_core::availability::ids::EDIT_RECORD)
+            .copied();
 
+    let mut esc_handled = false;
     egui::ScrollArea::vertical()
+        // Reserve the navigation row: an unconstrained scroll area takes
+        // the whole available height and pushes the record controls below
+        // the viewport (found by the editing kittest).
+        .max_height((ui.available_height() - 32.0).max(80.0))
         .auto_shrink([false, false])
         .show(ui, |ui| {
             // The designed canvas (step 46.1, M57): the runtime paints
@@ -98,15 +107,34 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                                 form.name.to_lowercase(),
                                 control.name.to_lowercase()
                             )));
-                        render_control(&mut control_ui, control, &row, &index_of);
+                        render_control(
+                            &mut control_ui,
+                            app,
+                            tab.id,
+                            control,
+                            &row,
+                            &fields,
+                            &index_of,
+                            record,
+                            restriction,
+                            &mut esc_handled,
+                        );
                     },
                 );
             }
         });
 
+    // Esc outside a focused bound control reverts the record: Access
+    // commits the control on focus loss, so the first Esc then applies to
+    // the record (support: "pressing the Esc key will consequently undo
+    // the record").
+    if !esc_handled && ui.input(|input| input.key_pressed(egui::Key::Escape)) {
+        app.revert_form_record(tab.id);
+    }
+
     ui.separator();
     ui.horizontal(|ui| {
-        if ui.button(t("< Prev")).clicked() && record > 0 {
+        if ui.button(t("< Prev")).clicked() && record > 0 && app.flush_form_edits(tab.id) {
             app.set_form_record(tab.id, record - 1);
         }
         ui.label(tr(
@@ -116,41 +144,55 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 ("total", &row_count.to_string()),
             ],
         ));
-        if ui.button(t("Next >")).clicked() && record + 1 < row_count {
+        if ui.button(t("Next >")).clicked()
+            && record + 1 < row_count
+            && app.flush_form_edits(tab.id)
+        {
             app.set_form_record(tab.id, record + 1);
         }
     });
-    ui.label(
-        egui::RichText::new(t(
-            "Read-only view — bound-field edits land with the Jet update path (step 11.10, BACKLOG H40).",
-        ))
-        .small(),
-    );
 }
 
 /// One control at runtime (bound fields show the record's value).
+#[allow(clippy::too_many_arguments)]
 fn render_control(
     ui: &mut egui::Ui,
+    app: &mut App,
+    tab_id: TabId,
     control: &ControlDef,
     row: &[FieldValue],
+    fields: &[FieldDef],
     index_of: &dyn Fn(&str) -> Option<usize>,
+    record: usize,
+    restriction: Option<DisabledReason>,
+    esc_handled: &mut bool,
 ) {
     match &control.kind {
         ControlKind::Label { text } => {
             ui.strong(text);
         }
         ControlKind::TextBox { bound_field } => {
-            let value = bound_field
-                .as_deref()
-                .and_then(index_of)
-                .map(|i| value_label(&row[i]))
-                .unwrap_or_default();
-            // The stored rect's size (step 46.1, M57) — the designed
-            // box, not the old fixed 200x22.
-            ui.add_sized(
-                [ui.max_rect().width(), ui.max_rect().height()],
-                egui::TextEdit::singleline(&mut value.clone()).interactive(false),
-            );
+            let col = bound_field.as_deref().and_then(index_of);
+            let value = col.map(|i| value_label(&row[i])).unwrap_or_default();
+            if let (Some(col), Some(field)) = (col, col.map(|i| &fields[i])) {
+                text_box_ui(
+                    ui,
+                    app,
+                    tab_id,
+                    control,
+                    field,
+                    &value,
+                    col,
+                    record,
+                    restriction,
+                    esc_handled,
+                );
+            } else {
+                ui.add_sized(
+                    [ui.max_rect().width(), ui.max_rect().height()],
+                    egui::TextEdit::singleline(&mut value.clone()).interactive(false),
+                );
+            }
         }
         ControlKind::CheckBox { bound_field } => {
             let checked = bound_field
@@ -169,10 +211,102 @@ fn render_control(
             ui.weak(value);
         }
         ControlKind::Button { caption } => {
-            let _ = ui.button(caption); // actions land with the write path (H9)
+            let _ = ui.button(caption);
         }
         ControlKind::SubForm { form } => {
             ui.weak(tr("[subform: {form}]", &[("form", form)]));
+        }
+    }
+}
+
+/// The editable bound text box (M68): Enter/focus loss stages the value,
+/// Esc reverts the field (second press: the record). Read-only sources
+/// render inert with the availability reason on hover.
+#[allow(clippy::too_many_arguments)]
+fn text_box_ui(
+    ui: &mut egui::Ui,
+    app: &mut App,
+    tab_id: TabId,
+    control: &ControlDef,
+    field: &FieldDef,
+    base: &str,
+    col: usize,
+    record: usize,
+    restriction: Option<DisabledReason>,
+    esc_handled: &mut bool,
+) {
+    let size = [ui.max_rect().width(), ui.max_rect().height()];
+    let displayed = app
+        .form_pending_value(tab_id, col)
+        .map(value_label)
+        .unwrap_or_else(|| base.to_owned());
+    let mut text = app
+        .form_draft(tab_id, col)
+        .map(str::to_owned)
+        .unwrap_or(displayed);
+    if let Some(reason) = restriction {
+        let response = ui
+            .add_sized(
+                size,
+                egui::TextEdit::singleline(&mut text).interactive(false),
+            )
+            .accessible_name(control.name.clone());
+        response.on_hover_text(crate::availability::reason_text(&reason));
+        return;
+    }
+    let response = ui
+        .add_sized(size, egui::TextEdit::singleline(&mut text))
+        .accessible_name(control.name.clone());
+    if response.changed() {
+        app.set_form_draft(tab_id, col, text.clone());
+    }
+    if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Escape)) {
+        *esc_handled = true;
+        if app.form_esc_armed(tab_id) {
+            app.revert_form_record(tab_id);
+        } else {
+            app.revert_form_field(tab_id, col);
+        }
+        return;
+    }
+    let committed = response.lost_focus()
+        || (response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)));
+    if committed {
+        commit_text(app, tab_id, control, field, col, record, &text);
+    }
+}
+
+/// Parses and stages one typed value; a failure keeps the draft visible
+/// and reports precisely.
+fn commit_text(
+    app: &mut App,
+    tab_id: TabId,
+    control: &ControlDef,
+    field: &FieldDef,
+    col: usize,
+    record: usize,
+    text: &str,
+) {
+    match datacraft_core::row_edit::parse_field_value(field, text) {
+        Ok(value) => {
+            let current = app.form_pending_value(tab_id, col).cloned().or_else(|| {
+                app.rows_for(tab_id)
+                    .and_then(|rows| rows.get(record))
+                    .and_then(|values| values.get(col))
+                    .cloned()
+            });
+            if current.as_ref() != Some(&value) {
+                app.stage_form_value(tab_id, record, col, value);
+            }
+            app.clear_form_draft(tab_id, col);
+        }
+        Err(reason) => {
+            app.last_error = Some(tr(
+                "Control {control}: {reason}",
+                &[("control", &control.name), ("reason", &reason)],
+            ));
+            app.last_notice = None;
+            // The draft stays: the typed text remains visible.
         }
     }
 }

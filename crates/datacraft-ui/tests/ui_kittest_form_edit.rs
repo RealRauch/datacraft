@@ -75,7 +75,7 @@ fn form_app() -> (App, TabId) {
     for (name, bound, x) in [
         ("NameBox", "Name", 32.0),
         ("EmailBox", "Email", 240.0),
-        ("IdBox", "Id", 32.0),
+        ("IdBox", "Id", 448.0),
     ] {
         app.dispatch(Command::AddFormControl {
             form: "Form1".into(),
@@ -114,12 +114,11 @@ fn cached(harness: &Harness<'static, App>, tab: TabId, row: usize, col: usize) -
         .unwrap_or_default()
 }
 
-/// Clicks the `nth` editable text input (canvas order: Name, Email, Id).
-fn click_input(harness: &mut Harness<'static, App>, nth: usize) {
-    let inputs = harness.get_all_by_role(egui::accesskit::Role::TextInput);
-    inputs
-        .get(nth)
-        .unwrap_or_else(|| panic!("expected at least {} text inputs", nth + 1))
+/// Clicks the editable text input named after its control (accessibility
+/// name set by the runtime).
+fn click_input(harness: &mut Harness<'static, App>, name: &str) {
+    harness
+        .get_by_role_and_label(egui::accesskit::Role::TextInput, name)
         .click();
     harness.run();
 }
@@ -139,8 +138,14 @@ fn an_edit_is_buffered_until_the_record_is_left() {
     let mut harness = form_harness(app);
     harness.run();
 
-    click_input(&mut harness, 0);
+    click_input(&mut harness, "NameBox");
     type_into(&mut harness, "X");
+    eprintln!(
+        "enter: pending={} err={:?} undo={}",
+        harness.state().form_has_pending(tab),
+        harness.state().last_error(),
+        harness.state().snapshot().undo_depth
+    );
     assert_eq!(
         harness.state().snapshot().undo_depth,
         0,
@@ -149,7 +154,21 @@ fn an_edit_is_buffered_until_the_record_is_left() {
 
     harness.get_by_label("Next >").click();
     harness.run();
+    eprintln!(
+        "next1: pending={} err={:?} undo={} rec={}",
+        harness.state().form_has_pending(tab),
+        harness.state().last_error(),
+        harness.state().snapshot().undo_depth,
+        harness.state().form_record(tab)
+    );
     harness.run();
+    eprintln!(
+        "next2: pending={} err={:?} undo={} rec={}",
+        harness.state().form_has_pending(tab),
+        harness.state().last_error(),
+        harness.state().snapshot().undo_depth,
+        harness.state().form_record(tab)
+    );
 
     assert_eq!(
         harness.state().snapshot().undo_depth,
@@ -170,9 +189,9 @@ fn escape_once_reverts_the_field_and_twice_the_record() {
     harness.run();
 
     // Two fields buffered on the same record.
-    click_input(&mut harness, 0);
+    click_input(&mut harness, "NameBox");
     type_into(&mut harness, "X");
-    click_input(&mut harness, 1);
+    click_input(&mut harness, "EmailBox");
     type_into(&mut harness, "Y");
 
     // First Esc reverts the focused field only.
@@ -200,7 +219,7 @@ fn a_mistyped_value_keeps_the_buffer_and_reports_precisely() {
     let mut harness = form_harness(app);
     harness.run();
 
-    click_input(&mut harness, 2);
+    click_input(&mut harness, "IdBox");
     type_into(&mut harness, "abc");
 
     let error = harness
@@ -225,4 +244,28 @@ fn a_mistyped_value_keeps_the_buffer_and_reports_precisely() {
         "the buffered text stays visible: {values:?}"
     );
     assert_eq!(cached(&harness, tab, 0, 0), "1");
+}
+
+#[test]
+fn closing_the_tab_writes_the_buffered_record() {
+    let (app, tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+
+    click_input(&mut harness, "NameBox");
+    type_into(&mut harness, "Z");
+    assert_eq!(harness.state().snapshot().undo_depth, 0);
+
+    harness
+        .state_mut()
+        .dispatch(Command::CloseTab { tab_id: tab });
+    assert_eq!(
+        harness.state().snapshot().undo_depth,
+        1,
+        "closing the tab saves the pending record"
+    );
+    assert!(
+        harness.state().last_error().is_none(),
+        "the save on close succeeds"
+    );
 }

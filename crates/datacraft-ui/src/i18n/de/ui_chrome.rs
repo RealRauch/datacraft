@@ -144,6 +144,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Control source", "Steuerelementinhalt"),
     ("Control {name}", "Steuerelement {name}"),
     (
+        "Control {control}: {reason}",
+        "Steuerelement {control}: {reason}",
+    ),
+    (
         "The text renders when the view runs.",
         "Der Text erscheint, wenn die Ansicht läuft.",
     ),

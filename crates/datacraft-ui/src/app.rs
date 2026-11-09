@@ -19,6 +19,7 @@ use datacraft_core::schema::FieldValue;
 use datacraft_core::snapshot::UiStateSnapshot;
 
 mod caches;
+mod form_edit;
 mod grid_state;
 
 /// Root application state.
@@ -55,6 +56,8 @@ pub struct App {
     drags: HashMap<(TabId, String), (f32, f32)>,
     /// Current runtime record index per form tab.
     form_record: HashMap<TabId, usize>,
+    /// Per-record edit buffer of every form tab (phase 64, M68; ADR-8).
+    form_edit: form_edit::FormEditState,
     /// Selected design-grid field index per tab.
     design_selection: HashMap<TabId, usize>,
     /// Buffered new-field name per design tab (step 24.3, M9).
@@ -183,6 +186,7 @@ impl App {
             load_errors: HashMap::new(),
             drags: HashMap::new(),
             form_record: HashMap::new(),
+            form_edit: form_edit::FormEditState::default(),
             design_selection: HashMap::new(),
             design_new_field: HashMap::new(),
             filter_drafts: HashMap::new(),
@@ -223,6 +227,12 @@ impl App {
 
     /// Applies one command and refreshes the rendered snapshot and caches.
     pub fn dispatch(&mut self, command: Command) -> Vec<Event> {
+        // A form record is written before its tab (or the database)
+        // closes — Access saves the record on close (ADR-8). A failed
+        // write keeps the tab open with the buffer intact.
+        if !self.guard_close(&command) {
+            return Vec::new();
+        }
         let events = self.core.dispatch(command);
         self.snapshot = self.core.inspect();
         self.last_error = events.iter().find_map(|event| match event {

@@ -3,10 +3,37 @@
 //! The datasheet's new-record row collects text; this module turns those
 //! strings into typed domain values. Parsing is strict — a mistyped cell
 //! never becomes a silent Null — and follows Access conventions: an empty
-//! cell is Null, dates use the OLE epoch 1899-12-30, and currency/decimal
-//! values are scaled integers.
+//! cell is Null unless the field requires a zero-length string, dates use
+//! the OLE epoch 1899-12-30, and currency/decimal values are scaled
+//! integers.
 
 use crate::schema::{FieldDef, FieldKind, FieldValue, NumericKind};
+
+/// Parses one cell against its field, applying Access's zero-length rule
+/// (ADR-8): a blank entry is `Null`, except on a field with `Required`
+/// **and** `AllowZeroLength` set, where it stores a zero-length string.
+/// The literal `""` stores a zero-length string where allowed and is
+/// rejected elsewhere.
+pub fn parse_field_value(field: &FieldDef, text: &str) -> Result<FieldValue, String> {
+    let text_field = matches!(field.kind, FieldKind::Text { .. } | FieldKind::Memo);
+    let zero_length = text_field && field.properties.allow_zero_length;
+    if text.trim().is_empty() {
+        if zero_length && field.properties.required {
+            return Ok(FieldValue::Text(String::new()));
+        }
+        return Ok(FieldValue::Null);
+    }
+    if text_field && text == "\"\"" {
+        if zero_length {
+            return Ok(FieldValue::Text(String::new()));
+        }
+        return Err(format!(
+            "field {:?} does not allow zero-length strings",
+            field.name
+        ));
+    }
+    parse_value(&field.kind, text)
+}
 
 /// Parses one datasheet cell into a domain value of `kind`.
 pub fn parse_value(kind: &FieldKind, text: &str) -> Result<FieldValue, String> {
@@ -53,7 +80,7 @@ pub fn row_values(fields: &[FieldDef], cells: &[String]) -> Result<Vec<FieldValu
         .iter()
         .zip(cells)
         .map(|(field, cell)| {
-            parse_value(&field.kind, cell)
+            parse_field_value(field, cell)
                 .map_err(|reason| format!("field {:?}: {reason}", field.name))
         })
         .collect()

@@ -91,10 +91,6 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Query no longer exists", "Abfrage existiert nicht mehr"),
     ("Query: {name}", "Abfrage: {name}"),
     ("Ran — {rows}", "Ausgeführt — {rows}"),
-    (
-        "Read-only view — bound-field edits land with the Jet update path (step 11.10, BACKLOG H40).",
-        "Schreibgeschützte Ansicht — das Bearbeiten gebundener Felder kommt mit dem Jet-Update-Pfad (Schritt 11.10, BACKLOG H40).",
-    ),
     ("Add Field", "Feld hinzufügen"),
     ("Delete", "Löschen"),
     ("New field", "Neues Feld"),
