@@ -9,7 +9,7 @@ use datacraft_core::ObjectId;
 use datacraft_core::ObjectKind;
 use datacraft_core::canvas::Rect;
 use datacraft_core::command::Command;
-use datacraft_core::form::{ControlDef, ControlKind};
+use datacraft_core::form::{ControlDef, ControlKind, FormFilter};
 use datacraft_core::ids::TabId;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
@@ -96,6 +96,12 @@ fn form_app() -> (App, TabId) {
                 FieldValue::Text("Mika".to_owned()),
                 FieldValue::Text("mika@example.com".to_owned()),
                 FieldValue::Null,
+            ],
+            vec![
+                FieldValue::Integer(3),
+                FieldValue::Text("Lars".to_owned()),
+                FieldValue::Text("lars@example.com".to_owned()),
+                FieldValue::Boolean(false),
             ],
         ],
     );
@@ -418,4 +424,56 @@ fn a_combo_accepts_free_text() {
     harness.run();
     assert_eq!(harness.state().snapshot().undo_depth, 1);
     assert_eq!(cached(&harness, tab, 0, 1), "LenaX");
+}
+
+fn displayed(harness: &Harness<'static, App>, name: &str) -> String {
+    harness
+        .get_by_role_and_label(egui::accesskit::Role::TextInput, name)
+        .accesskit_node()
+        .value()
+        .unwrap_or_default()
+        .to_owned()
+}
+
+#[test]
+fn a_form_filter_narrows_the_record_set_and_clears() {
+    let (app, _tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+    assert_eq!(displayed(&harness, "NameBox"), "Lena");
+
+    harness
+        .state_mut()
+        .dispatch(Command::SetFormFilter(FormFilter {
+            form: "Form1".into(),
+            criteria: Some("[Name] Like 'L*'".into()),
+        }));
+    harness.run();
+    assert!(
+        tree_contains(&harness, "Record 1 of 2"),
+        "the filtered count drives the navigation box"
+    );
+    assert_eq!(displayed(&harness, "NameBox"), "Lena");
+
+    harness.get_by_label("Next >").click();
+    harness.run();
+    assert!(tree_contains(&harness, "Record 2 of 2"));
+    assert_eq!(
+        displayed(&harness, "NameBox"),
+        "Lars",
+        "navigation stays inside the filtered set"
+    );
+
+    harness.get_by_label("Clear filter").click();
+    harness.run();
+    assert!(tree_contains(&harness, "Record 1 of 3"));
+    assert_eq!(displayed(&harness, "NameBox"), "Lena");
+}
+
+fn tree_contains(harness: &Harness<'static, App>, needle: &str) -> bool {
+    harness.root().children_recursive().any(|node| {
+        let node = node.accesskit_node();
+        node.label().is_some_and(|label| label.contains(needle))
+            || node.value().is_some_and(|value| value.contains(needle))
+    })
 }
