@@ -513,6 +513,17 @@ tracked as M68 (editable bound fields — the update path exists, only the
 wiring is missing) and M69 (a button action model — decision needed first;
 macros/VBA stay out per ADR-2).
 
+**Phase 64 target (Access-aligned, 2026-11-09).** The v0.1.0 matrix above
+stays the historical release record. Phase 64 closes M68, M69, M70 and M71
+under ADR-8 (§17 of `docs/ARCHITECTURE.md`), verified against the Microsoft
+Access documentation: bound fields edit through a per-record buffer (`Esc`
+once = field, twice = record); empty entries follow `Required`/
+`AllowZeroLength`; checkboxes are two-state on Boolean (Null shows as No);
+combos show every row source row including duplicates and accept free entry;
+buttons carry an action (open form/report, run query, apply filter), stay
+enabled without one and report precisely on click; filters are form-scoped
+WHERE predicates, separate from the datasheet.
+
 **Principles binding every stage:**
 
 - **No affordance without feedback.** A new control ships with visible state

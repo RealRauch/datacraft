@@ -122,7 +122,8 @@ by design its equivalent is the immediate row commands
 (`InsertRow`/`UpdateRow`/`DeleteRow`) plus `UndoWrite`/`RedoWrite` (a
 separate bounded history in `undo.rs`, item U14, not the journal
 tokens). Nothing records this split in the command enum beyond the doc
-comments.
+comments. The form runtime's data-entry and button-action model is ADR-8
+(§17).
 
 ```rust
 /// Every user-visible action, GUI or agent, is exactly one command.
@@ -624,3 +625,83 @@ model — rejected: agents and the UI cannot adapt, and silently non-atomic
 batches stay invisible; (b) an out-of-process plugin protocol — rejected for
 now: it adds ABI/IPC surface against the no-async, pure-Rust constraints;
 in-process out-of-tree crates give the same extension point without it.
+
+## 17. Form runtime data entry & button actions — decision record
+
+**Decision record (ADR-8, 2026-11-09, human-approved): the form runtime
+follows Microsoft Access's bound-control semantics wherever the command
+bus can express them; divergences are deliberate and named.** The decisions
+were verified against the Microsoft Access documentation (links below) before
+the Phase 64 release; the Phase 64 steps implement exactly this record.
+
+**Decisions:**
+
+1. **Record-level commit.** Typing edits a per-record buffer; exactly one
+   `UpdateRow` is dispatched when the record is left (navigation, tab close,
+   database close). `Esc` once reverts the current control, `Esc` twice
+   reverts the whole record. Access updates a control on lost focus/Enter/Tab
+   but saves the record when focus leaves the record; the buffer reproduces
+   that two-level model. Per-field immediate writes are rejected — they would
+   make the second `Esc` impossible and persist half-edited records.
+2. **Empty input and zero-length strings.** An empty entry is `Null`; when
+   `Required = Yes` **and** `AllowZeroLength = Yes`, an empty entry and the
+   literal `""` both store a zero-length string. This mirrors Access's
+   `AllowZeroLength`/`Required` table; fields that allow neither reject the
+   entry precisely.
+3. **Checkboxes are two-state on Boolean fields.** `Null` displays as No and
+   a click toggles Yes/No — Access's default `TripleState = False`. A true
+   third state requires a nullable Number field in Access; DataCraft's checkbox
+   binds only to Boolean, so tri-state is out of scope (a future Number-field
+   binding could add it).
+4. **Combo boxes use the Access `Row Source Type = Table/Query` model in its
+   single-column form.** The row source is a table or saved query plus a
+   display field; the list shows **every row in source order, including
+   duplicates** (Access sources are not implicitly `DISTINCT`). Free entry is
+   allowed (`LimitToList = No`): the typed value is stored in the bound field,
+   not in the row source. A bound combo may have an empty row source (empty
+   list, free entry). The displayed value is the stored value — the
+   single-visible-column case of `BoundColumn = 1`; multi-column combos,
+   `BoundColumn` and `ColumnWidths` are out of scope.
+5. **Button actions are a fixed bus vocabulary, not a macro engine.** The
+   actions — open form, open report, run saved query, apply form filter — map
+   onto Access's `OpenForm`/`OpenReport`/`OpenQuery` macro actions and the
+   command-button wizard's tasks. A button without an action stays **enabled**
+   (Access documents no auto-disable); a click answers precisely in the status
+   bar. Deleting a target leaves the reference in place and a later click
+   fails precisely — Access's Name AutoCorrect explicitly does not repair
+   deleted objects. Macros and VBA remain out of scope (ADR-2).
+6. **Filters belong to the form.** `ApplyFilter` sets the object's own `Filter`
+   property; form filters and datasheet filters are independent. DataCraft
+   stores a form-scoped WHERE predicate in core session state, validates its
+   syntax when set and evaluates it per row through the expression service.
+   It never writes into the datasheet's table view state (`SetTableFilter`).
+
+**Consequences:** the sidecar gains additive fields for the button action and
+the combo row source/display field (serde defaults keep existing sidecars
+loadable); the command vocabulary gains one control-data command and one
+form-filter command; `row_edit` gains a field-aware parse path so the
+`Required`/`AllowZeroLength` rule is shared by the datasheet and the form
+runtime; no reference cleanup runs on object deletion.
+
+**Alternatives considered:** per-field immediate writes (rejected — breaks
+Access's record-level `Esc`); always-`Null` empty entries (rejected — loses
+Access's explicit zero-length distinction); driver-dependent checkbox
+tri-state (rejected — Access Yes/No fields are never `Null`); implicit
+`DISTINCT` combo lists (rejected — Access shows the source rows as they are);
+a required combo row source (rejected — Access allows an empty source);
+a shared table filter (rejected — Access separates form and datasheet
+filters); disabled empty buttons (rejected — Access never disables them);
+reference cleanup on delete (rejected — Access leaves the broken reference).
+
+**Access sources (verified 2026-11-09):** [Ways to add, edit, and delete
+records](https://support.microsoft.com/en-us/access/ways-to-add-edit-and-delete-records) ·
+[TextBox.BeforeUpdate](https://learn.microsoft.com/en-us/office/vba/api/access.textbox.beforeupdate-event) ·
+[Control.OldValue](https://learn.microsoft.com/en-us/office/vba/api/access.control.oldvalue) ·
+[AllowZeroLength](https://learn.microsoft.com/en-us/office/vba/access/concepts/miscellaneous/allowzerolength-property) ·
+[CheckBox.TripleState](https://learn.microsoft.com/en-us/office/vba/api/access.checkbox.triplestate) ·
+[ComboBox.LimitToList](https://learn.microsoft.com/en-us/office/vba/api/access.combobox.limittolist) ·
+[ComboBox.BoundColumn](https://learn.microsoft.com/en-us/office/vba/api/access.combobox.boundcolumn) ·
+[ApplyFilter](https://support.microsoft.com/en-us/office/applyfilter-macro-action-10ffd4b3-a5c5-4f49-aa44-d2d4550095d1) ·
+[Form.Filter](https://support.microsoft.com/en-us/access/filter-property) ·
+[CommandButton.OnClick](https://learn.microsoft.com/en-us/office/vba/api/access.commandbutton.onclick) ·
+[Name AutoCorrect](https://support.microsoft.com/en-us/access/set-name-autocorrect-options).
