@@ -24,12 +24,18 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Byte", "Byte"),
     ("Caption", "Beschriftung"),
     ("Clear criteria", "Kriterien löschen"),
+    ("Clear filter", "Filter löschen"),
     ("Combo box", "Kombinationsfeld"),
     ("Complex", "Komplex"),
     ("Criteria:", "Kriterien:"),
     ("Criteria: {criteria}", "Kriterien: {criteria}"),
     ("Currency", "Währung"),
     ("Data Type", "Datentyp"),
+    (
+        "Filter could not be applied: {reason}",
+        "Filter konnte nicht angewendet werden: {reason}",
+    ),
+    ("Filter: {criteria}", "Filter: {criteria}"),
     ("Date/Time", "Datum/Uhrzeit"),
     ("Display field", "Anzeigefeld"),
     (
@@ -101,6 +107,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Delete", "Löschen"),
     ("New field", "Neues Feld"),
     ("No entries", "Keine Einträge"),
+    (
+        "No records match the filter.",
+        "Keine Datensätze entsprechen dem Filter.",
+    ),
     ("Rename", "Umbenennen"),
     (
         "Record {current} of {total}",

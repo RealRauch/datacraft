@@ -35,6 +35,18 @@ pub(crate) struct FormEditState {
     /// Buffered row-source/display-field pair of the designer's combo
     /// panel, keyed by tab and control (phase 64, M70).
     combo_drafts: HashMap<(TabId, String), (String, String)>,
+    /// Row indices of a filtered form record set (phase 64, M71). Absent
+    /// means the filter is off or not computed yet.
+    filtered: HashMap<TabId, Vec<usize>>,
+    /// Precise failure of the last filter evaluation, if any.
+    filter_errors: HashMap<TabId, String>,
+    /// Physical row the runtime showed last, per form tab: keeps the
+    /// cursor on the same record when a filter changes (Access keeps the
+    /// current record visible instead of the ordinal).
+    last_physical: HashMap<TabId, usize>,
+    /// Last row-index set per form tab: the cursor remap only fires when
+    /// the record set itself changed, never on ordinary navigation.
+    last_indices: HashMap<TabId, Vec<usize>>,
 }
 
 impl App {
@@ -175,6 +187,73 @@ impl App {
         self.form_edit
             .combo_drafts
             .remove(&(tab_id, control.to_owned()));
+    }
+
+    /// The form's own filter criteria, if one is applied (ADR-8).
+    pub fn form_filter(&self, form: &str) -> Option<&str> {
+        self.core.form_filter(form)
+    }
+
+    /// The row indices of the form's filtered record set (absent = no
+    /// filter or not computed).
+    pub fn form_row_indices(&self, tab_id: TabId) -> Option<&[usize]> {
+        self.form_edit.filtered.get(&tab_id).map(Vec::as_slice)
+    }
+
+    /// The precise filter-evaluation failure of a form tab, if any.
+    pub fn form_filter_error(&self, tab_id: TabId) -> Option<&str> {
+        self.form_edit
+            .filter_errors
+            .get(&tab_id)
+            .map(String::as_str)
+    }
+
+    /// Stores the filtered row indices and clears the failure.
+    pub(crate) fn set_form_filter_rows(&mut self, tab_id: TabId, indices: Vec<usize>) {
+        self.form_edit.filtered.insert(tab_id, indices);
+        self.form_edit.filter_errors.remove(&tab_id);
+    }
+
+    /// Stores a filter-evaluation failure (no indices are applied).
+    pub(crate) fn set_form_filter_error(&mut self, tab_id: TabId, reason: String) {
+        self.form_edit.filtered.remove(&tab_id);
+        self.form_edit.filter_errors.insert(tab_id, reason);
+    }
+
+    /// Clears the filter cache of a form tab.
+    pub(crate) fn clear_form_filter_rows(&mut self, tab_id: TabId) {
+        self.form_edit.filtered.remove(&tab_id);
+        self.form_edit.filter_errors.remove(&tab_id);
+    }
+
+    /// The record cursor for the current record set: keeps the physical
+    /// record when the filter changes and it is still visible, otherwise
+    /// clamps the stored ordinal.
+    pub fn form_cursor(&mut self, tab_id: TabId, indices: &[usize], row_count: usize) -> usize {
+        let stored = self.form_record(tab_id).min(row_count - 1);
+        let changed = self
+            .form_edit
+            .last_indices
+            .get(&tab_id)
+            .map(|previous| previous.as_slice() != indices)
+            .unwrap_or(true);
+        let position = if changed {
+            self.form_edit
+                .last_physical
+                .get(&tab_id)
+                .copied()
+                .and_then(|physical| indices.iter().position(|index| *index == physical))
+                .unwrap_or(stored)
+        } else {
+            stored
+        };
+        let physical = indices[position];
+        self.form_edit.last_physical.insert(tab_id, physical);
+        self.form_edit.last_indices.insert(tab_id, indices.to_vec());
+        if position != stored {
+            self.set_form_record(tab_id, position);
+        }
+        position
     }
 
     /// Whether the first `Esc` already reverted a field of this record.

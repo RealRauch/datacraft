@@ -139,3 +139,14 @@ pub struct SetControlData {
     /// The new design data.
     pub data: ControlData,
 }
+
+/// Payload of `Command::SetFormFilter` (ADR-8): the form-scoped WHERE
+/// predicate; `None` or a blank string clears the filter
+/// (`ShowAllRecords` semantics).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FormFilter {
+    /// Target form name (case-insensitive).
+    pub form: String,
+    /// Access-compatible WHERE predicate.
+    pub criteria: Option<String>,
+}

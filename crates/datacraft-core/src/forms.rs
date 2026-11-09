@@ -49,21 +49,74 @@ impl crate::core::Core {
     }
 
     pub(crate) fn delete_form(&mut self, name: &str) -> Vec<Event> {
-        let Some(db) = self.state.database.as_mut() else {
-            return failed(
-                FailureCode::NoDatabase,
-                "no database is open — open a database first",
-            );
+        let canonical = {
+            let Some(db) = self.state.database.as_mut() else {
+                return failed(
+                    FailureCode::NoDatabase,
+                    "no database is open — open a database first",
+                );
+            };
+            let Some(pos) = db
+                .forms
+                .iter()
+                .position(|f| f.name.to_lowercase() == name.to_lowercase())
+            else {
+                return failed(FailureCode::NotFound, format!("form {name:?} not found"));
+            };
+            db.forms.remove(pos).name
         };
-        let Some(pos) = db
-            .forms
-            .iter()
-            .position(|f| f.name.to_lowercase() == name.to_lowercase())
-        else {
-            return failed(FailureCode::NotFound, format!("form {name:?} not found"));
-        };
-        let canonical = db.forms.remove(pos).name;
+        self.state.form_filters.remove(&canonical);
         vec![Event::FormDropped { name: canonical }]
+    }
+
+    /// Applies or clears the form's own WHERE filter (phase 64, item M71;
+    /// ADR-8). The predicate is parsed at set time; row evaluation runs
+    /// through [`Core::form_filter_rows`]. The datasheet's table view
+    /// state is never touched.
+    pub(crate) fn set_form_filter(&mut self, filter: &crate::form::FormFilter) -> Vec<Event> {
+        let canonical = {
+            let Some(db) = self.state.database.as_ref() else {
+                return failed(
+                    FailureCode::NoDatabase,
+                    "no database is open — open a database first",
+                );
+            };
+            let Some(form) = db
+                .forms
+                .iter()
+                .find(|form| form.name.eq_ignore_ascii_case(&filter.form))
+            else {
+                return failed(
+                    FailureCode::NotFound,
+                    format!("form {:?} not found", filter.form),
+                );
+            };
+            form.name.clone()
+        };
+        let criteria = filter
+            .criteria
+            .as_deref()
+            .map(str::trim)
+            .filter(|criteria| !criteria.is_empty());
+        if let Some(criteria) = criteria
+            && let Err(error) = crate::expr::parse(criteria)
+        {
+            return failed(
+                FailureCode::InvalidInput,
+                format!("filter criteria {criteria:?}: {error}"),
+            );
+        }
+        match criteria {
+            Some(criteria) => {
+                self.state
+                    .form_filters
+                    .insert(canonical.clone(), criteria.to_owned());
+            }
+            None => {
+                self.state.form_filters.remove(&canonical);
+            }
+        }
+        vec![Event::FormFilterSet { form: canonical }]
     }
 
     pub(crate) fn add_form_field(&mut self, form: &str, field: &str) -> Vec<Event> {

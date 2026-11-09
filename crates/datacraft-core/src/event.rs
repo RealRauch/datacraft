@@ -216,6 +216,11 @@ pub enum Event {
         /// Control name.
         control: String,
     },
+    /// The form's own filter changed (phase 64, item M71; ADR-8).
+    FormFilterSet {
+        /// Canonical form name.
+        form: String,
+    },
     ControlRectSet {
         /// Canonical form name.
         form: String,

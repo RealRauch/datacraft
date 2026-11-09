@@ -153,6 +153,8 @@ impl crate::core::Core {
         if self.state.database.is_none() {
             return failed(FailureCode::NoDatabase, "no database is open");
         }
+        // Form filters never survive their database (ADR-8).
+        self.state.form_filters.clear();
         let mut events: Vec<Event> = self
             .state
             .tabs

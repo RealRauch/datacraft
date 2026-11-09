@@ -466,8 +466,11 @@ fn a_form_filter_narrows_the_record_set_and_clears() {
 
     harness.get_by_label("Clear filter").click();
     harness.run();
-    assert!(tree_contains(&harness, "Record 1 of 3"));
-    assert_eq!(displayed(&harness, "NameBox"), "Lena");
+    assert!(
+        tree_contains(&harness, "Record 3 of 3"),
+        "clearing keeps the current record visible (Access semantics)"
+    );
+    assert_eq!(displayed(&harness, "NameBox"), "Lars");
 }
 
 fn tree_contains(harness: &Harness<'static, App>, needle: &str) -> bool {

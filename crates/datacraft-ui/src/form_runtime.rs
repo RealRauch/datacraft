@@ -8,7 +8,8 @@
 use eframe::egui;
 
 use datacraft_core::availability::DisabledReason;
-use datacraft_core::form::{ControlDef, ControlKind};
+use datacraft_core::command::Command;
+use datacraft_core::form::{ControlDef, ControlKind, FormFilter};
 use datacraft_core::ids::TabId;
 use datacraft_core::schema::{FieldDef, FieldValue};
 use datacraft_core::snapshot::TabSnapshot;
@@ -46,7 +47,26 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             .iter()
             .position(|f| f.name.eq_ignore_ascii_case(name))
     };
-    let Some(rows) = app.rows_for(tab.id) else {
+    // The form's own filter (ADR-8): a chip with the criteria and a
+    // one-click clear; the datasheet's filters stay untouched.
+    if let Some(criteria) = app.form_filter(&form.name).map(str::to_owned) {
+        ui.horizontal(|ui| {
+            ui.label(tr("Filter: {criteria}", &[("criteria", &criteria)]));
+            if ui.button(t("Clear filter")).clicked() {
+                app.dispatch(Command::SetFormFilter(FormFilter {
+                    form: form.name.clone(),
+                    criteria: None,
+                }));
+            }
+        });
+    }
+    if let Some(reason) = app.form_filter_error(tab.id) {
+        ui.label(tr(
+            "Filter could not be applied: {reason}",
+            &[("reason", reason)],
+        ));
+    }
+    let Some(rows) = app.rows_for(tab.id).cloned() else {
         ui.label(t("Loading rows…"));
         return;
     };
@@ -55,9 +75,18 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         return;
     }
 
-    let row_count = rows.len();
-    let record = app.form_record(tab.id).min(row_count - 1);
-    let row = rows[record].clone();
+    let indices = app
+        .form_row_indices(tab.id)
+        .map(<[usize]>::to_vec)
+        .unwrap_or_else(|| (0..rows.len()).collect());
+    let row_count = indices.len();
+    if row_count == 0 {
+        ui.centered_and_justified(|ui| ui.weak(t("No records match the filter.")));
+        return;
+    }
+    let record = app.form_cursor(tab.id, &indices, row_count);
+    let physical = indices[record];
+    let row = rows[physical].clone();
     // ADR-8: a read-only source keeps the inert rendering and names why.
     let restriction =
         crate::availability::restricted(&snapshot, datacraft_core::availability::ids::EDIT_RECORD)
@@ -115,7 +144,7 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                             &row,
                             &fields,
                             &index_of,
-                            record,
+                            physical,
                             restriction,
                             &mut esc_handled,
                         );

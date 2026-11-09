@@ -53,6 +53,12 @@ pub struct AppState {
     /// The composition's driver inventory (step 36.4, M23) — fixed at
     /// core construction from the port's registry; never mutates.
     pub drivers: Vec<crate::port::DriverInfo>,
+    /// Form-scoped filters (criteria text), keyed by canonical form name
+    /// (phase 64, item M71; ADR-8). Deliberately separate from
+    /// `DatabaseState::table_views`: an Access form filter never touches
+    /// the datasheet's own filter.
+    #[serde(default)]
+    pub form_filters: std::collections::BTreeMap<String, String>,
 }
 
 impl AppState {

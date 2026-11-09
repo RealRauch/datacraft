@@ -121,6 +121,64 @@ impl Core {
             .find(|query| query.name.eq_ignore_ascii_case(name))
     }
 
+    /// The form's own filter criteria, if one is applied (phase 64, M71;
+    /// ADR-8). `None` means every source row is visible.
+    pub fn form_filter(&self, form: &str) -> Option<&str> {
+        self.state
+            .form_filters
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(form))
+            .map(|(_, criteria)| criteria.as_str())
+    }
+
+    /// Row indices of a form's filtered record set, evaluated through the
+    /// expression service (Access wildcards included). No filter means
+    /// every row; an evaluation failure is precise and local.
+    pub fn form_filter_rows(
+        &self,
+        form: &str,
+        rows: &[Vec<crate::schema::FieldValue>],
+    ) -> Result<Vec<usize>, String> {
+        let Some(criteria) = self.form_filter(form) else {
+            return Ok((0..rows.len()).collect());
+        };
+        let criteria = criteria.to_owned();
+        let Some(db) = self.state.database.as_ref() else {
+            return Err("no database is open".to_owned());
+        };
+        let Some(form_def) = db.forms.iter().find(|f| f.name.eq_ignore_ascii_case(form)) else {
+            return Err(format!("form {form:?} not found"));
+        };
+        let Some(table) = db
+            .tables
+            .iter()
+            .find(|table| table.name.eq_ignore_ascii_case(&form_def.source))
+        else {
+            return Err(format!("source table {:?} not found", form_def.source));
+        };
+        let expression = crate::expr::parse(&criteria)
+            .map_err(|error| format!("filter {criteria:?}: {error}"))?;
+        let mut indices = Vec::new();
+        for (index, row) in rows.iter().enumerate() {
+            let mut scope = crate::expr::Scope::new();
+            for (field, value) in table.fields.iter().zip(row) {
+                scope.set(field.name.clone(), value.clone());
+            }
+            match expression.evaluate(&scope) {
+                Ok(crate::schema::FieldValue::Boolean(true)) => indices.push(index),
+                Ok(crate::schema::FieldValue::Boolean(false) | crate::schema::FieldValue::Null) => {
+                }
+                Ok(other) => {
+                    return Err(format!(
+                        "filter {criteria:?} evaluated to {other:?}, not a logical value"
+                    ));
+                }
+                Err(error) => return Err(format!("filter {criteria:?}: {error}")),
+            }
+        }
+        Ok(indices)
+    }
+
     /// Runs one gated SQL statement over the loaded tables in a throwaway
     /// in-memory database (step 13.3, H37) — the data seam of the SQL
     /// window. Sources are read through the port and never written.
@@ -266,6 +324,7 @@ impl Core {
                 value,
             } => self.set_control_content(&form, &control, &value),
             Command::SetFormControlData(data) => self.set_control_data(&data),
+            Command::SetFormFilter(filter) => self.set_form_filter(&filter),
             Command::SetFormControlRect {
                 form,
                 control,

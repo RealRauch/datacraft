@@ -5,16 +5,14 @@
 //! Phase 7, form commands in Phase 8); the dispatch mechanism is fixed
 //! here.
 
-use std::path::PathBuf;
-
-use serde::{Deserialize, Serialize};
-
 use crate::ObjectId;
 use crate::canvas::Rect;
 use crate::form::ControlDef;
 use crate::ids::TabId;
 use crate::qbe::{QbeRow, QbeValue, SortOrder};
 use crate::schema::TableDef;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 mod contexts;
 pub use contexts::ExpressionContext;
@@ -383,6 +381,8 @@ pub enum Command {
     },
     /// Sets the kind-specific design data of a placed form control (ADR-8).
     SetFormControlData(crate::form::SetControlData),
+    /// Applies or clears the form's own WHERE filter (phase 64, M71; ADR-8).
+    SetFormFilter(crate::form::FormFilter),
     /// Removes a control.
     DeleteFormControl {
         /// Target form name (case-insensitive).

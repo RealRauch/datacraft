@@ -161,6 +161,29 @@ impl App {
                 }
             }
         }
+        // Form filters (phase 64, M71; ADR-8): recomputed on every pass,
+        // independent of the row cache. A form filter never touches the
+        // datasheet's table view state.
+        let filtered_tabs: Vec<(TabId, String)> = self
+            .snapshot
+            .tabs
+            .iter()
+            .filter(|tab| tab.object_kind == "form")
+            .map(|tab| (tab.id, tab.object_name.clone()))
+            .collect();
+        for (tab_id, form) in filtered_tabs {
+            if self.core.form_filter(&form).is_none() {
+                self.clear_form_filter_rows(tab_id);
+                continue;
+            }
+            let Some(rows) = self.rows.get(&tab_id) else {
+                continue;
+            };
+            match self.core.form_filter_rows(&form, rows) {
+                Ok(indices) => self.set_form_filter_rows(tab_id, indices),
+                Err(reason) => self.set_form_filter_error(tab_id, reason),
+            }
+        }
         // Report previews refresh with every mutation pass — design edits
         // and row changes both flow through dispatch.
         for tab in &self.snapshot.tabs {
