@@ -140,6 +140,7 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                             &mut control_ui,
                             app,
                             tab.id,
+                            &form.name,
                             control,
                             &row,
                             &fields,
@@ -188,6 +189,7 @@ fn render_control(
     ui: &mut egui::Ui,
     app: &mut App,
     tab_id: TabId,
+    form: &str,
     control: &ControlDef,
     row: &[FieldValue],
     fields: &[FieldDef],
@@ -270,8 +272,8 @@ fn render_control(
                 ui.weak(value);
             }
         }
-        ControlKind::Button { caption, .. } => {
-            let _ = ui.button(caption);
+        ControlKind::Button { .. } => {
+            crate::form_actions::button_ui(app, form, control, ui);
         }
         ControlKind::SubForm { form } => {
             ui.weak(tr("[subform: {form}]", &[("form", form)]));

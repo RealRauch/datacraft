@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use datacraft_core::command::Command;
 use datacraft_core::event::Event;
-use datacraft_core::form::{ControlDef, ControlKind};
+use datacraft_core::form::{ButtonAction, ControlDef, ControlKind};
 use datacraft_core::ids::TabId;
 use datacraft_core::port::RowRange;
 use datacraft_core::schema::FieldValue;
@@ -22,6 +22,18 @@ use super::App;
 struct PendingRecord {
     row: usize,
     values: BTreeMap<usize, FieldValue>,
+}
+
+/// Designer draft of one button action (phase 64, M69): the picker index
+/// (0 none, 1 form, 2 report, 3 query, 4 filter) and its payload.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct ButtonActionDraft {
+    /// Selected action kind.
+    pub kind: usize,
+    /// Target name for form/report/query actions.
+    pub target: String,
+    /// Predicate for the filter action.
+    pub criteria: String,
 }
 
 /// Runtime edit state of every form tab.
@@ -47,6 +59,9 @@ pub(crate) struct FormEditState {
     /// Last row-index set per form tab: the cursor remap only fires when
     /// the record set itself changed, never on ordinary navigation.
     last_indices: HashMap<TabId, Vec<usize>>,
+    /// Buffered button-action drafts of the designer, keyed by tab and
+    /// control (phase 64, M69).
+    button_drafts: HashMap<(TabId, String), ButtonActionDraft>,
 }
 
 impl App {
@@ -186,6 +201,62 @@ impl App {
     pub fn clear_combo_source_draft(&mut self, tab_id: TabId, control: &str) {
         self.form_edit
             .combo_drafts
+            .remove(&(tab_id, control.to_owned()));
+    }
+
+    /// The designer's button-action draft, seeded from the stored action.
+    pub(crate) fn button_action_draft(
+        &self,
+        tab_id: TabId,
+        control: &str,
+        action: Option<&ButtonAction>,
+    ) -> ButtonActionDraft {
+        if let Some(draft) = self
+            .form_edit
+            .button_drafts
+            .get(&(tab_id, control.to_owned()))
+        {
+            return draft.clone();
+        }
+        let mut draft = ButtonActionDraft::default();
+        match action {
+            Some(ButtonAction::OpenForm { form }) => {
+                draft.kind = 1;
+                draft.target = form.clone();
+            }
+            Some(ButtonAction::OpenReport { report }) => {
+                draft.kind = 2;
+                draft.target = report.clone();
+            }
+            Some(ButtonAction::RunQuery { query }) => {
+                draft.kind = 3;
+                draft.target = query.clone();
+            }
+            Some(ButtonAction::ApplyFilter { criteria }) => {
+                draft.kind = 4;
+                draft.criteria = criteria.clone();
+            }
+            None => {}
+        }
+        draft
+    }
+
+    /// Stores the designer's button-action draft.
+    pub(crate) fn set_button_action_draft(
+        &mut self,
+        tab_id: TabId,
+        control: &str,
+        draft: ButtonActionDraft,
+    ) {
+        self.form_edit
+            .button_drafts
+            .insert((tab_id, control.to_owned()), draft);
+    }
+
+    /// Drops the designer's button-action draft after an apply.
+    pub fn clear_button_action_draft(&mut self, tab_id: TabId, control: &str) {
+        self.form_edit
+            .button_drafts
             .remove(&(tab_id, control.to_owned()));
     }
 

@@ -324,3 +324,87 @@ fn the_form_designer_sets_a_combo_row_source_and_the_runtime_lists_it() {
         "the rejection names the unknown field"
     );
 }
+
+fn action_button(name: &str) -> ControlDef {
+    ControlDef {
+        name: name.into(),
+        kind: ControlKind::Button {
+            caption: "Go".into(),
+            action: None,
+        },
+        rect: datacraft_core::canvas::Rect {
+            x: 8.0,
+            y: 8.0,
+            width: 96.0,
+            height: 24.0,
+        },
+    }
+}
+
+/// The designer assigns an open-form action; the runtime dispatch is
+/// pinned by the form-runtime suite (one OpenObject per click).
+#[test]
+fn the_form_designer_sets_a_button_action() {
+    let mut app = customers_app();
+    app.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
+    app.dispatch(Command::SetFormSource {
+        form: "Card".into(),
+        table: "Customers".into(),
+    });
+    app.dispatch(Command::CreateForm {
+        name: "Target".into(),
+    });
+    app.dispatch(Command::AddFormControl {
+        form: "Card".into(),
+        control: action_button("Go"),
+    });
+    app.dispatch(Command::OpenObjectInMode {
+        object: datacraft_core::ObjectId::new(datacraft_core::ObjectKind::Form, "Card"),
+        mode: TabMode::Design,
+    });
+    let tab = app.snapshot().tabs[0].id;
+    app.set_form_selection(tab, "Go".into());
+
+    let mut harness = harness(
+        app,
+        datacraft_ui::form_design::form_design_ui,
+        datacraft_ui::form_runtime::form_runtime_ui,
+    );
+    harness.set_size(eframe::egui::vec2(1400.0, 1000.0));
+    harness.run();
+
+    harness.get_by_label("Action").click();
+    harness.run();
+    harness.get_by_label("Open form").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Target")
+        .set_text_value_accesskit("Target");
+    harness.run();
+    {
+        let mut applies = harness.get_all_by_label("Apply");
+        applies.nth(1).expect("the action panel's Apply").click();
+    }
+    harness.run();
+
+    let db = harness.state().snapshot().database.clone().expect("open");
+    let form = db.forms.iter().find(|f| f.name == "Card").expect("form");
+    let action = match &form
+        .controls
+        .iter()
+        .find(|c| c.name == "Go")
+        .expect("control")
+        .kind
+    {
+        ControlKind::Button { action, .. } => action.clone(),
+        other => panic!("expected a button, got {other:?}"),
+    };
+    assert_eq!(
+        action,
+        Some(datacraft_core::form::ButtonAction::OpenForm {
+            form: "Target".into()
+        })
+    );
+}

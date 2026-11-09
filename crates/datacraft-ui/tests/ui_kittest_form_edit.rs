@@ -536,7 +536,11 @@ fn a_button_with_an_action_dispatches_one_command() {
     harness.run();
 
     let snapshot = harness.state().snapshot();
-    assert_eq!(snapshot.tabs.len(), 2, "one OpenObject dispatch opened Second");
+    assert_eq!(
+        snapshot.tabs.len(),
+        2,
+        "one OpenObject dispatch opened Second"
+    );
     assert_eq!(snapshot.tabs[1].object_name, "Second");
 }
 

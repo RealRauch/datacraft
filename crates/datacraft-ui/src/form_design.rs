@@ -61,11 +61,12 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 &mut apply,
                 ui,
             );
-            // The selected combo's row source (phase 64, item M70).
+            // The selected control's kind-specific data (phase 64).
             if let Some(selected) = app.form_selection(tab.id)
                 && let Some(control) = form.controls.iter().find(|c| c.name == selected)
             {
                 crate::combo_source::combo_source_ui(app, tab.id, &form.name, control, ui);
+                crate::button_action::button_action_ui(app, tab.id, &form.name, control, ui);
             }
         });
     });

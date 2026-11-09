@@ -103,6 +103,12 @@ fn dynamic_keys() -> BTreeSet<String> {
         // (step 63.2, item H56) ride `content_of` as variables.
         "Text",
         "Control source",
+        // The button-action picker's labels (phase 64, M69) ride KINDS.
+        "None",
+        "Open form",
+        "Open report",
+        "Run query",
+        "Apply filter",
     ] {
         keys.insert(key.to_owned());
     }
