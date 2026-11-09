@@ -203,7 +203,7 @@ fn render_control(
 ) -> Result<Option<String>, String> {
     let text = match &control.kind {
         ControlKind::Label { text } => Some(text.clone()),
-        ControlKind::Button { caption } => Some(caption.clone()),
+        ControlKind::Button { caption, .. } => Some(caption.clone()),
         ControlKind::TextBox {
             bound_field: Some(field),
         }

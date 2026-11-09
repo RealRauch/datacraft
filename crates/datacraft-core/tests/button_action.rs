@@ -88,7 +88,11 @@ fn failed_reason(events: &[Event]) -> String {
 
 fn action(core: &Core) -> Option<ButtonAction> {
     let db = core.inspect().database.expect("database");
-    let form = db.forms.iter().find(|form| form.name == "Card").expect("form");
+    let form = db
+        .forms
+        .iter()
+        .find(|form| form.name == "Card")
+        .expect("form");
     let control = form
         .controls
         .iter()
@@ -185,14 +189,17 @@ fn a_malformed_filter_predicate_is_rejected() {
             criteria: "[Name] =".into(),
         }),
     ));
-    assert!(reason.contains("filter") || reason.contains("criteria"), "{reason}");
+    assert!(
+        reason.contains("filter") || reason.contains("criteria"),
+        "{reason}"
+    );
     assert_eq!(action(&core), None);
 }
 
 #[test]
 fn unknown_targets_are_rejected_precisely() {
     let mut core = opened_core();
-    for action in [
+    for candidate in [
         ButtonAction::OpenForm {
             form: "Missing".into(),
         },
@@ -203,9 +210,9 @@ fn unknown_targets_are_rejected_precisely() {
             query: "Missing".into(),
         },
     ] {
-        let reason = failed_reason(&set_action(&mut core, Some(action.clone())));
-        assert!(reason.contains("Missing"), "{action:?}: {reason}");
-        assert_eq!(action(&core), None, "{action:?} left no action");
+        let reason = failed_reason(&set_action(&mut core, Some(candidate.clone())));
+        assert!(reason.contains("Missing"), "{candidate:?}: {reason}");
+        assert_eq!(action(&core), None, "{candidate:?} left no action");
     }
 }
 
@@ -216,9 +223,7 @@ fn a_non_button_control_is_rejected() {
         form: "Card".into(),
         control: ControlDef {
             name: "Label".into(),
-            kind: ControlKind::Label {
-                text: "x".into(),
-            },
+            kind: ControlKind::Label { text: "x".into() },
             rect: Rect {
                 x: 8.0,
                 y: 40.0,

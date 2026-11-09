@@ -267,7 +267,7 @@ pub(crate) fn paint_control(
                 );
             }
         }
-        datacraft_core::form::ControlKind::Button { caption } => {
+        datacraft_core::form::ControlKind::Button { caption, .. } => {
             painter.rect_filled(rect, 4.0, ui.visuals().widgets.inactive.bg_fill);
             painter.rect_stroke(rect, 4.0, stroke, egui::StrokeKind::Inside);
             painter.text(

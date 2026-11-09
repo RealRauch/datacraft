@@ -41,10 +41,14 @@ pub enum ControlKind {
         #[serde(default)]
         display_field: String,
     },
-    /// Command button.
+    /// Command button with an optional action (ADR-8).
     Button {
         /// Button caption.
         caption: String,
+        /// The chosen action; `None` keeps the button enabled and a click
+        /// answers precisely (Access has no auto-disable).
+        #[serde(default)]
+        action: Option<ButtonAction>,
     },
     /// Embedded subform.
     SubForm {
@@ -113,6 +117,34 @@ impl FormDef {
     }
 }
 
+/// One command-button action (ADR-8): the fixed bus vocabulary replaces
+/// Access's macro/event-procedure model. Macros and VBA stay out (ADR-2).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "snake_case")]
+pub enum ButtonAction {
+    /// Opens another form in its runtime view.
+    OpenForm {
+        /// Target form name (canonicalized at set time).
+        form: String,
+    },
+    /// Opens a report's print preview.
+    OpenReport {
+        /// Target report name (canonicalized at set time).
+        report: String,
+    },
+    /// Runs a saved (sidecar or native) query.
+    RunQuery {
+        /// Target query name (canonicalized at set time).
+        query: String,
+    },
+    /// Applies a WHERE predicate to the form's own record set
+    /// (`ApplyFilter` semantics; never the datasheet filter).
+    ApplyFilter {
+        /// Access-compatible predicate.
+        criteria: String,
+    },
+}
+
 /// Kind-specific design data of a placed form control (ADR-8). The command
 /// payload validates the variant against the control kind.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -125,6 +157,11 @@ pub enum ControlData {
         row_source: String,
         /// Display field or column of that source.
         display_field: String,
+    },
+    /// Command-button action; `None` clears it.
+    Button {
+        /// The action, if any.
+        action: Option<ButtonAction>,
     },
 }
 

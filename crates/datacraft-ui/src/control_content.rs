@@ -16,7 +16,7 @@ use crate::i18n::{t, tr};
 fn content_of(kind: &ControlKind) -> (&'static str, String) {
     match kind {
         ControlKind::Label { text } => ("Text", text.clone()),
-        ControlKind::Button { caption } => ("Caption", caption.clone()),
+        ControlKind::Button { caption, .. } => ("Caption", caption.clone()),
         ControlKind::TextBox { bound_field }
         | ControlKind::CheckBox { bound_field }
         | ControlKind::ComboBox { bound_field, .. } => {

@@ -195,7 +195,8 @@ fn the_designer_palette_places_fields_and_toolbox_controls() {
     assert_eq!(
         form.controls[1].kind,
         ControlKind::Button {
-            caption: "Button".into()
+            caption: "Button".into(),
+            action: None
         }
     );
     assert!(app.last_error().is_none(), "{:?}", app.last_error());

@@ -249,7 +249,7 @@ impl crate::core::Core {
         let target = &mut db.reports[pos].controls[control_pos];
         match &mut target.kind {
             crate::form::ControlKind::Label { text } => *text = value.to_owned(),
-            crate::form::ControlKind::Button { caption } => *caption = value.to_owned(),
+            crate::form::ControlKind::Button { caption, .. } => *caption = value.to_owned(),
             crate::form::ControlKind::TextBox { bound_field }
             | crate::form::ControlKind::CheckBox { bound_field }
             | crate::form::ControlKind::ComboBox { bound_field, .. } => {

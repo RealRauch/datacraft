@@ -128,6 +128,7 @@ pub fn toolbox_control(entry_id: &str, name: &str, rect: Rect) -> Option<Control
         },
         "button" => ControlKind::Button {
             caption: "Button".to_owned(),
+            action: None,
         },
         _ => ControlKind::SubForm {
             form: String::new(),

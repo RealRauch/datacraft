@@ -189,7 +189,8 @@ fn the_palette_displays_access_toolbox_names() {
     );
     assert_eq!(
         control_kind_display(&ControlKind::Button {
-            caption: "x".into()
+            caption: "x".into(),
+            action: None
         }),
         "Button"
     );

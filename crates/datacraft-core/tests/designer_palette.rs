@@ -122,7 +122,8 @@ fn the_toolbox_mirrors_the_access_control_palette() {
                 display_field: String::new(),
             },
             ControlKind::Button {
-                caption: "Button".into()
+                caption: "Button".into(),
+                action: None
             },
             ControlKind::SubForm {
                 form: String::new()

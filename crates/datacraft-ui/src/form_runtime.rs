@@ -270,7 +270,7 @@ fn render_control(
                 ui.weak(value);
             }
         }
-        ControlKind::Button { caption } => {
+        ControlKind::Button { caption, .. } => {
             let _ = ui.button(caption);
         }
         ControlKind::SubForm { form } => {

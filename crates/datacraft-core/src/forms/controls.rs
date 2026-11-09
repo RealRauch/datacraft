@@ -183,7 +183,7 @@ impl Core {
         let target = &mut db.forms[pos].controls[control_pos];
         match &mut target.kind {
             crate::form::ControlKind::Label { text } => *text = value.to_owned(),
-            crate::form::ControlKind::Button { caption } => *caption = value.to_owned(),
+            crate::form::ControlKind::Button { caption, .. } => *caption = value.to_owned(),
             crate::form::ControlKind::TextBox { bound_field }
             | crate::form::ControlKind::CheckBox { bound_field }
             | crate::form::ControlKind::ComboBox { bound_field, .. } => {
@@ -204,8 +204,8 @@ impl Core {
     }
 
     /// Sets the kind-specific design data of a placed control (phase 64,
-    /// ADR-8). The combo row source resolves against the tables and saved
-    /// queries before the mutation; an empty source clears the list.
+    /// ADR-8). Both variants resolve their targets against the open
+    /// database before the mutation; empty data clears the property.
     pub(crate) fn set_control_data(&mut self, data: &crate::form::SetControlData) -> Vec<Event> {
         let Some(db) = self.state.database.as_ref() else {
             return failed(
@@ -233,117 +233,228 @@ impl Core {
                 format!("control {:?} not found", data.control),
             );
         };
-        if !matches!(control.kind, crate::form::ControlKind::ComboBox { .. }) {
-            return failed(
-                FailureCode::InvalidInput,
-                format!("control {:?} is not a combo box", control.name),
-            );
-        }
         let form_name = form_def.name.clone();
         let control_name = control.name.clone();
-        let crate::form::ControlData::ComboSource {
-            row_source,
-            display_field,
-        } = &data.data;
-        let source = row_source.trim();
-        let field = display_field.trim();
-        let (canonical_source, canonical_field) = if source.is_empty() {
-            (String::new(), String::new())
-        } else if let Some(table) = db
-            .tables
-            .iter()
-            .find(|table| table.name.eq_ignore_ascii_case(source))
-        {
-            if field.is_empty() {
-                return failed(
-                    FailureCode::InvalidInput,
-                    format!("row source {:?} needs a display field", table.name),
-                );
-            }
-            let Some(column) = table
-                .fields
-                .iter()
-                .find(|column| column.name.eq_ignore_ascii_case(field))
-            else {
-                return failed(
-                    FailureCode::InvalidInput,
-                    format!(
-                        "display field {display_field:?} is not a field of {:?}",
-                        table.name
-                    ),
-                );
-            };
-            (table.name.clone(), column.name.clone())
-        } else {
-            if field.is_empty() {
-                return failed(
-                    FailureCode::InvalidInput,
-                    format!("row source {source:?} needs a display field"),
-                );
-            }
-            let canonical = db
-                .queries
-                .iter()
-                .find(|query| query.name.eq_ignore_ascii_case(source))
-                .map(|query| query.name.clone())
-                .or_else(|| {
-                    db.native_queries
+        let canonical = match (&data.data, &control.kind) {
+            (
+                crate::form::ControlData::ComboSource {
+                    row_source,
+                    display_field,
+                },
+                crate::form::ControlKind::ComboBox { .. },
+            ) => {
+                let source = row_source.trim();
+                let field = display_field.trim();
+                let (row_source, display_field) = if source.is_empty() {
+                    (String::new(), String::new())
+                } else if let Some(table) = db
+                    .tables
+                    .iter()
+                    .find(|table| table.name.eq_ignore_ascii_case(source))
+                {
+                    if field.is_empty() {
+                        return failed(
+                            FailureCode::InvalidInput,
+                            format!("row source {:?} needs a display field", table.name),
+                        );
+                    }
+                    let Some(column) = table
+                        .fields
                         .iter()
-                        .find(|query| query.name.eq_ignore_ascii_case(source))
-                        .map(|query| query.name.clone())
-                });
-            let Some(canonical) = canonical else {
-                return failed(
-                    FailureCode::NotFound,
-                    format!("row source {row_source:?} not found"),
-                );
-            };
-            match self.run_query(&canonical) {
-                Ok(result) => {
-                    let Some(column) = result
-                        .columns
-                        .iter()
-                        .find(|column| column.eq_ignore_ascii_case(field))
+                        .find(|column| column.name.eq_ignore_ascii_case(field))
                     else {
                         return failed(
                             FailureCode::InvalidInput,
                             format!(
-                                "display field {display_field:?} is not a column of {canonical:?}"
+                                "display field {display_field:?} is not a field of {:?}",
+                                table.name
                             ),
                         );
                     };
-                    (canonical, column.clone())
+                    (table.name.clone(), column.name.clone())
+                } else {
+                    if field.is_empty() {
+                        return failed(
+                            FailureCode::InvalidInput,
+                            format!("row source {source:?} needs a display field"),
+                        );
+                    }
+                    let canonical = db
+                        .queries
+                        .iter()
+                        .find(|query| query.name.eq_ignore_ascii_case(source))
+                        .map(|query| query.name.clone())
+                        .or_else(|| {
+                            db.native_queries
+                                .iter()
+                                .find(|query| query.name.eq_ignore_ascii_case(source))
+                                .map(|query| query.name.clone())
+                        });
+                    let Some(canonical) = canonical else {
+                        return failed(
+                            FailureCode::NotFound,
+                            format!("row source {row_source:?} not found"),
+                        );
+                    };
+                    match self.run_query(&canonical) {
+                        Ok(result) => {
+                            let Some(column) = result
+                                .columns
+                                .iter()
+                                .find(|column| column.eq_ignore_ascii_case(field))
+                            else {
+                                return failed(
+                                    FailureCode::InvalidInput,
+                                    format!(
+                                        "display field {display_field:?} is not a column of {canonical:?}"
+                                    ),
+                                );
+                            };
+                            (canonical, column.clone())
+                        }
+                        Err(reason) => return failed(FailureCode::InvalidInput, reason),
+                    }
+                };
+                crate::form::ControlData::ComboSource {
+                    row_source,
+                    display_field,
                 }
-                Err(reason) => return failed(FailureCode::InvalidInput, reason),
+            }
+            (
+                crate::form::ControlData::Button { action },
+                crate::form::ControlKind::Button { .. },
+            ) => {
+                let action = match action {
+                    None => None,
+                    Some(crate::form::ButtonAction::OpenForm { form }) => {
+                        let Some(target) = db
+                            .forms
+                            .iter()
+                            .find(|candidate| candidate.name.eq_ignore_ascii_case(form))
+                        else {
+                            return failed(
+                                FailureCode::NotFound,
+                                format!("form {form:?} not found"),
+                            );
+                        };
+                        Some(crate::form::ButtonAction::OpenForm {
+                            form: target.name.clone(),
+                        })
+                    }
+                    Some(crate::form::ButtonAction::OpenReport { report }) => {
+                        let Some(target) = db
+                            .reports
+                            .iter()
+                            .find(|candidate| candidate.name.eq_ignore_ascii_case(report))
+                        else {
+                            return failed(
+                                FailureCode::NotFound,
+                                format!("report {report:?} not found"),
+                            );
+                        };
+                        Some(crate::form::ButtonAction::OpenReport {
+                            report: target.name.clone(),
+                        })
+                    }
+                    Some(crate::form::ButtonAction::RunQuery { query }) => {
+                        let canonical = db
+                            .queries
+                            .iter()
+                            .find(|candidate| candidate.name.eq_ignore_ascii_case(query))
+                            .map(|candidate| candidate.name.clone())
+                            .or_else(|| {
+                                db.native_queries
+                                    .iter()
+                                    .find(|candidate| candidate.name.eq_ignore_ascii_case(query))
+                                    .map(|candidate| candidate.name.clone())
+                            });
+                        let Some(canonical) = canonical else {
+                            return failed(
+                                FailureCode::NotFound,
+                                format!("query {query:?} not found"),
+                            );
+                        };
+                        Some(crate::form::ButtonAction::RunQuery { query: canonical })
+                    }
+                    Some(crate::form::ButtonAction::ApplyFilter { criteria }) => {
+                        let criteria = criteria.trim();
+                        if criteria.is_empty() {
+                            return failed(
+                                FailureCode::InvalidInput,
+                                "a button filter needs criteria".to_owned(),
+                            );
+                        }
+                        if let Err(error) = crate::expr::parse(criteria) {
+                            return failed(
+                                FailureCode::InvalidInput,
+                                format!("filter criteria {criteria:?}: {error}"),
+                            );
+                        }
+                        Some(crate::form::ButtonAction::ApplyFilter {
+                            criteria: criteria.to_owned(),
+                        })
+                    }
+                };
+                crate::form::ControlData::Button { action }
+            }
+            (crate::form::ControlData::ComboSource { .. }, _) => {
+                return failed(
+                    FailureCode::InvalidInput,
+                    format!("control {control_name:?} is not a combo box"),
+                );
+            }
+            (crate::form::ControlData::Button { .. }, _) => {
+                return failed(
+                    FailureCode::InvalidInput,
+                    format!("control {control_name:?} is not a command button"),
+                );
             }
         };
         let Some(db) = self.state.database.as_mut() else {
             return failed(FailureCode::NoDatabase, "the database was closed");
         };
-        let Some(form_def) = db.forms.iter_mut().find(|form| form.name == form_name) else {
-            return failed(
-                FailureCode::NotFound,
-                format!("form {form_name:?} not found"),
-            );
-        };
-        let Some(control) = form_def
-            .controls
+        let Some(control) = db
+            .forms
             .iter_mut()
-            .find(|control| control.name == control_name)
+            .find(|form| form.name == form_name)
+            .and_then(|form| {
+                form.controls
+                    .iter_mut()
+                    .find(|control| control.name == control_name)
+            })
         else {
             return failed(
                 FailureCode::NotFound,
                 format!("control {control_name:?} not found"),
             );
         };
-        if let crate::form::ControlKind::ComboBox {
-            row_source,
-            display_field,
-            ..
-        } = &mut control.kind
-        {
-            *row_source = canonical_source;
-            *display_field = canonical_field;
+        match (&canonical, &mut control.kind) {
+            (
+                crate::form::ControlData::ComboSource {
+                    row_source,
+                    display_field,
+                },
+                crate::form::ControlKind::ComboBox {
+                    row_source: slot_source,
+                    display_field: slot_field,
+                    ..
+                },
+            ) => {
+                *slot_source = row_source.clone();
+                *slot_field = display_field.clone();
+            }
+            (
+                crate::form::ControlData::Button { action },
+                crate::form::ControlKind::Button { action: slot, .. },
+            ) => {
+                *slot = action.clone();
+            }
+            _ => {
+                return failed(
+                    FailureCode::InvalidInput,
+                    format!("control {control_name:?} does not carry this data"),
+                );
+            }
         }
         vec![Event::ControlDataSet {
             form: form_name,
