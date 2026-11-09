@@ -363,10 +363,10 @@
 | 63.1 | Core: SetFormControlContent/SetReportControlContent with precise validation (H56) | ✅ |
 | 63.2 | UI: the selected-control content panel in both designers, kittest-pinned (H56) | ✅ |
 | 63.3 | Phase 63 Quality Gate Review | ✅ |
-| 64.1 | M69 decision record: Access-verified form runtime decisions in ARCHITECTURE §5 and the control matrix | 🔄 |
-| 64.2 | M68: bound text boxes edit through a per-record buffer (Esc field/record) with the Access ZLS rule | ⬜ |
-| 64.3 | M70: two-state checkbox toggle through the record edit buffer | ⬜ |
-| 64.4 | M70: combo row source (table/query) + display field, all rows, free entry, optional source | ⬜ |
+| 64.1 | M69 decision record: Access-verified form runtime decisions in ARCHITECTURE §5 and the control matrix | ✅ |
+| 64.2 | M68: bound text boxes edit through a per-record buffer (Esc field/record) with the Access ZLS rule | ✅ |
+| 64.3 | M70: two-state checkbox toggle through the record edit buffer | ✅ |
+| 64.4 | M70: combo row source (table/query) + display field, all rows, free entry, optional source | 🔄 |
 | 64.5 | M71: form-scoped WHERE filter with filtered record navigation | ⬜ |
 | 64.6 | M69: core ButtonAction model, control-data command and precise validation | ⬜ |
 | 64.7 | M69: designer action picker and runtime click dispatch (open form/report, run query, apply filter) | ⬜ |
