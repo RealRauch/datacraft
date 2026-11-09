@@ -208,6 +208,14 @@ pub enum Event {
         /// Control name.
         control: String,
     },
+    /// The kind-specific design data of a placed form control changed
+    /// (phase 64, ADR-8).
+    ControlDataSet {
+        /// Form name.
+        form: String,
+        /// Control name.
+        control: String,
+    },
     ControlRectSet {
         /// Canonical form name.
         form: String,

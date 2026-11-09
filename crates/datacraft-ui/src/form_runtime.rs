@@ -173,7 +173,9 @@ fn render_control(
         }
         ControlKind::TextBox { bound_field } => {
             let col = bound_field.as_deref().and_then(index_of);
-            let value = col.map(|i| value_label(&row[i])).unwrap_or_default();
+            let value = col
+                .map(|i| value_label(app.form_pending_value(tab_id, i).unwrap_or(&row[i])))
+                .unwrap_or_default();
             if let (Some(col), Some(field)) = (col, col.map(|i| &fields[i])) {
                 text_box_ui(
                     ui,
@@ -217,13 +219,27 @@ fn render_control(
                 app.stage_form_value(tab_id, record, col, FieldValue::Boolean(!checked));
             }
         }
-        ControlKind::ComboBox { bound_field } => {
-            let value = bound_field
-                .as_deref()
-                .and_then(index_of)
-                .map(|i| value_label(&row[i]))
+        ControlKind::ComboBox { bound_field, .. } => {
+            let col = bound_field.as_deref().and_then(index_of);
+            let value = col
+                .map(|i| value_label(app.form_pending_value(tab_id, i).unwrap_or(&row[i])))
                 .unwrap_or_default();
-            ui.weak(value);
+            if let (Some(col), Some(field)) = (col, col.map(|i| &fields[i])) {
+                combo_box_ui(
+                    ui,
+                    app,
+                    tab_id,
+                    control,
+                    field,
+                    &value,
+                    col,
+                    record,
+                    restriction,
+                    esc_handled,
+                );
+            } else {
+                ui.weak(value);
+            }
         }
         ControlKind::Button { caption } => {
             let _ = ui.button(caption);
@@ -251,14 +267,10 @@ fn text_box_ui(
     esc_handled: &mut bool,
 ) {
     let size = [ui.max_rect().width(), ui.max_rect().height()];
-    let displayed = app
-        .form_pending_value(tab_id, col)
-        .map(value_label)
-        .unwrap_or_else(|| base.to_owned());
     let mut text = app
         .form_draft(tab_id, col)
         .map(str::to_owned)
-        .unwrap_or(displayed);
+        .unwrap_or_else(|| base.to_owned());
     if let Some(reason) = restriction {
         let response = ui
             .add_sized(
@@ -287,6 +299,112 @@ fn text_box_ui(
     let committed = response.lost_focus()
         || (response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)));
     if committed {
+        commit_text(app, tab_id, control, field, col, record, &text);
+    }
+}
+
+/// The editable combo (M70; ADR-8): a free-entry text field plus the row
+/// source list. Access `LimitToList = No` — typed values are stored like
+/// any field value; the list shows every source row in source order,
+/// duplicates included. An empty row source leaves free entry working.
+#[allow(clippy::too_many_arguments)]
+fn combo_box_ui(
+    ui: &mut egui::Ui,
+    app: &mut App,
+    tab_id: TabId,
+    control: &ControlDef,
+    field: &FieldDef,
+    base: &str,
+    col: usize,
+    record: usize,
+    restriction: Option<DisabledReason>,
+    esc_handled: &mut bool,
+) {
+    let height = ui.max_rect().height();
+    let width = ui.max_rect().width();
+    let text_width = (width - 26.0).max(40.0);
+    let mut text = app
+        .form_draft(tab_id, col)
+        .map(str::to_owned)
+        .unwrap_or_else(|| base.to_owned());
+    let editable = restriction.is_none();
+    let mut committed: Option<String> = None;
+    let mut escape = false;
+    let mut selection: Option<FieldValue> = None;
+    ui.horizontal(|ui| {
+        let response = ui
+            .add_sized(
+                [text_width, height],
+                egui::TextEdit::singleline(&mut text).interactive(editable),
+            )
+            .accessible_name(control.name.clone());
+        if let Some(reason) = restriction {
+            response.on_hover_text(crate::availability::reason_text(&reason));
+        } else {
+            if response.changed() {
+                app.set_form_draft(tab_id, col, text.clone());
+            }
+            if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Escape)) {
+                escape = true;
+            } else if response.lost_focus()
+                || (response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)))
+            {
+                committed = Some(text.clone());
+            }
+        }
+        let values = if editable {
+            app.combo_values(tab_id, control)
+        } else {
+            Vec::new()
+        };
+        let menu = ui
+            .add_enabled_ui(editable, |ui| {
+                ui.menu_button("v", |ui| {
+                    if values.is_empty() {
+                        ui.weak(t("No entries"));
+                        return;
+                    }
+                    for (index, value) in values.iter().enumerate() {
+                        ui.push_id(index, |ui| {
+                            if ui.button(value_label(value)).clicked() {
+                                selection = Some(value.clone());
+                                ui.close();
+                            }
+                        });
+                    }
+                })
+            })
+            .inner;
+        let arrow = menu
+            .response
+            .accessible_name(format!("{} values", control.name));
+        if let Some(reason) = restriction {
+            arrow.on_hover_text(crate::availability::reason_text(&reason));
+        }
+    });
+    if escape {
+        *esc_handled = true;
+        if app.form_esc_armed(tab_id) {
+            app.revert_form_record(tab_id);
+        } else {
+            app.revert_form_field(tab_id, col);
+        }
+        return;
+    }
+    if let Some(value) = selection {
+        let current = app.form_pending_value(tab_id, col).cloned().or_else(|| {
+            app.rows_for(tab_id)
+                .and_then(|rows| rows.get(record))
+                .and_then(|values| values.get(col))
+                .cloned()
+        });
+        if current.as_ref() != Some(&value) {
+            app.stage_form_value(tab_id, record, col, value);
+        }
+        app.clear_form_draft(tab_id, col);
+        return;
+    }
+    if let Some(text) = committed {
         commit_text(app, tab_id, control, field, col, record, &text);
     }
 }

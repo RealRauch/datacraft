@@ -252,7 +252,7 @@ impl crate::core::Core {
             crate::form::ControlKind::Button { caption } => *caption = value.to_owned(),
             crate::form::ControlKind::TextBox { bound_field }
             | crate::form::ControlKind::CheckBox { bound_field }
-            | crate::form::ControlKind::ComboBox { bound_field } => {
+            | crate::form::ControlKind::ComboBox { bound_field, .. } => {
                 *bound_field = if value.trim().is_empty() {
                     None
                 } else {
@@ -456,7 +456,7 @@ fn bound_field(control: &crate::form::ControlDef) -> Option<String> {
     match &control.kind {
         crate::form::ControlKind::TextBox { bound_field }
         | crate::form::ControlKind::CheckBox { bound_field }
-        | crate::form::ControlKind::ComboBox { bound_field } => bound_field.clone(),
+        | crate::form::ControlKind::ComboBox { bound_field, .. } => bound_field.clone(),
         _ => None,
     }
 }

@@ -9,7 +9,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use datacraft_core::command::Command;
 use datacraft_core::event::Event;
+use datacraft_core::form::{ControlDef, ControlKind};
 use datacraft_core::ids::TabId;
+use datacraft_core::port::RowRange;
 use datacraft_core::schema::FieldValue;
 
 use super::App;
@@ -28,6 +30,11 @@ pub(crate) struct FormEditState {
     pending: HashMap<TabId, PendingRecord>,
     drafts: HashMap<(TabId, usize), String>,
     esc_armed: HashSet<TabId>,
+    /// Cached display values of combo row sources per (tab, control).
+    combo_cache: HashMap<(TabId, String), Vec<FieldValue>>,
+    /// Buffered row-source/display-field pair of the designer's combo
+    /// panel, keyed by tab and control (phase 64, M70).
+    combo_drafts: HashMap<(TabId, String), (String, String)>,
 }
 
 impl App {
@@ -63,6 +70,111 @@ impl App {
     /// Drops the typed draft of one control.
     pub fn clear_form_draft(&mut self, tab_id: TabId, col: usize) {
         self.form_edit.drafts.remove(&(tab_id, col));
+    }
+
+    /// Every display value of a combo's row source, in source order and
+    /// including duplicates (Access does not dedupe a row source — ADR-8).
+    /// An empty source or a missing field yields an empty list.
+    pub fn combo_values(&mut self, tab_id: TabId, control: &ControlDef) -> Vec<FieldValue> {
+        let ControlKind::ComboBox {
+            row_source,
+            display_field,
+            ..
+        } = &control.kind
+        else {
+            return Vec::new();
+        };
+        if row_source.trim().is_empty() || display_field.trim().is_empty() {
+            return Vec::new();
+        }
+        let key = (tab_id, control.name.clone());
+        if let Some(values) = self.form_edit.combo_cache.get(&key) {
+            return values.clone();
+        }
+        let values = self.read_combo_values(row_source, display_field);
+        self.form_edit.combo_cache.insert(key, values.clone());
+        values
+    }
+
+    fn read_combo_values(&self, source: &str, field: &str) -> Vec<FieldValue> {
+        if let Some(table) = self.table_definition(source) {
+            let Some(col) = table
+                .fields
+                .iter()
+                .position(|column| column.name.eq_ignore_ascii_case(field))
+            else {
+                return Vec::new();
+            };
+            let table_name = table.name.clone();
+            let Ok(rows) = self.core.read_rows(
+                &table_name,
+                RowRange {
+                    start: 0,
+                    len: usize::MAX,
+                },
+            ) else {
+                return Vec::new();
+            };
+            return rows
+                .iter()
+                .filter_map(|row| row.get(col).cloned())
+                .collect();
+        }
+        let Ok(result) = self.core.run_query(source) else {
+            return Vec::new();
+        };
+        let Some(col) = result
+            .columns
+            .iter()
+            .position(|column| column.eq_ignore_ascii_case(field))
+        else {
+            return Vec::new();
+        };
+        result
+            .rows
+            .iter()
+            .filter_map(|row| row.get(col).cloned())
+            .collect()
+    }
+
+    /// Drops the combo row-source cache (every dispatch may change rows).
+    pub(crate) fn invalidate_combo_cache(&mut self) {
+        self.form_edit.combo_cache.clear();
+    }
+
+    /// The designer's combo row-source draft, seeded from the control.
+    pub fn combo_source_draft(
+        &self,
+        tab_id: TabId,
+        control: &str,
+        row_source: &str,
+        display_field: &str,
+    ) -> (String, String) {
+        self.form_edit
+            .combo_drafts
+            .get(&(tab_id, control.to_owned()))
+            .cloned()
+            .unwrap_or_else(|| (row_source.to_owned(), display_field.to_owned()))
+    }
+
+    /// Stores the designer's combo row-source draft.
+    pub fn set_combo_source_draft(
+        &mut self,
+        tab_id: TabId,
+        control: &str,
+        row_source: String,
+        display_field: String,
+    ) {
+        self.form_edit
+            .combo_drafts
+            .insert((tab_id, control.to_owned()), (row_source, display_field));
+    }
+
+    /// Drops the designer's combo row-source draft after an apply.
+    pub fn clear_combo_source_draft(&mut self, tab_id: TabId, control: &str) {
+        self.form_edit
+            .combo_drafts
+            .remove(&(tab_id, control.to_owned()));
     }
 
     /// Whether the first `Esc` already reverted a field of this record.

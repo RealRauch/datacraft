@@ -207,3 +207,120 @@ fn the_report_designer_sets_a_label_text_and_the_preview_renders_it() {
         "the print preview renders the edited text:\n{dump}"
     );
 }
+
+fn combo(name: &str) -> ControlDef {
+    ControlDef {
+        name: name.into(),
+        kind: ControlKind::ComboBox {
+            bound_field: Some("name".into()),
+            row_source: String::new(),
+            display_field: String::new(),
+        },
+        rect: datacraft_core::canvas::Rect {
+            x: 8.0,
+            y: 8.0,
+            width: 160.0,
+            height: 24.0,
+        },
+    }
+}
+
+fn combo_parts(app: &App) -> (String, String) {
+    let db = app.snapshot().database.clone().expect("open");
+    let form = db.forms.iter().find(|f| f.name == "Card").expect("form");
+    match &form
+        .controls
+        .iter()
+        .find(|c| c.name == "Pick")
+        .expect("control")
+        .kind
+    {
+        ControlKind::ComboBox {
+            row_source,
+            display_field,
+            ..
+        } => (row_source.clone(), display_field.clone()),
+        other => panic!("expected a combo box, got {other:?}"),
+    }
+}
+
+/// The designer sets the combo's row source and display field; the
+/// runtime lists the source rows. An unknown display field is rejected
+/// precisely and leaves the stored source untouched.
+#[test]
+fn the_form_designer_sets_a_combo_row_source_and_the_runtime_lists_it() {
+    let mut app = customers_app();
+    app.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
+    app.dispatch(Command::SetFormSource {
+        form: "Card".into(),
+        table: "Customers".into(),
+    });
+    app.dispatch(Command::AddFormControl {
+        form: "Card".into(),
+        control: combo("Pick"),
+    });
+    app.dispatch(Command::OpenObjectInMode {
+        object: datacraft_core::ObjectId::new(datacraft_core::ObjectKind::Form, "Card"),
+        mode: TabMode::Design,
+    });
+    let tab = app.snapshot().tabs[0].id;
+    app.set_form_selection(tab, "Pick".into());
+
+    let mut harness = harness(
+        app,
+        datacraft_ui::form_design::form_design_ui,
+        datacraft_ui::form_runtime::form_runtime_ui,
+    );
+    harness
+        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Row source")
+        .set_text_value_accesskit("Customers");
+    harness.run();
+    harness
+        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Display field")
+        .set_text_value_accesskit("name");
+    harness.run();
+    {
+        let mut applies = harness.get_all_by_label("Apply");
+        applies.nth(1).expect("the combo panel's Apply").click();
+    }
+    harness.run();
+
+    assert_eq!(
+        combo_parts(harness.state()),
+        ("Customers".to_owned(), "name".to_owned())
+    );
+    harness
+        .get_by_role_and_label(eframe::egui::accesskit::Role::Button, "Pick values")
+        .click();
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("alpha"),
+        "the runtime list shows the source rows:\n{dump}"
+    );
+
+    // An unknown display field is rejected; the stored source survives.
+    harness
+        .get_by_role_and_label(eframe::egui::accesskit::Role::TextInput, "Display field")
+        .set_text_value_accesskit("missing");
+    harness.run();
+    {
+        let mut applies = harness.get_all_by_label("Apply");
+        applies.nth(1).expect("the combo panel's Apply").click();
+    }
+    harness.run();
+    assert_eq!(
+        combo_parts(harness.state()),
+        ("Customers".to_owned(), "name".to_owned()),
+        "the rejected apply leaves the stored row source"
+    );
+    assert!(
+        harness
+            .state()
+            .last_error()
+            .is_some_and(|error| error.contains("missing")),
+        "the rejection names the unknown field"
+    );
+}

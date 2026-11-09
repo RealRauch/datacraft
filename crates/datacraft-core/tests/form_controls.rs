@@ -180,7 +180,11 @@ fn the_palette_displays_access_toolbox_names() {
         "Check Box"
     );
     assert_eq!(
-        control_kind_display(&ControlKind::ComboBox { bound_field: None }),
+        control_kind_display(&ControlKind::ComboBox {
+            bound_field: None,
+            row_source: String::new(),
+            display_field: String::new(),
+        }),
         "Combo Box"
     );
     assert_eq!(

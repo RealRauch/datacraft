@@ -121,7 +121,11 @@ pub fn toolbox_control(entry_id: &str, name: &str, rect: Rect) -> Option<Control
         },
         "text_box" => ControlKind::TextBox { bound_field: None },
         "check_box" => ControlKind::CheckBox { bound_field: None },
-        "combo_box" => ControlKind::ComboBox { bound_field: None },
+        "combo_box" => ControlKind::ComboBox {
+            bound_field: None,
+            row_source: String::new(),
+            display_field: String::new(),
+        },
         "button" => ControlKind::Button {
             caption: "Button".to_owned(),
         },

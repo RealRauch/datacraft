@@ -116,7 +116,11 @@ fn the_toolbox_mirrors_the_access_control_palette() {
             },
             ControlKind::TextBox { bound_field: None },
             ControlKind::CheckBox { bound_field: None },
-            ControlKind::ComboBox { bound_field: None },
+            ControlKind::ComboBox {
+                bound_field: None,
+                row_source: String::new(),
+                display_field: String::new(),
+            },
             ControlKind::Button {
                 caption: "Button".into()
             },

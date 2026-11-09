@@ -233,6 +233,7 @@ impl App {
         if !self.guard_close(&command) {
             return Vec::new();
         }
+        self.invalidate_combo_cache();
         let events = self.core.dispatch(command);
         self.snapshot = self.core.inspect();
         self.last_error = events.iter().find_map(|event| match event {

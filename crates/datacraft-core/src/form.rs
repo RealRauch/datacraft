@@ -29,10 +29,17 @@ pub enum ControlKind {
         /// Bound source field, if any.
         bound_field: Option<String>,
     },
-    /// Drop-down bound to a source field.
+    /// Drop-down bound to a source field (ADR-8: table/query row source
+    /// plus a display field; free entry follows `LimitToList = No`).
     ComboBox {
         /// Bound source field, if any.
         bound_field: Option<String>,
+        /// Row source: a table or saved-query name (empty = no list).
+        #[serde(default)]
+        row_source: String,
+        /// Field or column of the row source that feeds the list.
+        #[serde(default)]
+        display_field: String,
     },
     /// Command button.
     Button {
@@ -104,4 +111,31 @@ impl FormDef {
             controls: Vec::new(),
         }
     }
+}
+
+/// Kind-specific design data of a placed form control (ADR-8). The command
+/// payload validates the variant against the control kind.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "snake_case")]
+pub enum ControlData {
+    /// Combo box row source: a table or saved query plus its display
+    /// field. Empty strings clear both properties.
+    ComboSource {
+        /// Table or saved-query name.
+        row_source: String,
+        /// Display field or column of that source.
+        display_field: String,
+    },
+}
+
+/// Payload of `Command::SetFormControlData` (one command for the
+/// kind-specific properties, keeping the wire vocabulary additive).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SetControlData {
+    /// Target form name (case-insensitive).
+    pub form: String,
+    /// Control name (case-insensitive).
+    pub control: String,
+    /// The new design data.
+    pub data: ControlData,
 }

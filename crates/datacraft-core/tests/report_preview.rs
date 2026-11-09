@@ -193,7 +193,11 @@ fn unbound_combo_and_check_controls_render_empty() {
     for (name, kind) in [
         (
             "combo",
-            datacraft_core::form::ControlKind::ComboBox { bound_field: None },
+            datacraft_core::form::ControlKind::ComboBox {
+                bound_field: None,
+                row_source: String::new(),
+                display_field: String::new(),
+            },
         ),
         (
             "check",

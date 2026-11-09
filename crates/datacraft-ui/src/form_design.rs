@@ -61,6 +61,12 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 &mut apply,
                 ui,
             );
+            // The selected combo's row source (phase 64, item M70).
+            if let Some(selected) = app.form_selection(tab.id)
+                && let Some(control) = form.controls.iter().find(|c| c.name == selected)
+            {
+                crate::combo_source::combo_source_ui(app, tab.id, &form.name, control, ui);
+            }
         });
     });
 }
@@ -236,16 +242,21 @@ pub(crate) fn paint_control(
                 );
             }
         }
-        datacraft_core::form::ControlKind::ComboBox { bound_field } => {
+        datacraft_core::form::ControlKind::ComboBox { bound_field, .. } => {
             painter.rect_filled(rect, 2.0, ui.visuals().extreme_bg_color);
             painter.rect_stroke(rect, 2.0, stroke, egui::StrokeKind::Inside);
-            painter.text(
-                rect.right_center() - egui::vec2(10.0, 0.0),
-                egui::Align2::CENTER_CENTER,
-                "\u{25BE}".to_owned(),
-                (*font).clone(),
+            // A painted caret, never a text glyph: the bundled fonts have
+            // no U+25BE (tofu panics under the kittest font policy).
+            let caret = rect.right_center() - egui::vec2(10.0, 0.0);
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    caret + egui::vec2(-4.0, -2.0),
+                    caret + egui::vec2(4.0, -2.0),
+                    caret + egui::vec2(0.0, 3.0),
+                ],
                 stroke.color,
-            );
+                egui::Stroke::NONE,
+            ));
             if let Some(field) = bound_field {
                 painter.text(
                     rect.left_center() + egui::vec2(4.0, 0.0),

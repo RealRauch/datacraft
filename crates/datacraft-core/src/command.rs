@@ -17,7 +17,6 @@ use crate::qbe::{QbeRow, QbeValue, SortOrder};
 use crate::schema::TableDef;
 
 mod contexts;
-
 pub use contexts::ExpressionContext;
 
 /// One user-visible action.
@@ -382,6 +381,8 @@ pub enum Command {
         /// The content value.
         value: String,
     },
+    /// Sets the kind-specific design data of a placed form control (ADR-8).
+    SetFormControlData(crate::form::SetControlData),
     /// Removes a control.
     DeleteFormControl {
         /// Target form name (case-insensitive).

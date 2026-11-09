@@ -131,6 +131,7 @@ fn flush(
             }
             | ControlKind::ComboBox {
                 bound_field: Some(field),
+                ..
             } => field.starts_with('='),
             _ => false,
         };
@@ -211,6 +212,7 @@ fn render_control(
         }
         | ControlKind::ComboBox {
             bound_field: Some(field),
+            ..
         } if field.starts_with('=') => {
             return expression_text(control, &field[1..], source, row, aggregate_rows).map(Some);
         }
@@ -222,6 +224,7 @@ fn render_control(
         }
         | ControlKind::ComboBox {
             bound_field: Some(field),
+            ..
         } => Some(crate::report_preview::bound_text(source, row, field)),
         _ => None,
     };

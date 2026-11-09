@@ -12,6 +12,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("< Prev", "< Zurück"),
     ("<binary: {bytes} bytes>", "<Binär: {bytes} Bytes>"),
     ("<column>", "<Spalte>"),
+    (
+        "A table or saved query; every row is listed, duplicates included.",
+        "Eine Tabelle oder gespeicherte Abfrage; jede Zeile wird aufgeführt, Duplikate eingeschlossen.",
+    ),
     ("Add record", "Datensatz hinzufügen"),
     ("Allow Zero Length", "Leere Zeichenfolge zulassen"),
     ("Attachment", "Anlage"),
@@ -20,12 +24,14 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Byte", "Byte"),
     ("Caption", "Beschriftung"),
     ("Clear criteria", "Kriterien löschen"),
+    ("Combo box", "Kombinationsfeld"),
     ("Complex", "Komplex"),
     ("Criteria:", "Kriterien:"),
     ("Criteria: {criteria}", "Kriterien: {criteria}"),
     ("Currency", "Währung"),
     ("Data Type", "Datentyp"),
     ("Date/Time", "Datum/Uhrzeit"),
+    ("Display field", "Anzeigefeld"),
     (
         "Decimal ({precision}, {scale})",
         "Dezimal ({precision}, {scale})",
@@ -94,6 +100,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Add Field", "Feld hinzufügen"),
     ("Delete", "Löschen"),
     ("New field", "Neues Feld"),
+    ("No entries", "Keine Einträge"),
     ("Rename", "Umbenennen"),
     (
         "Record {current} of {total}",
@@ -104,6 +111,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Grouping", "Gruppierung"),
     ("no grouping", "keine Gruppierung"),
     ("Required", "Erforderlich"),
+    ("Row source", "Datensatzquelle"),
     (
         "Rows could not be loaded: {reason}",
         "Zeilen konnten nicht geladen werden: {reason}",

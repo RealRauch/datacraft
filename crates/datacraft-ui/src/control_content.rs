@@ -19,7 +19,7 @@ fn content_of(kind: &ControlKind) -> (&'static str, String) {
         ControlKind::Button { caption } => ("Caption", caption.clone()),
         ControlKind::TextBox { bound_field }
         | ControlKind::CheckBox { bound_field }
-        | ControlKind::ComboBox { bound_field } => {
+        | ControlKind::ComboBox { bound_field, .. } => {
             ("Control source", bound_field.clone().unwrap_or_default())
         }
         ControlKind::SubForm { form } => ("Subform", form.clone()),

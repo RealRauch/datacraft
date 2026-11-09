@@ -241,7 +241,7 @@ fn bound_field(control: &crate::form::ControlDef) -> Option<String> {
     match &control.kind {
         crate::form::ControlKind::TextBox { bound_field }
         | crate::form::ControlKind::CheckBox { bound_field }
-        | crate::form::ControlKind::ComboBox { bound_field } => bound_field.clone(),
+        | crate::form::ControlKind::ComboBox { bound_field, .. } => bound_field.clone(),
         _ => None,
     }
 }

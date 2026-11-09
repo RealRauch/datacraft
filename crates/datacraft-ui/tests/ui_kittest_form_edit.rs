@@ -387,10 +387,7 @@ fn a_combo_selection_comes_from_the_row_source_rows() {
     harness.run();
 
     harness
-        .get_by_role_and_label(
-            egui::accesskit::Role::Button,
-            "NameCombo values",
-        )
+        .get_by_role_and_label(egui::accesskit::Role::Button, "NameCombo values")
         .click();
     harness.run();
     harness.get_by_label("mika@example.com").click();

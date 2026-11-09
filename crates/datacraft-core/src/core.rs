@@ -265,6 +265,7 @@ impl Core {
                 control,
                 value,
             } => self.set_control_content(&form, &control, &value),
+            Command::SetFormControlData(data) => self.set_control_data(&data),
             Command::SetFormControlRect {
                 form,
                 control,
