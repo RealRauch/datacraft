@@ -195,12 +195,27 @@ fn render_control(
             }
         }
         ControlKind::CheckBox { bound_field } => {
-            let checked = bound_field
-                .as_deref()
-                .and_then(index_of)
-                .is_some_and(|i| matches!(&row[i], FieldValue::Boolean(true)));
+            let Some(col) = bound_field.as_deref().and_then(index_of) else {
+                let mut shown = false;
+                ui.add_enabled(false, egui::Checkbox::new(&mut shown, ""));
+                return;
+            };
+            let value = app.form_pending_value(tab_id, col).unwrap_or(&row[col]);
+            let checked = matches!(value, FieldValue::Boolean(true));
             let mut shown = checked;
-            ui.add(egui::Checkbox::new(&mut shown, ""));
+            let response = if restriction.is_some() {
+                ui.add_enabled(false, egui::Checkbox::new(&mut shown, ""))
+            } else {
+                ui.add(egui::Checkbox::new(&mut shown, ""))
+            }
+            .accessible_name(control.name.clone());
+            if let Some(reason) = restriction {
+                response.on_hover_text(crate::availability::reason_text(&reason));
+            } else if response.clicked() {
+                // Two-state (Access TripleState=False): Null displays as
+                // No; a click writes Yes.
+                app.stage_form_value(tab_id, record, col, FieldValue::Boolean(!checked));
+            }
         }
         ControlKind::ComboBox { bound_field } => {
             let value = bound_field
