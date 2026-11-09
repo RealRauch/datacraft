@@ -67,6 +67,10 @@ fn opened_core() -> Core {
     core.dispatch(Command::CreateForm {
         name: "Card".into(),
     });
+    core.dispatch(Command::SetFormSource {
+        form: "Card".into(),
+        table: "Customers".into(),
+    });
     core.dispatch(Command::AddFormControl {
         form: "Card".into(),
         control: combo("Pick"),
@@ -159,7 +163,10 @@ fn a_non_combo_control_is_rejected() {
         },
     }));
     let reason = failed_reason(&events);
-    assert!(reason.contains("combo") || reason.contains("Combo"), "{reason}");
+    assert!(
+        reason.contains("combo") || reason.contains("Combo"),
+        "{reason}"
+    );
 }
 
 #[test]
