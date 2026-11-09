@@ -1773,3 +1773,50 @@
 - **Approach:** one shared content property per kind (the model guarantees exactly one): new commands `SetFormControlContent`/`SetReportControlContent { object, control, value }` setting `Label.text` / `Button.caption` / bound field / `SubForm.form` by kind, with precise validation (bound field must exist in the record source's schema — whitelist rule; subform name must exist; labels/buttons accept any text). The designers gain a selected-control panel (below the palette, the established window/panel pattern): a labelled editor seeded with the current content plus Apply, dispatching exactly one command per change; the preview/runtime re-renders from the refreshed snapshot.
 - **Acceptance:** placing a Textfeld/Bezeichnungsfeld/Schaltfläche and typing its content in the designer makes the runtime/preview render it; a bound control resolves the chosen field; unknown fields and subform names answer precise failures; both designers pinned by kittest (set + render); canonical verification set green.
 - **Done:** done across 2b2d2ac (core), d1e9510 (UI), f3615dd (docs) — phase 63: SetFormControlContent/SetReportControlContent set the one content property each control kind carries (label text, button caption, bound field, subform) with the shared binding whitelist and =expression allowance for reports; both designers render a selected-control panel (kind label, rule hint, Apply) and two kittest pins prove set + render (runtime/preview). forms/controls.rs and command/contexts.rs are the forced L30 splits.
+
+---
+
+### [x] F12 — Inline fix: the form designer's combo caret rendered as a missing font glyph — 🟢
+- **Location:** `crates/datacraft-ui/src/form_design.rs` (`paint_control`: the ComboBox placeholder painted U+25BE as text).
+- **Problem:** The bundled fonts have no U+25BE; the kittest font policy panics on the missing glyph and the live app would render tofu. Found while pinning the new combo designer panel (phase 64, M70).
+- **Fix:** the caret is painted as a convex triangle through the painter (commit `eb1d5e9`).
+- **Done:** fixed inline in `eb1d5e9`
+
+---
+
+### [x] M68 — Form runtime: bound fields are read-only although the update path ships — and the disclaimer blames shipped H40 — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (`render_control`: the TextBox renders `interactive(false)`; the disclaimer at lines 123-126 points at "step 11.10, BACKLOG H40").
+- **Problem:** Bound text boxes in the form runtime are read-only while the Jet update path (step 11.10, item H40) has shipped long ago — the in-app disclaimer names a delivered item as the future blocker, so the runtime's actual limitation (no write wiring in the form view) is misdocumented. Found during the 2026-11-08 GUI walkthrough question ("what can I do with each control").
+- **Approach:** Make the text box editable for writable sources: Enter/blur commits one `UpdateRow` for the bound field (the in-place datasheet editor's pattern, step 40.4), with a precise failure path and read-only gating on `write_rows`. Update the disclaimer to name what remains (if anything) instead of H40. The kittest pins one edit round-trip.
+- **Acceptance:** Editing a bound field in the form runtime dispatches one `UpdateRow` and the record shows the new value after reopen; read-only sources keep the inert rendering with the availability reason; the stale H40 disclaimer is gone; canonical verification set green.
+- **Done:** delivered in phase 64 (step 64.2, commit 0839ea9)
+
+---
+
+### [x] M70 — Form runtime: checkbox and combo controls are inert despite the shipped write path — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (`render_control`: the CheckBox is non-interactive, the ComboBox renders plain text), `crates/datacraft-core/src/form.rs` (`ControlKind::CheckBox`/`ComboBox` carry only `bound_field`).
+- **Problem:** Bound checkboxes ignore clicks and combos have no dropdown or free entry, although the row write path (H40) and the designer content surface (H56) ship. Found in the 2026-11-08 GUI walkthrough; split out of M68 by the 2026-11-09 release decision (text boxes first, checkbox + combo in the same phase).
+- **Access reference (verified 2026-11-09):** a Yes/No check box is two-state by default (`TripleState = False`; Null displays as No); true tri-state requires a nullable Number field, which stays out of scope. A combo's `RowSourceType = Table/Query` accepts a table or query, shows all rows (no implicit DISTINCT), and `LimitToList = No` (default) accepts free text, stores it in the bound field and does not add it to the list; a combo may be bound with an empty row source.
+- **Approach:** Checkbox click toggles true/false through the shared per-record edit buffer (Null counts as false). Combo gains `row_source` (table or saved query) and `display_field` (empty clears); the dropdown lists every row's display value in row-source order including duplicates; free text and selections are parsed against the bound field kind and committed with the record (M68); a missing row source yields an empty list with free entry. The designer surfaces both properties; kittest pins the round-trips.
+- **Acceptance:** A checkbox click and a combo selection/free entry each land in exactly one `UpdateRow` per record change and survive reopen; duplicates render; an empty row source still allows free entry; the designer rejects a display field that does not exist in the source; canonical verification set green.
+- **Done:** delivered in phase 64 (steps 64.3/64.4, commits 37554dc, eb1d5e9)
+
+---
+
+### [x] M71 — The form runtime has no filter model — the M69 filter action needs one — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (reads the raw row cache), `crates/datacraft-core/src/table_view_state.rs` / `crates/datacraft-core/src/table_view.rs` (view state is datasheet-only).
+- **Problem:** The form runtime has no filter model at all: it walks every source row, while `SetTableFilter` narrows only the datasheet. The planned M69 button action "apply filter" therefore has nothing to act on, and Access's `ApplyFilter` semantics (a filter belongs to the form, separate from the table datasheet) are not representable.
+- **Access reference (verified 2026-11-09):** `ApplyFilter` sets the object's own `Filter` property (`Where Condition` = SQL WHERE, or `Filter Name` = a saved query); form filters and table-datasheet filters are independent. The expression service already parses Access-compatible predicates (`= <> < <= > >=`, `Like` with `* ? #`, `Between … And`, `In (…)`, `Is Null`, `And`/`Or`/`Not`).
+- **Approach:** A form-scoped filter (criteria text) in core session state, validated syntactically when set, evaluated per row through `expr::parse`/`Scope`; the runtime's record cursor, count and navigation run over the filtered row indices and map back to the physical row for `UpdateRow`; a visible filter chip with a clear affordance. The datasheet state stays untouched.
+- **Acceptance:** `SetFormFilter` narrows only the named form (kittest-pinned record count and navigation); clearing restores every row; a malformed criterion is rejected precisely at set time; the datasheet of the same table keeps its own filters; canonical verification set green.
+- **Done:** delivered in phase 64 (step 64.5, commit 5fe272f)
+
+---
+
+### [x] M69 — Command buttons have no action model — clicks are discarded — 🟡
+- **Location:** `crates/datacraft-core/src/form.rs` (`ControlKind::Button { caption }` — caption only), `crates/datacraft-ui/src/form_runtime.rs` (the button renders and ignores clicks; the comment blames "the write path (H9)", shipped).
+- **Problem:** Command buttons have no action model — no action property in the domain, nothing to choose in the designer, and a runtime click is discarded. Found in the 2026-11-08 GUI walkthrough.
+- **Decision (2026-11-09, human-approved; Access-verified):** the action vocabulary is open form, open report, run saved query, apply filter. The filter is form-scoped (`ApplyFilter` semantics: a WHERE predicate on the form, separate from the datasheet filter; owned by M71). A button without an action stays enabled (Access documents no auto-disable); a click answers precisely in the status bar. Deleting a target leaves the reference in place (Access Name AutoCorrect does not repair deleted objects); the click fails precisely. No macros or VBA (ADR-2). The decision record goes to ARCHITECTURE §5.
+- **Approach:** a `ButtonAction` property on the button control with a dedicated bus command, a designer picker (forms, reports, queries, plus a WHERE field for the filter), and a runtime click that dispatches exactly one command (open object / run query / apply the form filter). Empty actions are a valid state and are surfaced honestly.
+- **Acceptance:** A button carries a chosen action; a runtime click dispatches exactly one command (kittest-pinned); an empty or unknown action answers precisely and leaves the button usable; a deleted target produces a precise failure; the decision record exists; canonical verification set green.
+- **Done:** delivered in phase 64 (steps 64.6/64.7, commits 442998c, 2faab30)

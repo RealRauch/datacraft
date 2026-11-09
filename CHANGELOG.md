@@ -10,6 +10,7 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- ui/core: the form runtime edits bound records the Access way — text boxes stage per record (exactly one `UpdateRow` when the record is left, Esc reverts the field then the record, the `Required`/`AllowZeroLength` zero-length rule), checkboxes toggle two-state, combos list every row of a table/query row source (duplicates included) and accept free text, command buttons dispatch one action (open form/report, run query, apply filter) and form-scoped WHERE filters narrow the record set without touching the datasheet (64).
 - ui/core: the designers edit the selected control's content — the one
   property each kind carries (label text, button caption, bound source
   field or embedded form) with precise validation; `SetFormControlContent`

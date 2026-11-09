@@ -513,8 +513,8 @@ tracked as M68 (editable bound fields — the update path exists, only the
 wiring is missing) and M69 (a button action model — decision needed first;
 macros/VBA stay out per ADR-2).
 
-**Phase 64 target (Access-aligned, 2026-11-09).** The v0.1.0 matrix above
-stays the historical release record. Phase 64 closes M68, M69, M70 and M71
+**Phase 64 (Access-aligned, delivered 2026-11-09).** The v0.1.0 matrix above
+stays the historical release record. Phase 64 closed M68, M69, M70 and M71
 under ADR-8 (§17 of `docs/ARCHITECTURE.md`), verified against the Microsoft
 Access documentation: bound fields edit through a per-record buffer (`Esc`
 once = field, twice = record); empty entries follow `Required`/
