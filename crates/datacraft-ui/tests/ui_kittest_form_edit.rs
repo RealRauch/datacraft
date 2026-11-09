@@ -45,6 +45,23 @@ fn text_box(name: &str, bound: &str, x: f32) -> ControlDef {
     }
 }
 
+fn combo_box(name: &str, bound: &str, row_source: &str, display_field: &str) -> ControlDef {
+    ControlDef {
+        name: name.into(),
+        kind: ControlKind::ComboBox {
+            bound_field: Some(bound.into()),
+            row_source: row_source.into(),
+            display_field: display_field.into(),
+        },
+        rect: Rect {
+            x: 32.0,
+            y: 136.0,
+            width: 180.0,
+            height: 24.0,
+        },
+    }
+}
+
 fn check_box(name: &str, bound: &str) -> ControlDef {
     ControlDef {
         name: name.into(),
@@ -104,6 +121,10 @@ fn form_app() -> (App, TabId) {
     app.dispatch(Command::AddFormControl {
         form: "Form1".into(),
         control: check_box("ActiveBox", "Active"),
+    });
+    app.dispatch(Command::AddFormControl {
+        form: "Form1".into(),
+        control: combo_box("NameCombo", "Name", "Customers", "Email"),
     });
     app.dispatch(Command::OpenObject(ObjectId::new(
         ObjectKind::Form,
@@ -357,4 +378,47 @@ fn a_null_checkbox_shows_unchecked_and_a_click_writes_true() {
         Some(FieldValue::Boolean(true)),
         "a Null checkbox displays as No and the click writes Yes (Access TripleState=False)"
     );
+}
+
+#[test]
+fn a_combo_selection_comes_from_the_row_source_rows() {
+    let (app, tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+
+    harness
+        .get_by_role_and_label(
+            egui::accesskit::Role::Button,
+            "NameCombo values",
+        )
+        .click();
+    harness.run();
+    harness.get_by_label("mika@example.com").click();
+    harness.run();
+    assert_eq!(harness.state().snapshot().undo_depth, 0);
+
+    harness.get_by_label("Next >").click();
+    harness.run();
+    harness.run();
+    assert_eq!(harness.state().snapshot().undo_depth, 1);
+    assert_eq!(
+        cached(&harness, tab, 0, 1),
+        "mika@example.com",
+        "the selected display value is written to the bound field"
+    );
+}
+
+#[test]
+fn a_combo_accepts_free_text() {
+    let (app, tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+
+    click_input(&mut harness, "NameCombo");
+    type_into(&mut harness, "X");
+    harness.get_by_label("Next >").click();
+    harness.run();
+    harness.run();
+    assert_eq!(harness.state().snapshot().undo_depth, 1);
+    assert_eq!(cached(&harness, tab, 0, 1), "LenaX");
 }
