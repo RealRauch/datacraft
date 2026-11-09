@@ -25,6 +25,7 @@ fn customers() -> TableDef {
             FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger)),
             FieldDef::new("Name", FieldKind::Text { max_len: 50 }),
             FieldDef::new("Email", FieldKind::Text { max_len: 80 }),
+            FieldDef::new("Active", FieldKind::Boolean { tri_state: false }),
         ],
     )
 }
@@ -44,8 +45,24 @@ fn text_box(name: &str, bound: &str, x: f32) -> ControlDef {
     }
 }
 
-/// App with a form over two bound controls plus the `Id` text box (its
-/// Number kind makes a mistyped value observable).
+fn check_box(name: &str, bound: &str) -> ControlDef {
+    ControlDef {
+        name: name.into(),
+        kind: ControlKind::CheckBox {
+            bound_field: Some(bound.into()),
+        },
+        rect: Rect {
+            x: 32.0,
+            y: 96.0,
+            width: 20.0,
+            height: 20.0,
+        },
+    }
+}
+
+/// App with a form over three bound text controls plus the `Id` text box
+/// (its Number kind makes a mistyped value observable) and the `Active`
+/// checkbox (row 1 carries `Null`).
 fn form_app() -> (App, TabId) {
     let mut port = MockPort::with_tables(vec![customers()]);
     port.with_row_data(
@@ -55,11 +72,13 @@ fn form_app() -> (App, TabId) {
                 FieldValue::Integer(1),
                 FieldValue::Text("Lena".to_owned()),
                 FieldValue::Text("lena@example.com".to_owned()),
+                FieldValue::Boolean(true),
             ],
             vec![
                 FieldValue::Integer(2),
                 FieldValue::Text("Mika".to_owned()),
                 FieldValue::Text("mika@example.com".to_owned()),
+                FieldValue::Null,
             ],
         ],
     );
@@ -82,6 +101,10 @@ fn form_app() -> (App, TabId) {
             control: text_box(name, bound, x),
         });
     }
+    app.dispatch(Command::AddFormControl {
+        form: "Form1".into(),
+        control: check_box("ActiveBox", "Active"),
+    });
     app.dispatch(Command::OpenObject(ObjectId::new(
         ObjectKind::Form,
         "Form1",
@@ -267,5 +290,71 @@ fn closing_the_tab_writes_the_buffered_record() {
     assert!(
         harness.state().last_error().is_none(),
         "the save on close succeeds"
+    );
+}
+
+fn cached_value(
+    harness: &Harness<'static, App>,
+    tab: TabId,
+    row: usize,
+    col: usize,
+) -> Option<FieldValue> {
+    harness
+        .state()
+        .rows_for(tab)
+        .and_then(|rows| rows.get(row))
+        .and_then(|values| values.get(col))
+        .cloned()
+}
+
+#[test]
+fn a_checkbox_click_toggles_true_to_false_and_writes_with_the_record() {
+    let (app, tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+
+    harness
+        .get_by_role_and_label(egui::accesskit::Role::CheckBox, "ActiveBox")
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.state().snapshot().undo_depth,
+        0,
+        "the click stages the value, it does not write"
+    );
+
+    harness.get_by_label("Next >").click();
+    harness.run();
+    harness.run();
+    assert_eq!(harness.state().snapshot().undo_depth, 1);
+    assert_eq!(
+        cached_value(&harness, tab, 0, 3),
+        Some(FieldValue::Boolean(false)),
+        "leaving the record writes the toggled value"
+    );
+}
+
+#[test]
+fn a_null_checkbox_shows_unchecked_and_a_click_writes_true() {
+    let (app, tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+
+    harness.get_by_label("Next >").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(egui::accesskit::Role::CheckBox, "ActiveBox")
+        .click();
+    harness.run();
+    assert_eq!(harness.state().snapshot().undo_depth, 0);
+
+    harness.get_by_label("< Prev").click();
+    harness.run();
+    harness.run();
+    assert_eq!(harness.state().snapshot().undo_depth, 1);
+    assert_eq!(
+        cached_value(&harness, tab, 1, 3),
+        Some(FieldValue::Boolean(true)),
+        "a Null checkbox displays as No and the click writes Yes (Access TripleState=False)"
     );
 }
