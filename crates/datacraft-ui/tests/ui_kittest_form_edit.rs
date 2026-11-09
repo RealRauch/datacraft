@@ -9,7 +9,7 @@ use datacraft_core::ObjectId;
 use datacraft_core::ObjectKind;
 use datacraft_core::canvas::Rect;
 use datacraft_core::command::Command;
-use datacraft_core::form::{ControlDef, ControlKind, FormFilter};
+use datacraft_core::form::{ButtonAction, ControlDef, ControlKind, FormFilter};
 use datacraft_core::ids::TabId;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
@@ -57,6 +57,22 @@ fn combo_box(name: &str, bound: &str, row_source: &str, display_field: &str) -> 
             x: 32.0,
             y: 136.0,
             width: 180.0,
+            height: 24.0,
+        },
+    }
+}
+
+fn button(name: &str, caption: &str, action: Option<ButtonAction>, x: f32) -> ControlDef {
+    ControlDef {
+        name: name.into(),
+        kind: ControlKind::Button {
+            caption: caption.into(),
+            action,
+        },
+        rect: Rect {
+            x,
+            y: 176.0,
+            width: 96.0,
             height: 24.0,
         },
     }
@@ -113,6 +129,9 @@ fn form_app() -> (App, TabId) {
     app.dispatch(Command::CreateForm {
         name: "Form1".into(),
     });
+    app.dispatch(Command::CreateForm {
+        name: "Second".into(),
+    });
     app.set_record_source(ObjectKind::Form, "Form1", "Customers");
     for (name, bound, x) in [
         ("NameBox", "Name", 32.0),
@@ -132,6 +151,30 @@ fn form_app() -> (App, TabId) {
         form: "Form1".into(),
         control: combo_box("NameCombo", "Name", "Customers", "Email"),
     });
+    for control in [
+        button(
+            "OpenButton",
+            "Open",
+            Some(ButtonAction::OpenForm {
+                form: "Second".into(),
+            }),
+            32.0,
+        ),
+        button(
+            "FilterButton",
+            "Filter",
+            Some(ButtonAction::ApplyFilter {
+                criteria: "[Name] Like 'L*'".into(),
+            }),
+            160.0,
+        ),
+        button("EmptyButton", "Empty", None, 288.0),
+    ] {
+        app.dispatch(Command::AddFormControl {
+            form: "Form1".into(),
+            control,
+        });
+    }
     app.dispatch(Command::OpenObject(ObjectId::new(
         ObjectKind::Form,
         "Form1",
@@ -479,4 +522,56 @@ fn tree_contains(harness: &Harness<'static, App>, needle: &str) -> bool {
         node.label().is_some_and(|label| label.contains(needle))
             || node.value().is_some_and(|value| value.contains(needle))
     })
+}
+
+#[test]
+fn a_button_with_an_action_dispatches_one_command() {
+    let (app, _tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+    assert_eq!(harness.state().snapshot().tabs.len(), 1);
+
+    harness.get_by_label("Open").click();
+    harness.run();
+    harness.run();
+
+    let snapshot = harness.state().snapshot();
+    assert_eq!(snapshot.tabs.len(), 2, "one OpenObject dispatch opened Second");
+    assert_eq!(snapshot.tabs[1].object_name, "Second");
+}
+
+#[test]
+fn a_button_without_an_action_reports_precisely() {
+    let (app, _tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+
+    harness.get_by_label("Empty").click();
+    harness.run();
+
+    assert_eq!(
+        harness.state().snapshot().tabs.len(),
+        1,
+        "the empty action dispatches nothing"
+    );
+    let error = harness
+        .state()
+        .last_error()
+        .expect("the empty action reports");
+    assert!(error.contains("action"), "{error}");
+}
+
+#[test]
+fn a_filter_button_narrows_the_form() {
+    let (app, _tab) = form_app();
+    let mut harness = form_harness(app);
+    harness.run();
+
+    harness.get_by_label("Filter").click();
+    harness.run();
+    harness.run();
+    assert!(
+        tree_contains(&harness, "Record 1 of 2"),
+        "the button applied the form filter"
+    );
 }
