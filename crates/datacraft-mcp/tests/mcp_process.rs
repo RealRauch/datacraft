@@ -140,3 +140,26 @@ fn protocol_errors_answer_jsonrpc_error_codes() {
         .stdout(predicate::str::contains(r#""id":2"#))
         .stdout(predicate::str::contains("nav_pane_visible"));
 }
+
+/// The fourth client opens URI sources over the real MCP binary too
+/// (step 65.4, item L8): the endpoint is the serve loop, so the source
+/// vocabulary reaches agents unchanged.
+#[test]
+fn open_accepts_a_file_uri_over_the_real_mcp_binary() {
+    let uri = if cfg!(windows) {
+        format!("file:///{}", fixture().to_string_lossy().replace('\\', "/"))
+    } else {
+        format!("file://{}", fixture().to_string_lossy())
+    };
+    let open = json!({"OpenDatabase": {"path": "", "password": null, "source": {"Uri": uri}}});
+    bin()
+        .write_stdin(format!(
+            "{}{}",
+            request(1, "dispatch", Some(open)),
+            request(2, "inspect", None)
+        ))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DatabaseOpened"))
+        .stdout(predicate::str::contains("\"source\":{\"Uri\""));
+}

@@ -204,10 +204,26 @@ pub fn repl(core: &mut Core, reader: &mut dyn std::io::BufRead, writer: &mut dyn
     transport::serve(reader, writer, core);
 }
 
+/// Builds the open command (transport only — the command is composed as
+/// wire JSON, the same vocabulary the wire serves). A `file://` argument
+/// opens as a [`datacraft_core::command::SourceSpec`] with the URI as
+/// data (step 65.4, item L8); the core resolves it and every other
+/// scheme answers the precise no-server-driver boundary as a normal
+/// command failure. Plain path arguments keep the source-less shape.
 fn open_command(path: &str, password: Option<&str>) -> Command {
-    serde_json::from_value(
-        serde_json::json!({"OpenDatabase": {"path": path, "password": password}}),
-    )
+    let uri_shaped = path
+        .get(..7)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("file://"));
+    let source = if uri_shaped {
+        serde_json::json!({"Uri": path})
+    } else {
+        serde_json::Value::Null
+    };
+    serde_json::from_value(serde_json::json!({"OpenDatabase": {
+        "path": if uri_shaped { "" } else { path },
+        "password": password,
+        "source": source,
+    }}))
     .expect("the open command shape is fixed")
 }
 

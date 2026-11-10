@@ -125,6 +125,8 @@ tokens). Nothing records this split in the command enum beyond the doc
 comments. The form runtime's data-entry and button-action model is ADR-8
 (§17).
 
+**Sources** (phase 65, item L8; ADR-7): `OpenDatabase` carries an additive `source: Option<SourceSpec>` — `None` (absent on the wire) keeps the plain `path` open byte-identically; `Some` is authoritative (`Path` must agree with the command path, `Uri` resolves `file://` URIs to their local path with RFC 8089 drive forms and `%HH` decoding, and every other scheme answers the precise no-server-driver boundary naming the scheme and ADR-7). The open session keeps its spec: the snapshot carries `source`, a core-side `Display` is the single render point, and the `.datacraft` sidecar stays file-bound (filesystem-backed sessions only — every session today). The backstage Open entry, the CLI `open` argument and the raw wire all accept the URI form; the first actual server driver decides credentials/SSL behind the no-async rule and gains the ADR-7 extension note at its planning.
+
 ```rust
 /// Every user-visible action, GUI or agent, is exactly one command.
 pub enum Command { /* the authoritative list is command.rs */ }

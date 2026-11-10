@@ -8,6 +8,8 @@
 //! `support/mod.rs`.
 
 mod support;
+#[path = "server_e2e/vba.rs"]
+mod vba;
 
 use std::path::{Path, PathBuf};
 
@@ -323,86 +325,6 @@ fn run_sql_over_the_wire() {
     );
 }
 
-#[test]
-fn vba_project_and_module_source_cross_the_wire() {
-    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("fixtures")
-        .join("programmability.accdb");
-    let mut core = Core::new(Box::new(DetectingPort::new()));
-    let responses = session(
-        &mut core,
-        &[
-            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
-                   "params":{"OpenDatabase":{"path": fixture.to_string_lossy()}}}),
-            json!({"jsonrpc":"2.0","id":2,"method":"inspect"}),
-            json!({"jsonrpc":"2.0","id":3,"method":"dispatch",
-                   "params":{"LoadVbaModule":{"module":"InventoryHelpers"}}}),
-            json!({"jsonrpc":"2.0","id":4,"method":"dispatch",
-                   "params":{"OpenObject":{"kind":"module","name":"InventoryHelpers"}}}),
-        ],
-    );
-    let snapshot = &result_of(&responses[1]);
-    let modules = snapshot["database"]["vba"]["modules"]
-        .as_array()
-        .expect("module list");
-    assert_eq!(modules.len(), 8, "{snapshot}");
-    assert_eq!(modules[0]["name"], "InventoryHelpers", "{snapshot}");
-    assert_eq!(modules[0]["kind"], "standard", "{snapshot}");
-    assert!(snapshot["database"]["vba_error"].is_null(), "{snapshot}");
-
-    let loaded = &result_of(&responses[2])["events"][0]["VbaModuleLoaded"]["module"];
-    assert_eq!(loaded["name"], "InventoryHelpers", "{loaded}");
-    assert!(
-        loaded["source"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("Attribute VB_Name = \"InventoryHelpers\""),
-        "{loaded}"
-    );
-
-    let opened = &result_of(&responses[3])["events"][0]["TabOpened"];
-    assert_eq!(opened["object"]["kind"], "module", "{opened}");
-}
-
-#[test]
-fn vba_static_analysis_crosses_the_wire() {
-    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("fixtures")
-        .join("programmability.accdb");
-    let mut core = Core::new(Box::new(DetectingPort::new()));
-    let responses = session(
-        &mut core,
-        &[
-            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
-                   "params":{"OpenDatabase":{"path": fixture.to_string_lossy()}}}),
-            json!({"jsonrpc":"2.0","id":2,"method":"dispatch",
-                   "params":{"AnalyzeVba":null}}),
-        ],
-    );
-    let analysis = &result_of(&responses[1])["events"][0]["VbaAnalyzed"]["analysis"];
-    assert_eq!(
-        analysis["call_graph"].as_array().expect("call graph").len(),
-        8,
-        "{analysis}"
-    );
-    assert!(
-        !analysis["sql_literals"].as_array().expect("SQL").is_empty(),
-        "{analysis}"
-    );
-    assert!(
-        analysis["table_references"]
-            .as_array()
-            .expect("table refs")
-            .iter()
-            .any(|table| table == "Staff Permissions"),
-        "{analysis}"
-    );
-}
-
 /// CreateDatabase over the wire (phase 29, step 29.1, item H44): the file
 /// is created but NOT opened — the client dispatches `OpenDatabase` next.
 #[test]
@@ -481,4 +403,52 @@ fn creates_a_database_from_template_over_the_wire() {
     let snapshot = &result_of(&responses[3])["database"];
     assert_eq!(snapshot["format"], "jet4", "{snapshot}");
     let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn a_uri_source_opens_over_the_wire_and_the_snapshot_reports_it() {
+    // file:// URI of the committed fixture: the URI resolves to the same
+    // file, so the open behaves like the plain-path open (same format,
+    // same name) and the snapshot carries the spec (step 65.4, item L8).
+    let uri = if cfg!(windows) {
+        format!("file:///{}", fixture().to_string_lossy().replace('\\', "/"))
+    } else {
+        format!("file://{}", fixture().to_string_lossy())
+    };
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                   "params":{"OpenDatabase":{"path": "", "source": {"Uri": uri}}}}),
+            json!({"jsonrpc":"2.0","id":2,"method":"inspect"}),
+        ],
+    );
+    let events = &result_of(&responses[0])["events"];
+    assert_eq!(events[0]["DatabaseOpened"]["format"], "jet4", "{events}");
+    assert_eq!(events[0]["DatabaseOpened"]["name"], "testV2000");
+    let snapshot = &result_of(&responses[1]);
+    assert_eq!(
+        snapshot["database"]["source"],
+        json!({"Uri": uri}),
+        "{snapshot}"
+    );
+}
+
+#[test]
+fn a_server_scheme_uri_answers_the_no_server_driver_boundary_over_the_wire() {
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let responses = session(
+        &mut core,
+        &[json!({"jsonrpc":"2.0","id":1,"method":"dispatch",
+                 "params":{"OpenDatabase":{"path": "", "source":
+                     {"Uri": "postgres://db.example.com/shop"}}}})],
+    );
+    let events = &result_of(&responses[0])["events"];
+    assert_eq!(events[0]["Failed"]["code"], "unsupported", "{events}");
+    let reason = events[0]["Failed"]["reason"].as_str().expect("reason");
+    assert!(
+        reason.contains("postgres") && reason.contains("ADR-7"),
+        "{reason}"
+    );
 }

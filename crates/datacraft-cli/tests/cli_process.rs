@@ -113,5 +113,5 @@ fn open_accepts_a_file_uri_over_the_real_process() {
         .assert()
         .success()
         .stdout(predicate::str::contains("DatabaseOpened"))
-        .stdout(predicate::str::contains("\"source\":{\"uri\""));
+        .stdout(predicate::str::contains("\"source\":{\"Uri\""));
 }

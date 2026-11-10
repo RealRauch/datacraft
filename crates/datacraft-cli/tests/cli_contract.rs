@@ -376,7 +376,7 @@ fn a_file_uri_open_dispatches_the_source_spec_and_reports_it() {
     assert_eq!(outcome, Outcome::Ok);
     let text = String::from_utf8(out).unwrap();
     assert!(
-        text.contains("\"source\":{\"uri\":\"file:///C:/dir/shop.mdb\"}"),
+        text.contains("\"source\":{\"Uri\":\"file:///C:/dir/shop.mdb\"}"),
         "the snapshot must report the uri source: {text}"
     );
 
