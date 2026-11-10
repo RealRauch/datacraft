@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-10T20:51
+# BACKLOG.md — Open items (As of: 2026-11-10T21:14
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -24,6 +24,12 @@
 
 > No open items.
 
+### [ ] M72 — release.yml's draft step fails: --generate-notes needs a checkout — 🟡
+- **Location:** `.github/workflows/release.yml` (the "Draft GitHub release" job's create step).
+- **Problem:** The v0.1.0 tag run (42508568656) ended red: `gh release create --generate-notes` shells out to git, but the job holds only the downloaded artifacts (no `.git` checkout) — "fatal: not a git repository". The draft and all four assets were created anyway (uploads happen before notes generation), so the release stayed intact; the red run and the thin default notes are the residue (the notes were composed manually from CHANGELOG's [0.1.0] section at publication, 2026-11-10).
+- **Approach:** Preferred: generate the notes from `CHANGELOG.md`'s dated section via `--notes-file` — the changelog is the reviewed source of truth per the L38 cadence, so the draft carries the real entries with no manual follow-up. Alternative: check out the repository before the create step. `.github/workflows/*` is High-class — explicit human release required before implementation.
+- **Acceptance:** A tag-triggered release run completes fully green including the draft step, and the created draft carries the changelog-derived notes without manual follow-up.
+
 ---
 
 ## 🟢 LOW
@@ -31,10 +37,10 @@
 > No open items.
 
 ### [ ] L30 — ~15 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
-- **Location:** the 460-499 band, refreshed 2026-11-10 — 29 files (2026-11-07 review saw ~15 ≥ 480). At the gate: `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-core/src/command.rs` (499), `crates/datacraft-core/tests/journal.rs` (498), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-ui/src/app.rs` (496), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-core/tests/command_bus.rs` (494), `crates/datacraft-core/src/port.rs` (493), `crates/datacraft-ui/src/backstage/pages.rs` (491), `crates/datacraft-sqlite/src/mapping.rs` (488), `crates/datacraft-csv/src/lib.rs` + `crates/datacraft-core/src/port_mock.rs` (487), `crates/datacraft-ui/src/datasheet/grid.rs` (485), `crates/datacraft-ui/tests/server_e2e.rs` (484), `crates/datacraft-jet/tests/jet_indexes.rs` (482), `crates/datacraft-ui/src/app/form_edit.rs` (481), `crates/datacraft-ui/tests/ui_kittest.rs` + `crates/datacraft-core/src/journal.rs` (478); further 8 files in 460-477 (`form_runtime.rs`, `flows.rs`, `ui_layout.rs`, `sqlite_writes.rs`, `ribbon.rs`, `sqlite_relationships.rs`, `settings.rs`, `expr/format.rs`).
+- **Location:** the 460-499 band, refreshed 2026-11-10 after the five Phase-65 splits (29 → 26 files; 2026-11-07 review saw ~15 ≥ 480). At the gate: `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-core/src/command.rs` (498), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-ui/src/app.rs` (496), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-core/src/port.rs` (493), `crates/datacraft-sqlite/src/mapping.rs` (488), `crates/datacraft-csv/src/lib.rs` + `crates/datacraft-core/src/port_mock.rs` (487), `crates/datacraft-ui/src/datasheet/grid.rs` (485), `crates/datacraft-ui/tests/ui_kittest.rs` + `crates/datacraft-jet/tests/jet_indexes.rs` (484), `crates/datacraft-ui/src/app/form_edit.rs` (481), `crates/datacraft-ui/tests/ui_layout.rs` (479), `crates/datacraft-core/src/journal.rs` (478); further 8 files in 460-477 (`form_runtime.rs`, `flows.rs`, `sqlite_writes.rs`, `sqlite_relationships.rs`, `ribbon.rs`, `expr/format.rs`, `settings.rs`, `core.rs`).
 - **Problem:** The <500-line file-size gate holds with zero violations, but the band keeps growing (phases 63/64 filled it further) and files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review, list refreshed 2026-11-10).
 - **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
-- **Steps:** rides released steps that touch band files; first riders — Phase 65 (65.1 carries the `command.rs` split, 65.3 touches `app.rs`, 65.4 touches `server_e2e.rs`).
+- **Steps:** rides released steps that touch band files; Phase 65 carried five forced splits (65.1 `command.rs` → `command/source.rs` and `tests/command_bus.rs`/`tests/journal.rs` → module files; 65.3 `backstage/pages.rs` → `backstage/info.rs`; 65.4 `tests/server_e2e.rs` → `server_e2e/vba.rs`). `app.rs` was expected as a 65.3 rider but was not touched.
 - **Rule:** codified 2026-11-10 as binding method — PLAYBOOK §5 ("split below the gate, not at it") and LESSONS #15; this item stays open as the live band list only.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
 

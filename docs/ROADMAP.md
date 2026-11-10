@@ -450,9 +450,11 @@ the owning phase starts.
   statement, not a gap.
 - **Distribution:** installers/signing/auto-update are a post-tag topic;
   the release workflow (M13) governs tags, the CHANGELOG stays
-  human-reviewed. v0.1.0 was published on 2026-11-08: all six crates are
-  on crates.io, the tag `v0.1.0` exists, and the three platform archives
-  carry checksums in the draft GitHub release.
+  human-reviewed. v0.1.0 shipped 2026-11-08: all six
+  crates are on crates.io and the tag `v0.1.0` exists; the GitHub release
+  was published on 2026-11-10 after the human draft review, with notes
+  composed from CHANGELOG's [0.1.0] section — the workflow's
+  `--generate-notes` draft step fails without a checkout (M72).
 - **Hygiene (2026-11-06):** §5 M4 corrected from ✅ to ⬜ — the
   designer/preview phases landed, the events/requery runtime of §2 Ring 4
   did not; §3's VBA re-evaluation gate keys on the runtime, not the designer.
