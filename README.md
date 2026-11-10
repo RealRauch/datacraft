@@ -10,7 +10,7 @@ navigation pane, tabbed documents, datasheet and design views, the QBE query
 builder and a form/report canvas. It reads Jet3/Jet4 `.mdb`, ACE `.accdb`,
 SQLite databases and CSV directories, and writes Jet4/ACE and SQLite on
 verified table/row paths (the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-08) states
+[compatibility matrix](#compatibility-matrix-verified-2026-11-10) states
 exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
@@ -56,7 +56,7 @@ API.
 > maximized; ADR-5). Expect breaking changes. The honest, step-by-step
 > picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
 > the verified compatibility claims are in
-> [Compatibility matrix](#compatibility-matrix-verified-2026-11-08).
+> [Compatibility matrix](#compatibility-matrix-verified-2026-11-10).
 
 ## Why DataCraft
 
@@ -65,7 +65,7 @@ API.
   canvas — rendered in an original, minimal visual language of its own.
 - **Your files.** Verified read paths for `.mdb` (Jet3/Jet4) and `.accdb`
   (ACE), plus verified Jet4 and ACE write paths, in pure Rust. The
-  [compatibility matrix](#compatibility-matrix-verified-2026-11-08) names
+  [compatibility matrix](#compatibility-matrix-verified-2026-11-10) names
   every covered and unsupported path — no blanket "bit-for-bit" claim. No
   COM, OLE DB, ADO or winapi anywhere.
 - **Clean-room.** Format knowledge comes only from public specifications and
@@ -119,13 +119,13 @@ The honest picture, phase by phase, is in
 [docs/ROADMAP.md](docs/ROADMAP.md); the format facts are catalogued in
 [docs/FORMAT-JET.md](docs/FORMAT-JET.md).
 
-## Compatibility matrix (verified 2026-11-08)
+## Compatibility matrix (verified 2026-11-10)
 
 Every compatibility claim below names its evidence; unsupported paths are
-stated in the same row. Re-verified 2026-11-08 for the v0.1.0 release:
-every evidence suite named below is green on CI `main` (the mechanical
-claim); the real-engine checks stand from the 2026-11-07 Access walkthrough
-and the DAO create-path oracle (phase 49.2, item M63). **Read** means decode through the `StoragePort`;
+stated in the same row. Re-verified 2026-11-10 for the v0.1.1 release:
+every evidence suite named below is green on CI `main` (run 42895207902;
+the mechanical claim); the real-engine checks stand from the 2026-11-07
+Access walkthrough and the DAO create-path oracle (phase 49.2, item M63). **Read** means decode through the `StoragePort`;
 **write** means the path is exercised against a real file in the named
 suite. Writes are verified as Access-readable and usage-map-consistent —
 byte-identical output to Microsoft Access is **not** claimed.
@@ -287,7 +287,7 @@ query engine → macros → forms runtime. DataCraft implements **no VBA
 interpreter or runtime**; VBA is extracted, displayed and statically analyzed
 only (Phase 17, ADR-2). The ring model and rationale are in
 [docs/ROADMAP.md](docs/ROADMAP.md); the verified claim set is the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-08).
+[compatibility matrix](#compatibility-matrix-verified-2026-11-10).
 
 ## Quality gates
 
