@@ -77,6 +77,7 @@
 
 
 
+
 ---
 
 ## Progress
@@ -368,3 +369,5 @@
 | 65.5 | Phase 65 Quality Gate Review | ✅ |
 | 66.1 | M72: the release draft step composes its notes from CHANGELOG's dated section (High gate released 2026-11-10) | ✅ |
 | 66.2 | Phase 66 Quality Gate Review | ✅ |
+| 67.1 | M72 fix 2: the publish job checks out before downloading the artifact — checkout's clean wipes dist otherwise (v0.1.1 live finding) | ✅ |
+| 67.2 | Phase 67 Quality Gate Review | ✅ |

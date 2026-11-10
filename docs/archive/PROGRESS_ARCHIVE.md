@@ -866,3 +866,13 @@ matrix; no server-driver claims).
 - **66.1 M72: the release draft step composes its notes from CHANGELOG's dated section (High gate released 2026-11-10)**
 - **66.2 Phase 66 Quality Gate Review**
 **Verification:** Gate review for the workflow-only phase: the Rust tree is byte-identical to the fully green CI run 42888059548 (canonical set stands per the phase-57 precedent, and the push re-runs the full matrix); the extraction logic was simulated locally in both branches (0.1.0 -> 82 lines verbatim from "### Added"; 0.1.1 -> the loud L39 refusal), which also caught the broken awk -v argument form pre-commit; the workflow step itself runs with set -euo pipefail and an explicit non-empty guard. M72 stays open by design: its acceptance (a tag-triggered run fully green including the draft step) is proven live by the next release — the natural vehicle is the 0.1.1 cut, which also carries the changelog heading the new step will extract. (checkpoint: d683572)
+
+---
+
+### Phase 67 — Release draft step, fix forward
+
+**Scope (Steps):**
+
+- **67.1 M72 fix 2: the publish job checks out before downloading the artifact — checkout's clean wipes dist otherwise (v0.1.1 live finding)**
+- **67.2 Phase 67 Quality Gate Review**
+**Verification:** Gate review for the workflow-only fix-forward phase: step order pinned by inspection, the create step unchanged from the v0.1.1-proven extraction, M72 carries both root causes (generate-notes without checkout; checkout clean after the download), the v0.1.1 draft was salvaged from the verified bundle, and the canonical set stands on the identical Rust tree (CI run 42895207902) — the push re-runs the matrix. (checkpoint: c8000a3)
