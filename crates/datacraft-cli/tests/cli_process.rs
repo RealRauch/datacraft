@@ -100,3 +100,18 @@ fn a_non_interactive_repl_session_answers_every_request() {
         .stdout(predicate::str::contains("\"id\":1"))
         .stdout(predicate::str::contains("\"id\":2"));
 }
+
+#[test]
+fn open_accepts_a_file_uri_over_the_real_process() {
+    let uri = if cfg!(windows) {
+        format!("file:///{}", fixture_arg().replace('\\', "/"))
+    } else {
+        format!("file://{}", fixture_arg())
+    };
+    bin()
+        .args(["open", &uri, "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DatabaseOpened"))
+        .stdout(predicate::str::contains("\"source\":{\"uri\""));
+}

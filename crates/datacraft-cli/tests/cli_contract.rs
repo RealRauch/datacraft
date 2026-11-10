@@ -359,3 +359,40 @@ fn exec_reaches_save_as_and_password_change() {
     let text = String::from_utf8(out).unwrap();
     assert!(text.contains("PasswordChanged"), "{text}");
 }
+
+#[test]
+fn a_file_uri_open_dispatches_the_source_spec_and_reports_it() {
+    let mut core = fresh_core();
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "open".to_owned(),
+            "file:///C:/dir/shop.mdb".to_owned(),
+            "--json".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert!(
+        text.contains("\"source\":{\"uri\":\"file:///C:/dir/shop.mdb\"}"),
+        "the snapshot must report the uri source: {text}"
+    );
+
+    // A plain path entry keeps the source-less shape.
+    let mut core = fresh_core();
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "open".to_owned(),
+            "shop.mdb".to_owned(),
+            "--json".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.contains("\"source\":null"), "{text}");
+}
