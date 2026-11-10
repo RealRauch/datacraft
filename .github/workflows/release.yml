@@ -172,16 +172,41 @@ jobs:
         with:
           name: release-bundle
           path: dist
+      - uses: actions/checkout@v4
+        with:
+          # The notes come from the tagged tree's changelog; no push
+          # credentials are needed beyond the release-scoped token below.
+          persist-credentials: false
+      - name: Compose the release notes from CHANGELOG
+        run: |
+          set -euo pipefail
+          # The changelog is the reviewed source of truth (L38 cadence): the
+          # draft carries the tag's dated section verbatim. `--generate-notes`
+          # needs a git checkout the artifact-only job never had (M72). A
+          # missing section means the release checklist was skipped — fail
+          # loudly instead of drafting a thin release.
+          version="${GITHUB_REF_NAME#v}"
+          awk -v "heading=## [$version]" '
+            index($0, heading " ") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "no [$version] section in CHANGELOG.md — run the release checklist (L39) before tagging" >&2
+            exit 1
+          fi
       - name: Create the draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # The job runs without a checkout: `gh` needs the repository
-          # passed explicitly (the first tag run failed on "not a git repository").
+          # The notes file is composed above from the changelog section; the
+          # checkout provides the repository context `gh release create`
+          # needs for tag validation (M72).
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "DataCraft ${GITHUB_REF_NAME}" \
-            --generate-notes \
+            --notes-file release-notes.md \
+            --latest \
             --draft \
             dist/datacraft-* dist/checksums-sha256.txt

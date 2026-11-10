@@ -29,6 +29,7 @@
 - **Problem:** The v0.1.0 tag run (42508568656) ended red: `gh release create --generate-notes` shells out to git, but the job holds only the downloaded artifacts (no `.git` checkout) — "fatal: not a git repository". The draft and all four assets were created anyway (uploads happen before notes generation), so the release stayed intact; the red run and the thin default notes are the residue (the notes were composed manually from CHANGELOG's [0.1.0] section at publication, 2026-11-10).
 - **Approach:** Preferred: generate the notes from `CHANGELOG.md`'s dated section via `--notes-file` — the changelog is the reviewed source of truth per the L38 cadence, so the draft carries the real entries with no manual follow-up. Alternative: check out the repository before the create step. `.github/workflows/*` is High-class — explicit human release required before implementation.
 - **Acceptance:** A tag-triggered release run completes fully green including the draft step, and the created draft carries the changelog-derived notes without manual follow-up.
+- **Steps:** Phase 66 (66.1) — released 2026-11-10.
 
 ---
 

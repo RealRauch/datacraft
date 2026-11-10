@@ -9,6 +9,13 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 66 — Release draft step
+
+**Scope (Steps):**
+
+- **66.1 M72: the release draft step composes its notes from CHANGELOG's dated section (High gate released 2026-11-10)**
+- **66.2 Phase 66 Quality Gate Review**
+
 
 
 
@@ -365,3 +372,5 @@
 | 65.3 | UI: backstage Open accepts path or file:// URI and renders the source display, kittest pin (L8) | ✅ |
 | 65.4 | Wire: URI sources flow through CLI and MCP with server_e2e pins — all four clients, file behavior byte-identical (L8) | ✅ |
 | 65.5 | Phase 65 Quality Gate Review | ✅ |
+| 66.1 | M72: the release draft step composes its notes from CHANGELOG's dated section (High gate released 2026-11-10) | 🔄 |
+| 66.2 | Phase 66 Quality Gate Review | ⬜ |
