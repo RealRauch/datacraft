@@ -31,6 +31,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Database Tools", "Datenbanktools"),
     ("Database password", "Datenbankkennwort"),
     ("Database path", "Datenbankpfad"),
+    ("Source", "Quelle"),
+    ("path or file:// URI", "Pfad oder file://-URI"),
     ("Dark", "Dunkel"),
     ("Datasheet", "Datenblatt"),
     ("Delete Object", "Objekt löschen"),

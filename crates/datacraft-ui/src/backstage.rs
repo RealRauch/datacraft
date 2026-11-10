@@ -15,6 +15,7 @@ use eframe::egui;
 use crate::app::App;
 use crate::theme::tokens;
 
+mod info;
 mod nav;
 mod pages;
 pub(crate) mod recent;

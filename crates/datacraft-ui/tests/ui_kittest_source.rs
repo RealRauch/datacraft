@@ -10,7 +10,7 @@ use datacraft_ui::app::App;
 use datacraft_ui::backstage::BackstagePage;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::Queryable;
 
 fn backstage_harness(app: App) -> Harness<'static, App> {
     Harness::new_ui_state(

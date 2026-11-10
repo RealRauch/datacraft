@@ -93,6 +93,19 @@ impl std::fmt::Display for SourceError {
     }
 }
 
+impl std::fmt::Display for SourceSpec {
+    /// The source display every client renders (step 65.2/65.3, item L8):
+    /// a `Uri` shows as entered, a `Path` shows its filesystem form.
+    /// Future source variants decide their own display here — the single
+    /// render point (the `DatabaseFormat` pattern, M18).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Path(path) => write!(f, "{}", path.display()),
+            Self::Uri(uri) => write!(f, "{uri}"),
+        }
+    }
+}
+
 impl SourceSpec {
     /// Resolves the open request into the effective local path.
     ///

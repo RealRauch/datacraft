@@ -7,14 +7,12 @@
 use eframe::egui;
 use eframe::egui::{Rect, Sense, Stroke, StrokeKind};
 
-use datacraft_core::command::Command;
+use datacraft_core::command::{Command, SourceSpec};
 
 use crate::app::App;
-use crate::appearance::Appearance;
 use crate::backstage::BackstagePage;
 use crate::backstage::recent::recent_databases_ui;
-use crate::i18n::{t, tr};
-use crate::settings::LanguageSetting;
+use crate::i18n::t;
 use crate::theme::{fonts, tokens};
 
 /// Right column: the selected page.
@@ -29,8 +27,8 @@ pub(super) fn page_body(app: &mut App, ui: &mut egui::Ui) {
         BackstagePage::Open => open_page(app, ui, &mut intents),
         BackstagePage::Samples => samples_page(app, ui, &mut intents),
         BackstagePage::Save => super::save::save_page(app, ui, &mut intents),
-        BackstagePage::Info => info_page(app, ui),
-        BackstagePage::Options => options_page(app, ui),
+        BackstagePage::Info => super::info::info_page(app, ui),
+        BackstagePage::Options => super::info::options_page(app, ui),
     }
     for command in intents {
         app.dispatch(command);
@@ -174,13 +172,24 @@ fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command
 }
 
 /// Open: the path buffer and the single open command.
+/// The open entry accepts a path or a `file://` URI (step 65.3, item L8):
+/// URI-shaped entries travel as [`SourceSpec::Uri`]; anything else keeps
+/// the plain path shape.
+fn open_source(entry: &str) -> Option<SourceSpec> {
+    entry
+        .get(..7)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("file://"))
+        .then(|| SourceSpec::Uri(entry.to_owned()))
+}
+
 fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
-    ui.label(t("Database path"));
-    ui.add(
+    let label = ui.label(t("Database path"));
+    let field = ui.add(
         egui::TextEdit::singleline(&mut app.open_path)
             .desired_width(360.0)
-            .hint_text(t("path to .mdb")),
+            .hint_text(t("path or file:// URI")),
     );
+    field.labelled_by(label.id);
     ui.horizontal(|ui| {
         if ui
             .push_id("backstage.open.browse", |ui| ui.button(t("Browse…")))
@@ -211,10 +220,19 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         .inner
         .clicked()
     {
+        // Server-source readiness (step 65.3, item L8): a `file://` entry
+        // opens as a source spec — the URI travels as data and the core
+        // resolves it; every other scheme answers the precise
+        // no-server-driver boundary in the status line below.
+        let source = open_source(app.open_path.trim());
         intents.push(Command::OpenDatabase {
-            path: app.open_path.clone().into(),
+            path: if source.is_some() {
+                std::path::PathBuf::new()
+            } else {
+                app.open_path.clone().into()
+            },
             password: None,
-            source: None,
+            source,
         });
     }
     recent_databases_ui(app, ui, intents);
@@ -385,80 +403,6 @@ fn sample_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
         .collect();
     files.sort();
     files
-}
-
-/// Info: database facts, read from the snapshot.
-fn info_page(app: &mut App, ui: &mut egui::Ui) {
-    let Some(db) = app.snapshot().database.as_ref() else {
-        ui.label(t("No database open"));
-        return;
-    };
-    let facts = [
-        (t("Database"), db.name.clone()),
-        (t("Path"), db.path.display().to_string()),
-        (t("Format"), db.format.to_string()),
-        (t("Tables"), db.tables.len().to_string()),
-        (t("Relationships"), db.relationships.len().to_string()),
-    ];
-    for (label, value) in facts {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(label).strong());
-            ui.label(value);
-        });
-    }
-    // Access co-existence (step 53.2, item M59): a detected lock file is
-    // a database fact — the name plus the full localized remedy (the
-    // same key the status bar's hover text carries).
-    if let Some(file) = &db.lock_file {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(t("Access lock file")).strong());
-            ui.label(file);
-        });
-        ui.label(
-            egui::RichText::new(tr(crate::shell::LOCK_NOTICE_DETAIL, &[("file", file)])).weak(),
-        );
-    }
-}
-
-/// Options: the UI-only language and appearance switchers (I5/U4).
-fn options_page(app: &mut App, ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.label(t("Language"));
-        let current = app.language_setting();
-        egui::ComboBox::from_id_salt("backstage.options.language")
-            .selected_text(current.label())
-            .show_ui(ui, |ui| {
-                for choice in [
-                    LanguageSetting::Auto,
-                    LanguageSetting::German,
-                    LanguageSetting::English,
-                ] {
-                    if ui
-                        .selectable_label(current == choice, choice.label())
-                        .clicked()
-                    {
-                        app.set_language_setting(choice);
-                    }
-                }
-            });
-    });
-    ui.add_space(6.0);
-    ui.horizontal(|ui| {
-        ui.label(t("Appearance"));
-        let current = app.appearance_setting();
-        egui::ComboBox::from_id_salt("backstage.options.appearance")
-            .selected_text(current.label())
-            .show_ui(ui, |ui| {
-                for choice in [Appearance::System, Appearance::Light, Appearance::Dark] {
-                    if ui
-                        .selectable_label(current == choice, choice.label())
-                        .clicked()
-                    {
-                        app.set_appearance_setting(choice);
-                    }
-                }
-            });
-    });
 }
 
 /// One backstage flow button with its convention test id.

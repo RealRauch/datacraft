@@ -385,6 +385,20 @@ fn the_lifecycle_gate_precedes_source_resolution() {
     assert_eq!(failure_code(&events), FailureCode::Lifecycle);
 }
 
+#[test]
+fn the_source_display_shows_the_uri_or_path_form() {
+    // The single render point every client shows (the DatabaseFormat
+    // pattern): a Uri as entered, a Path in its filesystem form.
+    assert_eq!(
+        SourceSpec::Uri("file:///C:/dir/shop.mdb".into()).to_string(),
+        "file:///C:/dir/shop.mdb"
+    );
+    assert_eq!(
+        SourceSpec::Path(PathBuf::from("shop.mdb")).to_string(),
+        "shop.mdb"
+    );
+}
+
 // ---------------------------------------------------------------------------
 // wire compatibility
 // ---------------------------------------------------------------------------
