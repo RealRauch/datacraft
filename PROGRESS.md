@@ -394,7 +394,7 @@ matrix; no server-driver claims).
 | 64.7 | M69: designer action picker and runtime click dispatch (open form/report, run query, apply filter) | ✅ |
 | 64.8 | Phase 64 Quality Gate Review | ✅ |
 | 65.1 | Core: SourceSpec {Path, Uri} on the open/create commands — file:// resolution, precise no-server-driver boundary; carries the forced L30 command.rs split (L8) | ✅ |
-| 65.2 | Core: snapshot source display; the sidecar applies to Path sources only (L8) | ⬜ |
+| 65.2 | Core: snapshot source display; the sidecar applies to Path sources only (L8) | ✅ |
 | 65.3 | UI: backstage Open accepts path or file:// URI and renders the source display, kittest pin (L8) | ⬜ |
 | 65.4 | Wire: URI sources flow through CLI and MCP with server_e2e pins — all four clients, file behavior byte-identical (L8) | ⬜ |
 | 65.5 | Phase 65 Quality Gate Review | ⬜ |
