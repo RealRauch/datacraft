@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-09T23:22
+# BACKLOG.md — Open items (As of: 2026-11-10T19:09
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -35,11 +35,13 @@
 - **Problem:** The driver model is ready for server drivers (Postgres/SQL Server per ADR-7's documented future path), but the wire and the UI assume a filesystem path (`path: PathBuf`, file-stem names, a sidecar next to the file).
 - **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
 - **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
+- **Steps:** Phase 65 (65.1 core SourceSpec + boundary, 65.2 snapshot display + sidecar gate, 65.3 backstage UI, 65.4 CLI/MCP wire) — packaged 2026-11-10.
 
 ### [ ] L30 — ~15 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
-- **Location:** `crates/datacraft-core/tests/journal.rs` (498 lines), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-jet/tests/jet_table.rs` (495), `crates/datacraft-jet/src/jet/row.rs` (495), plus ~11 further files in the 480-499 band.
-- **Problem:** The <500-line file-size gate holds with zero violations, but ~15 files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review).
+- **Location:** the 460-499 band, refreshed 2026-11-10 — 29 files (2026-11-07 review saw ~15 ≥ 480). At the gate: `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-core/src/command.rs` (499), `crates/datacraft-core/tests/journal.rs` (498), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-ui/src/app.rs` (496), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-core/tests/command_bus.rs` (494), `crates/datacraft-core/src/port.rs` (493), `crates/datacraft-ui/src/backstage/pages.rs` (491), `crates/datacraft-sqlite/src/mapping.rs` (488), `crates/datacraft-csv/src/lib.rs` + `crates/datacraft-core/src/port_mock.rs` (487), `crates/datacraft-ui/src/datasheet/grid.rs` (485), `crates/datacraft-ui/tests/server_e2e.rs` (484), `crates/datacraft-jet/tests/jet_indexes.rs` (482), `crates/datacraft-ui/src/app/form_edit.rs` (481), `crates/datacraft-ui/tests/ui_kittest.rs` + `crates/datacraft-core/src/journal.rs` (478); further 8 files in 460-477 (`form_runtime.rs`, `flows.rs`, `ui_layout.rs`, `sqlite_writes.rs`, `ribbon.rs`, `sqlite_relationships.rs`, `settings.rs`, `expr/format.rs`).
+- **Problem:** The <500-line file-size gate holds with zero violations, but the band keeps growing (phases 63/64 filled it further) and files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review, list refreshed 2026-11-10).
 - **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
+- **Steps:** rides released steps that touch band files; first riders — Phase 65 (65.1 carries the `command.rs` split, 65.3 touches `app.rs`, 65.4 touches `server_e2e.rs`).
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
 
 ### [ ] L36 — Split datacraft-expr (piggyback; resolve the types boundary first) — 🟢
