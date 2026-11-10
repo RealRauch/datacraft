@@ -37,6 +37,7 @@ fn opened_db() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core.dispatch(Command::CreateTable {
         definition: customers_def(),
@@ -202,6 +203,7 @@ fn loading_rejects_foreign_and_future_documents() {
     other.dispatch(Command::OpenDatabase {
         path: PathBuf::from("other.mdb"),
         password: None,
+        source: None,
     });
     other.dispatch(Command::CreateTable {
         definition: customers_def(),

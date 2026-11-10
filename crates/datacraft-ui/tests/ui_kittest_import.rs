@@ -34,6 +34,7 @@ fn writable_app(source: &Path) -> App {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.set_dialogs(Box::new(
         ScriptedDialogs::new().file(Some(source.to_string_lossy().as_ref())),
@@ -151,6 +152,7 @@ fn the_import_button_renders_disabled_for_a_read_only_source() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.set_dialogs(Box::new(
         ScriptedDialogs::new().file(Some(source.to_string_lossy().as_ref())),

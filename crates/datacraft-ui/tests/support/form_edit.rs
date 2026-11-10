@@ -124,6 +124,7 @@ pub fn form_app() -> (App, TabId) {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::CreateForm {
         name: "Form1".into(),

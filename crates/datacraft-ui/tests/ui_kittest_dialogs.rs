@@ -26,6 +26,7 @@ fn app_with_database() -> App {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app
 }
@@ -107,6 +108,7 @@ fn save_copy_gates_the_overwrite_on_confirmation() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.backstage_page = datacraft_ui::backstage::BackstagePage::Save;
     app.save_as_path = target.display().to_string();

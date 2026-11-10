@@ -63,6 +63,7 @@ fn core_with(table: TableDef, rows: Vec<Vec<FieldValue>>) -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     core
 }

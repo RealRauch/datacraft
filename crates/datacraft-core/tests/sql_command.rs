@@ -33,6 +33,7 @@ fn core() -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events[0], Event::DatabaseOpened { .. }),
@@ -131,6 +132,7 @@ fn materialization_failures_are_precise() {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     let err = core
         .run_sql("SELECT * FROM customers")

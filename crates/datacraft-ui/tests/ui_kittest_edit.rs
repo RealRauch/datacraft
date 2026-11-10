@@ -42,6 +42,7 @@ fn edit_app(rows: usize) -> (App, TabId) {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,
@@ -224,6 +225,7 @@ fn read_only_sources_never_arm_the_cell_editor() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,

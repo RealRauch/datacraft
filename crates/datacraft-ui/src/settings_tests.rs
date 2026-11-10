@@ -102,6 +102,7 @@ fn window_title_follows_the_open_database_and_clears_on_close() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     assert_eq!(
         crate::shell::window_title(app.snapshot()),
@@ -118,6 +119,7 @@ fn window_title_is_localized_in_both_languages() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     crate::i18n::set_lang(crate::i18n::Lang::German);
     assert_eq!(
@@ -147,6 +149,7 @@ fn opening_a_database_records_it_as_recent_and_persists() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: database.clone(),
         password: None,
+        source: None,
     });
     assert_eq!(
         app.recent_databases().first().map(|entry| &entry.path),

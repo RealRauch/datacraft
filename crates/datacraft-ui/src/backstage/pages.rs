@@ -166,6 +166,7 @@ fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command
             intents.push(Command::OpenDatabase {
                 path: path.into(),
                 password: None,
+                source: None,
             });
         }
     }
@@ -213,6 +214,7 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         intents.push(Command::OpenDatabase {
             path: app.open_path.clone().into(),
             password: None,
+            source: None,
         });
     }
     recent_databases_ui(app, ui, intents);
@@ -244,6 +246,7 @@ fn samples_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
                 intents.push(Command::OpenDatabase {
                     path,
                     password: None,
+                    source: None,
                 });
             }
         }

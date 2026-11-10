@@ -93,6 +93,7 @@ fn analysis_app() -> (App, datacraft_core::snapshot::TabSnapshot) {
     app.dispatch(Command::OpenDatabase {
         path: "programmability.accdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Module,

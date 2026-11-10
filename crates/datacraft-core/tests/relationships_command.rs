@@ -40,6 +40,7 @@ fn core_with(caps: DriverCapabilities) -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     core
 }
@@ -151,6 +152,7 @@ fn the_capability_gate_precedes_the_port() {
         core.dispatch(Command::OpenDatabase {
             path: "shop.mdb".into(),
             password: None,
+            source: None,
         });
         let reason = failure(&core.dispatch(Command::CreateRelationship {
             relationship: relationship(),
@@ -195,6 +197,7 @@ fn a_port_failure_is_reported_and_changes_nothing() {
     core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     let reason = failure(&core.dispatch(Command::CreateRelationship {
         relationship: relationship(),
@@ -237,6 +240,7 @@ fn unindexable_fields_are_refused() {
     core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     let reason = failure(&core.dispatch(Command::CreateRelationship {
         relationship: relationship(),
@@ -271,6 +275,7 @@ fn a_delete_port_failure_is_reported() {
     core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     let reason = failure(&core.dispatch(Command::DeleteRelationship {
         relationship: relationship(),
@@ -307,6 +312,7 @@ fn dropping_a_parent_table_prunes_inbound_relationships() {
     core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     let events = core.dispatch(Command::DropTable {
         table: "Customers".into(),

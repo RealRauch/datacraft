@@ -22,6 +22,7 @@ fn core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     core
 }

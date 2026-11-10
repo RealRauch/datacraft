@@ -44,6 +44,7 @@ fn core_with_rows() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     core
 }
@@ -189,6 +190,7 @@ fn port_failures_are_reported_and_leave_the_rows_untouched() {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     let reason = failure(&core.dispatch(update(
         0,
@@ -248,6 +250,7 @@ fn update_and_delete_report_missing_database_and_tables() {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     let reason = failure(&core.dispatch(Command::UpdateRow {
         table: "Ghost".into(),

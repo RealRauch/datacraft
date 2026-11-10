@@ -48,6 +48,7 @@ fn the_design_view_renders_sidecar_properties() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObjectInMode {
         object: ObjectId::new(ObjectKind::Table, "Customers"),

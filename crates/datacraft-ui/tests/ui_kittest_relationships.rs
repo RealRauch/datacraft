@@ -60,6 +60,7 @@ fn mapper_app(relationships: Vec<Relationship>, restricted: bool) -> App {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::ToggleRelationshipMapper);
     app

@@ -306,6 +306,7 @@ mod tests {
             app.dispatch(Command::OpenDatabase {
                 path: "shop.mdb".into(),
                 password: None,
+                source: None,
             });
             app.dispatch(Command::CreateForm {
                 name: "Card".into(),

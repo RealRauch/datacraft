@@ -46,6 +46,7 @@ fn core_with_rows() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     core
 }
@@ -99,6 +100,7 @@ fn journals_do_not_survive_a_database_lifecycle() {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
 
     let reason = failure(&core.dispatch(Command::RollbackWrite { token }));
@@ -123,6 +125,7 @@ fn journals_do_not_survive_a_database_lifecycle() {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     let reason = failure(&core.dispatch(Command::ApplyWrite { token: pending }));
     assert!(reason.contains("no pending"), "{reason}");

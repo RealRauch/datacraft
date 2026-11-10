@@ -107,6 +107,7 @@ mod tests {
         core.dispatch(Command::OpenDatabase {
             path: std::path::PathBuf::from("programmability.accdb"),
             password: None,
+            source: None,
         });
         assert!(core.vba_project().is_some());
         assert!(core.vba_module("utilities").is_some());

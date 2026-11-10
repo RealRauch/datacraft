@@ -17,6 +17,7 @@ fn open_core(path: &str) -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from(path),
         password: None,
+        source: None,
     });
     core
 }

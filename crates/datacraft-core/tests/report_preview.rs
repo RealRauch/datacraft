@@ -138,6 +138,7 @@ fn core_report_preview_reads_rows_through_the_port() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core.dispatch(Command::CreateReport {
         name: "Weekly".into(),

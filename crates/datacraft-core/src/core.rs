@@ -360,7 +360,11 @@ impl Core {
             Command::AnalyzeVba => self.analyze_vba_command(),
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
-            Command::OpenDatabase { path, password } => self.open_database(path, password),
+            Command::OpenDatabase {
+                path,
+                password,
+                source,
+            } => self.open_database(path, password, source),
             Command::CloseDatabase => self.close_database(),
             Command::CreateDatabase { path, format } => self.create_database(path, format),
             Command::CreateDatabaseFromTemplate { path, template } => {

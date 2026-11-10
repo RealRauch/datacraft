@@ -41,6 +41,7 @@ fn core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("notes.mdb"),
         password: None,
+        source: None,
     });
     core
 }

@@ -18,6 +18,7 @@ fn app_runs_sql_and_caches_the_result() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     app.set_sql_text("SELECT 1 AS one");
     app.run_sql();
@@ -35,6 +36,7 @@ fn app_caches_sql_errors_precisely() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     app.set_sql_text("DELETE FROM nothing");
     app.run_sql();
@@ -52,6 +54,7 @@ fn the_new_table_flow_creates_and_opens_the_default_table() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     app.create_table_flow();
     let snapshot = app.snapshot();
@@ -83,6 +86,7 @@ fn delete_flows_dispatch_and_surface_precise_errors() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     app.dispatch(datacraft_core::command::Command::CreateForm {
         name: "Card".into(),
@@ -114,6 +118,7 @@ fn opening_a_database_prefills_the_sidecar_path_and_saving_reports_a_notice() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     assert_eq!(app.sidecar_path, "shop.datacraft");
 
@@ -167,6 +172,7 @@ fn the_designer_palette_places_fields_and_toolbox_controls() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     app.dispatch(datacraft_core::command::Command::CreateTable {
         definition: TableDef::new(
@@ -235,6 +241,7 @@ fn the_datasheet_new_row_inserts_through_the_bus() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     app.dispatch(datacraft_core::command::Command::CreateTable {
         definition: TableDef::new(
@@ -289,6 +296,7 @@ fn a_password_required_open_raises_the_prompt_and_retries() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     assert!(app.password_prompt().is_some(), "prompt is raised");
     app.set_password_input("wrong");
@@ -322,6 +330,7 @@ fn undo_refreshes_the_datasheet_row_cache() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "notes.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(datacraft_core::command::Command::OpenObject(ObjectId::new(
         ObjectKind::Table,
@@ -368,6 +377,7 @@ fn a_failing_query_run_stores_the_reason_for_the_tab() {
     app.dispatch(datacraft_core::command::Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     app.dispatch(datacraft_core::command::Command::CreateQuery { name: "All".into() });
     app.dispatch(datacraft_core::command::Command::OpenObject(

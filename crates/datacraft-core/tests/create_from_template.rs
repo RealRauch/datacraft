@@ -110,6 +110,7 @@ fn creating_from_a_template_leaves_an_open_database_untouched() {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     let range = RowRange { start: 0, len: 10 };
     let before = core.read_rows("Customers", range).expect("rows before");

@@ -42,6 +42,7 @@ fn grouping_app() -> (App, datacraft_core::snapshot::TabSnapshot) {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::CreateReport {
         name: "Roster".into(),

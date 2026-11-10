@@ -57,6 +57,7 @@ fn the_snapshot_carries_relationships() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     let snap = core.inspect();
     let db = snap.database.expect("open");
@@ -76,6 +77,7 @@ fn dropping_a_table_drops_its_relationships() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     for name in ["Orders", "Customers", "Products"] {
         core.dispatch(Command::CreateTable {

@@ -61,6 +61,7 @@ fn creation_is_independent_of_an_open_database() {
     let events = core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events[0], Event::DatabaseOpened { .. }),

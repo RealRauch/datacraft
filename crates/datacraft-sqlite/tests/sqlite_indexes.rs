@@ -175,6 +175,7 @@ fn unsupported_index_kinds_are_refused_by_the_core() {
     core.dispatch(Command::OpenDatabase {
         path,
         password: None,
+        source: None,
     });
     let mut memo = FieldDef::new("body", FieldKind::Memo);
     memo.properties.indexed = IndexMode::NoDuplicates;

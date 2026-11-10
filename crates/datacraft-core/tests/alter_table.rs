@@ -25,6 +25,7 @@ fn core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core.dispatch(Command::InsertRow {
         table: "T".to_owned(),
@@ -168,6 +169,7 @@ fn alter_table_gates_are_precise() {
     restricted.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     let events = restricted.dispatch(Command::AddField {
         table: "T".to_owned(),
@@ -198,6 +200,7 @@ fn delete_row_out_of_range_is_reported() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     let events = core.dispatch(Command::DeleteRow {
         table: "T".to_owned(),

@@ -41,6 +41,7 @@ fn customers_app(rows: Vec<Vec<datacraft_core::schema::FieldValue>>) -> App {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app
 }
@@ -328,6 +329,7 @@ fn switching_between_two_tables_keeps_the_ribbon_tab() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,

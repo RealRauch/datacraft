@@ -78,6 +78,7 @@ fn open_core(database: &Path) -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: database.to_path_buf(),
         password: None,
+        source: None,
     });
     assert!(
         !events

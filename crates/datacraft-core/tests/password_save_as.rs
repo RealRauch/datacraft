@@ -28,6 +28,7 @@ fn core_with(caps: DriverCapabilities) -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events.first(), Some(Event::DatabaseOpened { .. })),
@@ -182,6 +183,7 @@ fn port_failures_surface_as_failed_events() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     for command in [
         Command::SaveDatabaseAs {

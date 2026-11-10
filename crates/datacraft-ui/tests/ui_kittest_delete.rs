@@ -44,6 +44,7 @@ fn delete_app(rows: usize) -> (App, TabId) {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,
@@ -164,6 +165,7 @@ fn delete_record_is_disabled_for_read_only_sources() {
     restricted.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     restricted.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,

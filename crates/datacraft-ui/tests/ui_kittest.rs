@@ -40,6 +40,7 @@ fn mock_app() -> App {
     let events = app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     assert!(
         events
@@ -219,6 +220,7 @@ fn the_info_page_names_the_access_lock_file() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.backstage_page = datacraft_ui::backstage::BackstagePage::Info;
     let mut harness = backstage_harness(app);
@@ -309,6 +311,7 @@ fn capability_restricted_sources_disable_the_matching_affordances() {
     let events = app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     assert!(events.len() == 1, "{events:?}");
     let (app, _tab) = {
@@ -336,6 +339,7 @@ fn capability_restricted_sources_disable_the_matching_affordances() {
         app.dispatch(Command::OpenDatabase {
             path: "shop.mdb".into(),
             password: None,
+            source: None,
         });
         app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
             datacraft_core::ObjectKind::Table,
@@ -402,6 +406,7 @@ fn native_query_run_executes_through_the_ui() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Query,
@@ -432,6 +437,7 @@ fn password_capable_app() -> App {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app
 }

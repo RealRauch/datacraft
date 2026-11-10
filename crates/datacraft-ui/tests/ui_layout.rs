@@ -33,6 +33,7 @@ fn app_with_tables() -> App {
     app.dispatch(Command::OpenDatabase {
         path: "database.mdb".into(),
         password: None,
+        source: None,
     });
     app
 }
@@ -292,6 +293,7 @@ fn filled_datasheet_app() -> App {
     app.dispatch(Command::OpenDatabase {
         path: "database.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,
@@ -352,6 +354,7 @@ fn record_navigation_places_previous_left_of_next() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,
@@ -403,6 +406,7 @@ fn the_status_bar_renders_the_access_lock_file_notice() {
     app.dispatch(Command::OpenDatabase {
         path: "orders.mdb".into(),
         password: None,
+        source: None,
     });
     let (rects, _dump) = shell_frame(app, egui::vec2(1280.0, 800.0));
     let status = panel_rect(&rects, "shell.status_panel");
@@ -443,6 +447,7 @@ fn record_navigation_clicks_move_the_table_counter() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,

@@ -122,6 +122,7 @@ fn opened_core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core
 }

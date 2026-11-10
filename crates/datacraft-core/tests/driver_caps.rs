@@ -34,6 +34,7 @@ fn core_with(caps: DriverCapabilities) -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: std::path::PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events.first(), Some(Event::DatabaseOpened { .. })),
@@ -110,6 +111,7 @@ fn the_snapshot_carries_the_lock_file_for_the_headless_clients() {
     core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     let db = core.inspect().database.expect("the database is open");
     assert_eq!(db.lock_file.as_deref(), Some("shop.ldb"));

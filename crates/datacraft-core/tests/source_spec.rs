@@ -30,7 +30,7 @@ fn open(core: &mut Core, path: &str, source: Option<SourceSpec>) -> Vec<Event> {
 
 fn failure_code(events: &[Event]) -> FailureCode {
     match events {
-        [Event::Failed { code, .. }] => code.clone(),
+        [Event::Failed { code, .. }] => *code,
         other => panic!("expected a single Failed event, got {other:?}"),
     }
 }
@@ -319,6 +319,54 @@ fn a_file_uri_without_the_authority_form_is_refused() {
     assert!(
         failed_reason(&events).contains("file://"),
         "the reason must name the required authority form: {events:?}"
+    );
+}
+
+#[test]
+fn a_uri_with_an_invalid_scheme_answers_the_driver_boundary() {
+    // `1http://…` cannot be a scheme (RFC 3986 §3.1: alphabetic first
+    // byte) — still answered at the boundary, never a panic.
+    let mut core = core();
+    let events = open(
+        &mut core,
+        "shop.mdb",
+        Some(SourceSpec::Uri("1http://example.com/x".into())),
+    );
+    assert_eq!(failure_code(&events), FailureCode::Unsupported);
+    assert!(
+        failed_reason(&events).contains("no server driver"),
+        "the reason must carry the boundary: {events:?}"
+    );
+}
+
+#[test]
+fn a_percent_escape_decoding_to_invalid_utf8_is_refused() {
+    let (_, uri) = fixture_paths("dir", "shop.mdb");
+    let mut core = core();
+    let events = open(
+        &mut core,
+        "shop.mdb",
+        Some(SourceSpec::Uri(format!("{uri}%FF"))),
+    );
+    assert_eq!(failure_code(&events), FailureCode::InvalidInput);
+    assert!(
+        failed_reason(&events).contains("utf-8"),
+        "the reason must name the decoding failure: {events:?}"
+    );
+}
+
+#[test]
+fn a_file_uri_with_an_authority_but_no_path_is_refused() {
+    let mut core = core();
+    let events = open(
+        &mut core,
+        "shop.mdb",
+        Some(SourceSpec::Uri("file://localhost".into())),
+    );
+    assert_eq!(failure_code(&events), FailureCode::InvalidInput);
+    assert!(
+        failed_reason(&events).contains("no path"),
+        "the reason must name the empty path: {events:?}"
     );
 }
 

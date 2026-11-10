@@ -267,6 +267,7 @@ fn the_bus_reports_a_precise_unique_violation() {
     core.dispatch(Command::OpenDatabase {
         path: path.clone(),
         password: None,
+        source: None,
     });
     core.dispatch(Command::CreateTable {
         definition: indexed_table(),
@@ -301,6 +302,7 @@ fn memo_and_binary_fields_cannot_be_indexed() {
     core.dispatch(Command::OpenDatabase {
         path,
         password: None,
+        source: None,
     });
     let mut memo = FieldDef::new("body", FieldKind::Memo);
     memo.properties.indexed = IndexMode::DuplicatesOk;

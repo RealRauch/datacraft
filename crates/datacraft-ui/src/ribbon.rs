@@ -166,6 +166,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                                                 intent = Some(Command::OpenDatabase {
                                                     path: app.open_path.clone().into(),
                                                     password: None,
+                                                    source: None,
                                                 });
                                             }
                                         });

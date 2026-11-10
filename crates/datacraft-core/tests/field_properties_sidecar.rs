@@ -89,6 +89,7 @@ fn core_with(table: TableDef, path: &Path) -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: path.to_path_buf(),
         password: None,
+        source: None,
     });
     assert!(
         !events

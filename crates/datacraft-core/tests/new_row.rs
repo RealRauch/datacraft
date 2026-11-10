@@ -49,6 +49,7 @@ fn core_with_table() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("memory.mock"),
         password: None,
+        source: None,
     });
     core
 }

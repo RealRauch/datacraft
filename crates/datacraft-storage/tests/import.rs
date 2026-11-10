@@ -50,6 +50,7 @@ fn assert_import_chain(format: DatabaseFormat) {
     core.dispatch(Command::OpenDatabase {
         path: db_path,
         password: None,
+        source: None,
     });
 
     let source = sample_csv(&dir);

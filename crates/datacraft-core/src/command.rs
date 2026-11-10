@@ -1,9 +1,7 @@
 //! The command language (step 4.1, item H13; ARCHITECTURE §5).
 //!
-//! Every user-visible action — GUI or agent — is exactly one command. The
-//! set grows with the phases that introduce the features (QBE commands in
-//! Phase 7, form commands in Phase 8); the dispatch mechanism is fixed
-//! here.
+//! Every user-visible action — GUI or agent — is exactly one command; the
+//! dispatch mechanism is fixed here.
 
 use crate::ObjectId;
 use crate::canvas::Rect;
@@ -16,6 +14,8 @@ use std::path::PathBuf;
 
 mod contexts;
 pub use contexts::ExpressionContext;
+mod source;
+pub use source::{SourceSpec, effective_path};
 
 /// One user-visible action.
 ///
@@ -31,10 +31,17 @@ pub enum Command {
     OpenDatabase {
         /// Filesystem path of the `.mdb`/`.accdb` file.
         path: PathBuf,
-        /// Database password for protected files (step 16.2, M5); omitted
-        /// by older clients and `None` for unprotected files.
+        /// Database password for protected files (step 16.2, M5); absent
+        /// or `None` for unprotected files.
         #[serde(default)]
         password: Option<String>,
+        /// Source override (step 65.1, item L8; ADR-7): `None` (absent on
+        /// the wire) opens the plain `path` — the historical,
+        /// byte-identical behavior; `Some` is authoritative and resolves
+        /// through [`SourceSpec`] (`file://` opens like its path, other
+        /// schemes answer the no-server-driver boundary).
+        #[serde(default)]
+        source: Option<SourceSpec>,
     },
     /// Closes the open database and all of its tabs.
     CloseDatabase,
@@ -48,19 +55,17 @@ pub enum Command {
         format: crate::port::DatabaseFormat,
     },
     /// Materializes a shipped template into a brand-new file (phase 29,
-    /// item H44). The template's tables and rows are written through the
-    /// port; the new database is not opened. Registry names are listed in
-    /// the snapshot's `templates`.
+    /// item H44) over the port; the new database is not opened. Registry
+    /// names are listed in the snapshot's `templates`.
     CreateDatabaseFromTemplate {
         /// Filesystem path of the new file.
         path: PathBuf,
         /// Registry name of the template (case-insensitive).
         template: String,
     },
-    /// Writes a copy of the open database under `path` (step 27.2, item
-    /// M14). `password` protects the copy (`None` writes an unencrypted
-    /// copy); the original stays untouched and open. Gated on the driver's
-    /// `passwords` capability.
+    /// Writes a copy of the open database under `path` (step 27.2, M14);
+    /// `password` protects the copy, the original stays untouched and
+    /// open. Gated on the driver's `passwords` capability.
     SaveDatabaseAs {
         /// Filesystem path of the copy; it must not exist yet.
         path: PathBuf,
@@ -81,10 +86,9 @@ pub enum Command {
         definition: TableDef,
     },
     /// Imports an external CSV file as a new table into the open
-    /// database (step 58.1, item M50): the source is parsed and its
-    /// column kinds inferred, then the table is created and filled over
-    /// the ordinary write path — the source file is never touched.
-    /// GUI, CLI and MCP share this one chain.
+    /// database (step 58.1, item M50): parsed with inferred column
+    /// kinds, created and filled over the ordinary write path — the
+    /// source is never touched; GUI, CLI and MCP share this chain.
     ImportFile {
         /// The CSV file to read (header row + records).
         source: std::path::PathBuf,
@@ -161,12 +165,8 @@ pub enum Command {
     },
     /// Previews a journaled write batch and stores it for confirmation
     /// (step 11.11, M2). Nothing is written until `ApplyWrite`.
-    ///
-    /// **Headless-only affordance** (L26): the batch flow serves agents
-    /// (CLI/MCP) that want preview-then-commit; the GUI's equivalent is
-    /// the immediate row commands (`InsertRow`/`UpdateRow`/`DeleteRow`)
-    /// plus `UndoWrite`/`RedoWrite` — a separate history, not the journal
-    /// tokens.
+    /// Headless-only (L26): the GUI's equivalent is the immediate row
+    /// commands plus Undo/Redo — a separate history, not journal tokens.
     PreviewWrite {
         /// Target table name (case-insensitive).
         table: String,
@@ -254,9 +254,8 @@ pub enum Command {
     ToggleSqlWindow,
     /// Opens or closes the Import File window (step 58.1, item M50).
     ToggleImportWindow,
-    /// Parses an external CSV file and stores its import preview (field
-    /// names, inferred kinds, the first rows) for the Import File window
-    /// (step 58.1, item M50). The source is only ever read.
+    /// Parses an external CSV file and stores its import preview for the
+    /// Import File window (step 58.1, item M50). The source is only read.
     PreviewImportFile {
         /// The CSV file to read.
         source: std::path::PathBuf,

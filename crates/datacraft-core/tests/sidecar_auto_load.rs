@@ -47,6 +47,7 @@ fn a_sibling_sidecar_loads_with_the_open() {
     let events = core.dispatch(Command::OpenDatabase {
         path: db.clone(),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events[0], Event::DatabaseOpened { .. }),
@@ -89,6 +90,7 @@ fn a_missing_sidecar_is_not_special() {
     let events = core.dispatch(Command::OpenDatabase {
         path: db,
         password: None,
+        source: None,
     });
     assert_eq!(events.len(), 1, "no DesignDocumentLoaded without a sidecar");
     assert!(
@@ -109,6 +111,7 @@ fn a_broken_sidecar_surfaces_its_error_and_keeps_the_open() {
     let events = core.dispatch(Command::OpenDatabase {
         path: db.clone(),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events[0], Event::DatabaseOpened { .. }),
@@ -132,6 +135,7 @@ fn a_foreign_sidecar_is_reported_not_loaded() {
     core.dispatch(Command::OpenDatabase {
         path: db.clone(),
         password: None,
+        source: None,
     });
     let error = core
         .inspect()

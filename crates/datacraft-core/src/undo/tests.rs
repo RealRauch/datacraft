@@ -21,6 +21,7 @@ fn core_with(port: MockPort) -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "notes.mdb".into(),
         password: None,
+        source: None,
     });
     core
 }

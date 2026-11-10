@@ -63,6 +63,7 @@ fn core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core
 }
@@ -105,6 +106,7 @@ fn criteria_run_and_unknown_queries_stay_precise() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     let result = core
         .run_query("Filtered")

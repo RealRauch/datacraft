@@ -30,6 +30,7 @@ fn core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     core
 }

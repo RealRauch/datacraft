@@ -26,6 +26,7 @@ impl crate::core::Core {
         &mut self,
         path: std::path::PathBuf,
         password: Option<String>,
+        source: Option<crate::command::SourceSpec>,
     ) -> Vec<Event> {
         if self.state.database.is_some() {
             return failed(
@@ -33,6 +34,14 @@ impl crate::core::Core {
                 "a database is already open — close it first",
             );
         }
+        // Source resolution (step 65.1, item L8) precedes the port: a
+        // `file://` URI opens exactly like its path equivalent; every
+        // other scheme answers the precise no-server-driver boundary
+        // before any storage is touched.
+        let path = match crate::command::effective_path(&path, source.as_ref()) {
+            Ok(path) => path,
+            Err(error) => return failed(error.code(), error.to_string()),
+        };
         match self.port.open(&path, password.as_deref()) {
             // Dedicated events let every client react without parsing prose
             // (the UI prompt, the CLI exit code, the MCP agent).

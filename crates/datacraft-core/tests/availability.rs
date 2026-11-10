@@ -30,6 +30,7 @@ fn core_with(caps: DriverCapabilities) -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: std::path::PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events.first(), Some(Event::DatabaseOpened { .. })),

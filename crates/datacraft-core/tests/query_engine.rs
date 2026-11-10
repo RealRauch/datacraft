@@ -230,6 +230,7 @@ fn seeded_core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core.dispatch(Command::CreateTable {
         definition: customers_def(),

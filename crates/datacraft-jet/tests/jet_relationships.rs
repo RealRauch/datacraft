@@ -46,6 +46,7 @@ fn open(path: &std::path::Path) -> Core {
     core.dispatch(Command::OpenDatabase {
         path: path.to_path_buf(),
         password: None,
+        source: None,
     });
     core
 }

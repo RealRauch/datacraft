@@ -16,6 +16,7 @@ fn ribbon_app() -> App {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app
 }

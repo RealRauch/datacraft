@@ -102,6 +102,7 @@ fn shop_core(native: NativeQuery) -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core
 }

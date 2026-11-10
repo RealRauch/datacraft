@@ -26,6 +26,7 @@ fn core() -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: fixture("queryTestV2000.mdb"),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events[0], Event::DatabaseOpened { .. }),

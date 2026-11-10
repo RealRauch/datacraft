@@ -40,6 +40,7 @@ fn core() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     core
 }
@@ -113,6 +114,7 @@ fn the_journal_requires_the_write_capability() {
     core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     let reason = failure(&core.dispatch(Command::PreviewWrite {
         table: "Customers".to_owned(),

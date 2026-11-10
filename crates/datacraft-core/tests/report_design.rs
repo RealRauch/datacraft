@@ -27,6 +27,7 @@ fn opened_with_report() -> Core {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core.dispatch(Command::CreateReport {
         name: "Weekly".into(),
@@ -60,6 +61,7 @@ fn create_report_defaults_to_print_geometry() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     let events = core.dispatch(Command::CreateReport {
         name: "Weekly".into(),
@@ -250,6 +252,7 @@ fn sidecar_round_trips_reports() {
     fresh.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     let events = fresh.dispatch(Command::LoadDesignDocument { path });
     assert!(
@@ -369,6 +372,7 @@ fn report_source_revalidates_existing_bindings() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     core.dispatch(Command::CreateReport {
         name: "Weekly".into(),

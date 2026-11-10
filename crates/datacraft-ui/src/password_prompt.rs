@@ -48,6 +48,7 @@ impl App {
         let command = Command::OpenDatabase {
             path: prompt.path.clone(),
             password: Some(prompt.input.clone()),
+            source: None,
         };
         self.dispatch(command);
     }

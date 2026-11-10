@@ -15,6 +15,7 @@ fn open(core: &mut Core) -> Vec<Event> {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("programmability.accdb"),
         password: None,
+        source: None,
     })
 }
 

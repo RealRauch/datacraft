@@ -49,6 +49,7 @@ pub(super) fn recent_databases_ui(app: &App, ui: &mut egui::Ui, intents: &mut Ve
             intents.push(Command::OpenDatabase {
                 path,
                 password: None,
+                source: None,
             });
         }
     }

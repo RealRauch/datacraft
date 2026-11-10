@@ -36,6 +36,7 @@ fn opened_core() -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("programmability.accdb"),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events.as_slice(), [Event::DatabaseOpened { .. }]),
@@ -118,6 +119,7 @@ fn a_failed_extraction_stays_visible_and_does_not_block_opening() {
     let events = core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("broken.accdb"),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events.as_slice(), [Event::DatabaseOpened { .. }]),
@@ -176,6 +178,7 @@ fn analyze_vba_returns_the_headless_analysis_over_the_bus() {
     no_project.dispatch(Command::OpenDatabase {
         path: PathBuf::from("plain.mdb"),
         password: None,
+        source: None,
     });
     assert!(matches!(
         no_project.dispatch(Command::AnalyzeVba).as_slice(),
@@ -191,6 +194,7 @@ fn analyze_vba_reports_the_extraction_failure_precisely() {
     core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("broken.accdb"),
         password: None,
+        source: None,
     });
     assert!(matches!(
         core.dispatch(Command::AnalyzeVba).as_slice(),

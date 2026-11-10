@@ -31,6 +31,7 @@ fn design_app(caps: DriverCapabilities) -> (App, TabSnapshot) {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
         datacraft_core::ObjectKind::Table,
@@ -120,6 +121,7 @@ fn create_database_button_gates_on_the_create_capability() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.backstage_page = datacraft_ui::backstage::BackstagePage::New;
     let mut harness = Harness::new_ui_state(
@@ -144,6 +146,7 @@ fn create_database_button_gates_on_the_create_capability() {
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     app.backstage_page = datacraft_ui::backstage::BackstagePage::New;
     let mut harness = Harness::new_ui_state(

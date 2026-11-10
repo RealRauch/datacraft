@@ -29,6 +29,7 @@ fn open_core(port: MockPort) -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: "memory.mock".into(),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events[0], Event::DatabaseOpened { .. }),

@@ -43,6 +43,7 @@ fn opened_core() -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: PathBuf::from("programmability.accdb"),
         password: None,
+        source: None,
     });
     assert!(
         matches!(events.as_slice(), [Event::DatabaseOpened { .. }]),

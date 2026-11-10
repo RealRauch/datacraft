@@ -32,6 +32,7 @@ fn core_with_table() -> Core {
     let events = core.dispatch(Command::OpenDatabase {
         path: std::path::PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     assert!(
         !events
@@ -233,6 +234,7 @@ fn closing_the_database_drops_the_table_view_state() {
     core.dispatch(Command::OpenDatabase {
         path: std::path::PathBuf::from("shop.mdb"),
         password: None,
+        source: None,
     });
     open_table_tab(&mut core);
     let tab = &core.inspect().tabs[0];

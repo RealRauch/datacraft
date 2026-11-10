@@ -23,6 +23,7 @@ fn a_password_required_open_emits_the_prompt_event() {
     let events = core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
+        source: None,
     });
     assert!(
         matches!(&events[..], [Event::PasswordRequired { path }] if path == Path::new("shop.mdb")),
@@ -37,6 +38,7 @@ fn a_wrong_password_emits_the_rejection_event() {
     let events = core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: Some("wrong".into()),
+        source: None,
     });
     assert!(
         matches!(&events[..], [Event::PasswordRejected { path }] if path == Path::new("shop.mdb")),
@@ -51,6 +53,7 @@ fn the_correct_password_opens_the_database() {
     let events = core.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: Some("secret".into()),
+        source: None,
     });
     assert!(
         matches!(&events[..], [Event::DatabaseOpened { .. }]),
