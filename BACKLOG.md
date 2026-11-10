@@ -30,6 +30,7 @@
 - **Approach:** Preferred: generate the notes from `CHANGELOG.md`'s dated section via `--notes-file` — the changelog is the reviewed source of truth per the L38 cadence, so the draft carries the real entries with no manual follow-up. Alternative: check out the repository before the create step. `.github/workflows/*` is High-class — explicit human release required before implementation.
 - **Acceptance:** A tag-triggered release run completes fully green including the draft step, and the created draft carries the changelog-derived notes without manual follow-up.
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
+- **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
 
 ---
 

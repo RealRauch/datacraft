@@ -168,15 +168,18 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-bundle
-          path: dist
+      # Order matters (M72): checkout runs FIRST — its default `clean`
+      # wipes untracked files, so a download placed before it would lose
+      # the archive bundle (the v0.1.1 run failed exactly that way).
       - uses: actions/checkout@v4
         with:
           # The notes come from the tagged tree's changelog; no push
           # credentials are needed beyond the release-scoped token below.
           persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: dist
       - name: Compose the release notes from CHANGELOG
         run: |
           set -euo pipefail
