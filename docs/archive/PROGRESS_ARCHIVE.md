@@ -856,3 +856,13 @@ splits keep every `.rs` file below 500 lines. Canonical verification set
 green; docs stay honest (no compatibility claims beyond the verified
 matrix; no server-driver claims).
 **Verification:** Canonical set green with explicit exit codes (fmt, clippy -D warnings, full workspace tests, file-size gate) and the binding CI run 42888059548 fully green on main — 13/13 jobs including the coverage gate reading 17671/18466 = 95.695% (the local Windows parses read ~94.1-94.2%, the documented MSVC attribution drift; ubuntu is the binding arbiter per PLAYBOOK §5). LESSONS walk with verdicts: evil-input contracts pin truncated/invalid percent escapes, remote file hosts, query/fragment parts and scheme misuse (A1/A7); the source seam is pinned from both sides — core MockPort contract suites plus the real detecting stack over the wire, the real CLI subprocess and the real MCP binary (A2/A3); every malformed URI answers a precise, locatable error, no unwrap on parse paths (A4); the crafted-URI surface allocates nothing beyond the input string and touches no filesystem before resolution (C7); no async, no unsafe, no dependency change (D11-D13 N/A). Changelog entry per the L38 cadence; README feature row and ARCHITECTURE §5 source paragraph updated. L8 archived with the commit chain; L30 stays open as the live band list (its rule is codified in PLAYBOOK §5 / LESSONS #15); L36/L37 stay parked per ROADMAP §17. Five forced L30 splits this phase: command.rs (498 via source.rs extraction), command_bus/tabs.rs (333+176), journal/wire_and_errors.rs (314+200), backstage/info.rs (438+91), server_e2e/vba.rs (452+88). (checkpoint: aa64402)
+
+---
+
+### Phase 66 — Release draft step
+
+**Scope (Steps):**
+
+- **66.1 M72: the release draft step composes its notes from CHANGELOG's dated section (High gate released 2026-11-10)**
+- **66.2 Phase 66 Quality Gate Review**
+**Verification:** Gate review for the workflow-only phase: the Rust tree is byte-identical to the fully green CI run 42888059548 (canonical set stands per the phase-57 precedent, and the push re-runs the full matrix); the extraction logic was simulated locally in both branches (0.1.0 -> 82 lines verbatim from "### Added"; 0.1.1 -> the loud L39 refusal), which also caught the broken awk -v argument form pre-commit; the workflow step itself runs with set -euo pipefail and an explicit non-empty guard. M72 stays open by design: its acceptance (a tag-triggered run fully green including the draft step) is proven live by the next release — the natural vehicle is the 0.1.1 cut, which also carries the changelog heading the new step will extract. (checkpoint: d683572)
