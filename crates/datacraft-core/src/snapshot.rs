@@ -58,6 +58,12 @@ pub struct DatabaseSnapshot {
     pub name: String,
     /// Filesystem path of the database file.
     pub path: PathBuf,
+    /// The source spec the session was opened with (step 65.2, item L8):
+    /// `None` for plain path opens; clients render it beside `path`
+    /// (wire-additive — older snapshot JSON without the key keeps
+    /// deserializing to `None`).
+    #[serde(default)]
+    pub source: Option<crate::command::SourceSpec>,
     /// Binary format family.
     pub format: DatabaseFormat,
     /// Identity of the driver serving this source (phase 30, M17;
@@ -205,6 +211,7 @@ impl UiStateSnapshot {
             database: state.database.as_ref().map(|db| DatabaseSnapshot {
                 name: db.name.clone(),
                 path: db.path.clone(),
+                source: db.source.clone(),
                 format: db.format,
                 driver: db.driver.clone(),
                 capabilities: db.capabilities,

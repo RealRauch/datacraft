@@ -82,9 +82,13 @@ impl crate::core::Core {
                     Err(error) => (Vec::new(), Some(error.to_string())),
                 };
                 // The sibling sidecar belongs to this database (ADR-1): it
-                // auto-loads with the open. A missing sidecar is not
-                // special; a broken or foreign one surfaces as
-                // `sidecar_error` without blocking the open (phase 29,
+                // auto-loads with the open. The sidecar is file-bound, so
+                // it applies to filesystem-backed sessions only — which is
+                // every session today: a `file://` URI resolves to the
+                // same local file (65.1) and non-file schemes are refused
+                // at the source boundary before this point. A missing
+                // sidecar is not special; a broken or foreign one surfaces
+                // as `sidecar_error` without blocking the open (phase 29,
                 // step 29.4).
                 let (sidecar, sidecar_error) = match read_sidecar(&path, &name) {
                     Ok(Some(document)) => (Some(document), None),
@@ -115,6 +119,7 @@ impl crate::core::Core {
                 self.state.database = Some(DatabaseState {
                     table_views: std::collections::BTreeMap::new(),
                     path,
+                    source,
                     name: name.clone(),
                     format,
                     driver: driver.clone(),

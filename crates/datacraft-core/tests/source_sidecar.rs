@@ -40,11 +40,8 @@ fn demo_sidecar(database_name: &str) -> String {
     .to_json()
 }
 
-fn opened(core: &Core) -> &datacraft_core::snapshot::DatabaseSnapshot {
-    core.inspect()
-        .database
-        .as_ref()
-        .expect("database must be open")
+fn opened(core: &Core) -> datacraft_core::snapshot::DatabaseSnapshot {
+    core.inspect().database.expect("database must be open")
 }
 
 #[test]

@@ -93,6 +93,11 @@ pub struct DatabaseState {
     pub table_views: std::collections::BTreeMap<String, TableViewState>,
     /// Filesystem path of the database file.
     pub path: PathBuf,
+    /// The source spec the session was opened with (step 65.2, item L8):
+    /// `None` for plain path opens; a `file://` URI session keeps its
+    /// spec for every client's source display. The resolved `path` above
+    /// stays the effective local file either way.
+    pub source: Option<crate::command::SourceSpec>,
     /// Database name (file stem).
     pub name: String,
     /// Binary format family.

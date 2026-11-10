@@ -191,6 +191,7 @@ fn the_status_line_names_the_ace_format() {
     state.database = Some(datacraft_core::state::DatabaseState {
         table_views: std::collections::BTreeMap::new(),
         path: "shop.accdb".into(),
+        source: None,
         name: "shop".into(),
         format: datacraft_core::port::DatabaseFormat::Ace,
         driver: datacraft_core::port::DriverId::new("jet"),
