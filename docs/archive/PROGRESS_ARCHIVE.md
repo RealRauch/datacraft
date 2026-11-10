@@ -819,3 +819,40 @@ before the tag.
 - **64.7 M69: designer action picker and runtime click dispatch (open form/report, run query, apply filter)**
 - **64.8 Phase 64 Quality Gate Review**
 **Verification:** Canonical set green: fmt, clippy -D warnings, full workspace tests; lcov line coverage 17525/18337 = 95.572 % (gate >= 95); file-size gate clean (no .rs >= 500); docs_validate clean. README/CHANGELOG/ROADMAP updated; M68/M69/M70/M71 archived.
+
+---
+
+### Phase 65 — Server sources (SourceSpec)
+
+**Scope (Steps):**
+
+- **65.1 Core: SourceSpec {Path, Uri} on the open/create commands — file:// resolution, precise no-server-driver boundary; carries the forced L30 command.rs split (L8)**
+- **65.2 Core: snapshot source display; the sidecar applies to Path sources only (L8)**
+- **65.3 UI: backstage Open accepts path or file:// URI and renders the source display, kittest pin (L8)**
+- **65.4 Wire: URI sources flow through CLI and MCP with server_e2e pins — all four clients, file behavior byte-identical (L8)**
+- **65.5 Phase 65 Quality Gate Review**
+
+**Goal:** Remove the filesystem-path assumption from the open surface (L8,
+ADR-7's documented future server-driver path): an additive `SourceSpec
+{Path, Uri}` on the open/create commands, a source display in the snapshot,
+and the sidecar derivation (ADR-1) scoped to `Path` sources. Non-file URI
+schemes answer the precise no-server-driver boundary — the first actual
+server driver (credentials/SSL, synchronous behind the no-async rule) stays
+out of scope, and the ADR-7 extension note is deferred to its planning
+(per the item's acceptance). The standing L30 rule rides the step that
+touches a band file: `command.rs` (499), `app.rs` (496) and
+`server_e2e.rs` (484) sit at the limit and carry their forced splits.
+Risk classes: all steps are Low (source/test edits within step scope); no
+new dependencies, fixtures, or CI changes — L36/L37 stay parked per
+ROADMAP §17 (no dedicated split phases; no released step touches
+`expr`/`schema`/`native_exec` here beyond the L30 module splits).
+
+**Acceptance:** A URI source opens through all four clients (GUI backstage,
+CLI, MCP, direct bus) — `file://` URIs resolve to the existing file path
+with byte-identical behavior; other schemes answer the precise documented
+boundary. File-source behavior is unchanged everywhere (open, sidecar
+location, recent list). The snapshot carries a source display. The L30
+splits keep every `.rs` file below 500 lines. Canonical verification set
+green; docs stay honest (no compatibility claims beyond the verified
+matrix; no server-driver claims).
+**Verification:** Canonical set green with explicit exit codes (fmt, clippy -D warnings, full workspace tests, file-size gate) and the binding CI run 42888059548 fully green on main — 13/13 jobs including the coverage gate reading 17671/18466 = 95.695% (the local Windows parses read ~94.1-94.2%, the documented MSVC attribution drift; ubuntu is the binding arbiter per PLAYBOOK §5). LESSONS walk with verdicts: evil-input contracts pin truncated/invalid percent escapes, remote file hosts, query/fragment parts and scheme misuse (A1/A7); the source seam is pinned from both sides — core MockPort contract suites plus the real detecting stack over the wire, the real CLI subprocess and the real MCP binary (A2/A3); every malformed URI answers a precise, locatable error, no unwrap on parse paths (A4); the crafted-URI surface allocates nothing beyond the input string and touches no filesystem before resolution (C7); no async, no unsafe, no dependency change (D11-D13 N/A). Changelog entry per the L38 cadence; README feature row and ARCHITECTURE §5 source paragraph updated. L8 archived with the commit chain; L30 stays open as the live band list (its rule is codified in PLAYBOOK §5 / LESSONS #15); L36/L37 stay parked per ROADMAP §17. Five forced L30 splits this phase: command.rs (498 via source.rs extraction), command_bus/tabs.rs (333+176), journal/wire_and_errors.rs (314+200), backstage/info.rs (438+91), server_e2e/vba.rs (452+88). (checkpoint: aa64402)

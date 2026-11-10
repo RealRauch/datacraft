@@ -10,6 +10,15 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- core/ui/cli: server-source readiness — `OpenDatabase` carries an additive
+  `SourceSpec {Path, Uri}`: `file://` URIs open exactly like their path
+  equivalent through every client (backstage Open entry, CLI argument, raw
+  wire and the MCP endpoint), the snapshot reports the session's source with
+  a single core-side display form (Info page row), the file-bound
+  `.datacraft` sidecar rule is pinned, and every other scheme answers the
+  precise no-server-driver boundary naming the scheme and ADR-7 — no server
+  driver ships yet; the ADR-7 extension note lands with the first driver's
+  planning (65).
 - ui/core: the form runtime edits bound records the Access way — text boxes stage per record (exactly one `UpdateRow` when the record is left, Esc reverts the field then the record, the `Required`/`AllowZeroLength` zero-length rule), checkboxes toggle two-state, combos list every row of a table/query row source (duplicates included) and accept free text, command buttons dispatch one action (open form/report, run query, apply filter) and form-scoped WHERE filters narrow the record set without touching the datasheet (64).
 - ui/core: the designers edit the selected control's content — the one
   property each kind carries (label text, button caption, bound source

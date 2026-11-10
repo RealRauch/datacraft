@@ -1820,3 +1820,13 @@
 - **Approach:** a `ButtonAction` property on the button control with a dedicated bus command, a designer picker (forms, reports, queries, plus a WHERE field for the filter), and a runtime click that dispatches exactly one command (open object / run query / apply the form filter). Empty actions are a valid state and are surfaced honestly.
 - **Acceptance:** A button carries a chosen action; a runtime click dispatches exactly one command (kittest-pinned); an empty or unknown action answers precisely and leaves the button usable; a deleted target produces a precise failure; the decision record exists; canonical verification set green.
 - **Done:** delivered in phase 64 (steps 64.6/64.7, commits 442998c, 2faab30)
+
+---
+
+### [x] L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — 🟢
+- **Location:** `crates/datacraft-core/src/command.rs` (`OpenDatabase`/`CreateDatabase`), `state.rs`/`snapshot.rs` (path → source), UI backstage, sidecar path derivation (ADR-1)
+- **Problem:** The driver model is ready for server drivers (Postgres/SQL Server per ADR-7's documented future path), but the wire and the UI assume a filesystem path (`path: PathBuf`, file-stem names, a sidecar next to the file).
+- **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
+- **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
+- **Steps:** Phase 65 (65.1 core SourceSpec + boundary, 65.2 snapshot display + sidecar gate, 65.3 backstage UI, 65.4 CLI/MCP wire) — packaged 2026-11-10.
+- **Done:** delivered across phase 65 (65.1-65.4, commits a947c74/e5a56a0, f535c3b/4d3de0a, f9da6f6/238568b, c4a7f5b/aa64402): SourceSpec {Path, Uri} on the open command with the file:// resolver and the precise no-server-driver boundary, the snapshot source with a core-side Display, the file-bound sidecar rule, and all four clients pinned (backstage, direct bus, CLI subprocess, real MCP binary); CI run 42888059548 green with the coverage gate reading 95.695%

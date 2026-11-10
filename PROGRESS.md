@@ -9,39 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 65 — Server sources (SourceSpec)
-
-**Scope (Steps):**
-
-- **65.1 Core: SourceSpec {Path, Uri} on the open/create commands — file:// resolution, precise no-server-driver boundary; carries the forced L30 command.rs split (L8)**
-- **65.2 Core: snapshot source display; the sidecar applies to Path sources only (L8)**
-- **65.3 UI: backstage Open accepts path or file:// URI and renders the source display, kittest pin (L8)**
-- **65.4 Wire: URI sources flow through CLI and MCP with server_e2e pins — all four clients, file behavior byte-identical (L8)**
-- **65.5 Phase 65 Quality Gate Review**
-
-**Goal:** Remove the filesystem-path assumption from the open surface (L8,
-ADR-7's documented future server-driver path): an additive `SourceSpec
-{Path, Uri}` on the open/create commands, a source display in the snapshot,
-and the sidecar derivation (ADR-1) scoped to `Path` sources. Non-file URI
-schemes answer the precise no-server-driver boundary — the first actual
-server driver (credentials/SSL, synchronous behind the no-async rule) stays
-out of scope, and the ADR-7 extension note is deferred to its planning
-(per the item's acceptance). The standing L30 rule rides the step that
-touches a band file: `command.rs` (499), `app.rs` (496) and
-`server_e2e.rs` (484) sit at the limit and carry their forced splits.
-Risk classes: all steps are Low (source/test edits within step scope); no
-new dependencies, fixtures, or CI changes — L36/L37 stay parked per
-ROADMAP §17 (no dedicated split phases; no released step touches
-`expr`/`schema`/`native_exec` here beyond the L30 module splits).
-
-**Acceptance:** A URI source opens through all four clients (GUI backstage,
-CLI, MCP, direct bus) — `file://` URIs resolve to the existing file path
-with byte-identical behavior; other schemes answer the precise documented
-boundary. File-source behavior is unchanged everywhere (open, sidecar
-location, recent list). The snapshot carries a source display. The L30
-splits keep every `.rs` file below 500 lines. Canonical verification set
-green; docs stay honest (no compatibility claims beyond the verified
-matrix; no server-driver claims).
 
 
 
@@ -397,4 +364,4 @@ matrix; no server-driver claims).
 | 65.2 | Core: snapshot source display; the sidecar applies to Path sources only (L8) | ✅ |
 | 65.3 | UI: backstage Open accepts path or file:// URI and renders the source display, kittest pin (L8) | ✅ |
 | 65.4 | Wire: URI sources flow through CLI and MCP with server_e2e pins — all four clients, file behavior byte-identical (L8) | ✅ |
-| 65.5 | Phase 65 Quality Gate Review | ⬜ |
+| 65.5 | Phase 65 Quality Gate Review | ✅ |

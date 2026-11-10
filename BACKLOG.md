@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-10T19:20
+# BACKLOG.md — Open items (As of: 2026-11-10T20:51
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -29,13 +29,6 @@
 ## 🟢 LOW
 
 > No open items.
-
-### [ ] L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — 🟢
-- **Location:** `crates/datacraft-core/src/command.rs` (`OpenDatabase`/`CreateDatabase`), `state.rs`/`snapshot.rs` (path → source), UI backstage, sidecar path derivation (ADR-1)
-- **Problem:** The driver model is ready for server drivers (Postgres/SQL Server per ADR-7's documented future path), but the wire and the UI assume a filesystem path (`path: PathBuf`, file-stem names, a sidecar next to the file).
-- **Approach:** Additive `SourceSpec { Path, Uri }` on the open commands (the existing field keeps working for file sources), the snapshot gains a source display, the sidecar applies to `Path` sources only; the first actual server driver decides credentials/SSL and stays synchronous behind the no-async rule (ADR-7 records the constraint honestly — OCI is C-only, pure-Rust TDS/Postgres clients are async-first).
-- **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
-- **Steps:** Phase 65 (65.1 core SourceSpec + boundary, 65.2 snapshot display + sidecar gate, 65.3 backstage UI, 65.4 CLI/MCP wire) — packaged 2026-11-10.
 
 ### [ ] L30 — ~15 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
 - **Location:** the 460-499 band, refreshed 2026-11-10 — 29 files (2026-11-07 review saw ~15 ≥ 480). At the gate: `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-core/src/command.rs` (499), `crates/datacraft-core/tests/journal.rs` (498), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-ui/src/app.rs` (496), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-core/tests/command_bus.rs` (494), `crates/datacraft-core/src/port.rs` (493), `crates/datacraft-ui/src/backstage/pages.rs` (491), `crates/datacraft-sqlite/src/mapping.rs` (488), `crates/datacraft-csv/src/lib.rs` + `crates/datacraft-core/src/port_mock.rs` (487), `crates/datacraft-ui/src/datasheet/grid.rs` (485), `crates/datacraft-ui/tests/server_e2e.rs` (484), `crates/datacraft-jet/tests/jet_indexes.rs` (482), `crates/datacraft-ui/src/app/form_edit.rs` (481), `crates/datacraft-ui/tests/ui_kittest.rs` + `crates/datacraft-core/src/journal.rs` (478); further 8 files in 460-477 (`form_runtime.rs`, `flows.rs`, `ui_layout.rs`, `sqlite_writes.rs`, `ribbon.rs`, `sqlite_relationships.rs`, `settings.rs`, `expr/format.rs`).
@@ -276,3 +269,4 @@
 - M70 — Form runtime: checkbox and combo controls are inert despite the shipped write path — done (delivered in phase 64 (steps 64.3/64.4, commits 37554dc, eb1d5e9))
 - M71 — The form runtime has no filter model — the M69 filter action needs one — done (delivered in phase 64 (step 64.5, commit 5fe272f))
 - M69 — Command buttons have no action model — clicks are discarded — done (delivered in phase 64 (steps 64.6/64.7, commits 442998c, 2faab30))
+- L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — done (delivered across phase 65 (65.1-65.4, commits a947c74/e5a56a0, f535c3b/4d3de0a, f9da6f6/238568b, c4a7f5b/aa64402): SourceSpec {Path, Uri} on the open command with the file:// resolver and the precise no-server-driver boundary, the snapshot source with a core-side Display, the file-bound sidecar rule, and all four clients pinned (backstage, direct bus, CLI subprocess, real MCP binary); CI run 42888059548 green with the coverage gate reading 95.695%)
