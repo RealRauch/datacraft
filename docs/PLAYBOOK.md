@@ -91,6 +91,7 @@ Date/time entries in the four doc files always use **ISO 8601** `YYYY-MM-DDTHH:m
   approximation, not the gate.
 
   plus the file-size gate (no `.rs` file ≥ 500 lines; enforced by CI). All green — or the step is not done.
+- **Split below the gate, not at it (binding):** a released step that touches a file riding the 480-499 band splits that file within the step — the gate never forces a module split mid-step (the forced splits of phases 48, 62 and 63 are the evidence). The live band list lives in the open `BACKLOG.md` item tracking the band (currently L30).
 - **Hard quality gates** (coverage ≥ 95 %, file size < 500 lines, clippy `-D warnings`) are enforced by CI and are **absolute** — they replace any smell budget. Soft smells (feature envy, god concept, naming) are findings → items in `BACKLOG.md`, never gates.
 - **No technical debt (binding):** deficiencies never live in the code. No `TODO`/`FIXME`/`HACK`/`XXX` markers anywhere in tracked files (mechanically scanned by the CI hygiene job); "temporary" code does not exist — code is final or not committed. Every known deficiency becomes a `BACKLOG.md` item the moment it is known. Deferred features are documented scope decisions (ARCHITECTURE/BACKLOG), not debt: debt means knowingly leaving the codebase inconsistent with its own rules.
 - **Every coverage exception** must be listed with justification in `docs/TESTING.md` — the exception list is part of the quality gate.

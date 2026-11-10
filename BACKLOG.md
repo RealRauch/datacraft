@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-10T19:09
+# BACKLOG.md — Open items (As of: 2026-11-10T19:20
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -42,6 +42,7 @@
 - **Problem:** The <500-line file-size gate holds with zero violations, but the band keeps growing (phases 63/64 filled it further) and files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review, list refreshed 2026-11-10).
 - **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
 - **Steps:** rides released steps that touch band files; first riders — Phase 65 (65.1 carries the `command.rs` split, 65.3 touches `app.rs`, 65.4 touches `server_e2e.rs`).
+- **Rule:** codified 2026-11-10 as binding method — PLAYBOOK §5 ("split below the gate, not at it") and LESSONS #15; this item stays open as the live band list only.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
 
 ### [ ] L36 — Split datacraft-expr (piggyback; resolve the types boundary first) — 🟢
