@@ -884,7 +884,7 @@ checksum = "f27ae1dd37df86211c42e150270f82743308803d90a6f6e6651cd730d5e1732f"
 
 [[package]]
 name = "datacraft-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -898,7 +898,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "csv",
  "proptest",
@@ -909,7 +909,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-csv"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "csv",
  "datacraft-core",
@@ -917,7 +917,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-jet"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "datacraft-core",
  "serde",
@@ -925,7 +925,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-mcp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -938,7 +938,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-sqlite"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "datacraft-core",
  "rusqlite",
@@ -946,7 +946,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-storage"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "datacraft-core",
  "datacraft-jet",
@@ -956,7 +956,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-ui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "datacraft-core",
  "datacraft-csv",

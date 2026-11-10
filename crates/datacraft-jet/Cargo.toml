@@ -14,7 +14,7 @@ description = "Clean-room pure-Rust Jet 3/4 and ACE backend for DataCraft (read 
 # engine's rusqlite lives behind the core's optional `sql-engine` feature
 # (step 31.2 / M19). Declared directly (not via workspace inheritance)
 # because an inherited dependency cannot override default-features.
-datacraft-core = { path = "../datacraft-core", version = "0.1.0", default-features = false }
+datacraft-core = { path = "../datacraft-core", version = "0.1.1", default-features = false }
 serde = { workspace = true }
 
 [lints]

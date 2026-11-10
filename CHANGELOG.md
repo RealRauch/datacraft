@@ -9,6 +9,8 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+## [0.1.1] — 2026-11-10
+
 ### Added
 - core/ui/cli: server-source readiness — `OpenDatabase` carries an additive
   `SourceSpec {Path, Uri}`: `file://` URIs open exactly like their path
