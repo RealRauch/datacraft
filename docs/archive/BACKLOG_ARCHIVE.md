@@ -1860,3 +1860,13 @@
 - **Acceptance:** failures and success notices of every dispatch land in order; the dialog shows newest-first, capped, clearable; kittest pins open/list/clear; `app.rs` and `flows.rs` land below 480; i18n parity green.
 - **Steps:** Phase 68 (68.3).
 - **Done:** done in `b1f1bbd` (RED `74ea3f6`)
+
+---
+
+### [x] M77 — No keyboard-shortcuts help page — shortcuts are undocumented in the app — 🟡
+- **Location:** `crates/datacraft-ui/src/keys.rs` (`Shortcut` enum, the only shortcut inventory), no help surface; German catalog in `crates/datacraft-ui/src/i18n/de/`.
+- **Problem:** Ctrl+S/W/Esc, the new Ctrl+Z/Y and the Alt key-tip phases are discoverable only by reading the source. ROADMAP §16 stage 0 asks for a shortcuts help page; without one, the feature surface stays invisible.
+- **Approach:** one exhaustive `SHORTCUT_ROWS` table next to the `Shortcut` mapping (a test fails when a variant has no row, so the table cannot drift); a localized modal opened by F1 and closable with Esc, rendering keys and action in two columns plus one paragraph on the Alt key-tip phases; German catalog entries via the usual parity path.
+- **Acceptance:** F1 opens/closes the dialog; every `Shortcut` variant appears exactly once; the German catalog resolves every row; kittest pins open, render and close; no shortcut exists that the table omits (exhaustive-match test).
+- **Steps:** Phase 68 (68.4).
+- **Done:** done in `76aa538` (RED `c5aebee`)

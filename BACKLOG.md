@@ -37,13 +37,6 @@
 - **Acceptance:** kittest steps frame by frame: the overlay is painted before the command's events land, the command runs exactly once, the overlay clears on success and on failure; existing command/UI suites unchanged; no async runtime and no command thread; `app.rs` stays below 480.
 - **Steps:** Phase 68 (68.5).
 
-### [ ] M77 — No keyboard-shortcuts help page — shortcuts are undocumented in the app — 🟡
-- **Location:** `crates/datacraft-ui/src/keys.rs` (`Shortcut` enum, the only shortcut inventory), no help surface; German catalog in `crates/datacraft-ui/src/i18n/de/`.
-- **Problem:** Ctrl+S/W/Esc, the new Ctrl+Z/Y and the Alt key-tip phases are discoverable only by reading the source. ROADMAP §16 stage 0 asks for a shortcuts help page; without one, the feature surface stays invisible.
-- **Approach:** one exhaustive `SHORTCUT_ROWS` table next to the `Shortcut` mapping (a test fails when a variant has no row, so the table cannot drift); a localized modal opened by F1 and closable with Esc, rendering keys and action in two columns plus one paragraph on the Alt key-tip phases; German catalog entries via the usual parity path.
-- **Acceptance:** F1 opens/closes the dialog; every `Shortcut` variant appears exactly once; the German catalog resolves every row; kittest pins open, render and close; no shortcut exists that the table omits (exhaustive-match test).
-- **Steps:** Phase 68 (68.4).
-
 ### [ ] M78 — M42 window-chrome polish pass — the deferred subjective review findings — 🟡
 - **Location:** `crates/datacraft-ui/src/theme.rs` (458 lines), `shell.rs`, `ribbon.rs`, `backstage/*` — the token and paint surfaces.
 - **Problem:** M42 closed 2026-11-04 with the audit verdict "token-clean, no drift"; the subjective polish pass was deferred until the human reviews the restyled build and is still pending. ROADMAP §16 stage 0 lists it as part of the sweep — the stage is not honestly complete while it waits.
@@ -298,3 +291,4 @@
 - M73 — Ctrl+Z/Ctrl+Y never reach the shipped Undo/Redo commands — the keys are missing — done (done in `d3149bf` (RED `3ef2e3a`))
 - M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — done (done in `b15772d` (RED `cb98641`))
 - M76 — Status notices are one transient line — no history, no retrieval — done (done in `b1f1bbd` (RED `74ea3f6`))
+- M77 — No keyboard-shortcuts help page — shortcuts are undocumented in the app — done (done in `76aa538` (RED `c5aebee`))
