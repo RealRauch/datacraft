@@ -15,6 +15,7 @@ use crate::state::AppState;
 mod relationships;
 mod table_view_state;
 mod tabs;
+mod views;
 
 /// The headless application core: reducer + state + storage port.
 pub struct Core {
@@ -295,6 +296,7 @@ impl Core {
                 expression,
             } => self.run_expression_command(context, &expression),
             Command::CreateQuery { name } => self.create_query(&name),
+            Command::View(action) => self.view_command(action),
             Command::SetQbeCell {
                 query,
                 row,

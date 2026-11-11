@@ -84,6 +84,8 @@ pub struct DatabaseSnapshot {
     pub relationships: Vec<crate::port::Relationship>,
     /// Query definitions in creation order.
     pub queries: Vec<QueryEntrySnapshot>,
+    /// Sidecar view designs in creation order (step 71.1, item M93).
+    pub views: Vec<ViewEntrySnapshot>,
     /// Why the native-query decode failed, if it did (step 23.3, M10).
     pub native_queries_error: Option<String>,
     /// Form design documents in creation order.
@@ -154,6 +156,17 @@ pub struct QueryEntrySnapshot {
     pub ui_test_id: String,
     /// QBE columns.
     pub fields: Vec<crate::qbe::QbeField>,
+}
+
+/// One sidecar view in the snapshot (step 71.1, item M93).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ViewEntrySnapshot {
+    /// View name.
+    pub name: String,
+    /// The SELECT statement (agents and the view tab execute it).
+    pub sql: String,
+    /// `navpane.<expanded|collapsed>.node.view.<name>`.
+    pub ui_test_id: String,
 }
 
 /// One field of a table in the snapshot.
@@ -275,6 +288,18 @@ impl UiStateSnapshot {
                         )),
                         fields: query.query_def().map(|def| def.fields).unwrap_or_default(),
                     }))
+                    .collect(),
+                views: db
+                    .views
+                    .iter()
+                    .map(|view| ViewEntrySnapshot {
+                        name: view.name.clone(),
+                        sql: view.sql.clone(),
+                        ui_test_id: state.nav_pane_test_id(&crate::ObjectId::new(
+                            crate::ObjectKind::View,
+                            &view.name,
+                        )),
+                    })
                     .collect(),
                 tables: db
                     .tables

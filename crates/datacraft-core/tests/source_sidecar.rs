@@ -36,6 +36,7 @@ fn demo_sidecar(database_name: &str) -> String {
         queries: vec![QueryDef::new("Fast bikes", "Bikes")],
         forms: vec![datacraft_core::form::FormDef::new("Bike Finder")],
         reports: Vec::new(),
+        views: Vec::new(),
     }
     .to_json()
 }

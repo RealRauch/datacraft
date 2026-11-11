@@ -48,6 +48,10 @@ impl crate::core::Core {
                         .iter()
                         .any(|q| q.name.to_lowercase() == object.name.to_lowercase())
             }
+            ObjectKind::View => db
+                .views
+                .iter()
+                .any(|v| v.name.eq_ignore_ascii_case(&object.name)),
             ObjectKind::Form => db
                 .forms
                 .iter()

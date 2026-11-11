@@ -192,6 +192,7 @@ fn write_demo_sidecar(path: &Path, database_name: &str) -> Result<(), String> {
         queries: vec![query],
         forms: vec![form],
         reports: Vec::new(),
+        views: Vec::new(),
     };
     std::fs::write(path, document.to_json()).map_err(|e| format!("{}: {e}", path.display()))
 }

@@ -16,16 +16,17 @@ pub enum NavSortOrder {
     Type,
 }
 
-/// Canonical Access object-kind sequence (tables, queries, forms, reports,
-/// macros, modules).
+/// Canonical Access object-kind sequence (tables, queries, views, forms,
+/// reports, macros, modules).
 fn kind_rank(kind: ObjectKind) -> u8 {
     match kind {
         ObjectKind::Table => 0,
         ObjectKind::Query => 1,
-        ObjectKind::Form => 2,
-        ObjectKind::Report => 3,
-        ObjectKind::Macro => 4,
-        ObjectKind::Module => 5,
+        ObjectKind::View => 2,
+        ObjectKind::Form => 3,
+        ObjectKind::Report => 4,
+        ObjectKind::Macro => 5,
+        ObjectKind::Module => 6,
     }
 }
 

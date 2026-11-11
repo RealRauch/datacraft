@@ -201,6 +201,7 @@ fn the_status_line_names_the_ace_format() {
         queries: Vec::new(),
         forms: Vec::new(),
         reports: Vec::new(),
+        views: Vec::new(),
         native_queries: Vec::new(),
         native_queries_error: None,
         macros: Vec::new(),

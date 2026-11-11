@@ -320,6 +320,21 @@ pub enum Event {
         /// Canonical query name.
         name: String,
     },
+    /// A view was created in the sidecar design layer (M93).
+    ViewCreated {
+        /// View name.
+        name: String,
+    },
+    /// A view's SELECT statement changed (M93).
+    ViewChanged {
+        /// View name.
+        name: String,
+    },
+    /// A view was deleted (M93).
+    ViewDeleted {
+        /// View name.
+        name: String,
+    },
     /// The relationship mapper visibility changed.
     RelationshipCreated {
         /// The created relationship.

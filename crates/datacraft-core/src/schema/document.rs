@@ -48,6 +48,9 @@ pub struct SchemaDocument {
     /// Report design documents (additive v1 field, step 10.4 / H31).
     #[serde(default)]
     pub reports: Vec<crate::report::ReportDef>,
+    /// View designs (additive v1 field, step 71.1 / M93).
+    #[serde(default)]
+    pub views: Vec<crate::view::ViewDef>,
 }
 
 impl SchemaDocument {
@@ -60,6 +63,7 @@ impl SchemaDocument {
             queries: Vec::new(),
             forms: Vec::new(),
             reports: Vec::new(),
+            views: Vec::new(),
         }
     }
 
@@ -83,6 +87,19 @@ impl SchemaDocument {
                 });
             }
             seen.push(key);
+        }
+        // View names are unique against tables and other views (M93); the
+        // SELECT-shape gate lives in the create/update commands.
+        let mut view_names: Vec<String> = Vec::with_capacity(self.views.len());
+        for view in &self.views {
+            validate_object_name(&view.name)?;
+            let key = view.name.to_lowercase();
+            if seen.contains(&key) || view_names.contains(&key) {
+                return Err(SchemaError::DuplicateName {
+                    name: view.name.clone(),
+                });
+            }
+            view_names.push(key);
         }
         Ok(())
     }

@@ -123,6 +123,11 @@ impl App {
             datacraft_core::ObjectKind::Report => Command::DeleteReport {
                 name: name.to_owned(),
             },
+            datacraft_core::ObjectKind::View => {
+                Command::View(datacraft_core::view::ViewCommand::Delete {
+                    name: name.to_owned(),
+                })
+            }
             // Macros are a read-only inventory (step 17.1) — no delete.
             datacraft_core::ObjectKind::Macro | ObjectKind::Module => return,
         };
@@ -148,7 +153,11 @@ impl App {
                 report: object.to_owned(),
                 table: table.to_owned(),
             },
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => {
+            ObjectKind::Table
+            | ObjectKind::Query
+            | ObjectKind::View
+            | ObjectKind::Macro
+            | ObjectKind::Module => {
                 return;
             }
         };
@@ -167,7 +176,11 @@ impl App {
                 report: object.to_owned(),
                 field: field.to_owned(),
             },
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => {
+            ObjectKind::Table
+            | ObjectKind::Query
+            | ObjectKind::View
+            | ObjectKind::Macro
+            | ObjectKind::Module => {
                 return;
             }
         };
@@ -194,7 +207,11 @@ impl App {
                 report: object.to_owned(),
                 control,
             },
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => {
+            ObjectKind::Table
+            | ObjectKind::Query
+            | ObjectKind::View
+            | ObjectKind::Macro
+            | ObjectKind::Module => {
                 return;
             }
         };
@@ -231,7 +248,11 @@ impl App {
                     def.controls.clone(),
                 ))
             }
-            ObjectKind::Table | ObjectKind::Query | ObjectKind::Macro | ObjectKind::Module => None,
+            ObjectKind::Table
+            | ObjectKind::Query
+            | ObjectKind::View
+            | ObjectKind::Macro
+            | ObjectKind::Module => None,
         }
     }
 

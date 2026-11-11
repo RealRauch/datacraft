@@ -210,6 +210,7 @@ impl crate::core::Core {
             queries: db.queries.clone(),
             forms: db.forms.clone(),
             reports: db.reports.clone(),
+            views: db.views.clone(),
         };
         match crate::atomic_write::write_replacing(path, document.to_json().as_bytes()) {
             Ok(()) => vec![Event::DesignDocumentSaved {
@@ -280,6 +281,7 @@ impl crate::core::Core {
         db.forms = document.forms;
         db.queries = document.queries;
         db.reports = document.reports;
+        db.views = document.views;
         vec![Event::DesignDocumentLoaded {
             path: path.to_path_buf(),
             forms,

@@ -11,6 +11,7 @@ use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
+use datacraft_core::view::ViewCommand;
 
 fn open_core() -> Core {
     let table = TableDef::new(
@@ -29,17 +30,17 @@ fn open_core() -> Core {
     core
 }
 
-fn views(core: &Core) -> Vec<datacraft_core::view::ViewDef> {
+fn views(core: &Core) -> Vec<datacraft_core::snapshot::ViewEntrySnapshot> {
     core.inspect().database.expect("open").views
 }
 
 #[test]
 fn views_are_created_changed_and_deleted() {
     let mut core = open_core();
-    let events = core.dispatch(Command::CreateView {
+    let events = core.dispatch(Command::View(ViewCommand::Create {
         name: "Active".into(),
         sql: "SELECT 1 AS one".into(),
-    });
+    }));
     assert!(
         events
             .iter()
@@ -51,10 +52,10 @@ fn views_are_created_changed_and_deleted() {
     assert_eq!(current[0].name, "Active");
     assert_eq!(current[0].sql, "SELECT 1 AS one");
 
-    let events = core.dispatch(Command::SetViewSql {
+    let events = core.dispatch(Command::View(ViewCommand::SetSql {
         name: "active".into(),
         sql: "SELECT 2 AS two".into(),
-    });
+    }));
     assert!(
         events
             .iter()
@@ -63,9 +64,9 @@ fn views_are_created_changed_and_deleted() {
     );
     assert_eq!(views(&core)[0].sql, "SELECT 2 AS two");
 
-    let events = core.dispatch(Command::DeleteView {
+    let events = core.dispatch(Command::View(ViewCommand::Delete {
         name: "Active".into(),
-    });
+    }));
     assert!(
         events
             .iter()
@@ -79,52 +80,62 @@ fn views_are_created_changed_and_deleted() {
 fn view_names_and_statements_are_validated() {
     let mut core = open_core();
 
-    let events = core.dispatch(Command::CreateView {
+    let events = core.dispatch(Command::View(ViewCommand::Create {
         name: "  ".into(),
         sql: "SELECT 1".into(),
-    });
+    }));
     assert!(
-        events.iter().any(|event| matches!(event, Event::Failed { .. })),
+        events
+            .iter()
+            .any(|event| matches!(event, Event::Failed { .. })),
         "an empty name fails"
     );
 
-    let events = core.dispatch(Command::CreateView {
+    let events = core.dispatch(Command::View(ViewCommand::Create {
         name: "Customers".into(),
         sql: "SELECT 1".into(),
-    });
+    }));
     assert!(
-        events.iter().any(|event| matches!(event, Event::Failed { .. })),
+        events
+            .iter()
+            .any(|event| matches!(event, Event::Failed { .. })),
         "a table-name collision fails"
     );
 
-    core.dispatch(Command::CreateView {
+    core.dispatch(Command::View(ViewCommand::Create {
         name: "Active".into(),
         sql: "SELECT 1".into(),
-    });
-    let events = core.dispatch(Command::CreateView {
+    }));
+    let events = core.dispatch(Command::View(ViewCommand::Create {
         name: "active".into(),
         sql: "SELECT 2".into(),
-    });
+    }));
     assert!(
-        events.iter().any(|event| matches!(event, Event::Failed { .. })),
+        events
+            .iter()
+            .any(|event| matches!(event, Event::Failed { .. })),
         "a case-insensitive duplicate fails"
     );
 
-    let events = core.dispatch(Command::CreateView {
+    let events = core.dispatch(Command::View(ViewCommand::Create {
         name: "Delete".into(),
         sql: "DELETE FROM Customers".into(),
-    });
+    }));
     assert!(
-        events.iter().any(|event| matches!(event, Event::Failed { .. })),
+        events
+            .iter()
+            .any(|event| matches!(event, Event::Failed { .. })),
         "a non-SELECT statement fails"
     );
 
-    let events = core.dispatch(Command::SetViewSql {
+    let events = core.dispatch(Command::View(ViewCommand::SetSql {
         name: "missing".into(),
         sql: "SELECT 1".into(),
-    });
+    }));
     assert!(
-        events.iter().any(|event| matches!(event, Event::Failed { .. })),
+        events
+            .iter()
+            .any(|event| matches!(event, Event::Failed { .. })),
         "unknown views fail"
     );
 }
@@ -132,17 +143,20 @@ fn view_names_and_statements_are_validated() {
 #[test]
 fn the_snapshot_carries_views_and_opens_a_tab() {
     let mut core = open_core();
-    core.dispatch(Command::CreateView {
+    core.dispatch(Command::View(ViewCommand::Create {
         name: "Active".into(),
         sql: "SELECT 1 AS one".into(),
-    });
+    }));
 
     let db = core.inspect().database.expect("open");
     assert_eq!(db.views.len(), 1);
     assert_eq!(db.views[0].name, "Active");
     assert_eq!(db.views[0].sql, "SELECT 1 AS one");
 
-    let events = core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::View, "Active")));
+    let events = core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::View,
+        "Active",
+    )));
     assert!(
         events
             .iter()
@@ -158,15 +172,14 @@ fn the_snapshot_carries_views_and_opens_a_tab() {
 #[test]
 fn views_round_trip_through_the_sidecar() {
     let mut core = open_core();
-    core.dispatch(Command::CreateView {
+    core.dispatch(Command::View(ViewCommand::Create {
         name: "Active".into(),
         sql: "SELECT 1 AS one".into(),
-    });
-    let path = std::env::temp_dir().join(format!("datacraft-views-{}.datacraft", std::process::id()));
+    }));
+    let path =
+        std::env::temp_dir().join(format!("datacraft-views-{}.datacraft", std::process::id()));
     let _ = std::fs::remove_file(&path);
-    let events = core.dispatch(Command::SaveDesignDocument {
-        path: path.clone().into(),
-    });
+    let events = core.dispatch(Command::SaveDesignDocument { path: path.clone() });
     assert!(
         events
             .iter()
@@ -175,9 +188,7 @@ fn views_round_trip_through_the_sidecar() {
     );
 
     let mut reopened = open_core();
-    let events = reopened.dispatch(Command::LoadDesignDocument {
-        path: path.clone().into(),
-    });
+    let events = reopened.dispatch(Command::LoadDesignDocument { path: path.clone() });
     assert!(
         events
             .iter()

@@ -116,6 +116,8 @@ pub struct DatabaseState {
     pub forms: Vec<FormDef>,
     /// Report design documents in creation order (step 10.4, H31).
     pub reports: Vec<crate::report::ReportDef>,
+    /// View designs in creation order (step 71.1, M93).
+    pub views: Vec<crate::view::ViewDef>,
     /// Native saved queries read from the file (step 15.3, M3; read-only).
     pub native_queries: Vec<crate::port::NativeQuery>,
     /// Why the native-query decode failed, if it did — the open still

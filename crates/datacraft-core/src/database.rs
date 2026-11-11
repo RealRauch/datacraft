@@ -146,6 +146,10 @@ impl crate::core::Core {
                         .as_ref()
                         .map(|document| document.forms.clone())
                         .unwrap_or_default(),
+                    views: sidecar
+                        .as_ref()
+                        .map(|document| document.views.clone())
+                        .unwrap_or_default(),
                     reports: sidecar
                         .as_ref()
                         .map(|document| document.reports.clone())

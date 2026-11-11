@@ -282,8 +282,9 @@ pub enum Command {
         /// Query name; rejected on duplicates.
         name: String,
     },
-    /// Edits one QBE grid cell; identifiers are whitelisted against the
-    /// schema (LESSONS #5).
+    /// Sidecar view design command (step 71.1, M93): create, set SQL, delete.
+    View(crate::view::ViewCommand),
+    /// Edits one QBE grid cell (identifiers are schema-whitelisted, LESSONS #5).
     SetQbeCell {
         /// Target query name (case-insensitive).
         query: String,

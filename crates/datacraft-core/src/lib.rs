@@ -53,6 +53,7 @@ pub mod undo;
 pub mod vba;
 pub mod vba_analysis;
 mod vba_dispatch;
+pub mod view;
 
 pub use ids::TabId;
 
@@ -66,6 +67,8 @@ pub enum ObjectKind {
     Table,
     /// A saved query (QBE grid).
     Query,
+    /// A sidecar view design: a named SELECT (step 71.1, item M93).
+    View,
     /// A form design (canvas and runtime view).
     Form,
     /// A report design (canvas and print preview).
@@ -82,6 +85,7 @@ impl ObjectKind {
         match self {
             ObjectKind::Table => "table",
             ObjectKind::Query => "query",
+            ObjectKind::View => "view",
             ObjectKind::Form => "form",
             ObjectKind::Report => "report",
             ObjectKind::Macro => "macro",
@@ -142,6 +146,7 @@ mod tests {
     fn object_kind_slugs_are_lower_case_names() {
         assert_eq!(ObjectKind::Table.slug(), "table");
         assert_eq!(ObjectKind::Query.slug(), "query");
+        assert_eq!(ObjectKind::View.slug(), "view");
         assert_eq!(ObjectKind::Form.slug(), "form");
         assert_eq!(ObjectKind::Report.slug(), "report");
         assert_eq!(ObjectKind::Macro.slug(), "macro");
