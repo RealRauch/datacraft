@@ -42,6 +42,10 @@ pub(crate) struct Grid<'a> {
     pub cursor: usize,
     pub widths: &'a mut [f32],
     pub sort_orders: &'a [SortOrder],
+    /// Active column filters of the tab (empty for query grids); the
+    /// header paints their indicator and names the criteria on hover
+    /// (step 69.6, item M84).
+    pub filters: &'a std::collections::BTreeMap<String, String>,
     pub id_salt: String,
     pub frozen: usize,
     pub delete_reason: Option<DisabledReason>,
@@ -126,7 +130,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
     }
 }
 
-pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'_>, callbacks: GridCallbacks<'a>) {
+pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCallbacks<'a>) {
     let GridCallbacks {
         on_select,
         on_sort,
@@ -142,6 +146,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'_>, callbacks: GridCall
         cursor,
         widths,
         sort_orders,
+        filters: grid_filters,
         id_salt,
         frozen,
         delete_reason,
@@ -205,6 +210,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'_>, callbacks: GridCall
         sort: on_sort,
         freeze: on_freeze,
         filter_dialog: on_filter_dialog,
+        filters: grid_filters,
     };
     header_ui(ui, &metrics, columns, widths, sort_orders, &mut header);
     let total_width: f32 = widths.iter().sum();

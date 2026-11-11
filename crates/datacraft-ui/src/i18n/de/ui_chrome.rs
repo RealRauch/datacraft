@@ -435,6 +435,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("Keyboard Shortcuts", "Tastenkürzel"),
     ("Keyboard Shortcuts (F1)", "Tastenkürzel (F1)"),
+    ("Sorted ascending", "Aufsteigend sortiert"),
+    ("Sorted descending", "Absteigend sortiert"),
     (
         "Close the active tab.",
         "Schließen Sie die aktive Registerkarte.",

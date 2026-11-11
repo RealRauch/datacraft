@@ -14,7 +14,7 @@ use datacraft_core::grid::{
 use datacraft_core::qbe::SortOrder;
 
 use super::grid::SELECTOR_WIDTH;
-use crate::i18n::t;
+use crate::i18n::{t, tr};
 use crate::theme::tokens;
 
 /// Width of a column-separator drag handle.
@@ -37,6 +37,9 @@ pub(super) struct HeaderPass<'a> {
     /// criteria dialog (the in-menu editor died on click — egui menus
     /// do not host text editing).
     pub filter_dialog: Option<&'a mut dyn FnMut(usize)>,
+    /// Active column filters by field name (step 69.6, item M84): the
+    /// header paints a funnel glyph and names the criteria on hover.
+    pub filters: &'a std::collections::BTreeMap<String, String>,
 }
 
 /// Header band: accent fill, column names with sort indicators, resize
@@ -122,6 +125,19 @@ pub(super) fn header_ui(
                 egui::Stroke::NONE,
             ));
         }
+        // Filter indicator (step 69.6, item M84): a funnel glyph left of
+        // the sort caret, plus the criteria in the hover text.
+        if pass.filters.contains_key(name) {
+            paint_filter_glyph(
+                ui.painter(),
+                cell_rect.right_center() + egui::vec2(-22.0, 0.0),
+                tokens.on_accent,
+            );
+        }
+        let response = match header_state(pass.filters, name, order) {
+            Some(state) => response.on_hover_text(state),
+            None => response,
+        };
         response.context_menu(|ui| {
             if sortable {
                 for target in [SortOrder::Ascending, SortOrder::Descending, SortOrder::None] {
@@ -189,6 +205,45 @@ pub(super) fn header_ui(
         && let Some(callback) = pass.filter_dialog.as_mut()
     {
         callback(column);
+    }
+}
+
+/// The header's hover state text: the column's filter criteria and sort
+/// direction, one per line (step 69.6, item M84). `None` for an untouched
+/// column.
+fn header_state(
+    filters: &std::collections::BTreeMap<String, String>,
+    name: &str,
+    order: SortOrder,
+) -> Option<String> {
+    let filter = filters
+        .get(name)
+        .map(|criteria| tr("Filter: {criteria}", &[("criteria", criteria)]));
+    let sort = match order {
+        SortOrder::Ascending => Some(t("Sorted ascending")),
+        SortOrder::Descending => Some(t("Sorted descending")),
+        SortOrder::None => None,
+    };
+    match (filter, sort) {
+        (Some(filter), Some(sort)) => Some(format!("{filter}\n{sort}")),
+        (Some(filter), None) => Some(filter),
+        (None, Some(sort)) => Some(sort.to_owned()),
+        (None, None) => None,
+    }
+}
+
+/// A small funnel glyph (painted, not a font glyph — the shipped font set
+/// has no filter symbol; H53's tofu incident). Step 69.6, item M84.
+fn paint_filter_glyph(painter: &egui::Painter, center: egui::Pos2, ink: egui::Color32) {
+    for (index, dy) in [-3.0, 0.0, 3.0].iter().enumerate() {
+        let half = 4.5 - index as f32 * 1.3;
+        painter.line_segment(
+            [
+                egui::pos2(center.x - half, center.y + dy),
+                egui::pos2(center.x + half, center.y + dy),
+            ],
+            egui::Stroke::new(1.5, ink),
+        );
     }
 }
 

@@ -81,6 +81,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         cursor: 0,
                         widths: &mut widths,
                         sort_orders: &sorts,
+                        filters: &std::collections::BTreeMap::new(),
                         id_salt: "sql.grid".to_owned(),
                         frozen: 0,
                         delete_reason: None,
