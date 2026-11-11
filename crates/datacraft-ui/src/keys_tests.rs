@@ -12,6 +12,20 @@ fn control_shortcuts_map_to_their_single_actions() {
     assert_eq!(shortcut(true, Key::W), Some(Shortcut::CloseTab));
 }
 
+/// Step 68.1 (item M73): the undo/redo pair reaches the bus from the
+/// keyboard — the commands already exist, only the keys were missing.
+#[test]
+fn undo_and_redo_map_to_the_history_commands() {
+    assert_eq!(shortcut(true, Key::Z), Some(Shortcut::Undo));
+    assert_eq!(shortcut(true, Key::Y), Some(Shortcut::Redo));
+}
+
+#[test]
+fn undo_and_redo_without_ctrl_are_ignored() {
+    assert_eq!(shortcut(false, Key::Z), None);
+    assert_eq!(shortcut(false, Key::Y), None);
+}
+
 #[test]
 fn escape_cancels_editing_without_a_modifier() {
     assert_eq!(shortcut(false, Key::Escape), Some(Shortcut::CancelEdit));
