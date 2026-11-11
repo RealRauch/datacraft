@@ -21,6 +21,7 @@ use datacraft_core::snapshot::UiStateSnapshot;
 mod caches;
 mod form_edit;
 mod grid_state;
+pub(crate) mod notices;
 
 /// Root application state.
 pub struct App {
