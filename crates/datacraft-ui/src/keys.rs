@@ -1,9 +1,10 @@
-//! Keyboard handling (step 21.8, item U12).
+//! Keyboard handling (step 21.8, item U12; undo/redo keys step 68.1, M73).
 //!
-//! Ctrl+S, Ctrl+W and Esc map to the same single actions as their buttons.
-//! Alt reveals ribbon key tips derived from the spec ids; only the model's
-//! Tabs and Commands phases are taken (Legacy and Backstage are out of
-//! scope). The shortcut mapping is pure and unit-tested.
+//! Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y and Esc map to the same single actions
+//! as their buttons. Alt reveals ribbon key tips derived from the spec
+//! ids; only the model's Tabs and Commands phases are taken (Legacy and
+//! Backstage are out of scope). The shortcut mapping is pure and
+//! unit-tested.
 
 use eframe::egui;
 
@@ -31,14 +32,21 @@ pub enum Shortcut {
     CloseTab,
     /// Esc — cancels the buffered edit state and closes menus.
     CancelEdit,
+    /// Ctrl+Z — undoes the last row write of the open database (step 68.1).
+    Undo,
+    /// Ctrl+Y — redoes the last undone row write (step 68.1).
+    Redo,
 }
 
-/// Pure shortcut mapping: Ctrl+S, Ctrl+W, Esc (no modifier).
+/// Pure shortcut mapping: Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y, Esc (no
+/// modifier).
 pub fn shortcut(ctrl: bool, key: egui::Key) -> Option<Shortcut> {
     if ctrl {
         return match key {
             egui::Key::S => Some(Shortcut::SaveDesign),
             egui::Key::W => Some(Shortcut::CloseTab),
+            egui::Key::Z => Some(Shortcut::Undo),
+            egui::Key::Y => Some(Shortcut::Redo),
             _ => None,
         };
     }
@@ -60,7 +68,13 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
     app.alt_down = alt_down;
 
     let ctrl = ctx.input(|input| input.modifiers.ctrl);
-    for key in [egui::Key::S, egui::Key::W, egui::Key::Escape] {
+    for key in [
+        egui::Key::S,
+        egui::Key::W,
+        egui::Key::Z,
+        egui::Key::Y,
+        egui::Key::Escape,
+    ] {
         if !ctx.input(|input| input.key_pressed(key)) {
             continue;
         }
@@ -75,6 +89,18 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
             Some(Shortcut::CloseTab) => {
                 if let Some(tab_id) = app.snapshot().active_tab {
                     app.dispatch(Command::CloseTab { tab_id });
+                }
+            }
+            // The keyboard follows the QAT rule: an empty history is a
+            // no-op, not a failure notice (step 68.1, M73).
+            Some(Shortcut::Undo) => {
+                if app.snapshot().undo_depth > 0 {
+                    app.dispatch(Command::Undo);
+                }
+            }
+            Some(Shortcut::Redo) => {
+                if app.snapshot().redo_depth > 0 {
+                    app.dispatch(Command::Redo);
                 }
             }
             Some(Shortcut::CancelEdit) => {
