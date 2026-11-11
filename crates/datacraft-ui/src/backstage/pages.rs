@@ -14,6 +14,7 @@ use crate::backstage::BackstagePage;
 use crate::backstage::recent::recent_databases_ui;
 use crate::i18n::t;
 use crate::theme::{fonts, tokens};
+use crate::tooltips;
 
 /// Right column: the selected page.
 pub(super) fn page_body(app: &mut App, ui: &mut egui::Ui) {
@@ -126,10 +127,10 @@ fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command
             || "database.mdb".to_owned(),
             |n| n.to_string_lossy().into_owned(),
         );
-    if ui
+    let browse = ui
         .push_id("backstage.new.browse", |ui| ui.button(t("Browse…")))
-        .inner
-        .clicked()
+        .inner;
+    if tooltips::backstage_response(browse, "backstage.new.browse").clicked()
         && let Some(path) = app.dialogs.pick_save_file(&suggested)
     {
         app.new_database_path = path.display().to_string();
@@ -148,13 +149,12 @@ fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command
     let enabled = creation_restriction.is_none()
         && !app.new_database_path.trim().is_empty()
         && app.new_database_template.is_some();
-    if ui
+    let create = ui
         .push_id("backstage.new.create", |ui| {
             ui.add_enabled(enabled, egui::Button::new(t("Create Database")))
         })
-        .inner
-        .clicked()
-    {
+        .inner;
+    if tooltips::backstage_response(create, "backstage.new.create").clicked() {
         let path = app.new_database_path.clone();
         if let Some(template) = app.new_database_template.clone() {
             intents.push(Command::CreateDatabaseFromTemplate {
@@ -191,20 +191,20 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
     );
     field.labelled_by(label.id);
     ui.horizontal(|ui| {
-        if ui
+        let browse = ui
             .push_id("backstage.open.browse", |ui| ui.button(t("Browse…")))
-            .inner
-            .clicked()
+            .inner;
+        if tooltips::backstage_response(browse, "backstage.open.browse").clicked()
             && let Some(path) = app.dialogs.pick_open_file()
         {
             app.open_path = path.display().to_string();
         }
-        if ui
+        let browse_folder = ui
             .push_id("backstage.open.browse_folder", |ui| {
                 ui.button(t("Browse Folder…"))
             })
-            .inner
-            .clicked()
+            .inner;
+        if tooltips::backstage_response(browse_folder, "backstage.open.browse_folder").clicked()
             && let Some(path) = app.dialogs.pick_open_folder()
         {
             app.open_path = path.display().to_string();
@@ -213,13 +213,12 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
     ui.add_space(8.0);
     let path = app.open_path.trim();
     let enabled = !path.is_empty();
-    if ui
+    let open = ui
         .push_id("backstage.open.open_database", |ui| {
             ui.add_enabled(enabled, egui::Button::new(t("Open Database")))
         })
-        .inner
-        .clicked()
-    {
+        .inner;
+    if tooltips::backstage_response(open, "backstage.open.open_database").clicked() {
         // Server-source readiness (step 65.3, item L8): a `file://` entry
         // opens as a source spec — the URI travels as data and the core
         // resolves it; every other scheme answers the precise
@@ -405,7 +404,8 @@ fn sample_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     files
 }
 
-/// One backstage flow button with its convention test id.
+/// One backstage flow button with its convention test id and the
+/// registry tooltip (step 68.2, M74).
 pub(super) fn backstage_button(
     app: &mut App,
     ui: &mut egui::Ui,
@@ -414,14 +414,13 @@ pub(super) fn backstage_button(
     enabled: bool,
     action: impl FnOnce(&mut App),
 ) {
-    let clicked = ui
-        .push_id(
-            format!("backstage.{}.{control}", app.backstage_page.slug()),
-            |ui| ui.add_enabled(enabled, egui::Button::new(label)),
-        )
-        .inner
-        .clicked();
-    if clicked {
+    let full_id = format!("backstage.{}.{control}", app.backstage_page.slug());
+    let response = ui
+        .push_id(&full_id, |ui| {
+            ui.add_enabled(enabled, egui::Button::new(label))
+        })
+        .inner;
+    if tooltips::backstage_response(response, &full_id).clicked() {
         action(app);
     }
 }

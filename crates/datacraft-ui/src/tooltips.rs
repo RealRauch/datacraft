@@ -9,25 +9,178 @@
 
 use eframe::egui;
 
-use datacraft_core::ribbon::ribbon_spec;
-
 use crate::i18n::t;
 
 /// Ribbon action tooltips, keyed by `(tab, group, action)` — the same
 /// triple that composes the AccessKit test id.
-const RIBBON_TOOLTIPS: &[(&str, &str, &str, &str)] = &[];
+const RIBBON_TOOLTIPS: &[(&str, &str, &str, &str)] = &[
+    (
+        "home",
+        "view",
+        "toggle_nav_pane",
+        "Show or hide the navigation pane.",
+    ),
+    (
+        "home",
+        "views",
+        "view_mode",
+        "Switch between Datasheet and Design view.",
+    ),
+    (
+        "create",
+        "tables",
+        "table",
+        "Create a new table and open it in the datasheet.",
+    ),
+    (
+        "create",
+        "tables",
+        "table_design",
+        "Create a new table and open its design view.",
+    ),
+    (
+        "create",
+        "queries",
+        "query_design",
+        "Create a new query and open the query designer.",
+    ),
+    (
+        "create",
+        "forms",
+        "form_design",
+        "Create a new form and open the form designer.",
+    ),
+    (
+        "create",
+        "reports",
+        "report_design",
+        "Create a new report and open the report designer.",
+    ),
+    (
+        "external_data",
+        "import",
+        "import_file",
+        "Import a CSV file as a new table of the open database.",
+    ),
+    (
+        "database_tools",
+        "relationships",
+        "relationships",
+        "Show or hide the relationship mapper.",
+    ),
+    (
+        "database_tools",
+        "queries",
+        "query_sql",
+        "Open the SQL window.",
+    ),
+    (
+        "database_tools",
+        "queries",
+        "query_expression",
+        "Open the expression window.",
+    ),
+    (
+        "table_tools",
+        "views",
+        "view_mode",
+        "Switch between Datasheet and Design view.",
+    ),
+    (
+        "query_tools",
+        "views",
+        "view_mode",
+        "Switch between Datasheet and Design view.",
+    ),
+    (
+        "form_tools",
+        "views",
+        "view_mode",
+        "Switch between Datasheet and Design view.",
+    ),
+    (
+        "report_tools",
+        "views",
+        "view_mode",
+        "Switch between Datasheet and Design view.",
+    ),
+];
 
 /// Quick Access entries reuse the ribbon action ids (step 21.2, U6).
-const QAT_TOOLTIPS: &[(&str, &str)] = &[];
+const QAT_TOOLTIPS: &[(&str, &str)] = &[
+    ("save_design", "Save the design sidecar (.datacraft)."),
+    ("undo", "Undo the last row write (Ctrl+Z)."),
+    ("redo", "Redo the last undone row write (Ctrl+Y)."),
+];
 
 /// Backstage control tooltips, keyed by the `backstage.<page>.<control>`
 /// id the paint code already carries.
-const BACKSTAGE_TOOLTIPS: &[(&str, &str)] = &[];
+const BACKSTAGE_TOOLTIPS: &[(&str, &str)] = &[
+    (
+        "backstage.home.open_page",
+        "Open the Open page to pick a database.",
+    ),
+    ("backstage.home.close_database", "Close the open database."),
+    (
+        "backstage.home.new_table",
+        "Create a new table and open it in the datasheet.",
+    ),
+    (
+        "backstage.home.save_page",
+        "Open the Save page for the design sidecar and copies.",
+    ),
+    (
+        "backstage.save.browse",
+        "Choose the target file for the copy.",
+    ),
+    (
+        "backstage.save.save_copy",
+        "Write a copy of the open database to the target path.",
+    ),
+    (
+        "backstage.save.change_password",
+        "Protect the open database with a new password.",
+    ),
+    (
+        "backstage.save.remove_password",
+        "Remove the database password.",
+    ),
+    (
+        "backstage.save.save_design",
+        "Save the design sidecar (.datacraft).",
+    ),
+    (
+        "backstage.save.load_design",
+        "Load the design sidecar into the open database.",
+    ),
+    ("backstage.save.close_database", "Close the open database."),
+    (
+        "backstage.new.browse",
+        "Choose the path for the new database.",
+    ),
+    (
+        "backstage.new.create",
+        "Create the database from the selected template and open it.",
+    ),
+    ("backstage.open.browse", "Choose a database file to open."),
+    (
+        "backstage.open.browse_folder",
+        "Open a folder of CSV tables (or a database inside it).",
+    ),
+    (
+        "backstage.open.open_database",
+        "Open the entered path or file:// URI.",
+    ),
+];
 
 /// The static backstage control inventory: every dispatchable Save/New/Open
 /// control. Template cards and recent entries are dynamic and name
 /// themselves.
 pub const BACKSTAGE_CONTROLS: &[&str] = &[
+    "backstage.home.open_page",
+    "backstage.home.close_database",
+    "backstage.home.new_table",
+    "backstage.home.save_page",
     "backstage.save.browse",
     "backstage.save.save_copy",
     "backstage.save.change_password",
@@ -108,7 +261,7 @@ pub fn backstage_response(response: egui::Response, control: &str) -> egui::Resp
 #[cfg(test)]
 mod tests {
     use super::*;
-    use datacraft_core::ribbon::{RibbonTab, rendered_tabs};
+    use datacraft_core::ribbon::{RibbonTab, rendered_tabs, ribbon_spec};
 
     fn all_tabs() -> impl Iterator<Item = &'static RibbonTab> {
         rendered_tabs(None)
@@ -168,9 +321,10 @@ mod tests {
         for (tab, group, action, _) in RIBBON_TOOLTIPS {
             let known = all_tabs().any(|candidate| {
                 candidate.id == *tab
-                    && candidate.groups.iter().any(|g| {
-                        g.id == *group && g.actions.iter().any(|a| a.id == *action)
-                    })
+                    && candidate
+                        .groups
+                        .iter()
+                        .any(|g| g.id == *group && g.actions.iter().any(|a| a.id == *action))
             });
             assert!(known, "orphaned ribbon tooltip {tab}.{group}.{action}");
         }

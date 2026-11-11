@@ -61,6 +61,11 @@ fn every_ui_key_is_translated_and_no_entry_is_orphaned() {
 /// ribbon and toolbox specs plus the constants shared with the tests.
 fn dynamic_keys() -> BTreeSet<String> {
     let mut keys = BTreeSet::new();
+    // The tooltip registry (step 68.2, M74) resolves its strings by
+    // variable, exactly like the spec labels below.
+    for key in crate::tooltips::all_keys() {
+        keys.insert(key.to_owned());
+    }
     let tabs = ribbon_spec()
         .tabs
         .iter()

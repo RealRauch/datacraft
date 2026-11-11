@@ -14,6 +14,7 @@ use crate::i18n::{t, tr};
 use crate::icons;
 use crate::theme::GEOMETRY;
 use crate::theme::tokens;
+use crate::tooltips;
 
 /// Renders the QAT strip and returns the single intent it collected.
 pub(super) fn quick_access_ui(app: &App, ui: &mut egui::Ui) -> Option<Command> {
@@ -21,6 +22,7 @@ pub(super) fn quick_access_ui(app: &App, ui: &mut egui::Ui) -> Option<Command> {
     ui.horizontal(|ui| {
         ui.add_space(2.0);
         for entry in &ribbon_spec().quick_access {
+            let hover_key = tooltips::qat_tooltip(entry.id).unwrap_or(entry.label);
             ui.push_id(format!("qat.{}", entry.id), |ui| match &entry.state {
                 ActionState::Enabled => {
                     // Undo/Redo enable from the snapshot's history depth
@@ -30,7 +32,8 @@ pub(super) fn quick_access_ui(app: &App, ui: &mut egui::Ui) -> Option<Command> {
                         "redo" => app.snapshot().redo_depth > 0,
                         _ => true,
                     };
-                    let clicked = qat_button(ui, t(entry.label), entry.id, enabled).clicked();
+                    let response = qat_button(ui, t(entry.label), entry.id, enabled);
+                    let clicked = tooltips::qat_response(response, entry.id).clicked();
                     if clicked
                         && enabled
                         && let Some(command) = super::command_for(entry.id, app)
@@ -39,12 +42,16 @@ pub(super) fn quick_access_ui(app: &App, ui: &mut egui::Ui) -> Option<Command> {
                     }
                 }
                 ActionState::DisabledIn { phase } => {
-                    qat_button(ui, t(entry.label), entry.id, false)
-                        .on_hover_text(tr("arrives in {phase}", &[("phase", phase)]));
+                    let hover = format!(
+                        "{}\n{}",
+                        t(hover_key),
+                        tr("arrives in {phase}", &[("phase", phase)])
+                    );
+                    qat_button(ui, t(entry.label), entry.id, false).on_hover_text(hover);
                 }
                 ActionState::Planned => {
-                    qat_button(ui, t(entry.label), entry.id, false)
-                        .on_hover_text(t("planned — not available yet"));
+                    let hover = format!("{}\n{}", t(hover_key), t("planned — not available yet"));
+                    qat_button(ui, t(entry.label), entry.id, false).on_hover_text(hover);
                 }
             });
         }
@@ -92,5 +99,6 @@ fn qat_button(ui: &mut egui::Ui, label: &str, icon: &str, enabled: bool) -> egui
     );
     icons::paint(ui.painter(), icon_rect, icon, ink, accent);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
-    response.on_hover_text(label)
+    // The caller decorates with the registry tooltip (step 68.2, M74).
+    response
 }

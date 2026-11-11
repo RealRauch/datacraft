@@ -9,18 +9,18 @@
 use eframe::egui;
 
 use datacraft_core::command::Command;
-use datacraft_core::ribbon::{ActionState, RibbonGroup, rendered_tabs};
+use datacraft_core::ribbon::{RibbonGroup, rendered_tabs};
 
-use crate::availability;
 use crate::layout_probe;
 
 use crate::app::App;
-use crate::i18n::{t, tr};
+use crate::i18n::t;
 use crate::icons;
 use crate::theme::GEOMETRY;
 use crate::theme::fonts;
 use crate::theme::tokens;
 
+mod actions;
 mod qat;
 mod views;
 
@@ -132,67 +132,14 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                             let tip = command_tips.get(tip_index).map(String::as_str);
                             tip_index += 1;
                             let id = format!("ribbon.{}.{}.{}", tab.id, group.id, action.id);
-                            ui.push_id(id, |ui| match &action.state {
-                                ActionState::Enabled
-                                    if availability::restricted(app.snapshot(), action.id)
-                                        .is_some() =>
-                                {
-                                    // Capability-disabled for the open source
-                                    // (ADR-7): same muted rendering as the
-                                    // planned actions, reason instead of phase.
-                                    let reason =
-                                        availability::restricted(app.snapshot(), action.id)
-                                            .expect("checked above");
-                                    ribbon_button_disabled(ui, t(action.label), action.id, tip)
-                                        .on_hover_text(availability::reason_text(reason));
-                                }
-                                ActionState::Enabled => {
-                                    if action.id == "table" {
-                                        if ribbon_button(ui, t(action.label), action.id, tip) {
-                                            app.create_table_flow();
-                                        }
-                                    } else if action.id == "table_design" {
-                                        if ribbon_button(ui, t(action.label), action.id, tip) {
-                                            app.create_table_design_flow();
-                                        }
-                                    } else if action.id == "open_database" {
-                                        ui.horizontal(|ui| {
-                                            ui.add(
-                                                egui::TextEdit::singleline(&mut app.open_path)
-                                                    .desired_width(180.0)
-                                                    .hint_text(t("path to .mdb")),
-                                            );
-                                            if ribbon_button(ui, t(action.label), action.id, tip) {
-                                                intent = Some(Command::OpenDatabase {
-                                                    path: app.open_path.clone().into(),
-                                                    password: None,
-                                                    source: None,
-                                                });
-                                            }
-                                        });
-                                    } else if action.id == "view_mode" {
-                                        if let Some(command) = views::view_mode_button(ui, app, tip)
-                                        {
-                                            intent = Some(command);
-                                        }
-                                    } else if ribbon_button(ui, t(action.label), action.id, tip)
-                                        && let Some(command) = command_for(action.id, app)
-                                    {
-                                        intent = Some(command);
-                                    }
-                                }
-                                ActionState::DisabledIn { phase } => {
-                                    ribbon_button_disabled(ui, t(action.label), action.id, tip)
-                                        .on_hover_text(tr(
-                                            "arrives in {phase}",
-                                            &[("phase", phase)],
-                                        ));
-                                }
-                                ActionState::Planned => {
-                                    ribbon_button_disabled(ui, t(action.label), action.id, tip)
-                                        .on_hover_text(t("planned — not available yet"));
-                                }
-                            });
+                            if let Some(command) = ui
+                                .push_id(id, |ui| {
+                                    actions::action_button(app, ui, tab.id, group.id, action, tip)
+                                })
+                                .inner
+                            {
+                                intent = Some(command);
+                            }
                         }
                     });
                     ui.add_space(1.0);
@@ -245,9 +192,17 @@ fn group_width(ui: &egui::Ui, group: &RibbonGroup) -> f32 {
     buttons + gaps + 8.0
 }
 
-/// An Access-sized command button (icon above the label).
-fn ribbon_button(ui: &mut egui::Ui, label: &str, icon: &str, tip: Option<&str>) -> bool {
-    ribbon_button_response(ui, label, icon, true, tip).clicked()
+/// An Access-sized command button (icon above the label). `hover` is the
+/// already-localized tooltip (registry text, plus the disabled reason when
+/// applicable — step 68.2, M74).
+fn ribbon_button(
+    ui: &mut egui::Ui,
+    label: &str,
+    icon: &str,
+    tip: Option<&str>,
+    hover: &str,
+) -> bool {
+    ribbon_button_response(ui, label, icon, true, tip, hover).clicked()
 }
 
 /// The disabled twin: painted muted, hovers with the phase hint.
@@ -256,8 +211,9 @@ fn ribbon_button_disabled(
     label: &str,
     icon: &str,
     tip: Option<&str>,
+    hover: &str,
 ) -> egui::Response {
-    ribbon_button_response(ui, label, icon, false, tip)
+    ribbon_button_response(ui, label, icon, false, tip, hover)
 }
 
 /// Custom-painted command button. A real egui button cannot host the vector
@@ -269,6 +225,7 @@ fn ribbon_button_response(
     icon: &str,
     enabled: bool,
     tip: Option<&str>,
+    hover: &str,
 ) -> egui::Response {
     let tokens = tokens(ui.visuals());
     let width = action_width(ui, label);
@@ -332,7 +289,7 @@ fn ribbon_button_response(
         );
     }
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
-    response
+    response.on_hover_text(hover)
 }
 
 /// Maps a static ribbon action onto its command. `None` for the
@@ -408,7 +365,7 @@ fn next_name(used: Vec<String>, prefix: &str) -> String {
 mod tests {
     use super::*;
     use datacraft_core::port::MockPort;
-    use datacraft_core::ribbon::ribbon_spec;
+    use datacraft_core::ribbon::{ActionState, ribbon_spec};
 
     /// Seam contract (LESSONS #2): every enabled spec action except the
     /// input-bound `open_database`, the state-bound `view_mode` and the

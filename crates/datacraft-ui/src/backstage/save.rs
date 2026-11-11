@@ -7,6 +7,7 @@ use datacraft_core::command::Command;
 
 use crate::app::App;
 use crate::i18n::t;
+use crate::tooltips;
 
 use super::pages::status_line;
 
@@ -33,10 +34,10 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
                 || "database.mdb".to_owned(),
                 |n| n.to_string_lossy().into_owned(),
             );
-        if ui
+        let browse = ui
             .push_id("backstage.save.browse", |ui| ui.button(t("Browse…")))
-            .inner
-            .clicked()
+            .inner;
+        if tooltips::backstage_response(browse, "backstage.save.browse").clicked()
             && let Some(path) = app.dialogs.pick_save_file(&suggested)
         {
             app.save_as_path = path.display().to_string();
@@ -54,12 +55,12 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         let enabled = app.snapshot().database.is_some()
             && !app.save_as_path.trim().is_empty()
             && (!app.save_as_encrypted || !app.save_as_password.is_empty());
-        if ui
+        let save_copy = ui
             .push_id("backstage.save.save_copy", |ui| {
                 ui.add_enabled(enabled, egui::Button::new(t("Save Copy")))
             })
-            .inner
-            .clicked()
+            .inner;
+        if tooltips::backstage_response(save_copy, "backstage.save.save_copy").clicked()
             && overwrite_confirmed(app)
         {
             intents.push(Command::SaveDatabaseAs {
@@ -107,25 +108,23 @@ fn change_password_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Comman
         .labelled_by(label.id);
         ui.horizontal(|ui| {
             let can_change = app.snapshot().database.is_some() && !app.change_password.is_empty();
-            if ui
+            let change = ui
                 .push_id("backstage.save.change_password", |ui| {
                     ui.add_enabled(can_change, egui::Button::new(t("Change Password")))
                 })
-                .inner
-                .clicked()
-            {
+                .inner;
+            if tooltips::backstage_response(change, "backstage.save.change_password").clicked() {
                 intents.push(Command::ChangePassword {
                     new_password: Some(app.change_password.clone()),
                 });
             }
             let can_remove = app.snapshot().database.is_some();
-            if ui
+            let remove = ui
                 .push_id("backstage.save.remove_password", |ui| {
                     ui.add_enabled(can_remove, egui::Button::new(t("Remove Password")))
                 })
-                .inner
-                .clicked()
-            {
+                .inner;
+            if tooltips::backstage_response(remove, "backstage.save.remove_password").clicked() {
                 intents.push(Command::ChangePassword { new_password: None });
             }
         });
@@ -143,24 +142,22 @@ pub(super) fn save_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Comm
     ui.add_space(8.0);
     ui.horizontal(|ui| {
         let enabled = !app.sidecar_path.trim().is_empty();
-        if ui
+        let save_design = ui
             .push_id("backstage.save.save_design", |ui| {
                 ui.add_enabled(enabled, egui::Button::new(t("Save Design")))
             })
-            .inner
-            .clicked()
-        {
+            .inner;
+        if tooltips::backstage_response(save_design, "backstage.save.save_design").clicked() {
             intents.push(Command::SaveDesignDocument {
                 path: app.sidecar_path.clone().into(),
             });
         }
-        if ui
+        let load_design = ui
             .push_id("backstage.save.load_design", |ui| {
                 ui.add_enabled(enabled, egui::Button::new(t("Load Design")))
             })
-            .inner
-            .clicked()
-        {
+            .inner;
+        if tooltips::backstage_response(load_design, "backstage.save.load_design").clicked() {
             intents.push(Command::LoadDesignDocument {
                 path: app.sidecar_path.clone().into(),
             });
@@ -186,13 +183,12 @@ pub(super) fn save_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Comm
 fn close_database_ui(app: &mut App, ui: &mut egui::Ui) {
     ui.label(t("Close the open database to open another one."));
     let enabled = app.snapshot().database.is_some();
-    if ui
+    let close = ui
         .push_id("backstage.save.close_database", |ui| {
             ui.add_enabled(enabled, egui::Button::new(t("Close Database")))
         })
-        .inner
-        .clicked()
-    {
+        .inner;
+    if tooltips::backstage_response(close, "backstage.save.close_database").clicked() {
         app.dispatch(Command::CloseDatabase);
         app.backstage_page = super::BackstagePage::Home;
     }
