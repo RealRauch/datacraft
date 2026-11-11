@@ -246,17 +246,20 @@ impl App {
         let events = self.core.dispatch(command);
         self.snapshot = self.core.inspect();
         // One bounded history feeds the status bar and the messages
-        // dialog (step 68.3, item M76): the newest entry wins.
+        // dialog (step 68.3, item M76); messages are stored semantically
+        // and rendered on demand (step 70.2, item M86): the newest entry
+        // wins and follows a live language switch.
         match events.iter().find_map(|event| match event {
-            Event::Failed { code, reason } => {
-                Some(crate::failure_text::failure_text(*code, reason))
-            }
+            Event::Failed { code, reason } => Some((*code, reason.clone())),
             _ => None,
         }) {
-            Some(text) => self.notices.push(notices::Severity::Error, text),
+            Some((code, reason)) => self.notices.push(
+                notices::Severity::Error,
+                notices::NoticeMessage::Failure { code, reason },
+            ),
             None => {
-                if let Some(notice) = notices::notice_for(&events) {
-                    self.notices.push(notices::Severity::Notice, notice);
+                if let Some(message) = notices::notice_for(&events) {
+                    self.notices.push(notices::Severity::Notice, message);
                 }
             }
         }

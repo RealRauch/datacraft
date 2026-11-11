@@ -18,7 +18,7 @@ pub fn notices_dialog(app: &mut App, ui: &mut egui::Ui) {
     }
     let entries: Vec<(Severity, String, u64)> = app
         .notice_entries()
-        .map(|entry| (entry.severity, entry.text.clone(), entry.seq))
+        .map(|entry| (entry.severity, entry.text(), entry.seq))
         .collect();
     let tokens = tokens(ui.visuals());
     let mut open = true;

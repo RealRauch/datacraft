@@ -82,8 +82,8 @@ impl eframe::App for App {
                         .size(fonts::CHROME.size)
                         .extra_letter_spacing(fonts::CHROME.tracking_points()),
                     );
-                    let error = self.last_error().map(str::to_owned);
-                    let notice = self.last_notice().map(str::to_owned);
+                    let error = self.last_error();
+                    let notice = self.last_notice();
                     if let Some(reason) = error
                         && notice_label(ui, &reason, tokens.danger)
                     {

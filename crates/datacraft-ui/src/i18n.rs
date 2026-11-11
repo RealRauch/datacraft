@@ -126,6 +126,14 @@ pub fn tr(key: &'static str, args: &[(&str, &str)]) -> String {
     fill(translate(lang(), key), args)
 }
 
+/// A template key with `{name}` placeholders rendered in an explicit
+/// language (deterministic tests and language-invariant call sites —
+/// step 70.2, item M86).
+#[cfg(test)]
+pub(crate) fn tr_in(lang: Lang, key: &'static str, args: &[(&str, &str)]) -> String {
+    fill(translate(lang, key), args)
+}
+
 /// Substitutes `{name}` placeholders (pure).
 fn fill(template: &str, args: &[(&str, &str)]) -> String {
     let mut out = template.to_owned();

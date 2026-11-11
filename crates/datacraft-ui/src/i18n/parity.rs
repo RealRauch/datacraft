@@ -75,6 +75,10 @@ fn dynamic_keys() -> BTreeSet<String> {
     for label in crate::busy::all_labels() {
         keys.insert(label.to_owned());
     }
+    // Stored notices keep their catalog keys as constants (step 70.2).
+    for key in crate::app::notices::notice_keys() {
+        keys.insert(key.to_owned());
+    }
     let tabs = ribbon_spec()
         .tabs
         .iter()

@@ -430,8 +430,8 @@ pub(super) fn backstage_button(
 pub(super) fn status_line(app: &mut App, ui: &mut egui::Ui) {
     let tokens = tokens(ui.visuals());
     ui.add_space(10.0);
-    let error = app.last_error().map(str::to_owned);
-    let notice = app.last_notice().map(str::to_owned);
+    let error = app.last_error();
+    let notice = app.last_notice();
     let clicked = if let Some(reason) = error {
         ui.add(
             egui::Label::new(egui::RichText::new(reason).color(tokens.danger))

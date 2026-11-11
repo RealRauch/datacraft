@@ -43,7 +43,7 @@ fn the_messages_dialog_lists_the_history_and_clears_it() {
     let mut app = App::new(Box::new(MockPort::new()));
     let _ = app.dispatch(Command::Undo);
     let _ = app.dispatch(Command::Undo);
-    let latest = app.last_error().map(str::to_owned).expect("a failure");
+    let latest = app.last_error().expect("a failure");
     app.open_notices();
     let mut harness = notices_harness(app);
     harness.run();
