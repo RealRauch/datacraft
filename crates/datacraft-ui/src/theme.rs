@@ -295,6 +295,13 @@ mod tests {
 
             assert_eq!(v.panel_fill, t.panel);
             assert_eq!(v.window_fill, t.panel);
+            // Step 70.3 (item M78): every tool window carries the accent
+            // frame, so it reads as a surface in both palettes.
+            assert_eq!(
+                v.window_stroke,
+                egui::Stroke::new(GEOMETRY.stroke_width, t.accent)
+            );
+            assert_eq!(v.weak_text_color, Some(t.text_muted));
             assert_eq!(v.extreme_bg_color, t.panel);
             assert_eq!(v.faint_bg_color, t.canvas);
             assert_eq!(v.override_text_color, Some(t.text));
@@ -306,11 +313,12 @@ mod tests {
             assert_eq!(v.widgets.noninteractive.bg_fill, t.panel);
             assert_eq!(v.widgets.noninteractive.fg_stroke.color, t.text);
             assert_eq!(v.widgets.noninteractive.bg_stroke.color, t.border);
-            assert_eq!(v.widgets.inactive.bg_fill, t.panel);
-            assert_eq!(v.widgets.inactive.weak_bg_fill, t.panel);
-            assert_eq!(v.widgets.inactive.bg_stroke.color, t.border);
+            // Buttons read as surfaces: a chrome fill and a strong border.
+            assert_eq!(v.widgets.inactive.bg_fill, t.chrome);
+            assert_eq!(v.widgets.inactive.weak_bg_fill, t.chrome);
+            assert_eq!(v.widgets.inactive.bg_stroke.color, t.border_strong);
             assert_eq!(v.widgets.hovered.bg_fill, t.hover);
-            assert_eq!(v.widgets.hovered.bg_stroke.color, t.border_strong);
+            assert_eq!(v.widgets.hovered.bg_stroke.color, t.accent);
             assert_eq!(v.widgets.active.bg_fill, t.pressed);
             assert_eq!(v.widgets.open.bg_fill, t.panel);
             assert_eq!(v.widgets.open.bg_stroke.color, t.border_strong);

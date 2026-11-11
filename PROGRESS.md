@@ -417,5 +417,5 @@ dark; the palette contrast tests stay green. Canonical set green on CI; no
 | 69.8 | Phase 69 Quality Gate Review | ✅ |
 | 70.1 | Wildcard patterns become an implicit Like for text filters (H58) | ✅ |
 | 70.2 | Notice and error history stores messages semantically and follows a live language switch (M86) | ✅ |
-| 70.3 | Tool-window contrast and the accent frame in both palettes — tokens only (M78) | ⬜ |
+| 70.3 | Tool-window contrast and the accent frame in both palettes — tokens only (M78) | 🔄 |
 | 70.4 | Phase 70 Quality Gate Review | ⬜ |
