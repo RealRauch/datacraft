@@ -26,6 +26,37 @@ fn undo_and_redo_without_ctrl_are_ignored() {
     assert_eq!(shortcut(false, Key::Y), None);
 }
 
+/// Step 68.4 (item M77): the help page's table cannot drift from the
+/// mapping — every variant owns exactly one row.
+#[test]
+fn every_shortcut_has_exactly_one_help_row() {
+    use crate::keys::SHORTCUT_ROWS;
+    for shortcut in [
+        Shortcut::SaveDesign,
+        Shortcut::CloseTab,
+        Shortcut::CancelEdit,
+        Shortcut::Undo,
+        Shortcut::Redo,
+        Shortcut::ShortcutsHelp,
+    ] {
+        let rows = SHORTCUT_ROWS
+            .iter()
+            .filter(|(entry, _, _)| *entry == shortcut)
+            .count();
+        assert_eq!(rows, 1, "{shortcut:?} needs exactly one help row");
+    }
+    assert_eq!(
+        SHORTCUT_ROWS.len(),
+        6,
+        "no help row exists without a shortcut"
+    );
+}
+
+#[test]
+fn f1_maps_to_the_shortcuts_help() {
+    assert_eq!(shortcut(false, Key::F1), Some(Shortcut::ShortcutsHelp));
+}
+
 #[test]
 fn escape_cancels_editing_without_a_modifier() {
     assert_eq!(shortcut(false, Key::Escape), Some(Shortcut::CancelEdit));
