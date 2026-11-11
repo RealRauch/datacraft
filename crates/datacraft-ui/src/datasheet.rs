@@ -25,11 +25,13 @@ use crate::labels::value_label;
 use crate::theme::tokens;
 
 mod grid;
+mod grid_model;
 mod header;
 mod nav;
 mod trailing;
 
-pub(crate) use grid::{CellEditSlot, EditIntent, Grid, grid_ui, grid_ui_callbacks};
+pub(crate) use grid::grid_ui;
+pub(crate) use grid_model::{CellEditSlot, EditIntent, Grid, grid_ui_callbacks};
 
 /// Renders the datasheet of one table tab.
 pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
