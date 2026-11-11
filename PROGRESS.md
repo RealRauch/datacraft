@@ -9,46 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 68 — Feedback & honesty sweep (GUI stage 0)
-
-**Scope (Steps):**
-
-- **68.1 Undo/Redo keyboard shortcuts: Ctrl+Z/Ctrl+Y dispatch through the bus (M73)**
-- **68.2 Tooltip registry: spec-complete, localized tooltips for ribbon, QAT and backstage (M74)**
-- **68.3 Notice and error history with the messages dialog (M76); carries the forced L30 app.rs/flows.rs splits**
-- **68.4 Keyboard-shortcuts help page on F1 (M77)**
-- **68.5 Busy overlay through the deferred-dispatch seam for blocking commands (M75); app/busy.rs split**
-- **68.6 Window-chrome polish pass from the human's live review (M78) — blocked on the review**
-- **68.7 Phase 68 Quality Gate Review**
-
-**Goal:** Close ROADMAP §16 stage 0 — the feedback & honesty sweep — as a
-class instead of per instance: the keyboard reaches the shipped Undo/Redo
-pair (Ctrl+Z/Ctrl+Y, M73), every ribbon/QAT/backstage control explains
-itself in a localized tooltip (M74), the status bar keeps a retrievable,
-bounded notice and error history (M76), F1 opens a shortcuts help page
-(M77), blocking commands paint a busy overlay before they can freeze an
-unpainted window (M75, the deferred-dispatch seam), and the deferred M42
-polish pass runs on the human's live review (M78). The stage's binding
-principles apply throughout: no affordance without feedback (tooltip plus
-test pin, `layout_probe` rects where geometry matters), core owns
-decisions when a surface is touched, i18n parity for every string, and L30
-— every touched 480-499-band file splits within its step. I6 (localized
-failure reasons) is already delivered and out of scope here; stages 1-4
-of the ladder (windowed reads, filter-by-value, resize handles, command
-palette) stay out. L36/L37 remain parked per ROADMAP §17. Risk classes:
-all steps are Low (Rust/UI source and test edits within the step scope);
-no new dependencies, fixtures or CI changes.
-
-**Acceptance:** Every sweep item carries its test-first chain and its
-pins: the Ctrl+Z/Y round-trip and the busy ordering are kittest-verified
-frame by frame; the tooltip and shortcut tables are exhaustive-match
-tested against the ribbon spec and the `Shortcut` enum; the notice
-history is capped, ordered and clearable; the M42 review list is either
-fixed or filed as items. `app.rs`, `flows.rs` and `ribbon.rs` land below
-480 lines with their forced splits. The canonical verification set is
-green on CI (fmt, clippy -D warnings, workspace tests, the lcov coverage
-gate >= 95 %, file size < 500, docs_validate clean) and README, CHANGELOG
-and ROADMAP state the sweep honestly.
 
 
 
@@ -418,4 +378,4 @@ and ROADMAP state the sweep honestly.
 | 68.4 | Keyboard-shortcuts help page on F1 (M77) | ✅ |
 | 68.5 | Busy overlay through the deferred-dispatch seam for blocking commands (M75); app/busy.rs split | ✅ |
 | 68.6 | Window-chrome polish pass from the human's live review (M78) — blocked on the review | ⛔ |
-| 68.7 | Phase 68 Quality Gate Review | 🔄 |
+| 68.7 | Phase 68 Quality Gate Review | ✅ |

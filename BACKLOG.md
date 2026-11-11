@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-11T15:48)
+# BACKLOG.md — Open items (As of: 2026-11-11T17:39
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -60,6 +60,13 @@
 - **Problem:** The SQL dialect engine and native query execution are already feature-gated with optional rusqlite, but the optionality is not structural — the boundary exists only as a cargo feature, not as a crate. Second (optional) candidate of the crate-split policy (`docs/ROADMAP.md` §17).
 - **Approach:** Piggyback rule — execute only when a released step touches the query/native_exec area anyway. Move the SQL dialect, QBE evaluation and native execution into a `datacraft-query` crate so default core stays rusqlite-free; keep the `sql-engine` feature as the enabling switch. New crate = Medium release gate; direction review binding; update AGENTS §1, ARCHITECTURE §4, README and the crates.io order (31.4).
 - **Acceptance:** default-feature core builds without rusqlite; the query crate passes the standalone checks in the CI matrix style; all query/native-execution tests green; canonical verification set green.
+
+### [ ] L40 — The ubuntu oracle job's mdbtools install dies on transient DNS failures — 🟢
+- **Location:** `.github/workflows/ci.yml`, the ubuntu oracle job's `sudo apt-get update && sudo apt-get install -y mdbtools` step.
+- **Problem:** The ubuntu-latest runners intermittently fail to resolve `archive.ubuntu.com`/`security.ubuntu.com`: three consecutive reruns of run 43056361337 (2026-11-11) ended with "Temporary failure resolving" and "Unable to fetch some archives" (exit 100), while the macOS oracle job passed. Each attempt burns ~7 minutes in apt retries and the red run masks whether the oracle suite itself is healthy.
+- **Approach:** wrap the install in a bounded retry (three attempts with backoff) or pre-fetch/cache the three `.deb` files; keep the failure honest — a persistent apt failure still fails after the bounded retries. `.github/workflows/*` is High-class: explicit human release required before implementation.
+- **Acceptance:** A transient DNS failure no longer reddens the ubuntu oracle job; a persistent failure still fails after the bounded retries, and the retry attempts are visible in the log.
+- **Steps:** none yet (High gate).
 
 ---
 
