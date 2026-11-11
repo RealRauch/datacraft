@@ -108,3 +108,41 @@ fn relationships_survive_serialization() {
     let back: Relationship = serde_json::from_str(&json).unwrap();
     assert_eq!(back, rel);
 }
+
+/// System relationships (MSys*) are Access's internal navigation metadata,
+/// not user relationships: the snapshot filters them (step 69.1, item H57),
+/// so no client — least of all the mapper — can offer deleting them.
+#[test]
+fn system_relationships_are_filtered_from_the_snapshot() {
+    let mut port = MockPort::new();
+    port.with_relationships(vec![
+        relationship("Orders", "customer_id", "Customers", "id"),
+        relationship(
+            "MSysNavPaneGroupsToObjects",
+            "GroupID",
+            "MSysNavPaneGroups",
+            "Id",
+        ),
+        // The prefix is matched case-insensitively (mixed-case files exist).
+        relationship(
+            "msysnavpanegroups",
+            "GroupCategoryID",
+            "MSysNavPaneGroupCategories",
+            "Id",
+        ),
+    ]);
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+        password: None,
+        source: None,
+    });
+    let db = core.inspect().database.expect("open");
+    assert_eq!(
+        db.relationships.len(),
+        1,
+        "only the user relationship remains: {:?}",
+        db.relationships
+    );
+    assert_eq!(db.relationships[0].table, "Orders");
+}
