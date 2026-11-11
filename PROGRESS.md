@@ -403,6 +403,6 @@
 | 70.3 | Tool-window contrast and the accent frame in both palettes — tokens only (M78) | ✅ |
 | 70.4 | Phase 70 Quality Gate Review | ✅ |
 | 71.1 | Core: ViewDef in the sidecar, snapshot entries, create/delete/set-sql commands, SELECT-only validation, ObjectKind::View opens a tab (M93) | ✅ |
-| 71.2 | UI: nav-pane Views group, create/edit/delete dialog, read-only datasheet from the view SQL, kittest (M93) | ⬜ |
+| 71.2 | UI: nav-pane Views group, create/edit/delete dialog, read-only datasheet from the view SQL, kittest (M93) | 🔄 |
 | 71.3 | SQLite: apply the view natively (CREATE VIEW / DROP VIEW), capability-gated, with contract pins (M93) | ⬜ |
 | 71.4 | Phase 71 Quality Gate Review | ⬜ |
