@@ -160,6 +160,10 @@ fn apply_style(style: &mut egui::Style, t: &Tokens) {
     let visuals = &mut style.visuals;
 
     visuals.window_fill = t.panel;
+    // Step 70.3 (item M78): tool windows read as surfaces — an accent
+    // frame, a strong button fill/border and legible secondary text.
+    visuals.window_stroke = egui::Stroke::new(GEOMETRY.stroke_width, t.accent);
+    visuals.weak_text_color = Some(t.text_muted);
     visuals.panel_fill = t.panel;
     visuals.extreme_bg_color = t.panel;
     visuals.faint_bg_color = t.canvas;
@@ -184,13 +188,13 @@ fn apply_style(style: &mut egui::Style, t: &Tokens) {
         t.text,
         t.border,
     );
-    rung(&mut visuals.widgets.inactive, t.panel, t.text, t.border);
     rung(
-        &mut visuals.widgets.hovered,
-        t.hover,
+        &mut visuals.widgets.inactive,
+        t.chrome,
         t.text,
         t.border_strong,
     );
+    rung(&mut visuals.widgets.hovered, t.hover, t.text, t.accent);
     rung(
         &mut visuals.widgets.active,
         t.pressed,
