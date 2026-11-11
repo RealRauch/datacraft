@@ -1830,3 +1830,13 @@
 - **Acceptance:** A URI source opens through all four clients; file behavior is byte-identical; ADR-7 gains the extension note when the first server driver is planned; canonical verification set green.
 - **Steps:** Phase 65 (65.1 core SourceSpec + boundary, 65.2 snapshot display + sidecar gate, 65.3 backstage UI, 65.4 CLI/MCP wire) — packaged 2026-11-10.
 - **Done:** delivered across phase 65 (65.1-65.4, commits a947c74/e5a56a0, f535c3b/4d3de0a, f9da6f6/238568b, c4a7f5b/aa64402): SourceSpec {Path, Uri} on the open command with the file:// resolver and the precise no-server-driver boundary, the snapshot source with a core-side Display, the file-bound sidecar rule, and all four clients pinned (backstage, direct bus, CLI subprocess, real MCP binary); CI run 42888059548 green with the coverage gate reading 95.695%
+
+---
+
+### [x] M73 — Ctrl+Z/Ctrl+Y never reach the shipped Undo/Redo commands — the keys are missing — 🟡
+- **Location:** `crates/datacraft-ui/src/keys.rs` (`Shortcut`, `shortcut()`, `handle()`), `crates/datacraft-ui/src/keys_tests.rs`; the commands and the QAT wiring exist (`crates/datacraft-ui/src/ribbon.rs` maps `undo`/`redo`, `ribbon/qat.rs` gates on `snapshot.undo_depth`/`redo_depth`).
+- **Problem:** U14 shipped undo/redo over the bus, but the keyboard mapping only knows Ctrl+S, Ctrl+W and Esc. Ctrl+Z (the first reflex of every Access user) does nothing. ROADMAP §16 stage 0 lists the keys as the missing half of the feature.
+- **Approach:** Extend the pure mapping with Z → Undo and Y → Redo; dispatch only while the snapshot depth allows it (the QAT rule), so an empty history does not synthesize a failure notice; extend `keys_tests.rs`; one kittest row proves a real round-trip (insert through the bus, Ctrl+Z, Ctrl+Y).
+- **Acceptance:** Ctrl+Z/Ctrl+Y dispatch exactly one Undo/Redo when the history allows it and nothing when it does not; pure mapping tests and the kittest round-trip are green; the QAT enabled states and the keyboard agree.
+- **Steps:** Phase 68 (68.1).
+- **Done:** done in `d3149bf` (RED `3ef2e3a`)

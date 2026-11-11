@@ -30,13 +30,6 @@
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
 - **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
 
-### [ ] M73 — Ctrl+Z/Ctrl+Y never reach the shipped Undo/Redo commands — the keys are missing — 🟡
-- **Location:** `crates/datacraft-ui/src/keys.rs` (`Shortcut`, `shortcut()`, `handle()`), `crates/datacraft-ui/src/keys_tests.rs`; the commands and the QAT wiring exist (`crates/datacraft-ui/src/ribbon.rs` maps `undo`/`redo`, `ribbon/qat.rs` gates on `snapshot.undo_depth`/`redo_depth`).
-- **Problem:** U14 shipped undo/redo over the bus, but the keyboard mapping only knows Ctrl+S, Ctrl+W and Esc. Ctrl+Z (the first reflex of every Access user) does nothing. ROADMAP §16 stage 0 lists the keys as the missing half of the feature.
-- **Approach:** Extend the pure mapping with Z → Undo and Y → Redo; dispatch only while the snapshot depth allows it (the QAT rule), so an empty history does not synthesize a failure notice; extend `keys_tests.rs`; one kittest row proves a real round-trip (insert through the bus, Ctrl+Z, Ctrl+Y).
-- **Acceptance:** Ctrl+Z/Ctrl+Y dispatch exactly one Undo/Redo when the history allows it and nothing when it does not; pure mapping tests and the kittest round-trip are green; the QAT enabled states and the keyboard agree.
-- **Steps:** Phase 68 (68.1).
-
 ### [ ] M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — 🟡
 - **Location:** `crates/datacraft-ui/src/ribbon.rs`, `ribbon/qat.rs`, `ribbon/views.rs`, `backstage/*`; action ids come from `crates/datacraft-core/src/ribbon.rs` (`rendered_tabs`). Today 23 `on_hover*` call sites exist across ten UI files, none of them spec-enumerated.
 - **Problem:** ROADMAP §16 stage 0 asks for tooltips on every ribbon/backstage control, and today they are ad hoc inline calls: no test can prove coverage, new actions ship without one by default, and the backstage pages carry none at all. A user cannot ask "what does this button do" without trying it.
@@ -316,3 +309,4 @@
 - M71 — The form runtime has no filter model — the M69 filter action needs one — done (delivered in phase 64 (step 64.5, commit 5fe272f))
 - M69 — Command buttons have no action model — clicks are discarded — done (delivered in phase 64 (steps 64.6/64.7, commits 442998c, 2faab30))
 - L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — done (delivered across phase 65 (65.1-65.4, commits a947c74/e5a56a0, f535c3b/4d3de0a, f9da6f6/238568b, c4a7f5b/aa64402): SourceSpec {Path, Uri} on the open command with the file:// resolver and the precise no-server-driver boundary, the snapshot source with a core-side Display, the file-bound sidecar rule, and all four clients pinned (backstage, direct bus, CLI subprocess, real MCP binary); CI run 42888059548 green with the coverage gate reading 95.695%)
+- M73 — Ctrl+Z/Ctrl+Y never reach the shipped Undo/Redo commands — the keys are missing — done (done in `d3149bf` (RED `3ef2e3a`))
