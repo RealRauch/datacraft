@@ -457,4 +457,11 @@ pub static TABLE: &[(&str, &str)] = &[
         "Alt reveals the ribbon key tips; Esc cancels the current edit or closes the dialog.",
         "Alt blendet die Kürzelhinweise des Menübands ein; Esc verwirft die aktuelle Eingabe oder schließt den Dialog.",
     ),
+    ("Working…", "Bitte warten…"),
+    ("Opening the database…", "Datenbank wird geöffnet…"),
+    ("Creating the database…", "Datenbank wird erstellt…"),
+    (
+        "Writing the database copy…",
+        "Datenbankkopie wird geschrieben…",
+    ),
 ];

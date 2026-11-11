@@ -71,6 +71,10 @@ fn dynamic_keys() -> BTreeSet<String> {
     for (_, _, action) in crate::keys::SHORTCUT_ROWS {
         keys.insert((*action).to_owned());
     }
+    // The busy overlay labels ride the deferred-dispatch map (step 68.5).
+    for label in crate::busy::all_labels() {
+        keys.insert(label.to_owned());
+    }
     let tabs = ribbon_spec()
         .tabs
         .iter()

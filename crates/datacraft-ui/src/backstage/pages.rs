@@ -32,7 +32,7 @@ pub(super) fn page_body(app: &mut App, ui: &mut egui::Ui) {
         BackstagePage::Options => super::info::options_page(app, ui),
     }
     for command in intents {
-        app.dispatch(command);
+        crate::busy::dispatch_maybe_blocking(app, command);
     }
 }
 

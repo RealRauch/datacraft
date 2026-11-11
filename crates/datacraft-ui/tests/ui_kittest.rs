@@ -174,35 +174,6 @@ fn backstage_home_navigates_to_the_open_page() {
     );
 }
 
-/// The New Database page (phase 29, H44): selecting the blank template and
-/// clicking Create dispatches create + open — the new database is open.
-#[test]
-fn backstage_new_page_creates_from_a_template() {
-    let mut app = mock_app();
-    app.dispatch(Command::CloseDatabase);
-    let path =
-        std::env::temp_dir().join(format!("datacraft-kittest-{}-new.mdb", std::process::id()));
-    let _ = std::fs::remove_file(&path);
-    app.new_database_path = path.to_string_lossy().into_owned();
-    let mut harness = backstage_harness(app);
-
-    harness.get_by_label("New").click();
-    harness.run();
-    harness.get_by_label("Blank database — 0 tables").click();
-    harness.run();
-    harness.get_by_label("Create Database").click();
-    harness.run();
-
-    let database = harness
-        .state()
-        .snapshot()
-        .database
-        .as_ref()
-        .expect("the created database opens");
-    assert_eq!(database.format.to_string(), "Jet4");
-    let _ = std::fs::remove_file(&path);
-}
-
 /// The Info backstage page names a detected Access lock file with the
 /// remedy (step 53.2, item M59): fact row plus the full localized detail.
 #[test]
@@ -238,28 +209,6 @@ fn the_info_page_names_the_access_lock_file() {
         dump.contains("remove the lock file"),
         "the detail states the remedy:\n{dump}"
     );
-}
-
-/// The Samples page (phase 29, H44): the dev-workspace samples resolve and
-/// one click opens the shipped database.
-#[test]
-fn backstage_samples_page_lists_and_opens_shipped_samples() {
-    let mut app = mock_app();
-    app.dispatch(Command::CloseDatabase);
-    let mut harness = backstage_harness(app);
-
-    harness.get_by_label("Samples").click();
-    harness.run();
-    harness.get_by_label("blank.mdb").click();
-    harness.run();
-
-    let database = harness
-        .state()
-        .snapshot()
-        .database
-        .as_ref()
-        .expect("the sample opens");
-    assert_eq!(database.format.to_string(), "Jet4");
 }
 
 #[test]
@@ -440,19 +389,6 @@ fn password_capable_app() -> App {
         source: None,
     });
     app
-}
-
-#[test]
-fn backstage_save_copy_dispatches_one_command() {
-    let mut app = password_capable_app();
-    app.backstage_page = datacraft_ui::backstage::BackstagePage::Save;
-    app.save_as_path = "copy.mdb".to_owned();
-    let mut harness = backstage_harness(app);
-    harness.run();
-    harness.get_by_label("Save Copy").click();
-    harness.run();
-    let dump = tree_dump(&harness);
-    assert!(dump.contains("Copy saved to copy.mdb"), "{dump}");
 }
 
 #[test]

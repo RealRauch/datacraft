@@ -17,6 +17,7 @@ fn backstage_harness(app: App) -> Harness<'static, App> {
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
+            datacraft_ui::busy::busy_frame(app, ui);
             datacraft_ui::backstage::backstage_ui(app, ui)
         },
         app,

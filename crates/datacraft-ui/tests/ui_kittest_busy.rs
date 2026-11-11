@@ -2,14 +2,16 @@
 //!
 //! The deferred-dispatch seam paints the localized overlay in one frame,
 //! runs the command in the next and keeps the UI thread untouched by
-//! threads or async. The tests step frame by frame and assert on app state
-//! plus the AccessKit tree.
+//! threads or async. The tests pin the ordering invariant (no dispatch
+//! before the overlay frame was painted), the rendered overlay and the
+//! exactly-once execution.
 
 use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
 use datacraft_ui::app::App;
+use datacraft_ui::busy::OPEN_LABEL;
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT;
 
@@ -36,12 +38,27 @@ fn notes_app() -> (App, TabId) {
     (app, tab)
 }
 
+/// Harness over the real frame seam (construction runs to stability).
 fn busy_harness(app: App) -> Harness<'static, App> {
     Harness::new_ui_state(
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
             datacraft_ui::busy::busy_frame(app, ui);
+            ui.label("content");
+        },
+        app,
+    )
+}
+
+/// Harness that only paints the overlay (no ready pickup), so the pending
+/// state stays observable.
+fn overlay_harness(app: App) -> Harness<'static, App> {
+    Harness::new_ui_state(
+        move |ui, app| {
+            datacraft_ui::theme::fonts::install(ui.ctx());
+            datacraft_ui::theme::apply(ui.ctx());
+            datacraft_ui::busy::busy_overlay(app, ui);
             ui.label("content");
         },
         app,
@@ -63,10 +80,60 @@ fn tree_dump(harness: &Harness<'static, App>) -> String {
     text
 }
 
-/// The overlay is painted one frame before the command runs; the command
-/// executes exactly once.
+/// The ordering invariant: a queued command is not ready before its
+/// overlay frame was painted, is picked exactly once afterwards.
 #[test]
-fn the_overlay_precedes_the_deferred_command_and_it_runs_once() {
+fn the_command_waits_for_the_overlay_frame() {
+    let mut app = App::new(Box::new(MockPort::new()));
+    app.dispatch_blocking(
+        Command::OpenDatabase {
+            path: "shop.mdb".into(),
+            password: None,
+            source: None,
+        },
+        OPEN_LABEL,
+    );
+    assert!(app.busy_label().is_some());
+    assert!(
+        app.take_ready_command().is_none(),
+        "no dispatch before the overlay frame"
+    );
+    app.mark_busy_painted();
+    assert!(
+        app.take_ready_command().is_some(),
+        "ready after the overlay frame"
+    );
+    assert!(
+        app.take_ready_command().is_none(),
+        "the command is picked exactly once"
+    );
+    assert!(app.busy_label().is_none());
+}
+
+/// The overlay paints the pending action's localized label.
+#[test]
+fn the_overlay_renders_the_pending_action() {
+    let mut app = App::new(Box::new(MockPort::new()));
+    app.dispatch_blocking(
+        Command::OpenDatabase {
+            path: "shop.mdb".into(),
+            password: None,
+            source: None,
+        },
+        OPEN_LABEL,
+    );
+    let harness = overlay_harness(app);
+    let dump = tree_dump(&harness);
+    assert!(dump.contains("Working…"), "the overlay renders: {dump}");
+    assert!(
+        dump.contains("Opening the database…"),
+        "the overlay names the action: {dump}"
+    );
+}
+
+/// The real frame seam runs the deferred command exactly once.
+#[test]
+fn the_deferred_command_runs_exactly_once() {
     let (mut app, tab) = notes_app();
     app.dispatch_blocking(
         Command::InsertRow {
@@ -80,36 +147,17 @@ fn the_overlay_precedes_the_deferred_command_and_it_runs_once() {
         Some(0),
         "the request only queues the command"
     );
-    assert!(app.busy_label().is_some());
 
     let mut harness = busy_harness(app);
-    harness.step();
-    assert!(
-        harness.state().busy_label().is_some(),
-        "frame 1 keeps the command pending"
-    );
-    assert_eq!(
-        harness.state().rows_for(tab).map(Vec::len),
-        Some(0),
-        "frame 1 only paints the overlay"
-    );
-    assert!(
-        tree_dump(&harness).contains("Working…"),
-        "the overlay is on screen: {}",
-        tree_dump(&harness)
-    );
-
-    harness.step();
     assert!(
         harness.state().busy_label().is_none(),
-        "frame 2 runs the command and clears the overlay"
+        "the construction runs the seam to completion"
     );
     assert_eq!(
         harness.state().rows_for(tab).map(Vec::len),
         Some(1),
         "the deferred command ran"
     );
-
     harness.step();
     assert_eq!(
         harness.state().rows_for(tab).map(Vec::len),
@@ -122,8 +170,7 @@ fn the_overlay_precedes_the_deferred_command_and_it_runs_once() {
 /// the notice history.
 #[test]
 fn a_failing_deferred_command_clears_the_overlay() {
-    let app = App::new(Box::new(MockPort::new()));
-    let mut app = app;
+    let mut app = App::new(Box::new(MockPort::new()));
     app.dispatch_blocking(
         Command::SaveDatabaseAs {
             path: "copy.mdb".into(),
@@ -131,11 +178,7 @@ fn a_failing_deferred_command_clears_the_overlay() {
         },
         "Writing the database copy…",
     );
-
-    let mut harness = busy_harness(app);
-    harness.step();
-    assert!(harness.state().busy_label().is_some());
-    harness.step();
+    let harness = busy_harness(app);
 
     assert!(
         harness.state().busy_label().is_none(),

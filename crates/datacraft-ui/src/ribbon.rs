@@ -164,7 +164,7 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
         }
     });
     if let Some(command) = intent {
-        app.dispatch(command);
+        crate::busy::dispatch_maybe_blocking(app, command);
     }
 }
 
