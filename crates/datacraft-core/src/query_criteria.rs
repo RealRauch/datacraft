@@ -133,6 +133,17 @@ pub(crate) fn parse_predicate(
     } else {
         ("=", trimmed)
     };
+    // A bare wildcard pattern on a text column is an implicit Like — the
+    // Access filter semantics the dialog's syntax help promises (step
+    // 70.1, item H58). An explicit operator keeps the literal path.
+    let explicit_operator = ["<>", "<=", ">=", "=", "<", ">"]
+        .iter()
+        .any(|op| trimmed.starts_with(op));
+    let text_column = matches!(&column.kind, FieldKind::Text { .. } | FieldKind::Memo);
+    let wildcard = literal.contains(['*', '?', '#']);
+    if !explicit_operator && text_column && wildcard {
+        return like_predicate(literal.trim(), field, column);
+    }
     let value = coerce(literal.trim(), &column.kind).map_err(|detail| EngineError::BadLiteral {
         field: field.to_owned(),
         criteria: text.to_owned(),
