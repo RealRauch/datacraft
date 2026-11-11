@@ -1910,3 +1910,43 @@
 - **Acceptance:** open → the shell leaves the backstage and shows Home for the opened database; create → the new document is the active tab and its mode is the one the action names; kittest pins both transitions.
 - **Steps:** Phase 69 (planned from the M42 live review).
 - **Done:** done in `fd08379` (RED `4abc269`, corrected open test re-evidenced)
+
+---
+
+### [x] M82 — The shortcuts page has no visible affordance — add a help glyph to the ribbon tab row — 🟡
+- **Location:** ribbon tab strip (`crates/datacraft-ui/src/ribbon.rs`), icon dispatcher (`icons.rs`).
+- **Problem:** F1 opens the shortcuts page, but nothing on screen says so (live review 2026-11-11: add a question-mark-in-circle symbol at the File/Home tab-row level, right-aligned).
+- **Approach:** a small circular "?" button right-aligned in the tab-strip row, tooltip "Keyboard Shortcuts (F1)", dispatching the same open action as F1; no new command.
+- **Acceptance:** the glyph renders right-aligned in the tab strip in both themes, opens/closes the page, carries the localized tooltip; kittest pins presence and click.
+- **Steps:** Phase 69 (planned from the M42 live review).
+- **Done:** done in `ae00a7c` (RED `21eb09f`)
+
+---
+
+### [x] M83 — The status filter chip only clears — it should list and remove individual filters — 🟡
+- **Location:** status-bar filter chip (`crates/datacraft-ui/src/shell.rs`), `TabSnapshot.filters`, `SetTableFilter`/`ClearTableFilters`.
+- **Problem:** The chip shows the active filter count and only clears everything on click; a single column filter cannot be inspected or removed there (live review 2026-11-11: "löscht ja nur — hat der keine weitere sinnvolle Funktion?").
+- **Approach:** turn the chip into a menu/popover listing each active filter (column + criteria) with per-entry removal and an "all" action; each removal is one existing command (`SetTableFilter` with an empty criteria, or a dedicated remove command if the contract needs it). The chip keeps the count in its label.
+- **Acceptance:** the chip lists the live filters, removing one leaves the others, clearing all keeps the old behavior; one command per click; kittest pins list/remove/clear.
+- **Steps:** Phase 69 (planned from the M42 live review).
+- **Done:** done in `a891a71` (RED `881b670`)
+
+---
+
+### [x] M84 — Filtered or sorted columns carry no header indicator in the table datasheet — 🟡
+- **Location:** datasheet header (`crates/datacraft-ui/src/datasheet/header.rs`), `TabSnapshot.filters`/sort state, icon dispatcher.
+- **Problem:** A filtered or sorted table column carries no indicator in the table datasheet's header (live review 2026-11-11); a user cannot see which column is filtered or sorted without opening the menu.
+- **Approach:** paint a filter glyph and the sort caret in the column header from the tab's view state (the sort caret exists for query grids); the tooltip names the criteria, the sort direction stays visible; keep the header's hit-test math unchanged.
+- **Acceptance:** the header shows filter and sort state per column, updated in the same frame and cleared when the state is removed; kittest pins both, plus a rect pin if geometry changes.
+- **Steps:** Phase 69 (planned from the M42 live review).
+- **Done:** done in `1140188` (RED `a1554fa`)
+
+---
+
+### [x] M85 — Every tool window opens top-left — open centered instead — 🟡
+- **Location:** every tool window: `relationships.rs`, `sql_window.rs`, `expression_window.rs`, `import_window.rs`, the filter dialog, `notices_dialog.rs`, `shortcuts_help.rs`.
+- **Problem:** egui windows default to the top-left corner; the live review asks for centered initial positions ("nicht nach oben links öffnen, sondern eher mittig").
+- **Approach:** one helper in the UI crate that computes a centered default position from the content rect and the window's default size on first open; windows stay movable afterwards (default position, not a fixed anchor). Apply to every tool window and dialog.
+- **Acceptance:** every tool window opens centered at 1280x800 and 960x600, remains movable, and keeps its size/behavior; kittest or rect pins cover at least the mapper and the messages dialog.
+- **Steps:** Phase 69 (planned from the M42 live review).
+- **Done:** done in `4a44d73` (RED `20c9dbb`)
