@@ -1850,3 +1850,13 @@
 - **Acceptance:** The scanner covers every spec-derived ribbon action and the backstage inventory with zero gaps; `None` for unknown ids; i18n parity green; one kittest proves a ribbon tooltip renders its localized text. The touch keeps `ribbon.rs` (469) below 480 — extract `ribbon/controls.rs` if the tooltip plumbing pushes it further.
 - **Steps:** Phase 68 (68.2).
 - **Done:** done in `b15772d` (RED `cb98641`)
+
+---
+
+### [x] M76 — Status notices are one transient line — no history, no retrieval — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs` (`last_error`/`last_notice`), `crates/datacraft-ui/src/flows.rs` (`notice_for`), `crates/datacraft-ui/src/shell.rs` (status-bar message line).
+- **Problem:** every failed command and every success notice overwrites the previous one; a message the user missed is gone with no way to retrieve it. ROADMAP §16 stage 0 requires a notice/error history.
+- **Approach:** a bounded (50 entries) UI-owned `NoticeLog` — severity, localized text, monotonic sequence (no wall-clock timestamps, so tests stay deterministic) — fed by every dispatch outcome; the status bar keeps the latest line; clicking it opens a localized dialog listing newest-first with severity color and a Clear action (pure UI state, no new core command). The log, its mapping and its rendering live in `app/notices.rs`; `notice_for` moves there from `flows.rs`. Forced L30 splits: `app.rs` (496) and `flows.rs` (476) both shed lines and land below 480.
+- **Acceptance:** failures and success notices of every dispatch land in order; the dialog shows newest-first, capped, clearable; kittest pins open/list/clear; `app.rs` and `flows.rs` land below 480; i18n parity green.
+- **Steps:** Phase 68 (68.3).
+- **Done:** done in `b1f1bbd` (RED `74ea3f6`)

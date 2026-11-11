@@ -37,13 +37,6 @@
 - **Acceptance:** kittest steps frame by frame: the overlay is painted before the command's events land, the command runs exactly once, the overlay clears on success and on failure; existing command/UI suites unchanged; no async runtime and no command thread; `app.rs` stays below 480.
 - **Steps:** Phase 68 (68.5).
 
-### [ ] M76 — Status notices are one transient line — no history, no retrieval — 🟡
-- **Location:** `crates/datacraft-ui/src/app.rs` (`last_error`/`last_notice`), `crates/datacraft-ui/src/flows.rs` (`notice_for`), `crates/datacraft-ui/src/shell.rs` (status-bar message line).
-- **Problem:** every failed command and every success notice overwrites the previous one; a message the user missed is gone with no way to retrieve it. ROADMAP §16 stage 0 requires a notice/error history.
-- **Approach:** a bounded (50 entries) UI-owned `NoticeLog` — severity, localized text, monotonic sequence (no wall-clock timestamps, so tests stay deterministic) — fed by every dispatch outcome; the status bar keeps the latest line; clicking it opens a localized dialog listing newest-first with severity color and a Clear action (pure UI state, no new core command). The log, its mapping and its rendering live in `app/notices.rs`; `notice_for` moves there from `flows.rs`. Forced L30 splits: `app.rs` (496) and `flows.rs` (476) both shed lines and land below 480.
-- **Acceptance:** failures and success notices of every dispatch land in order; the dialog shows newest-first, capped, clearable; kittest pins open/list/clear; `app.rs` and `flows.rs` land below 480; i18n parity green.
-- **Steps:** Phase 68 (68.3).
-
 ### [ ] M77 — No keyboard-shortcuts help page — shortcuts are undocumented in the app — 🟡
 - **Location:** `crates/datacraft-ui/src/keys.rs` (`Shortcut` enum, the only shortcut inventory), no help surface; German catalog in `crates/datacraft-ui/src/i18n/de/`.
 - **Problem:** Ctrl+S/W/Esc, the new Ctrl+Z/Y and the Alt key-tip phases are discoverable only by reading the source. ROADMAP §16 stage 0 asks for a shortcuts help page; without one, the feature surface stays invisible.
@@ -304,3 +297,4 @@
 - L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — done (delivered across phase 65 (65.1-65.4, commits a947c74/e5a56a0, f535c3b/4d3de0a, f9da6f6/238568b, c4a7f5b/aa64402): SourceSpec {Path, Uri} on the open command with the file:// resolver and the precise no-server-driver boundary, the snapshot source with a core-side Display, the file-bound sidecar rule, and all four clients pinned (backstage, direct bus, CLI subprocess, real MCP binary); CI run 42888059548 green with the coverage gate reading 95.695%)
 - M73 — Ctrl+Z/Ctrl+Y never reach the shipped Undo/Redo commands — the keys are missing — done (done in `d3149bf` (RED `3ef2e3a`))
 - M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — done (done in `b15772d` (RED `cb98641`))
+- M76 — Status notices are one transient line — no history, no retrieval — done (done in `b1f1bbd` (RED `74ea3f6`))
