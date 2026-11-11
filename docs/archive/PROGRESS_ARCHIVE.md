@@ -959,3 +959,33 @@ shortcuts page stays reachable from F1 and the new glyph. The canonical
 verification set is green on CI and the band files touched here keep
 their L30 splits.
 **Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests, lcov 17665/18478 = 95.600 %) and CI run 43074717327 fully green 13/13 (tests ubuntu/windows/macos, coverage, hygiene, boundaries, rustdoc, both oracles — the L40 DNS flake was absent this run); the grid.rs -> grid_model.rs split landed here; L30's live list refreshed; items H57/M79/M80/M82/M83/M84/M85 archived.
+
+---
+
+### Phase 70 — Review corrections
+
+**Scope (Steps):**
+
+- **70.1 Wildcard patterns become an implicit Like for text filters (H58)**
+- **70.2 Notice and error history stores messages semantically and follows a live language switch (M86)**
+- **70.3 Tool-window contrast and the accent frame in both palettes — tokens only (M78)**
+- **70.4 Phase 70 Quality Gate Review**
+
+**Goal:** Close the three findings from the second M42 review round
+(2026-11-11): wildcard filter patterns become an implicit `Like` for text
+columns instead of literal equality (H58); the notice/error history stores
+messages semantically and translates at render time, so a live language
+switch cannot leave mixed-language entries (M86); and the tool windows
+raise their contrast in both palettes and carry the accent as a structural
+frame — tokens only, no layout changes (M78). All steps are Low-class
+UI/core edits; M78 stays inside `theme.rs` below the file gate. No new
+dependencies, fixtures or CI changes.
+
+**Acceptance:** H58: `*a*` matches on Name in the table filter and the QBE
+path, while `=` stays literal, pinned on both. M86: a switch to German
+after an English notice re-renders the history and the dialog; the log
+stays bounded and ordered. M78: the mapper and the other tool windows show
+a visible frame/title structure and legible secondary text in light and
+dark; the palette contrast tests stay green. Canonical set green on CI; no
+`.rs` file ≥ 500 lines.
+**Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests, lcov 17673/18486 = 95.602 %) and CI run 43105933972 fully green 13/13 (tests ubuntu/windows/macos, coverage, hygiene, boundaries, rustdoc, both oracles); items H58/M86/M78 archived; docs_validate clean.

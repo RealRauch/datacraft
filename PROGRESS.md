@@ -9,32 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 70 — Review corrections
-
-**Scope (Steps):**
-
-- **70.1 Wildcard patterns become an implicit Like for text filters (H58)**
-- **70.2 Notice and error history stores messages semantically and follows a live language switch (M86)**
-- **70.3 Tool-window contrast and the accent frame in both palettes — tokens only (M78)**
-- **70.4 Phase 70 Quality Gate Review**
-
-**Goal:** Close the three findings from the second M42 review round
-(2026-11-11): wildcard filter patterns become an implicit `Like` for text
-columns instead of literal equality (H58); the notice/error history stores
-messages semantically and translates at render time, so a live language
-switch cannot leave mixed-language entries (M86); and the tool windows
-raise their contrast in both palettes and carry the accent as a structural
-frame — tokens only, no layout changes (M78). All steps are Low-class
-UI/core edits; M78 stays inside `theme.rs` below the file gate. No new
-dependencies, fixtures or CI changes.
-
-**Acceptance:** H58: `*a*` matches on Name in the table filter and the QBE
-path, while `=` stays literal, pinned on both. M86: a switch to German
-after an English notice re-renders the history and the dialog; the log
-stays bounded and ordered. M78: the mapper and the other tool windows show
-a visible frame/title structure and legible secondary text in light and
-dark; the palette contrast tests stay green. Canonical set green on CI; no
-`.rs` file ≥ 500 lines.
 
 
 
@@ -418,4 +392,4 @@ dark; the palette contrast tests stay green. Canonical set green on CI; no
 | 70.1 | Wildcard patterns become an implicit Like for text filters (H58) | ✅ |
 | 70.2 | Notice and error history stores messages semantically and follows a live language switch (M86) | ✅ |
 | 70.3 | Tool-window contrast and the accent frame in both palettes — tokens only (M78) | ✅ |
-| 70.4 | Phase 70 Quality Gate Review | 🔄 |
+| 70.4 | Phase 70 Quality Gate Review | ✅ |
