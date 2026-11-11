@@ -46,6 +46,7 @@ pub mod settings;
 pub mod shell;
 pub mod sql_window;
 pub mod theme;
+pub mod tooltips;
 pub mod vba_viewer;
 pub mod window;
 pub mod workspace;

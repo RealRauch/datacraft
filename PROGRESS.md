@@ -413,7 +413,7 @@ and ROADMAP state the sweep honestly.
 | 67.1 | M72 fix 2: the publish job checks out before downloading the artifact — checkout's clean wipes dist otherwise (v0.1.1 live finding) | ✅ |
 | 67.2 | Phase 67 Quality Gate Review | ✅ |
 | 68.1 | Undo/Redo keyboard shortcuts: Ctrl+Z/Ctrl+Y dispatch through the bus (M73) | ✅ |
-| 68.2 | Tooltip registry: spec-complete, localized tooltips for ribbon, QAT and backstage (M74) | ⬜ |
+| 68.2 | Tooltip registry: spec-complete, localized tooltips for ribbon, QAT and backstage (M74) | 🔄 |
 | 68.3 | Notice and error history with the messages dialog (M76); carries the forced L30 app.rs/flows.rs splits | ⬜ |
 | 68.4 | Keyboard-shortcuts help page on F1 (M77) | ⬜ |
 | 68.5 | Busy overlay through the deferred-dispatch seam for blocking commands (M75); app/busy.rs split | ⬜ |
