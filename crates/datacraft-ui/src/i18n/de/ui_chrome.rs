@@ -433,6 +433,7 @@ pub static TABLE: &[(&str, &str)] = &[
         "Klicken Sie, um den Meldungsverlauf zu öffnen.",
     ),
     ("Keyboard Shortcuts", "Tastenkürzel"),
+    ("Keyboard Shortcuts (F1)", "Tastenkürzel (F1)"),
     (
         "Close the active tab.",
         "Schließen Sie die aktive Registerkarte.",

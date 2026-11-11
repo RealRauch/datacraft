@@ -88,6 +88,23 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                 app.active_ribbon_tab = tab.id;
             }
         }
+        // The shortcut page's visible affordance (step 69.4, item M82):
+        // a question-mark-in-circle at the tab-row level, right-aligned.
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let help = ui.add(
+                egui::Button::new(egui::RichText::new("?").strong())
+                    .min_size(egui::vec2(22.0, 22.0))
+                    .corner_radius(11.0),
+            );
+            let help = help.on_hover_text(t("Keyboard Shortcuts (F1)"));
+            if help.clicked() {
+                if app.shortcuts_help_open() {
+                    app.close_shortcuts_help();
+                } else {
+                    app.open_shortcuts_help();
+                }
+            }
+        });
     });
     ui.add(egui::Separator::default().horizontal());
 
