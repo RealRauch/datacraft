@@ -30,13 +30,6 @@
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
 - **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
 
-### [ ] M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — 🟡
-- **Location:** `crates/datacraft-ui/src/ribbon.rs`, `ribbon/qat.rs`, `ribbon/views.rs`, `backstage/*`; action ids come from `crates/datacraft-core/src/ribbon.rs` (`rendered_tabs`). Today 23 `on_hover*` call sites exist across ten UI files, none of them spec-enumerated.
-- **Problem:** ROADMAP §16 stage 0 asks for tooltips on every ribbon/backstage control, and today they are ad hoc inline calls: no test can prove coverage, new actions ship without one by default, and the backstage pages carry none at all. A user cannot ask "what does this button do" without trying it.
-- **Approach:** One UI-side tooltip registry keyed by action/control id (English source string as the i18n key, German catalog as usual); every ribbon action id of the spec and every backstage/QAT control in a const inventory must resolve; the paint sites render through the registry; a scanner test fails on a gap and on catalog drift; unknown ids answer `None` instead of panicking.
-- **Acceptance:** The scanner covers every spec-derived ribbon action and the backstage inventory with zero gaps; `None` for unknown ids; i18n parity green; one kittest proves a ribbon tooltip renders its localized text. The touch keeps `ribbon.rs` (469) below 480 — extract `ribbon/controls.rs` if the tooltip plumbing pushes it further.
-- **Steps:** Phase 68 (68.2).
-
 ### [ ] M75 — No busy/progress affordance: blocking commands freeze an unpainted window — 🟡
 - **Location:** `crates/datacraft-ui/src/app.rs` (`dispatch` is synchronous), `crates/datacraft-ui/src/shell.rs` (frame), `crates/datacraft-ui/src/flows.rs`; the blocking assets are open (catalog/TDEF/VBA decode), Import File (full CSV parse + inference), Save-As (page copy/encryption), RunSql and the per-tab row loads inside `maintain_caches`.
 - **Problem:** a long command runs on the UI thread before anything new can be painted, so the window looks dead and the click seems ignored. ROADMAP §16 stage 0 requires a busy/progress affordance; AGENTS §6 forbids an async runtime, and per-command threads would break the single-bus session model.
@@ -310,3 +303,4 @@
 - M69 — Command buttons have no action model — clicks are discarded — done (delivered in phase 64 (steps 64.6/64.7, commits 442998c, 2faab30))
 - L8 — Server sources: SourceSpec for the open commands (ADR-7 future path) — done (delivered across phase 65 (65.1-65.4, commits a947c74/e5a56a0, f535c3b/4d3de0a, f9da6f6/238568b, c4a7f5b/aa64402): SourceSpec {Path, Uri} on the open command with the file:// resolver and the precise no-server-driver boundary, the snapshot source with a core-side Display, the file-bound sidecar rule, and all four clients pinned (backstage, direct bus, CLI subprocess, real MCP binary); CI run 42888059548 green with the coverage gate reading 95.695%)
 - M73 — Ctrl+Z/Ctrl+Y never reach the shipped Undo/Redo commands — the keys are missing — done (done in `d3149bf` (RED `3ef2e3a`))
+- M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — done (done in `b15772d` (RED `cb98641`))

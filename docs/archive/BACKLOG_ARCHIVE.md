@@ -1840,3 +1840,13 @@
 - **Acceptance:** Ctrl+Z/Ctrl+Y dispatch exactly one Undo/Redo when the history allows it and nothing when it does not; pure mapping tests and the kittest round-trip are green; the QAT enabled states and the keyboard agree.
 - **Steps:** Phase 68 (68.1).
 - **Done:** done in `d3149bf` (RED `3ef2e3a`)
+
+---
+
+### [x] M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — 🟡
+- **Location:** `crates/datacraft-ui/src/ribbon.rs`, `ribbon/qat.rs`, `ribbon/views.rs`, `backstage/*`; action ids come from `crates/datacraft-core/src/ribbon.rs` (`rendered_tabs`). Today 23 `on_hover*` call sites exist across ten UI files, none of them spec-enumerated.
+- **Problem:** ROADMAP §16 stage 0 asks for tooltips on every ribbon/backstage control, and today they are ad hoc inline calls: no test can prove coverage, new actions ship without one by default, and the backstage pages carry none at all. A user cannot ask "what does this button do" without trying it.
+- **Approach:** One UI-side tooltip registry keyed by action/control id (English source string as the i18n key, German catalog as usual); every ribbon action id of the spec and every backstage/QAT control in a const inventory must resolve; the paint sites render through the registry; a scanner test fails on a gap and on catalog drift; unknown ids answer `None` instead of panicking.
+- **Acceptance:** The scanner covers every spec-derived ribbon action and the backstage inventory with zero gaps; `None` for unknown ids; i18n parity green; one kittest proves a ribbon tooltip renders its localized text. The touch keeps `ribbon.rs` (469) below 480 — extract `ribbon/controls.rs` if the tooltip plumbing pushes it further.
+- **Steps:** Phase 68 (68.2).
+- **Done:** done in `b15772d` (RED `cb98641`)
