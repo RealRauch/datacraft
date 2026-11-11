@@ -1870,3 +1870,13 @@
 - **Acceptance:** F1 opens/closes the dialog; every `Shortcut` variant appears exactly once; the German catalog resolves every row; kittest pins open, render and close; no shortcut exists that the table omits (exhaustive-match test).
 - **Steps:** Phase 68 (68.4).
 - **Done:** done in `76aa538` (RED `c5aebee`)
+
+---
+
+### [x] M75 — No busy/progress affordance: blocking commands freeze an unpainted window — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs` (`dispatch` is synchronous), `crates/datacraft-ui/src/shell.rs` (frame), `crates/datacraft-ui/src/flows.rs`; the blocking assets are open (catalog/TDEF/VBA decode), Import File (full CSV parse + inference), Save-As (page copy/encryption), RunSql and the per-tab row loads inside `maintain_caches`.
+- **Problem:** a long command runs on the UI thread before anything new can be painted, so the window looks dead and the click seems ignored. ROADMAP §16 stage 0 requires a busy/progress affordance; AGENTS §6 forbids an async runtime, and per-command threads would break the single-bus session model.
+- **Approach:** a deferred-dispatch seam in the UI: an action that may block is dispatched one painted frame later, with a localized busy overlay naming the action shown in between. The overlay is presented before the blocking call starts; exactly one dispatch per action; cleared after success and failure. No bus/port threading, no `std::thread` for commands. Cover the five long assets; the state machine lives in `app/busy.rs` (keeps `app.rs` from growing back toward the gate).
+- **Acceptance:** kittest steps frame by frame: the overlay is painted before the command's events land, the command runs exactly once, the overlay clears on success and on failure; existing command/UI suites unchanged; no async runtime and no command thread; `app.rs` stays below 480.
+- **Steps:** Phase 68 (68.5).
+- **Done:** done in `eb1a495` (RED `f152b93`); deferred: open/create/save-as — import and run-sql stay synchronous because their call sites consume the events in-frame

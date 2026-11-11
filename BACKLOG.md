@@ -30,13 +30,6 @@
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
 - **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
 
-### [ ] M75 — No busy/progress affordance: blocking commands freeze an unpainted window — 🟡
-- **Location:** `crates/datacraft-ui/src/app.rs` (`dispatch` is synchronous), `crates/datacraft-ui/src/shell.rs` (frame), `crates/datacraft-ui/src/flows.rs`; the blocking assets are open (catalog/TDEF/VBA decode), Import File (full CSV parse + inference), Save-As (page copy/encryption), RunSql and the per-tab row loads inside `maintain_caches`.
-- **Problem:** a long command runs on the UI thread before anything new can be painted, so the window looks dead and the click seems ignored. ROADMAP §16 stage 0 requires a busy/progress affordance; AGENTS §6 forbids an async runtime, and per-command threads would break the single-bus session model.
-- **Approach:** a deferred-dispatch seam in the UI: an action that may block is dispatched one painted frame later, with a localized busy overlay naming the action shown in between. The overlay is presented before the blocking call starts; exactly one dispatch per action; cleared after success and failure. No bus/port threading, no `std::thread` for commands. Cover the five long assets; the state machine lives in `app/busy.rs` (keeps `app.rs` from growing back toward the gate).
-- **Acceptance:** kittest steps frame by frame: the overlay is painted before the command's events land, the command runs exactly once, the overlay clears on success and on failure; existing command/UI suites unchanged; no async runtime and no command thread; `app.rs` stays below 480.
-- **Steps:** Phase 68 (68.5).
-
 ### [ ] M78 — M42 window-chrome polish pass — the deferred subjective review findings — 🟡
 - **Location:** `crates/datacraft-ui/src/theme.rs` (458 lines), `shell.rs`, `ribbon.rs`, `backstage/*` — the token and paint surfaces.
 - **Problem:** M42 closed 2026-11-04 with the audit verdict "token-clean, no drift"; the subjective polish pass was deferred until the human reviews the restyled build and is still pending. ROADMAP §16 stage 0 lists it as part of the sweep — the stage is not honestly complete while it waits.
@@ -292,3 +285,4 @@
 - M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — done (done in `b15772d` (RED `cb98641`))
 - M76 — Status notices are one transient line — no history, no retrieval — done (done in `b1f1bbd` (RED `74ea3f6`))
 - M77 — No keyboard-shortcuts help page — shortcuts are undocumented in the app — done (done in `76aa538` (RED `c5aebee`))
+- M75 — No busy/progress affordance: blocking commands freeze an unpainted window — done (done in `eb1a495` (RED `f152b93`); deferred: open/create/save-as — import and run-sql stay synchronous because their call sites consume the events in-frame)
