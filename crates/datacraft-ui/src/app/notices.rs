@@ -237,4 +237,33 @@ mod tests {
         app.open_notices();
         assert!(app.notices_open());
     }
+
+    /// A live language switch re-renders stored entries (step 70.2, M86):
+    /// the log keeps the message identity, not the rendered text.
+    #[test]
+    fn stored_messages_follow_a_live_language_switch() {
+        use crate::i18n::{Lang, init_language};
+
+        let mut log = NoticeLog::default();
+        log.push(
+            Severity::Notice,
+            NoticeMessage::Key {
+                key: "Database password changed",
+                args: Vec::new(),
+            },
+        );
+        init_language(Some(Lang::English));
+        assert_eq!(
+            log.entries().next().map(|entry| entry.text()).as_deref(),
+            Some("Database password changed")
+        );
+
+        init_language(Some(Lang::German));
+        assert_eq!(
+            log.entries().next().map(|entry| entry.text()).as_deref(),
+            Some("Datenbankpasswort geändert"),
+            "the stored message follows the switch"
+        );
+        init_language(Some(Lang::English));
+    }
 }
