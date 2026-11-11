@@ -7,6 +7,11 @@
 
 use std::collections::VecDeque;
 
+use datacraft_core::event::Event;
+
+use crate::app::App;
+use crate::i18n::tr;
+
 /// What the entry reports: a failed command or a success notice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
@@ -40,12 +45,19 @@ impl NoticeLog {
 
     /// Records one entry, dropping the oldest beyond the cap.
     pub fn push(&mut self, severity: Severity, text: String) {
-        let _ = (severity, text);
+        let seq = self.next_seq;
+        self.next_seq += 1;
+        self.entries.push_front(NoticeEntry {
+            severity,
+            text,
+            seq,
+        });
+        self.entries.truncate(Self::CAP);
     }
 
     /// The newest entry.
     pub fn latest(&self) -> Option<&NoticeEntry> {
-        None
+        self.entries.front()
     }
 
     /// All entries, newest first.
@@ -56,6 +68,103 @@ impl NoticeLog {
     /// Drops the whole history.
     pub fn clear(&mut self) {
         self.entries.clear();
+    }
+}
+
+/// Status-bar notice for successful design-document and database-copy
+/// operations (moved here from `flows.rs`, step 68.3).
+pub(crate) fn notice_for(events: &[Event]) -> Option<String> {
+    events.iter().find_map(|event| match event {
+        Event::DatabaseSavedAs { path, encrypted } => Some(if *encrypted {
+            tr(
+                "Copy saved to {path} (password-protected)",
+                &[("path", &path.display().to_string())],
+            )
+        } else {
+            tr(
+                "Copy saved to {path}",
+                &[("path", &path.display().to_string())],
+            )
+        }),
+        Event::PasswordChanged { encrypted } => Some(if *encrypted {
+            tr("Database password changed", &[])
+        } else {
+            tr("Database password removed", &[])
+        }),
+        Event::DesignDocumentSaved { path } => Some(tr(
+            "Design saved to {path}",
+            &[("path", &path.display().to_string())],
+        )),
+        Event::DesignDocumentLoaded {
+            path,
+            forms,
+            queries,
+            reports,
+        } => Some(tr(
+            "Design loaded from {path} ({forms} forms, {queries} queries, {reports} reports)",
+            &[
+                ("path", &path.display().to_string()),
+                ("forms", &forms.to_string()),
+                ("queries", &queries.to_string()),
+                ("reports", &reports.to_string()),
+            ],
+        )),
+        _ => None,
+    })
+}
+
+impl App {
+    /// Reason of the last failed command, while the newest entry is one.
+    pub fn last_error(&self) -> Option<&str> {
+        match self.notices.latest() {
+            Some(entry) if entry.severity == Severity::Error => Some(&entry.text),
+            _ => None,
+        }
+    }
+
+    /// Success notice of the last command, while the newest entry is one.
+    pub fn last_notice(&self) -> Option<&str> {
+        match self.notices.latest() {
+            Some(entry) if entry.severity == Severity::Notice => Some(&entry.text),
+            _ => None,
+        }
+    }
+
+    /// The bounded history, newest first.
+    pub fn notice_entries(&self) -> impl Iterator<Item = &NoticeEntry> {
+        self.notices.entries()
+    }
+
+    /// Drops the whole history.
+    pub fn clear_notices(&mut self) {
+        self.notices.clear();
+    }
+
+    /// Records one error on a non-dispatch failure path (the cell editor's
+    /// stale-row guard, `flows.rs`).
+    pub(crate) fn record_error(&mut self, text: String) {
+        self.notices.push(Severity::Error, text);
+    }
+
+    /// Records one success notice on a non-dispatch path (settings load,
+    /// `settings.rs`).
+    pub(crate) fn record_notice(&mut self, text: String) {
+        self.notices.push(Severity::Notice, text);
+    }
+
+    /// Opens the messages dialog.
+    pub fn open_notices(&mut self) {
+        self.notices_open = true;
+    }
+
+    /// Closes the messages dialog.
+    pub fn close_notices(&mut self) {
+        self.notices_open = false;
+    }
+
+    /// Whether the messages dialog is open.
+    pub fn notices_open(&self) -> bool {
+        self.notices_open
     }
 }
 
@@ -88,10 +197,44 @@ mod tests {
         let seqs: Vec<u64> = log.entries().map(|entry| entry.seq).collect();
         assert_eq!(seqs.len(), 2);
         assert!(seqs[0] > seqs[1], "newest carries the higher sequence");
-        assert_eq!(log.latest().map(|entry| entry.severity), Some(Severity::Notice));
+        assert_eq!(
+            log.latest().map(|entry| entry.severity),
+            Some(Severity::Notice)
+        );
 
         log.clear();
         assert_eq!(log.entries().count(), 0, "clear empties the history");
         assert!(log.latest().is_none());
+    }
+
+    /// Every dispatch outcome lands in the history; the status accessors
+    /// report the newest entry only (step 68.3, item M76).
+    #[test]
+    fn dispatch_feeds_the_history_and_the_status_accessors() {
+        use datacraft_core::command::Command;
+        use datacraft_core::port::MockPort;
+
+        let mut app = App::new(Box::new(MockPort::new()));
+        let _ = app.dispatch(Command::Undo);
+        assert!(
+            app.last_error().is_some(),
+            "a failed command is the latest entry"
+        );
+        assert!(app.last_notice().is_none());
+        assert_eq!(app.notice_entries().count(), 1);
+
+        let _ = app.dispatch(Command::Undo);
+        assert_eq!(
+            app.notice_entries().count(),
+            2,
+            "the second failure is appended, not replacing the first"
+        );
+        let seqs: Vec<u64> = app.notice_entries().map(|entry| entry.seq).collect();
+        assert!(seqs[0] > seqs[1], "newest first");
+
+        app.close_notices();
+        assert!(!app.notices_open());
+        app.open_notices();
+        assert!(app.notices_open());
     }
 }

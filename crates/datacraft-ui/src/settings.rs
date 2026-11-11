@@ -356,7 +356,7 @@ impl crate::app::App {
     /// beats the environment and system detection (ADR-5).
     pub fn apply_settings(&mut self, settings: Settings) {
         if !settings.pruned_recent.is_empty() {
-            self.last_notice = Some(prune_notice(&settings.pruned_recent));
+            self.record_notice(prune_notice(&settings.pruned_recent));
         }
         self.settings = settings;
         crate::i18n::init_language(self.language_setting().lang());
@@ -382,7 +382,7 @@ impl crate::app::App {
     pub fn set_appearance_setting(&mut self, setting: Appearance) {
         self.settings.appearance = setting;
         if let Err(reason) = self.persist_settings() {
-            self.last_error = Some(crate::i18n::tr(
+            self.record_error(crate::i18n::tr(
                 "Settings could not be saved: {reason}",
                 &[("reason", &reason.to_string())],
             ));
@@ -394,7 +394,7 @@ impl crate::app::App {
         self.settings.language = setting;
         crate::i18n::init_language(setting.lang());
         if let Err(reason) = self.persist_settings() {
-            self.last_error = Some(crate::i18n::tr(
+            self.record_error(crate::i18n::tr(
                 "Settings could not be saved: {reason}",
                 &[("reason", &reason.to_string())],
             ));
@@ -406,7 +406,7 @@ impl crate::app::App {
     pub(crate) fn record_recent_database(&mut self, path: &Path) {
         self.settings.record_recent(path);
         if let Err(reason) = self.persist_settings() {
-            self.last_error = Some(crate::i18n::tr(
+            self.record_error(crate::i18n::tr(
                 "Settings could not be saved: {reason}",
                 &[("reason", &reason.to_string())],
             ));

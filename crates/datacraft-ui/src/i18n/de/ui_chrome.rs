@@ -425,4 +425,11 @@ pub static TABLE: &[(&str, &str)] = &[
         "Open the entered path or file:// URI.",
         "Öffnen Sie den eingegebenen Pfad oder die file://-URI.",
     ),
+    ("Messages", "Meldungen"),
+    ("Clear", "Leeren"),
+    ("No messages yet.", "Noch keine Meldungen."),
+    (
+        "Click to open the message history.",
+        "Klicken Sie, um den Meldungsverlauf zu öffnen.",
+    ),
 ];

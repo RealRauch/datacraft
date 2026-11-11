@@ -431,20 +431,20 @@ impl App {
             return true;
         };
         let Some(cache) = self.rows.get(&tab_id) else {
-            self.last_error = Some(format!(
+            self.record_error(format!(
                 "form {:?}: the source rows are not loaded",
                 form.name
             ));
             return false;
         };
         let Some(base) = cache.get(row) else {
-            self.last_error = Some(format!("row {row} no longer exists in {:?}", form.source));
+            self.record_error(format!("row {row} no longer exists in {:?}", form.source));
             return false;
         };
         let mut image = base.clone();
         for (col, value) in &staged {
             if *col >= image.len() {
-                self.last_error = Some(format!(
+                self.record_error(format!(
                     "field index {col} is out of range ({} fields)",
                     image.len()
                 ));

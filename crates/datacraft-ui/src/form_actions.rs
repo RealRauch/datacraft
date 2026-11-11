@@ -26,11 +26,10 @@ pub(crate) fn button_ui(app: &mut App, form: &str, control: &ControlDef, ui: &mu
 
 fn dispatch(app: &mut App, form: &str, control: &ControlDef, action: Option<&ButtonAction>) {
     let Some(action) = action else {
-        app.last_error = Some(tr(
+        app.record_error(tr(
             "Button {button} has no action configured.",
             &[("button", &control.name)],
         ));
-        app.last_notice = None;
         return;
     };
     let command = match action {

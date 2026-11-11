@@ -200,7 +200,7 @@ impl App {
             )
         });
         let Some((canonical, parsed)) = parsed else {
-            self.last_error = Some(tr(
+            self.record_error(tr(
                 "table {table} not found",
                 &[("table", &format!("{table:?}"))],
             ));
@@ -209,7 +209,7 @@ impl App {
         let values = match parsed {
             Ok(values) => values,
             Err(reason) => {
-                self.last_error = Some(reason);
+                self.record_error(reason);
                 return false;
             }
         };
@@ -271,7 +271,7 @@ impl App {
             )
         });
         let Some((canonical, parsed, arity)) = parsed else {
-            self.last_error = Some(tr(
+            self.record_error(tr(
                 "table {table} not found",
                 &[("table", &format!("{table:?}"))],
             ));
@@ -280,11 +280,11 @@ impl App {
         let value = match parsed {
             Some(Ok(value)) => value,
             Some(Err(reason)) => {
-                self.last_error = Some(reason);
+                self.record_error(reason);
                 return;
             }
             None => {
-                self.last_error = Some(format!(
+                self.record_error(format!(
                     "field index {col} is out of range ({arity} fields)"
                 ));
                 return;
@@ -294,7 +294,7 @@ impl App {
             Some(row_values) => {
                 let mut values = row_values.clone();
                 if col >= values.len() {
-                    self.last_error = Some(format!(
+                    self.record_error(format!(
                         "field index {col} is out of range ({arity} fields)"
                     ));
                     return;
@@ -303,7 +303,7 @@ impl App {
                 values
             }
             None => {
-                self.last_error = Some(format!("row {row} no longer exists in {canonical:?}"));
+                self.record_error(format!("row {row} no longer exists in {canonical:?}"));
                 return;
             }
         };
@@ -325,16 +325,6 @@ impl App {
     pub fn cancel_cell_edit(&mut self, tab_id: TabId) {
         self.close_cell_edit(tab_id);
     }
-
-    /// Reason of the last failed command (status bar).
-    pub fn last_error(&self) -> Option<&str> {
-        self.last_error.as_deref()
-    }
-
-    /// Success notice of the last command (status bar), if any.
-    pub fn last_notice(&self) -> Option<&str> {
-        self.last_notice.as_deref()
-    }
 }
 
 /// First free `prefixN` name (case-insensitive).
@@ -343,48 +333,6 @@ fn next_free_name(used: Vec<String>, prefix: &str) -> String {
         .map(|n| format!("{prefix}{n}"))
         .find(|name| !used.contains(&name.to_lowercase()))
         .unwrap_or_else(|| prefix.to_owned())
-}
-
-/// Status-bar notice for successful design-document and database-copy
-/// operations.
-pub(crate) fn notice_for(events: &[Event]) -> Option<String> {
-    events.iter().find_map(|event| match event {
-        Event::DatabaseSavedAs { path, encrypted } => Some(if *encrypted {
-            tr(
-                "Copy saved to {path} (password-protected)",
-                &[("path", &path.display().to_string())],
-            )
-        } else {
-            tr(
-                "Copy saved to {path}",
-                &[("path", &path.display().to_string())],
-            )
-        }),
-        Event::PasswordChanged { encrypted } => Some(if *encrypted {
-            tr("Database password changed", &[])
-        } else {
-            tr("Database password removed", &[])
-        }),
-        Event::DesignDocumentSaved { path } => Some(tr(
-            "Design saved to {path}",
-            &[("path", &path.display().to_string())],
-        )),
-        Event::DesignDocumentLoaded {
-            path,
-            forms,
-            queries,
-            reports,
-        } => Some(tr(
-            "Design loaded from {path} ({forms} forms, {queries} queries, {reports} reports)",
-            &[
-                ("path", &path.display().to_string()),
-                ("forms", &forms.to_string()),
-                ("queries", &queries.to_string()),
-                ("reports", &reports.to_string()),
-            ],
-        )),
-        _ => None,
-    })
 }
 
 impl App {

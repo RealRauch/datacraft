@@ -183,7 +183,7 @@ fn startup_reports_pruned_recent_paths() {
 
     let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
     app.apply_settings(Settings::load(&path));
-    let notice = app.last_notice.as_deref().unwrap_or_default();
+    let notice = app.last_notice().unwrap_or_default();
     assert!(
         notice.contains("gone.mdb"),
         "the pruned path is named precisely: {notice:?}"

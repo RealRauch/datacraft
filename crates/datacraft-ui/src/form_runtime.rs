@@ -465,11 +465,10 @@ fn commit_text(
             app.clear_form_draft(tab_id, col);
         }
         Err(reason) => {
-            app.last_error = Some(tr(
+            app.record_error(tr(
                 "Control {control}: {reason}",
                 &[("control", &control.name), ("reason", &reason)],
             ));
-            app.last_notice = None;
             // The draft stays: the typed text remains visible.
         }
     }

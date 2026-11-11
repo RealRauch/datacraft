@@ -27,6 +27,9 @@ impl eframe::App for App {
         crate::keys::handle(self, ui.ctx());
         crate::appearance::apply(ui.ctx(), self.appearance_setting());
         crate::theme::apply(ui.ctx());
+        // The messages dialog belongs to every surface (step 68.3, M76) —
+        // including the full-page backstage, whose status line links here.
+        crate::notices_dialog::notices_dialog(self, ui);
         let tokens = tokens(ui.visuals());
 
         // The File tab owns a full-page backstage (step 21.3, U7): it
@@ -77,10 +80,16 @@ impl eframe::App for App {
                         .size(fonts::CHROME.size)
                         .extra_letter_spacing(fonts::CHROME.tracking_points()),
                     );
-                    if let Some(reason) = self.last_error() {
-                        ui.colored_label(tokens.danger, reason);
-                    } else if let Some(notice) = self.last_notice() {
-                        ui.colored_label(tokens.accent, notice);
+                    let error = self.last_error().map(str::to_owned);
+                    let notice = self.last_notice().map(str::to_owned);
+                    if let Some(reason) = error
+                        && notice_label(ui, &reason, tokens.danger)
+                    {
+                        self.open_notices();
+                    } else if let Some(notice) = notice
+                        && notice_label(ui, &notice, tokens.accent)
+                    {
+                        self.open_notices();
                     }
                     // Access co-existence (step 53.2, item M59): a detected
                     // lock file stands as a persistent muted notice — the
@@ -277,6 +286,16 @@ pub(crate) fn window_title(snapshot: &UiStateSnapshot) -> String {
 /// the catalog cannot drift.
 pub(crate) const LOCK_NOTICE_STATUS: &str = "Read-only — Access lock file {file}";
 pub(crate) const LOCK_NOTICE_DETAIL: &str = "The database opens read-only because an Access lock file ({file}) exists — close it in Access and remove the lock file to edit it here.";
+
+/// A status message that opens the message history on click (step 68.3,
+/// item M76).
+fn notice_label(ui: &mut egui::Ui, text: &str, color: egui::Color32) -> bool {
+    let response = ui
+        .add(egui::Label::new(egui::RichText::new(text).color(color)).sense(egui::Sense::click()));
+    response
+        .on_hover_text(t("Click to open the message history."))
+        .clicked()
+}
 
 /// Localized status-bar line (Access convention): built UI-side from the
 /// locale-neutral snapshot — core's `status_line` stays English for

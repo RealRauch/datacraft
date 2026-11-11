@@ -19,6 +19,7 @@ use datacraft_core::schema::FieldValue;
 use datacraft_core::snapshot::UiStateSnapshot;
 
 mod caches;
+mod editors;
 mod form_edit;
 mod grid_state;
 pub(crate) mod notices;
@@ -97,8 +98,11 @@ pub struct App {
     pub(crate) expression_output: Option<String>,
     /// Reason of the last failed expression run (the window renders it).
     pub(crate) expression_error: Option<String>,
-    /// Reason of the last failed command (status bar).
-    pub(crate) last_error: Option<String>,
+    /// Bounded notice/error history (step 68.3, item M76): the status bar
+    /// shows the newest entry, the messages dialog lists the rest.
+    notices: notices::NoticeLog,
+    /// Whether the messages dialog is open.
+    pub(crate) notices_open: bool,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
     pub sidecar_path: String,
     /// Path buffer of the backstage New Database page (phase 29, H44).
@@ -113,9 +117,6 @@ pub struct App {
     pub save_as_password: String,
     /// New-password buffer of the change-password flow.
     pub change_password: String,
-    /// Success notice of the last command (status bar), cleared by
-    /// failures (step 11.8).
-    pub(crate) last_notice: Option<String>,
     /// Buffered cells of the datasheet's new-record row per table tab.
     new_row: HashMap<TabId, Vec<String>>,
     /// The armed in-place cell editor per table tab (step 40.4, L23):
@@ -201,8 +202,8 @@ impl App {
             expression_context: None,
             expression_output: None,
             expression_error: None,
-            last_error: None,
-            last_notice: None,
+            notices: notices::NoticeLog::default(),
+            notices_open: false,
             sidecar_path: String::new(),
             new_database_path: String::new(),
             new_database_template: None,
@@ -237,17 +238,21 @@ impl App {
         self.invalidate_combo_cache();
         let events = self.core.dispatch(command);
         self.snapshot = self.core.inspect();
-        self.last_error = events.iter().find_map(|event| match event {
+        // One bounded history feeds the status bar and the messages
+        // dialog (step 68.3, item M76): the newest entry wins.
+        match events.iter().find_map(|event| match event {
             Event::Failed { code, reason } => {
                 Some(crate::failure_text::failure_text(*code, reason))
             }
             _ => None,
-        });
-        self.last_notice = if self.last_error.is_some() {
-            None
-        } else {
-            crate::flows::notice_for(&events)
-        };
+        }) {
+            Some(text) => self.notices.push(notices::Severity::Error, text),
+            None => {
+                if let Some(notice) = notices::notice_for(&events) {
+                    self.notices.push(notices::Severity::Notice, notice);
+                }
+            }
+        }
         // Password flow (step 16.2, M5) lives in `password_prompt.rs`.
         self.handle_password_events(&events);
         if events
@@ -284,16 +289,6 @@ impl App {
         self.password_prompt = None;
     }
 
-    /// SQL window editor text.
-    pub fn sql_text(&self) -> &str {
-        &self.sql_text
-    }
-
-    /// Replaces the SQL editor text.
-    pub fn set_sql_text(&mut self, text: impl Into<String>) {
-        self.sql_text = text.into();
-    }
-
     /// Runs the editor's statement through the bus and caches the outcome.
     pub fn run_sql(&mut self) {
         let events = self.dispatch(Command::RunSql {
@@ -310,31 +305,6 @@ impl App {
     /// Result of the last successful SQL run (rendered by the window).
     pub fn sql_result(&self) -> Option<&datacraft_core::sql_engine::SqlResult> {
         self.core.sql_result()
-    }
-
-    /// Expression window editor text.
-    pub fn expression_text(&self) -> &str {
-        &self.expression_text
-    }
-
-    /// Replaces the expression editor text.
-    pub fn set_expression_text(&mut self, text: impl Into<String>) {
-        self.expression_text = text.into();
-    }
-
-    /// Display form of the last successful expression run.
-    pub fn expression_output(&self) -> Option<&str> {
-        self.expression_output.as_deref()
-    }
-
-    /// Precise reason of the last failed expression run.
-    pub fn expression_error(&self) -> Option<&str> {
-        self.expression_error.as_deref()
-    }
-
-    /// Precise reason of the last failed SQL run.
-    pub fn sql_error(&self) -> Option<&str> {
-        self.sql_error.as_deref()
     }
 
     /// Domain definition of a table (the new-record row needs field kinds).

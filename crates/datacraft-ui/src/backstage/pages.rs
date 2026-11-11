@@ -425,13 +425,31 @@ pub(super) fn backstage_button(
     }
 }
 
-/// Last command error/notice at the bottom of the page.
-pub(super) fn status_line(app: &App, ui: &mut egui::Ui) {
+/// Last command error/notice at the bottom of the page; a click opens the
+/// message history (step 68.3, item M76).
+pub(super) fn status_line(app: &mut App, ui: &mut egui::Ui) {
     let tokens = tokens(ui.visuals());
     ui.add_space(10.0);
-    if let Some(reason) = app.last_error() {
-        ui.colored_label(tokens.danger, reason);
-    } else if let Some(notice) = app.last_notice() {
-        ui.colored_label(tokens.accent, notice);
+    let error = app.last_error().map(str::to_owned);
+    let notice = app.last_notice().map(str::to_owned);
+    let clicked = if let Some(reason) = error {
+        ui.add(
+            egui::Label::new(egui::RichText::new(reason).color(tokens.danger))
+                .sense(egui::Sense::click()),
+        )
+        .on_hover_text(t("Click to open the message history."))
+        .clicked()
+    } else if let Some(notice) = notice {
+        ui.add(
+            egui::Label::new(egui::RichText::new(notice).color(tokens.accent))
+                .sense(egui::Sense::click()),
+        )
+        .on_hover_text(t("Click to open the message history."))
+        .clicked()
+    } else {
+        false
+    };
+    if clicked {
+        app.open_notices();
     }
 }
