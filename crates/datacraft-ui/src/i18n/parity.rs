@@ -66,6 +66,11 @@ fn dynamic_keys() -> BTreeSet<String> {
     for key in crate::tooltips::all_keys() {
         keys.insert(key.to_owned());
     }
+    // The shortcuts help page renders its action column from the
+    // exhaustive row table (step 68.4, M77).
+    for (_, _, action) in crate::keys::SHORTCUT_ROWS {
+        keys.insert((*action).to_owned());
+    }
     let tabs = ribbon_spec()
         .tabs
         .iter()

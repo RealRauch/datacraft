@@ -45,6 +45,7 @@ pub mod report_design;
 pub mod ribbon;
 pub mod settings;
 pub mod shell;
+pub mod shortcuts_help;
 pub mod sql_window;
 pub mod theme;
 pub mod tooltips;

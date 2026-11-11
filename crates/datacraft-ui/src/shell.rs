@@ -30,6 +30,7 @@ impl eframe::App for App {
         // The messages dialog belongs to every surface (step 68.3, M76) —
         // including the full-page backstage, whose status line links here.
         crate::notices_dialog::notices_dialog(self, ui);
+        crate::shortcuts_help::shortcuts_help(self, ui);
         let tokens = tokens(ui.visuals());
 
         // The File tab owns a full-page backstage (step 21.3, U7): it

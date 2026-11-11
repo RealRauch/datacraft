@@ -432,4 +432,29 @@ pub static TABLE: &[(&str, &str)] = &[
         "Click to open the message history.",
         "Klicken Sie, um den Meldungsverlauf zu öffnen.",
     ),
+    ("Keyboard Shortcuts", "Tastenkürzel"),
+    (
+        "Close the active tab.",
+        "Schließen Sie die aktive Registerkarte.",
+    ),
+    (
+        "Cancel the buffered edit or close menus.",
+        "Verwerfen Sie die gepufferte Eingabe oder schließen Sie Menüs.",
+    ),
+    (
+        "Undo the last row write.",
+        "Machen Sie die letzte Zeilenänderung rückgängig.",
+    ),
+    (
+        "Redo the last undone row write.",
+        "Stellen Sie die zuletzt rückgängig gemachte Zeilenänderung wieder her.",
+    ),
+    (
+        "Open or close this shortcuts page.",
+        "Öffnen oder schließen Sie diese Tastenkürzel-Seite.",
+    ),
+    (
+        "Alt reveals the ribbon key tips; Esc cancels the current edit or closes the dialog.",
+        "Alt blendet die Kürzelhinweise des Menübands ein; Esc verwirft die aktuelle Eingabe oder schließt den Dialog.",
+    ),
 ];

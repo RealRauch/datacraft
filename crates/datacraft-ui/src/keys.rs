@@ -1,9 +1,10 @@
-//! Keyboard handling (step 21.8, item U12; undo/redo keys step 68.1, M73).
+//! Keyboard handling (step 21.8, item U12; undo/redo keys step 68.1, M73;
+//! F1 help step 68.4, M77).
 //!
-//! Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y and Esc map to the same single actions
-//! as their buttons. Alt reveals ribbon key tips derived from the spec
-//! ids; only the model's Tabs and Commands phases are taken (Legacy and
-//! Backstage are out of scope). The shortcut mapping is pure and
+//! Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y, Esc and F1 map to the same single
+//! actions as their buttons. Alt reveals ribbon key tips derived from the
+//! spec ids; only the model's Tabs and Commands phases are taken (Legacy
+//! and Backstage are out of scope). The shortcut mapping is pure and
 //! unit-tested.
 
 use eframe::egui;
@@ -36,9 +37,35 @@ pub enum Shortcut {
     Undo,
     /// Ctrl+Y — redoes the last undone row write (step 68.1).
     Redo,
+    /// F1 — opens or closes the shortcuts help page (step 68.4).
+    ShortcutsHelp,
 }
 
-/// Pure shortcut mapping: Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y, Esc (no
+/// Every shortcut with its display keys and action description; the help
+/// page renders exactly this table (step 68.4, item M77). The exhaustive
+/// test keeps one row per variant.
+pub const SHORTCUT_ROWS: &[(Shortcut, &str, &str)] = &[
+    (
+        Shortcut::SaveDesign,
+        "Ctrl+S",
+        "Save the design sidecar (.datacraft).",
+    ),
+    (Shortcut::CloseTab, "Ctrl+W", "Close the active tab."),
+    (
+        Shortcut::CancelEdit,
+        "Esc",
+        "Cancel the buffered edit or close menus.",
+    ),
+    (Shortcut::Undo, "Ctrl+Z", "Undo the last row write."),
+    (Shortcut::Redo, "Ctrl+Y", "Redo the last undone row write."),
+    (
+        Shortcut::ShortcutsHelp,
+        "F1",
+        "Open or close this shortcuts page.",
+    ),
+];
+
+/// Pure shortcut mapping: Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y, Esc, F1 (no
 /// modifier).
 pub fn shortcut(ctrl: bool, key: egui::Key) -> Option<Shortcut> {
     if ctrl {
@@ -52,6 +79,7 @@ pub fn shortcut(ctrl: bool, key: egui::Key) -> Option<Shortcut> {
     }
     match key {
         egui::Key::Escape => Some(Shortcut::CancelEdit),
+        egui::Key::F1 => Some(Shortcut::ShortcutsHelp),
         _ => None,
     }
 }
@@ -74,6 +102,7 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
         egui::Key::Z,
         egui::Key::Y,
         egui::Key::Escape,
+        egui::Key::F1,
     ] {
         if !ctx.input(|input| input.key_pressed(key)) {
             continue;
@@ -106,6 +135,13 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
             Some(Shortcut::CancelEdit) => {
                 app.keytips = None;
                 app.cancel_edit();
+            }
+            Some(Shortcut::ShortcutsHelp) => {
+                if app.shortcuts_help_open() {
+                    app.close_shortcuts_help();
+                } else {
+                    app.open_shortcuts_help();
+                }
             }
             None => {}
         }

@@ -22,6 +22,7 @@ mod caches;
 mod editors;
 mod form_edit;
 mod grid_state;
+mod help;
 pub(crate) mod notices;
 
 /// Root application state.
@@ -103,6 +104,8 @@ pub struct App {
     notices: notices::NoticeLog,
     /// Whether the messages dialog is open.
     pub(crate) notices_open: bool,
+    /// Whether the shortcuts help page is open (step 68.4, item M77).
+    pub(crate) shortcuts_help_open: bool,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
     pub sidecar_path: String,
     /// Path buffer of the backstage New Database page (phase 29, H44).
@@ -204,6 +207,7 @@ impl App {
             expression_error: None,
             notices: notices::NoticeLog::default(),
             notices_open: false,
+            shortcuts_help_open: false,
             sidecar_path: String::new(),
             new_database_path: String::new(),
             new_database_template: None,
@@ -287,6 +291,7 @@ impl App {
             self.cell_edit.remove(&tab_id);
         }
         self.password_prompt = None;
+        self.close_shortcuts_help();
     }
 
     /// Runs the editor's statement through the bus and caches the outcome.
