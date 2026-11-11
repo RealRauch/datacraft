@@ -416,6 +416,6 @@ and ROADMAP state the sweep honestly.
 | 68.2 | Tooltip registry: spec-complete, localized tooltips for ribbon, QAT and backstage (M74) | ✅ |
 | 68.3 | Notice and error history with the messages dialog (M76); carries the forced L30 app.rs/flows.rs splits | ✅ |
 | 68.4 | Keyboard-shortcuts help page on F1 (M77) | ✅ |
-| 68.5 | Busy overlay through the deferred-dispatch seam for blocking commands (M75); app/busy.rs split | ⬜ |
+| 68.5 | Busy overlay through the deferred-dispatch seam for blocking commands (M75); app/busy.rs split | 🔄 |
 | 68.6 | Window-chrome polish pass from the human's live review (M78) — blocked on the review | ⛔ |
 | 68.7 | Phase 68 Quality Gate Review | ⬜ |
