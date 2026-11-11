@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-10T21:14
+# BACKLOG.md — Open items (As of: 2026-11-11T15:48)
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -22,8 +22,6 @@
 
 ## 🟡 MEDIUM
 
-> No open items.
-
 ### [ ] M72 — release.yml's draft step fails: --generate-notes needs a checkout — 🟡
 - **Location:** `.github/workflows/release.yml` (the "Draft GitHub release" job's create step).
 - **Problem:** The v0.1.0 tag run (42508568656) ended red: `gh release create --generate-notes` shells out to git, but the job holds only the downloaded artifacts (no `.git` checkout) — "fatal: not a git repository". The draft and all four assets were created anyway (uploads happen before notes generation), so the release stayed intact; the red run and the thin default notes are the residue (the notes were composed manually from CHANGELOG's [0.1.0] section at publication, 2026-11-10).
@@ -32,11 +30,51 @@
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
 - **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
 
+### [ ] M73 — Ctrl+Z/Ctrl+Y never reach the shipped Undo/Redo commands — the keys are missing — 🟡
+- **Location:** `crates/datacraft-ui/src/keys.rs` (`Shortcut`, `shortcut()`, `handle()`), `crates/datacraft-ui/src/keys_tests.rs`; the commands and the QAT wiring exist (`crates/datacraft-ui/src/ribbon.rs` maps `undo`/`redo`, `ribbon/qat.rs` gates on `snapshot.undo_depth`/`redo_depth`).
+- **Problem:** U14 shipped undo/redo over the bus, but the keyboard mapping only knows Ctrl+S, Ctrl+W and Esc. Ctrl+Z (the first reflex of every Access user) does nothing. ROADMAP §16 stage 0 lists the keys as the missing half of the feature.
+- **Approach:** Extend the pure mapping with Z → Undo and Y → Redo; dispatch only while the snapshot depth allows it (the QAT rule), so an empty history does not synthesize a failure notice; extend `keys_tests.rs`; one kittest row proves a real round-trip (insert through the bus, Ctrl+Z, Ctrl+Y).
+- **Acceptance:** Ctrl+Z/Ctrl+Y dispatch exactly one Undo/Redo when the history allows it and nothing when it does not; pure mapping tests and the kittest round-trip are green; the QAT enabled states and the keyboard agree.
+- **Steps:** Phase 68 (68.1).
+
+### [ ] M74 — Ribbon, QAT and backstage controls lack a complete, localized tooltip layer — 🟡
+- **Location:** `crates/datacraft-ui/src/ribbon.rs`, `ribbon/qat.rs`, `ribbon/views.rs`, `backstage/*`; action ids come from `crates/datacraft-core/src/ribbon.rs` (`rendered_tabs`). Today 23 `on_hover*` call sites exist across ten UI files, none of them spec-enumerated.
+- **Problem:** ROADMAP §16 stage 0 asks for tooltips on every ribbon/backstage control, and today they are ad hoc inline calls: no test can prove coverage, new actions ship without one by default, and the backstage pages carry none at all. A user cannot ask "what does this button do" without trying it.
+- **Approach:** One UI-side tooltip registry keyed by action/control id (English source string as the i18n key, German catalog as usual); every ribbon action id of the spec and every backstage/QAT control in a const inventory must resolve; the paint sites render through the registry; a scanner test fails on a gap and on catalog drift; unknown ids answer `None` instead of panicking.
+- **Acceptance:** The scanner covers every spec-derived ribbon action and the backstage inventory with zero gaps; `None` for unknown ids; i18n parity green; one kittest proves a ribbon tooltip renders its localized text. The touch keeps `ribbon.rs` (469) below 480 — extract `ribbon/controls.rs` if the tooltip plumbing pushes it further.
+- **Steps:** Phase 68 (68.2).
+
+### [ ] M75 — No busy/progress affordance: blocking commands freeze an unpainted window — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs` (`dispatch` is synchronous), `crates/datacraft-ui/src/shell.rs` (frame), `crates/datacraft-ui/src/flows.rs`; the blocking assets are open (catalog/TDEF/VBA decode), Import File (full CSV parse + inference), Save-As (page copy/encryption), RunSql and the per-tab row loads inside `maintain_caches`.
+- **Problem:** a long command runs on the UI thread before anything new can be painted, so the window looks dead and the click seems ignored. ROADMAP §16 stage 0 requires a busy/progress affordance; AGENTS §6 forbids an async runtime, and per-command threads would break the single-bus session model.
+- **Approach:** a deferred-dispatch seam in the UI: an action that may block is dispatched one painted frame later, with a localized busy overlay naming the action shown in between. The overlay is presented before the blocking call starts; exactly one dispatch per action; cleared after success and failure. No bus/port threading, no `std::thread` for commands. Cover the five long assets; the state machine lives in `app/busy.rs` (keeps `app.rs` from growing back toward the gate).
+- **Acceptance:** kittest steps frame by frame: the overlay is painted before the command's events land, the command runs exactly once, the overlay clears on success and on failure; existing command/UI suites unchanged; no async runtime and no command thread; `app.rs` stays below 480.
+- **Steps:** Phase 68 (68.5).
+
+### [ ] M76 — Status notices are one transient line — no history, no retrieval — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs` (`last_error`/`last_notice`), `crates/datacraft-ui/src/flows.rs` (`notice_for`), `crates/datacraft-ui/src/shell.rs` (status-bar message line).
+- **Problem:** every failed command and every success notice overwrites the previous one; a message the user missed is gone with no way to retrieve it. ROADMAP §16 stage 0 requires a notice/error history.
+- **Approach:** a bounded (50 entries) UI-owned `NoticeLog` — severity, localized text, monotonic sequence (no wall-clock timestamps, so tests stay deterministic) — fed by every dispatch outcome; the status bar keeps the latest line; clicking it opens a localized dialog listing newest-first with severity color and a Clear action (pure UI state, no new core command). The log, its mapping and its rendering live in `app/notices.rs`; `notice_for` moves there from `flows.rs`. Forced L30 splits: `app.rs` (496) and `flows.rs` (476) both shed lines and land below 480.
+- **Acceptance:** failures and success notices of every dispatch land in order; the dialog shows newest-first, capped, clearable; kittest pins open/list/clear; `app.rs` and `flows.rs` land below 480; i18n parity green.
+- **Steps:** Phase 68 (68.3).
+
+### [ ] M77 — No keyboard-shortcuts help page — shortcuts are undocumented in the app — 🟡
+- **Location:** `crates/datacraft-ui/src/keys.rs` (`Shortcut` enum, the only shortcut inventory), no help surface; German catalog in `crates/datacraft-ui/src/i18n/de/`.
+- **Problem:** Ctrl+S/W/Esc, the new Ctrl+Z/Y and the Alt key-tip phases are discoverable only by reading the source. ROADMAP §16 stage 0 asks for a shortcuts help page; without one, the feature surface stays invisible.
+- **Approach:** one exhaustive `SHORTCUT_ROWS` table next to the `Shortcut` mapping (a test fails when a variant has no row, so the table cannot drift); a localized modal opened by F1 and closable with Esc, rendering keys and action in two columns plus one paragraph on the Alt key-tip phases; German catalog entries via the usual parity path.
+- **Acceptance:** F1 opens/closes the dialog; every `Shortcut` variant appears exactly once; the German catalog resolves every row; kittest pins open, render and close; no shortcut exists that the table omits (exhaustive-match test).
+- **Steps:** Phase 68 (68.4).
+
+### [ ] M78 — M42 window-chrome polish pass — the deferred subjective review findings — 🟡
+- **Location:** `crates/datacraft-ui/src/theme.rs` (458 lines), `shell.rs`, `ribbon.rs`, `backstage/*` — the token and paint surfaces.
+- **Problem:** M42 closed 2026-11-04 with the audit verdict "token-clean, no drift"; the subjective polish pass was deferred until the human reviews the restyled build and is still pending. ROADMAP §16 stage 0 lists it as part of the sweep — the stage is not honestly complete while it waits.
+- **Approach:** run the review live with the human, collect the findings as a short list, fix each inside the token system (no ad-hoc colors; a new token only when a finding names one), and keep `theme.rs` below 480 (split if the touch would cross). Findings that turn out structural (layout math, core decisions) become their own items instead of being patched in the polish pass.
+- **Acceptance:** the human's review list is either fixed or filed as items; canonical verification set green; `theme.rs` stays below 480; no color literal outside the token module (grep/test).
+- **Steps:** Phase 68 (68.6) — blocked until the human's live review notes exist.
+
 ---
 
 ## 🟢 LOW
-
-> No open items.
 
 ### [ ] L30 — ~15 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
 - **Location:** the 460-499 band, refreshed 2026-11-10 after the five Phase-65 splits (29 → 26 files; 2026-11-07 review saw ~15 ≥ 480). At the gate: `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-core/src/command.rs` (498), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-ui/src/app.rs` (496), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-core/src/port.rs` (493), `crates/datacraft-sqlite/src/mapping.rs` (488), `crates/datacraft-csv/src/lib.rs` + `crates/datacraft-core/src/port_mock.rs` (487), `crates/datacraft-ui/src/datasheet/grid.rs` (485), `crates/datacraft-ui/tests/ui_kittest.rs` + `crates/datacraft-jet/tests/jet_indexes.rs` (484), `crates/datacraft-ui/src/app/form_edit.rs` (481), `crates/datacraft-ui/tests/ui_layout.rs` (479), `crates/datacraft-core/src/journal.rs` (478); further 8 files in 460-477 (`form_runtime.rs`, `flows.rs`, `sqlite_writes.rs`, `sqlite_relationships.rs`, `ribbon.rs`, `expr/format.rs`, `settings.rs`, `core.rs`).
