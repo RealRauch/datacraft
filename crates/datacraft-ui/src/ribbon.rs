@@ -194,15 +194,17 @@ fn group_width(ui: &egui::Ui, group: &RibbonGroup) -> f32 {
 
 /// An Access-sized command button (icon above the label). `hover` is the
 /// already-localized tooltip (registry text, plus the disabled reason when
-/// applicable — step 68.2, M74).
+/// applicable — step 68.2, M74); `active` marks a window toggle that is
+/// open (step 69.2, M79).
 fn ribbon_button(
     ui: &mut egui::Ui,
     label: &str,
     icon: &str,
     tip: Option<&str>,
     hover: &str,
+    active: bool,
 ) -> bool {
-    ribbon_button_response(ui, label, icon, true, tip, hover).clicked()
+    ribbon_button_response(ui, label, icon, true, tip, hover, active).clicked()
 }
 
 /// The disabled twin: painted muted, hovers with the phase hint.
@@ -212,8 +214,9 @@ fn ribbon_button_disabled(
     icon: &str,
     tip: Option<&str>,
     hover: &str,
+    active: bool,
 ) -> egui::Response {
-    ribbon_button_response(ui, label, icon, false, tip, hover)
+    ribbon_button_response(ui, label, icon, false, tip, hover, active)
 }
 
 /// Custom-painted command button. A real egui button cannot host the vector
@@ -226,6 +229,7 @@ fn ribbon_button_response(
     enabled: bool,
     tip: Option<&str>,
     hover: &str,
+    active: bool,
 ) -> egui::Response {
     let tokens = tokens(ui.visuals());
     let width = action_width(ui, label);
@@ -241,11 +245,18 @@ fn ribbon_button_response(
     } else {
         ui.style().visuals.widgets.noninteractive
     };
+    // An open window toggle reads as pressed: accent fill and border
+    // (step 69.2, item M79).
+    let (fill, stroke) = if active && enabled {
+        (tokens.accent_fill, egui::Stroke::new(1.0, tokens.accent))
+    } else {
+        (visuals.weak_bg_fill, visuals.bg_stroke)
+    };
     ui.painter().rect(
         rect,
         GEOMETRY.widget_corner_radius,
-        visuals.weak_bg_fill,
-        visuals.bg_stroke,
+        fill,
+        stroke,
         egui::StrokeKind::Inside,
     );
 
@@ -288,7 +299,7 @@ fn ribbon_button_response(
             tokens.on_accent,
         );
     }
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, enabled, active, label));
     response.on_hover_text(hover)
 }
 

@@ -39,14 +39,14 @@ pub(super) fn view_mode_button(
         .and_then(|id| snapshot.tabs.iter().find(|tab| tab.id == id));
     let Some(tab) = active.filter(|tab| tab.has_design_view) else {
         let disabled_hover = format!("{hover}\n{}", t("No active tab with a design view."));
-        ribbon_button_disabled(ui, t("View"), "view_mode", tip, &disabled_hover);
+        ribbon_button_disabled(ui, t("View"), "view_mode", tip, &disabled_hover, false);
         return None;
     };
     let current = tab.mode;
     let tab_id = tab.id;
     let mut intent = None;
     ui.horizontal(|ui| {
-        if ribbon_button(ui, view_label(current), "view_mode", tip, hover) {
+        if ribbon_button(ui, view_label(current), "view_mode", tip, hover, false) {
             intent = Some(Command::SetTabMode {
                 tab_id,
                 mode: current.toggled(),

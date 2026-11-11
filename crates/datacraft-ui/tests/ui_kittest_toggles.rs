@@ -22,31 +22,38 @@ fn ribbon_harness(mut app: App) -> Harness<'static, App> {
     )
 }
 
-/// A closed window renders as not selected.
+/// The AccessKit toggle state of one button (egui maps `selected` onto
+/// `toggled`).
+fn toggle_state(harness: &Harness<'static, App>, label: &str) -> String {
+    format!(
+        "{:?}",
+        harness.get_by_label(label).accesskit_node().toggled()
+    )
+}
+
+/// A closed window renders as not toggled.
 #[test]
 fn the_sql_toggle_renders_closed() {
     let app = App::new(Box::new(MockPort::new()));
     let mut harness = ribbon_harness(app);
     harness.run();
-    let node = harness.get_by_label("SQL");
     assert_eq!(
-        node.accesskit_node().is_selected(),
-        Some(false),
-        "a closed SQL window leaves the toggle unselected"
+        toggle_state(&harness, "SQL"),
+        "Some(False)",
+        "a closed SQL window leaves the toggle unpressed"
     );
 }
 
-/// An open window renders as selected — the snapshot flag is the source.
+/// An open window renders as toggled — the snapshot flag is the source.
 #[test]
 fn the_sql_toggle_renders_open() {
     let mut app = App::new(Box::new(MockPort::new()));
     app.dispatch(Command::ToggleSqlWindow);
     let mut harness = ribbon_harness(app);
     harness.run();
-    let node = harness.get_by_label("SQL");
     assert_eq!(
-        node.accesskit_node().is_selected(),
-        Some(true),
-        "an open SQL window selects the toggle"
+        toggle_state(&harness, "SQL"),
+        "Some(True)",
+        "an open SQL window presses the toggle"
     );
 }
