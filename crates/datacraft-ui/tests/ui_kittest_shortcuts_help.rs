@@ -21,6 +21,35 @@ fn help_harness(app: App) -> Harness<'static, App> {
     )
 }
 
+fn ribbon_harness(app: App) -> Harness<'static, App> {
+    Harness::new_ui_state(
+        move |ui, app| {
+            datacraft_ui::theme::fonts::install(ui.ctx());
+            datacraft_ui::theme::apply(ui.ctx());
+            datacraft_ui::ribbon::ribbon_ui(app, ui);
+        },
+        app,
+    )
+}
+
+/// The tab-row help glyph opens the page (step 69.4, item M82) — F1 is
+/// no longer the only discoverable route.
+#[test]
+fn the_help_glyph_opens_the_shortcuts_page() {
+    let app = App::new(Box::new(MockPort::new()));
+    let mut harness = ribbon_harness(app);
+    harness.run();
+    assert!(!harness.state().shortcuts_help_open());
+
+    harness.get_by_label("?").click();
+    harness.run();
+
+    assert!(
+        harness.state().shortcuts_help_open(),
+        "the help glyph opens the shortcuts page"
+    );
+}
+
 fn tree_dump(harness: &Harness<'static, App>) -> String {
     harness
         .root()
