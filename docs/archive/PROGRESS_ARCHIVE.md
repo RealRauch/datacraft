@@ -920,3 +920,42 @@ green on CI (fmt, clippy -D warnings, workspace tests, the lcov coverage
 gate >= 95 %, file size < 500, docs_validate clean) and README, CHANGELOG
 and ROADMAP state the sweep honestly.
 **Verification:** canonical set green on CI run 43056361337 (fmt/clippy/tests ubuntu+windows+macos, coverage 95.6, hygiene, boundaries, rustdoc); the only red job is the ubuntu oracle apt install failing on DNS three times (L40), macOS oracle green
+
+---
+
+### Phase 69 — M42 review findings
+
+**Scope (Steps):**
+
+- **69.1 Hide MSys* system relationships from the mapper and never offer their deletion (H57)**
+- **69.2 Ribbon toggle actions render their open state from the snapshot (M79)**
+- **69.3 The shell follows lifecycle actions: open -> Home, create -> the new document (M80)**
+- **69.4 A help glyph in the ribbon tab row opens the shortcuts page (M82)**
+- **69.5 The status filter chip lists and removes individual filters (M83)**
+- **69.6 Column headers show filter and sort state (M84)**
+- **69.7 Tool windows open centered instead of top-left (M85)**
+- **69.8 Phase 69 Quality Gate Review**
+
+**Goal:** Close the M42 live review of 2026-11-11 as its own finding
+batch: the relationship mapper stops presenting the file's MSys* system
+metadata as user relationships and never offers their deletion (H57); the
+three toggle actions show whether their window is open (M79); the shell
+follows lifecycle actions — an open returns to Home, a create activates
+the new document (M80); a help glyph in the ribbon tab row makes the
+shortcuts page discoverable (M82); the status filter chip lists and
+removes individual filters (M83); the table header shows filter and sort
+state per column (M84); every tool window opens centered instead of
+top-left (M85). M78 stays open for the remaining token polish (the dark
+mode contrast check on the mapper's combo fields). All steps are UI
+behavior/chrome — Low class except the documented system-relationship
+filter (H57), which touches the snapshot contract and keeps the headless
+behavior honest. No new dependencies, fixtures or CI changes.
+
+**Acceptance:** Every finding's own acceptance holds: kittest pins per
+behavior (mapper filtering, toggle rendering, lifecycle transitions,
+filter chip and header indicators, centered windows); H57's filter is
+documented on the snapshot and pinned by a core contract test; the
+shortcuts page stays reachable from F1 and the new glyph. The canonical
+verification set is green on CI and the band files touched here keep
+their L30 splits.
+**Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests, lcov 17665/18478 = 95.600 %) and CI run 43074717327 fully green 13/13 (tests ubuntu/windows/macos, coverage, hygiene, boundaries, rustdoc, both oracles — the L40 DNS flake was absent this run); the grid.rs -> grid_model.rs split landed here; L30's live list refreshed; items H57/M79/M80/M82/M83/M84/M85 archived.
