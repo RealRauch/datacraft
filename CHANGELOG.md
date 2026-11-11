@@ -19,6 +19,15 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   queue behind a painted busy overlay instead of freezing an unannounced
   window (68).
 
+### Changed
+- ui: the M42 live-review pass (69) — the relationship mapper lists user
+  relationships only (Access's `MSys*` system rows are filtered at load and
+  can no longer be deleted), the Relationships/SQL/Expression toggles paint
+  their open state, an open returns to Home while a create activates the new
+  document, a question-mark help glyph sits in the ribbon tab row, the status
+  filter chip lists and removes individual filters, datasheet headers show
+  their filter and sort state, and every tool window opens centered.
+
 ## [0.1.1] — 2026-11-10
 
 ### Added

@@ -44,43 +44,15 @@
 - **Acceptance:** rename a table/query/form/report from the nav pane; the object keeps its data/design; open tabs, sidecar entries and relationships that reference the name follow; wire parity for the bus command; precise failures for collisions and invalid names.
 - **Steps:** none yet (feature planning; Medium/High gates depending on the writer path).
 
-### [ ] M82 — The shortcuts page has no visible affordance — add a help glyph to the ribbon tab row — 🟡
-- **Location:** ribbon tab strip (`crates/datacraft-ui/src/ribbon.rs`), icon dispatcher (`icons.rs`).
-- **Problem:** F1 opens the shortcuts page, but nothing on screen says so (live review 2026-11-11: add a question-mark-in-circle symbol at the File/Home tab-row level, right-aligned).
-- **Approach:** a small circular "?" button right-aligned in the tab-strip row, tooltip "Keyboard Shortcuts (F1)", dispatching the same open action as F1; no new command.
-- **Acceptance:** the glyph renders right-aligned in the tab strip in both themes, opens/closes the page, carries the localized tooltip; kittest pins presence and click.
-- **Steps:** Phase 69 (planned from the M42 live review).
-
-### [ ] M83 — The status filter chip only clears — it should list and remove individual filters — 🟡
-- **Location:** status-bar filter chip (`crates/datacraft-ui/src/shell.rs`), `TabSnapshot.filters`, `SetTableFilter`/`ClearTableFilters`.
-- **Problem:** The chip shows the active filter count and only clears everything on click; a single column filter cannot be inspected or removed there (live review 2026-11-11: "löscht ja nur — hat der keine weitere sinnvolle Funktion?").
-- **Approach:** turn the chip into a menu/popover listing each active filter (column + criteria) with per-entry removal and an "all" action; each removal is one existing command (`SetTableFilter` with an empty criteria, or a dedicated remove command if the contract needs it). The chip keeps the count in its label.
-- **Acceptance:** the chip lists the live filters, removing one leaves the others, clearing all keeps the old behavior; one command per click; kittest pins list/remove/clear.
-- **Steps:** Phase 69 (planned from the M42 live review).
-
-### [ ] M84 — Filtered or sorted columns carry no header indicator in the table datasheet — 🟡
-- **Location:** datasheet header (`crates/datacraft-ui/src/datasheet/header.rs`), `TabSnapshot.filters`/sort state, icon dispatcher.
-- **Problem:** A filtered or sorted table column carries no indicator in the table datasheet's header (live review 2026-11-11); a user cannot see which column is filtered or sorted without opening the menu.
-- **Approach:** paint a filter glyph and the sort caret in the column header from the tab's view state (the sort caret exists for query grids); the tooltip names the criteria, the sort direction stays visible; keep the header's hit-test math unchanged.
-- **Acceptance:** the header shows filter and sort state per column, updated in the same frame and cleared when the state is removed; kittest pins both, plus a rect pin if geometry changes.
-- **Steps:** Phase 69 (planned from the M42 live review).
-
-### [ ] M85 — Every tool window opens top-left — open centered instead — 🟡
-- **Location:** every tool window: `relationships.rs`, `sql_window.rs`, `expression_window.rs`, `import_window.rs`, the filter dialog, `notices_dialog.rs`, `shortcuts_help.rs`.
-- **Problem:** egui windows default to the top-left corner; the live review asks for centered initial positions ("nicht nach oben links öffnen, sondern eher mittig").
-- **Approach:** one helper in the UI crate that computes a centered default position from the content rect and the window's default size on first open; windows stay movable afterwards (default position, not a fixed anchor). Apply to every tool window and dialog.
-- **Acceptance:** every tool window opens centered at 1280x800 and 960x600, remains movable, and keeps its size/behavior; kittest or rect pins cover at least the mapper and the messages dialog.
-- **Steps:** Phase 69 (planned from the M42 live review).
-
 ---
 
 ## 🟢 LOW
 
-### [ ] L30 — ~14 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
-- **Location:** the 455-499 band, refreshed 2026-11-11 after the phase-68 splits (22 files ≥ 455; `app.rs`, `flows.rs`, `ribbon.rs` and `ui_kittest.rs` left the band). At the gate: `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-core/src/command.rs` (498), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-core/src/port.rs` (493), `crates/datacraft-sqlite/src/mapping.rs` (488), `crates/datacraft-csv/src/lib.rs` + `crates/datacraft-core/src/port_mock.rs` (487), `crates/datacraft-ui/src/datasheet/grid.rs` (485), `crates/datacraft-jet/tests/jet_indexes.rs` (484), `crates/datacraft-ui/src/app/form_edit.rs` (481); further 8 files in 455-479 (`ui_layout.rs` 479, `journal.rs` 478, `form_runtime.rs` + `app.rs` 475, `sqlite_writes.rs` 472, `sqlite_relationships.rs` 469, `ui_chrome.rs` 467, `settings.rs` + `expr/format.rs` 462, `core.rs` + `theme.rs` + `sqlite_port.rs` 458, `schema/field.rs` 457, `backstage/pages.rs` 455).
+### [ ] L30 — ~12 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
+- **Location:** the 455-499 band, refreshed 2026-11-11 after phase 69 (27 files ≥ 455; `ui_layout.rs` left the band, and `grid.rs` was split into `grid_model.rs` in the gate step after the 69.6 filter map pushed it to 491). At the gate: `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-core/src/command.rs` (498), `crates/datacraft-core/src/expr/funcs.rs` (497), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-core/src/port.rs` (493), `crates/datacraft-sqlite/src/mapping.rs` (488), `crates/datacraft-csv/src/lib.rs` + `crates/datacraft-core/src/port_mock.rs` (487), `crates/datacraft-jet/tests/jet_indexes.rs` (484), `crates/datacraft-ui/src/app/form_edit.rs` (481); further 15 files in 455-479 (`app.rs` 479, `journal.rs` 478, `form_runtime.rs` 475, `sqlite_writes.rs` 472, `ui_chrome.rs` + `flows.rs` 471, `sqlite_relationships.rs` 469, `settings.rs` + `expr/format.rs` 462, `core.rs` + `theme.rs` + `sqlite_port.rs` 458, `schema/field.rs` 457, `backstage/pages.rs` 455).
 - **Problem:** The <500-line file-size gate holds with zero violations, but the band keeps growing (phases 63/64 filled it further) and files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review, list refreshed 2026-11-11).
 - **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
-- **Steps:** rides released steps that touch band files; Phase 65 carried five forced splits (65.1 `command.rs` → `command/source.rs` and `tests/command_bus.rs`/`tests/journal.rs` → module files; 65.3 `backstage/pages.rs` → `backstage/info.rs`; 65.4 `tests/server_e2e.rs` → `server_e2e/vba.rs`). Phase 68 carried four more: 68.2 `ribbon.rs` → `ribbon/actions.rs`; 68.3 `app.rs` → `app/notices.rs` + `app/editors.rs` and `flows.rs` → `app/notices.rs`; 68.5 `ui_kittest.rs` → `tests/ui_kittest_backstage_flows.rs`.
+- **Steps:** rides released steps that touch band files; Phase 65 carried five forced splits (65.1 `command.rs` → `command/source.rs` and `tests/command_bus.rs`/`tests/journal.rs` → module files; 65.3 `backstage/pages.rs` → `backstage/info.rs`; 65.4 `tests/server_e2e.rs` → `server_e2e/vba.rs`). Phase 68 carried four more: 68.2 `ribbon.rs` → `ribbon/actions.rs`; 68.3 `app.rs` → `app/notices.rs` + `app/editors.rs` and `flows.rs` → `app/notices.rs`; 68.5 `ui_kittest.rs` → `tests/ui_kittest_backstage_flows.rs`. Phase 69 carried two: 69.5 `ui_layout.rs` → `tests/ui_layout_status.rs`; 69.8 `datasheet/grid.rs` → `datasheet/grid_model.rs` (split in the gate step after the 69.6 filter map).
 - **Rule:** codified 2026-11-10 as binding method — PLAYBOOK §5 ("split below the gate, not at it") and LESSONS #15; this item stays open as the live band list only.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
 
@@ -331,3 +303,7 @@
 - H57 — The relationship mapper shows MSys* system relationships and offers to delete them — done (done in `545bb47` (RED `3f6d46c`))
 - M79 — Toggle ribbon actions (Relationships, SQL, Expression) do not show whether their window is open — done (done in `ca6553e` (RED `1b497b5`))
 - M80 — The shell does not follow lifecycle actions: open stays on File, create does not activate the new document — done (done in `fd08379` (RED `4abc269`, corrected open test re-evidenced))
+- M82 — The shortcuts page has no visible affordance — add a help glyph to the ribbon tab row — done (done in `ae00a7c` (RED `21eb09f`))
+- M83 — The status filter chip only clears — it should list and remove individual filters — done (done in `a891a71` (RED `881b670`))
+- M84 — Filtered or sorted columns carry no header indicator in the table datasheet — done (done in `1140188` (RED `a1554fa`))
+- M85 — Every tool window opens top-left — open centered instead — done (done in `4a44d73` (RED `20c9dbb`))

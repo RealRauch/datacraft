@@ -422,4 +422,4 @@ their L30 splits.
 | 69.5 | The status filter chip lists and removes individual filters (M83) | ✅ |
 | 69.6 | Column headers show filter and sort state (M84) | ✅ |
 | 69.7 | Tool windows open centered instead of top-left (M85) | ✅ |
-| 69.8 | Phase 69 Quality Gate Review | ⬜ |
+| 69.8 | Phase 69 Quality Gate Review | 🔄 |
