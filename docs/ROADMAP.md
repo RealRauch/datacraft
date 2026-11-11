@@ -676,3 +676,36 @@ those items have to deliver, without re-ordering them.
 **Gates:** work items are created only when the owning phase starts
 (`BACKLOG.md`, L-series) and implementation starts only after the human
 release; this docs-level decision itself is Low.
+
+## 19. SQLite depth — decision record
+
+**Decision (2026-11-12, human-approved):** SQLite is a first-class source,
+not only a test driver. The depth work proceeds in stages, each gated by its
+own items:
+
+| Stage | Content | Notes |
+|---|---|---|
+| 0 — Visibility (now) | Views as read-only tables; index/trigger inventory; file facts (`sqlite_version`, `page_size`, `journal_mode`, `encoding`, `user_version`) and a bounded `quick_check` at open; robust open (`busy_timeout`, WAL notice) and `WITHOUT ROWID`/`STRICT` honesty. | Filed as M90–M92. |
+| 1 — SQL pushdown | The SQL window runs read-only SQL directly against a SQLite source (full dialect, index use, views, `EXPLAIN QUERY PLAN`); the shadow materialization stays for Jet/CSV. | Writes stay on the command bus. |
+| 2 — Write parity | SQLite `alter_table` (ADD/RENAME natively, DROP via rebuild), `atomic_batch` via one transaction, index management (list/create/drop). | The capability flags flip to an honest `Yes`. |
+| 3 — Conversion & templates | Cross-format conversion Jet4/ACE ↔ SQLite (schema, data, relationships; the sidecar follows the name), SQLite templates alongside the Jet4 ones. | The Jet writer is the conversion target and matures through real use. |
+
+**Out of scope, stated plainly:** SQLCipher/encryption (a new C dependency,
+contrary to the pure-Rust stance); trigger creation or any trigger logic
+(inventory only — writing into a foreign database fires its triggers, which
+is database semantics and belongs in the inventory notice, not a DataCraft
+execution path); `ATTACH`/multi-database work until a real need exists.
+
+**Cross-format effects (Jet4/ACE):** Stage 3 benefits the Jet writer directly
+(it becomes the migration target and is exercised by real conversions);
+Stages 0–2 contribute the shared port vocabulary (schema inventory, health
+facts) and the same capability/contract suites over both backends, which
+hardens the Jet contracts indirectly. The SQLite-specific surfaces (views,
+PRAGMAs, WAL, SQL pushdown) do not change the Jet read/write path. Shared
+parts belong on the `StoragePort`/snapshot, never as SQLite special cases in
+the UI.
+
+**Gates:** work items are created when the owning stage starts (stage 0 is
+filed as M90–M92); new dependencies (e.g. an FTS/JSON extension decision) are
+Medium gates; nothing executes SQL provided by a database file without an
+explicit user action.

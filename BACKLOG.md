@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-11T22:17
+# BACKLOG.md — Open items (As of: 2026-11-12T00:16
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -18,6 +18,13 @@
 
 > No open items.
 
+### [ ] M81 — Objects cannot be renamed from the UI (tables, queries, forms, reports) — 🟠
+- **Location:** navigation-pane context menu (`crates/datacraft-ui/src/nav_pane.rs`), design-view header, core command vocabulary (`crates/datacraft-core/src/command.rs`), Jet catalog/TDEF rewrite (`datacraft-jet`), sidecar (ADR-1).
+- **Problem:** Tables, queries, forms and reports cannot be renamed from the UI (live review 2026-11-11); the design view renames fields only. Access offers F2/context-menu rename — today a user must recreate the object. The user states rename is required (2026-11-12).
+- **Approach:** one `RenameObject` command per kind (or a kind-tagged command) with the canonical-name rules; the Jet path is a catalog + TDEF rewrite (M7/M9 precedents), SQLite/CSV follow their DDL, the sidecar and open tabs follow the name. Scope the writer work in its own planning phase; this is a feature, not a polish fix.
+- **Acceptance:** rename a table/query/form/report from the nav pane; the object keeps its data/design; open tabs, sidecar entries and relationships that reference the name follow; wire parity for the bus command; precise failures for collisions and invalid names.
+- **Steps:** none yet (required by the user; feature planning — Medium/High gates depending on the writer path).
+
 ---
 
 ## 🟡 MEDIUM
@@ -30,12 +37,40 @@
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
 - **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
 
-### [ ] M81 — Objects cannot be renamed from the UI (tables, queries, forms, reports) — 🟡
-- **Location:** navigation-pane context menu (`crates/datacraft-ui/src/nav_pane.rs`), design-view header, core command vocabulary (`crates/datacraft-core/src/command.rs`), Jet catalog/TDEF rewrite (`datacraft-jet`), sidecar (ADR-1).
-- **Problem:** Tables, queries, forms and reports cannot be renamed from the UI (live review 2026-11-11); the design view renames fields only. Access offers F2/context-menu rename — today a user must recreate the object.
-- **Approach:** one `RenameObject` command per kind (or a kind-tagged command) with the canonical-name rules; the Jet path is a catalog + TDEF rewrite (M7/M9 precedents), SQLite/CSV follow their DDL, the sidecar and open tabs follow the name. Scope the writer work in its own planning phase; this is a feature, not a polish fix.
-- **Acceptance:** rename a table/query/form/report from the nav pane; the object keeps its data/design; open tabs, sidecar entries and relationships that reference the name follow; wire parity for the bus command; precise failures for collisions and invalid names.
-- **Steps:** none yet (feature planning; Medium/High gates depending on the writer path).
+### [ ] M87 — Native Access forms and reports are invisible — add a read-only inventory from MSysObjects — 🟡
+- **Location:** `crates/datacraft-jet` catalog (`MSysObjects` object types), core snapshot (`DatabaseSnapshot`), UI navigation pane.
+- **Problem:** Native Access forms and reports are invisible today: the catalog keeps only Type 1 (tables), so the nav pane and agents cannot even say that a database contains 12 forms and 5 reports. The README matrix states native forms/reports are neither read nor written (ADR-1); the inventory is the honest first step short of decoding definitions.
+- **Approach:** decode the `MSysObjects` form/report object types (`-32768` form, `-32764` report; verify against fixtures) into a read-only inventory (name, type) on the snapshot; the nav pane gains a read-only "Native forms/reports" group with a precise "definitions are not decoded" hint. No definition bytes are parsed.
+- **Acceptance:** a fixture with native forms/reports lists their names and counts in the snapshot and the nav pane; the hint names the boundary; no write path and no Access-object byte decoding; kittest and port contract pins.
+- **Steps:** none yet (feeds the migration assessment, ROADMAP §14).
+
+### [ ] M89 — Decode native Access form/report definitions from the file — time-boxed feasibility with the committed exports as ground truth — 🟡
+- **Location:** `crates/datacraft-jet/src/jet/access.rs` (the MSysAccessStorage/MSysAccessObjects compound decode that already extracts VBA), `tools/fixture-build/objects/forms/*.txt` + `objects/reports/*.txt` (committed SaveAsText ground truth), the pinned programmability fixture.
+- **Problem:** Most users do not have Access, so the SaveAsText route (M88) cannot serve them; reading native form/report definitions from the file itself is the only Access-free path. The definitions are stored as proprietary property-bag streams with no public specification, and no shipped parser exists.
+- **Approach:** a time-boxed feasibility study, not a promise: extract one form blob from the pinned fixture, correlate it with the committed SaveAsText export of the *same* object (control order, rects, captions, sources, section structure) — the text is our ground truth. Establish the container/property encoding for the supported subset, then decide. Stop condition: if the property encoding cannot be reconstructed reliably within the time box, record "not feasible without a specification" with the evidence and close.
+- **Acceptance:** a written verdict with evidence (blob ↔ text mapping for at least one form), a supported-subset decision, or a documented stop; nothing ships without the verdict; clean-room (own observation and public docs only, no third-party source).
+- **Steps:** none yet (feasibility; M87's inventory is the cheap companion).
+
+### [ ] M90 — SQLite views and index/trigger metadata are invisible — surface them read-only — 🟡
+- **Location:** `crates/datacraft-sqlite` catalog (`sqlite_master`, today `type = 'table'` only), core snapshot, UI navigation pane.
+- **Problem:** SQLite views and the index/trigger metadata of a file are invisible today — a user cannot see what a foreign file contains beyond its tables, and the migration assessment has no source for it.
+- **Approach:** read `sqlite_master` views as **read-only tables** (a nav-pane "Views" group; datasheet and the SQL path read them, no write affordance); surface a read-only index/trigger inventory per table (name, columns or SQL excerpt). Trigger logic is never executed or created — inventory only (ADR-2 analog).
+- **Acceptance:** a fixture with views/indexes/triggers lists them read-only in snapshot and nav pane; views read their rows; no write affordance on views; kittest and port contract pins.
+- **Steps:** none yet (SQLite depth stage 0, ROADMAP §19).
+
+### [ ] M91 — SQLite files carry no facts or health check — show version/journal/page facts and quick_check — 🟡
+- **Location:** `crates/datacraft-sqlite` open path, `OpenedDatabase`/snapshot, the Info backstage page, the notice history.
+- **Problem:** The Info page shows only name and format; a SQLite file's journal mode (WAL), page size, encoding, SQLite version and `user_version` are invisible, and corruption surfaces late as an unrelated query error.
+- **Approach:** read the `PRAGMA` facts at open into the snapshot (additive driver facts), run a bounded `PRAGMA quick_check` and surface a failure as a precise notice instead of a late query error; the Info page renders the facts in its Access-style fact rows.
+- **Acceptance:** the facts appear for a fixture; a deliberately corrupted fixture answers a precise failure at open; kittest and port pins cover both.
+- **Steps:** none yet (SQLite depth stage 0, ROADMAP §19).
+
+### [ ] M92 — SQLite opens invite SQLITE_BUSY and silently mis-order WITHOUT ROWID tables — 🟡
+- **Location:** `crates/datacraft-sqlite` open and row-window paths (`PRAGMA`, the `rowid`-ordered window).
+- **Problem:** The open sets no `busy_timeout`, so parallel access can answer a bare `SQLITE_BUSY`; the row window orders by `rowid`, which does not exist on `WITHOUT ROWID` tables (silently wrong order or failure); `STRICT` tables are not declared anywhere.
+- **Approach:** set a bounded `busy_timeout` on open; detect `journal_mode = wal` and surface it as a co-existence fact/notice (concurrent readers see the latest committed state); order `WITHOUT ROWID` tables by their declared primary key or answer a precise `Unsupported` — never a silently wrong order; report `STRICT` in the file facts.
+- **Acceptance:** a `WITHOUT ROWID` fixture reads in primary-key order or refuses precisely; the busy timeout is set; a WAL fixture opens and reports the mode; kittest and port pins cover all three.
+- **Steps:** none yet (SQLite depth stage 0, ROADMAP §19).
 
 ---
 
@@ -67,6 +102,35 @@
 - **Approach:** wrap the install in a bounded retry (three attempts with backoff) or pre-fetch/cache the three `.deb` files; keep the failure honest — a persistent apt failure still fails after the bounded retries. `.github/workflows/*` is High-class: explicit human release required before implementation.
 - **Acceptance:** A transient DNS failure no longer reddens the ubuntu oracle job; a persistent failure still fails after the bounded retries, and the retry attempts are visible in the log.
 - **Steps:** none yet (High gate).
+
+### [ ] L41 — Without an open database the shell should present the backstage instead of an empty workspace — 🟢
+- **Location:** app startup (`App::new`), `crates/datacraft-ui/src/shell.rs` (the frame), `active_ribbon_tab` / `backstage_page`.
+- **Problem:** Without an open database the app shows the empty workspace (ribbon, nav pane, status bar); the Open/New entry points live behind the File tab, so the first screen invites dead clicks (review idea 2026-11-11: "ohne geladene Datenbank immer die Backstage anzeigen").
+- **Approach:** while `snapshot.database.is_none()`, land on the File backstage at startup and after closing the last database; the workspace returns as soon as a database opens (M80's Home switch already does that). Keep the ribbon reachable, so Options/Info stay usable.
+- **Acceptance:** a cold start without a database shows the backstage; closing the last database returns to it; opening a database leaves it (M80); kittest pins all three transitions.
+- **Steps:** none yet (collected idea).
+
+### [ ] L42 — The new-database flow is one page — split it into choose-what then choose-where (Access-style) — 🟢
+- **Location:** the backstage New page (`crates/datacraft-ui/src/backstage/pages.rs`), template cards, `CreateDatabaseFromTemplate`/`OpenDatabase` intents.
+- **Problem:** The New page mixes template cards (including the blank option) and the path field in one form; the review asks for the Access-style flow: first choose what (empty database / from template), then choose where and the name (review idea 2026-11-11).
+- **Approach:** a two-step page (or two panes): step 1 the kind (blank vs template list), step 2 the path + name (and format, see L43) + Create; Back returns to step 1 with the selection kept. Create still dispatches the same one chain per choice.
+- **Acceptance:** two explicit choices in order, the selection survives Back, the Create dispatch is unchanged, and a kittest pins the step transitions and the final creation.
+- **Steps:** none yet (collected idea; L43 rides the same page).
+
+### [ ] L43 — A blank database does not offer its format — choose .mdb (Jet4) vs SQLite at creation — 🟢
+- **Location:** the blank-database path of the backstage New page, `CreateDatabase` handling in core, the template registry.
+- **Problem:** Creating a blank database does not offer its format — it follows the path/template implicitly; the review asks for an explicit choice between `.mdb` (Jet4) and SQLite (review idea 2026-11-11).
+- **Approach:** a format picker on the blank path (Jet4 default, SQLite as the second family) driving the created file and the extension hint; the template path keeps its template-defined format. The command either carries the format explicitly or the picker and the path suffix agree deterministically — no silent mismatch.
+- **Acceptance:** a blank SQLite creation yields a working SQLite file whose snapshot reports `Sqlite`; Jet4 stays the default; the picker is capability-honest and kittest-pinned; a mismatching suffix vs picker answers a precise failure.
+- **Steps:** none yet (collected idea; rides L42's page).
+
+### [ ] M88 — Import Access SaveAsText form/report exports into sidecar designs (migration tool; requires Access) — 🟢
+- **Location:** a new migration/import path (core or a tool crate), the sidecar schema (`SchemaDocument` forms/reports), `tools/fixture-build` as the SaveAsText precedent.
+- **Problem:** Native Access form/report definitions are proprietary OLE-compound streams (`MSysAccessObjects`/`MSysAccessStorage`) with no public specification, so they cannot be decoded from the file directly. Access's own `SaveAsText` export writes readable text that Rust can parse into sidecar designs — recreating the forms approximately, not byte-identically.
+- **Caveat:** This path assumes the user has Access for the export; the review's reality is that most users do not (2026-11-12). It stays as the migration tool for Access owners, and the committed fixture exports make the text format a usable ground truth for the binary decoder (M89).
+- **Approach:** a clean-room parser for the SaveAsText text format (Begin/End blocks, property lines) mapping the supported control subset (label, text box, check box, combo, command button, subform) with rect/caption/source properties into `FormDef`/`ReportDef` sidecar documents. Unsupported properties/controls are collected per object into a precise list, never silently dropped. The export step runs in Access/COM only at migration time (never in the product, AGENTS §6); the parser and import are pure Rust commands/tools. Events/VBA stay unbound (ADR-2).
+- **Acceptance:** an Access-exported sample form imports into a sidecar design whose runtime renders the supported controls at their rects; the unsupported list is precise; a fixture export pair (text + expected sidecar) pins the mapping; no COM/unsafe path in the shipped code.
+- **Steps:** none yet (feasibility first: export one real form, inventory the block/property vocabulary, decide the subset).
 
 ---
 
