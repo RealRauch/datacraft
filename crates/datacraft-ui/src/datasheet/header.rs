@@ -191,3 +191,33 @@ pub(super) fn header_ui(
         callback(column);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    /// Step 69.6 (item M84): the hover text names the column's filter
+    /// criteria and sort direction; an untouched column names nothing.
+    #[test]
+    fn the_header_names_its_filter_and_sort_state() {
+        let empty = BTreeMap::new();
+        assert_eq!(header_state(&empty, "Id", SortOrder::None), None);
+        assert_eq!(
+            header_state(&empty, "Id", SortOrder::Ascending).as_deref(),
+            Some("Sorted ascending")
+        );
+
+        let mut filters = BTreeMap::new();
+        filters.insert("Id".to_owned(), "> 1".to_owned());
+        assert_eq!(
+            header_state(&filters, "Id", SortOrder::None).as_deref(),
+            Some("Filter: > 1")
+        );
+        assert_eq!(
+            header_state(&filters, "Id", SortOrder::Descending).as_deref(),
+            Some("Filter: > 1\nSorted descending")
+        );
+        assert_eq!(header_state(&filters, "Name", SortOrder::None), None);
+    }
+}
