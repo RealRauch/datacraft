@@ -46,7 +46,7 @@ fn ribbon_harness(app: App) -> Harness<'static, App> {
 /// An open returns from the backstage to the Home tab.
 #[test]
 fn opening_a_database_returns_to_home() {
-    let mut app = open_app();
+    let mut app = App::new(Box::new(MockPort::with_tables(vec![customers()])));
     app.active_ribbon_tab = "file";
     app.backstage_page = BackstagePage::Open;
     app.dispatch(Command::OpenDatabase {
@@ -65,11 +65,7 @@ fn active_document(app: &App) -> (String, String, TabMode) {
     let snapshot = app.snapshot();
     let active = snapshot.active_tab.expect("a document is active");
     let tab = snapshot.tabs.iter().find(|tab| tab.id == active).unwrap();
-    (
-        tab.object_kind.clone(),
-        tab.object_name.clone(),
-        tab.mode,
-    )
+    (tab.object_kind.clone(), tab.object_name.clone(), tab.mode)
 }
 
 /// The ribbon's Form Design action activates the new form's design tab.

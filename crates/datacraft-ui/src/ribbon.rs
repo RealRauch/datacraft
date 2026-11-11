@@ -336,7 +336,7 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
 }
 
 /// First free "FormN" name (case-insensitive against the snapshot).
-fn next_form_name(app: &App) -> String {
+pub(crate) fn next_form_name(app: &App) -> String {
     next_name(
         app.forms().iter().map(|f| f.name.to_lowercase()).collect(),
         "Form",
@@ -344,7 +344,7 @@ fn next_form_name(app: &App) -> String {
 }
 
 /// First free "ReportN" name (case-insensitive against the snapshot).
-fn next_report_name(app: &App) -> String {
+pub(crate) fn next_report_name(app: &App) -> String {
     next_name(
         app.reports()
             .iter()
@@ -355,7 +355,7 @@ fn next_report_name(app: &App) -> String {
 }
 
 /// First free "QueryN" name (case-insensitive against the snapshot).
-fn next_query_name(app: &App) -> String {
+pub(crate) fn next_query_name(app: &App) -> String {
     next_name(
         app.queries()
             .iter()

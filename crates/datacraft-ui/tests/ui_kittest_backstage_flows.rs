@@ -104,7 +104,8 @@ fn backstage_new_page_creates_from_a_template() {
     harness.get_by_label("Blank database — 0 tables").click();
     harness.run();
     harness.get_by_label("Create Database").click();
-    harness.run();
+    // Create + open each take a busy frame, and the open returns to Home.
+    harness.run_steps(10);
 
     let database = harness
         .state()

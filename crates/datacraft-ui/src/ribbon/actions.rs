@@ -64,6 +64,18 @@ pub(super) fn action_button(
                 });
             } else if action.id == "view_mode" {
                 intent = views::view_mode_button(ui, app, tip, t(hover_key));
+            } else if action.id == "form_design" {
+                if ribbon_button(ui, t(action.label), action.id, tip, t(hover_key), active) {
+                    app.create_form_flow();
+                }
+            } else if action.id == "report_design" {
+                if ribbon_button(ui, t(action.label), action.id, tip, t(hover_key), active) {
+                    app.create_report_flow();
+                }
+            } else if action.id == "query_design" {
+                if ribbon_button(ui, t(action.label), action.id, tip, t(hover_key), active) {
+                    app.create_query_flow();
+                }
             } else if ribbon_button(ui, t(action.label), action.id, tip, t(hover_key), active)
                 && let Some(command) = command_for(action.id, app)
             {

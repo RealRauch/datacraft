@@ -35,6 +35,53 @@ impl App {
         }
     }
 
+    /// Creates a new form and opens its design view (step 69.3, item M80):
+    /// the shell follows the create instead of leaving the object
+    /// unreachable behind the ribbon.
+    pub fn create_form_flow(&mut self) {
+        let name = crate::ribbon::next_form_name(self);
+        let events = self.dispatch(Command::CreateForm { name: name.clone() });
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::FormCreated { .. }))
+        {
+            self.dispatch(Command::OpenObjectInMode {
+                object: datacraft_core::ObjectId::new(datacraft_core::ObjectKind::Form, name),
+                mode: datacraft_core::state::TabMode::Design,
+            });
+        }
+    }
+
+    /// Creates a new report and opens its design view (step 69.3, M80).
+    pub fn create_report_flow(&mut self) {
+        let name = crate::ribbon::next_report_name(self);
+        let events = self.dispatch(Command::CreateReport { name: name.clone() });
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::ReportCreated { .. }))
+        {
+            self.dispatch(Command::OpenObjectInMode {
+                object: datacraft_core::ObjectId::new(datacraft_core::ObjectKind::Report, name),
+                mode: datacraft_core::state::TabMode::Design,
+            });
+        }
+    }
+
+    /// Creates a new query and opens its design view (step 69.3, M80).
+    pub fn create_query_flow(&mut self) {
+        let name = crate::ribbon::next_query_name(self);
+        let events = self.dispatch(Command::CreateQuery { name: name.clone() });
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::QueryCreated { .. }))
+        {
+            self.dispatch(Command::OpenObjectInMode {
+                object: datacraft_core::ObjectId::new(datacraft_core::ObjectKind::Query, name),
+                mode: datacraft_core::state::TabMode::Design,
+            });
+        }
+    }
+
     /// Creates one Access-default table with the next free name; the
     /// created name on success, `None` when the dispatch failed.
     fn create_default_table(&mut self) -> Option<String> {

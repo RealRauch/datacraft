@@ -274,6 +274,10 @@ impl App {
                 .into_owned();
             // Item U15: a successful open feeds the bounded recent list.
             self.record_recent_database(&path);
+            // The shell follows the open (step 69.3, M80): leave the
+            // backstage and return to Home.
+            self.active_ribbon_tab = "home";
+            self.backstage_page = crate::backstage::BackstagePage::Home;
         }
         if events
             .iter()
