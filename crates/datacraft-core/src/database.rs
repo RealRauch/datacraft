@@ -64,7 +64,19 @@ impl crate::core::Core {
                 // M17; ADR-7) ride the open into state and snapshot.
                 let driver = self.port.driver_id();
                 let capabilities = self.port.capabilities();
-                let relationships = self.port.relationships().unwrap_or_default();
+                // System relationships (MSys*) are Access's internal
+                // navigation metadata, not user relationships: filtering
+                // them here keeps every client honest — the mapper never
+                // presents (or offers to delete) them (step 69.1, H57).
+                let relationships: Vec<_> = self
+                    .port
+                    .relationships()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|rel| {
+                        !is_system_table(&rel.table) && !is_system_table(&rel.related_table)
+                    })
+                    .collect();
                 let (macros, macros_error) = match self.port.macros() {
                     Ok(macros) => (macros, None),
                     // Observable degradation, never a silent drop: the
@@ -357,4 +369,10 @@ impl crate::core::Core {
             field,
         }]
     }
+}
+
+/// Access system tables carry the `MSys` prefix (case-insensitive).
+fn is_system_table(name: &str) -> bool {
+    name.get(..4)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("MSys"))
 }

@@ -78,7 +78,9 @@ pub struct DatabaseSnapshot {
     pub availability: BTreeMap<String, crate::availability::DisabledReason>,
     /// Tables in catalog order, with their navigation-pane test IDs.
     pub tables: Vec<TableEntrySnapshot>,
-    /// Referential relationships (mapper pane and agents).
+    /// Referential relationships (mapper pane and agents). System rows
+    /// (`MSys*`) are filtered at load — they are Access's internal
+    /// metadata, not user relationships (step 69.1, H57).
     pub relationships: Vec<crate::port::Relationship>,
     /// Query definitions in creation order.
     pub queries: Vec<QueryEntrySnapshot>,
