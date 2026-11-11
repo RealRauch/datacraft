@@ -6,7 +6,7 @@
 use datacraft_core::command::Command;
 use datacraft_core::port::MockPort;
 use datacraft_core::qbe::SortOrder;
-use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
+use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
@@ -23,6 +23,30 @@ fn customers() -> TableDef {
 
 fn app_with_table() -> App {
     let mut app = App::new(Box::new(MockPort::with_tables(vec![customers()])));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+        source: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Customers",
+    )));
+    app
+}
+
+/// App with three Customers rows: Lena and Mara contain an "a", Tom not.
+fn app_with_rows() -> App {
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_row_data(
+        "Customers",
+        vec![
+            vec![FieldValue::Integer(1), FieldValue::Text("Lena".into())],
+            vec![FieldValue::Integer(2), FieldValue::Text("Mara".into())],
+            vec![FieldValue::Integer(3), FieldValue::Text("Tom".into())],
+        ],
+    );
+    let mut app = App::new(Box::new(port));
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
@@ -111,5 +135,28 @@ fn a_sorted_header_names_the_direction() {
     assert!(
         dump.contains("Sorted ascending"),
         "the sorted header names the direction: {dump}"
+    );
+}
+
+/// A wildcard filter keeps the matching rows (step 70.1, item H58).
+#[test]
+fn a_wildcard_filter_keeps_matching_rows() {
+    let mut app = app_with_rows();
+    app.dispatch(Command::SetTableFilter {
+        table: "Customers".into(),
+        field: "Name".into(),
+        criteria: Some("*a*".into()),
+    });
+    let mut harness = datasheet_harness(app);
+    harness.run();
+
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("Lena") && dump.contains("Mara"),
+        "the matching rows stay: {dump}"
+    );
+    assert!(
+        !dump.contains("Tom"),
+        "the non-matching row is filtered out: {dump}"
     );
 }

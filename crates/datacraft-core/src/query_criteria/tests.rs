@@ -224,3 +224,31 @@ fn predicates_pin_their_ordering_arms_and_like_refuses_non_text() {
         parse_predicate("Like \"2\"", "v", column).expect_err("Like on a number column refuses");
     assert!(error.to_string().contains("text columns"), "{error}");
 }
+
+/// Step 70.1 (item H58): a bare wildcard pattern is an implicit Like on a
+/// text column (Access filter semantics); an explicit `=` stays literal.
+#[test]
+fn wildcard_patterns_are_an_implicit_like_on_text_columns() {
+    let table = kind_of("t", FieldKind::Text { max_len: 50 });
+    let column = &table.fields[0];
+
+    let predicate = parse_predicate("*a*", "v", column).expect("wildcard parses");
+    assert!(
+        predicate.matches(&FieldValue::Text("Mara".into())),
+        "{predicate:?}"
+    );
+    assert!(predicate.matches(&FieldValue::Text("Lena".into())));
+    assert!(!predicate.matches(&FieldValue::Text("Tom".into())));
+
+    let question = parse_predicate("Le?a", "v", column).expect("question mark parses");
+    assert!(question.matches(&FieldValue::Text("Lena".into())));
+    assert!(!question.matches(&FieldValue::Text("Lea".into())));
+
+    let digit = parse_predicate("A##", "v", column).expect("hash parses");
+    assert!(digit.matches(&FieldValue::Text("A42".into())));
+    assert!(!digit.matches(&FieldValue::Text("A4".into())));
+
+    let literal = parse_predicate("= *a*", "v", column).expect("explicit equality parses");
+    assert!(!literal.matches(&FieldValue::Text("Mara".into())));
+    assert!(literal.matches(&FieldValue::Text("*a*".into())));
+}
