@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-11T18:10
+# BACKLOG.md — Open items (As of: 2026-11-11T22:17
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -29,13 +29,6 @@
 - **Acceptance:** A tag-triggered release run completes fully green including the draft step, and the created draft carries the changelog-derived notes without manual follow-up.
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
 - **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
-
-### [ ] M78 — M42 window-chrome polish pass — the deferred subjective review findings — 🟡
-- **Location:** `crates/datacraft-ui/src/theme.rs` (458 lines), `shell.rs`, `ribbon.rs`, `backstage/*` — the token and paint surfaces.
-- **Problem:** M42 closed 2026-11-04 with the audit verdict "token-clean, no drift"; the subjective polish pass was deferred until the human reviews the restyled build and is still pending. ROADMAP §16 stage 0 lists it as part of the sweep — the stage is not honestly complete while it waits.
-- **Approach:** run the review live with the human, collect the findings as a short list, fix each inside the token system (no ad-hoc colors; a new token only when a finding names one), and keep `theme.rs` below 480 (split if the touch would cross). Findings that turn out structural (layout math, core decisions) become their own items instead of being patched in the polish pass.
-- **Acceptance:** the human's review list is either fixed or filed as items; canonical verification set green; `theme.rs` stays below 480; no color literal outside the token module (grep/test).
-- **Steps:** Phase 68 (68.6) — blocked until the human's live review notes exist.
 
 ### [ ] M81 — Objects cannot be renamed from the UI (tables, queries, forms, reports) — 🟡
 - **Location:** navigation-pane context menu (`crates/datacraft-ui/src/nav_pane.rs`), design-view header, core command vocabulary (`crates/datacraft-core/src/command.rs`), Jet catalog/TDEF rewrite (`datacraft-jet`), sidecar (ADR-1).
@@ -307,3 +300,6 @@
 - M83 — The status filter chip only clears — it should list and remove individual filters — done (done in `a891a71` (RED `881b670`))
 - M84 — Filtered or sorted columns carry no header indicator in the table datasheet — done (done in `1140188` (RED `a1554fa`))
 - M85 — Every tool window opens top-left — open centered instead — done (done in `4a44d73` (RED `20c9dbb`))
+- H58 — Wildcard patterns in filters are treated as literal equality — `*a*` returns an empty result set — done (done in `990ca85` (RED `2a511d6`))
+- M86 — Stored notice and error texts freeze the language of their creation — live switch leaves mixed languages — done (done in `2d938d9` (RED `407bdc2`))
+- M78 — M42 window-chrome polish pass — the deferred subjective review findings — done (done in `659498a` (RED `15e78ab`) — the tool windows carry the accent frame, strong controls and legible weak text in both palettes)

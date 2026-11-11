@@ -1950,3 +1950,34 @@
 - **Acceptance:** every tool window opens centered at 1280x800 and 960x600, remains movable, and keeps its size/behavior; kittest or rect pins cover at least the mapper and the messages dialog.
 - **Steps:** Phase 69 (planned from the M42 live review).
 - **Done:** done in `4a44d73` (RED `20c9dbb`)
+
+---
+
+### [x] H58 — Wildcard patterns in filters are treated as literal equality — `*a*` returns an empty result set — 🟠
+- **Location:** `crates/datacraft-core/src/query_criteria.rs` (`parse_predicate`: the `("=", trimmed)` fallback; `like_pattern` only accepts an explicit `Like` prefix), the datasheet filter dialog and `FILTER_SYNTAX_HELP` (M62).
+- **Problem:** Filtering the Name column with `*a*` returns an empty result set although every row contains an "a" (live review 2026-11-11). A bare wildcard pattern without `Like` becomes `Predicate::Equal("*a*")` — a silent wrong result, while the filter dialog's syntax help promises the Access wildcards `*`, `?`, `#`. The column icons themselves are confirmed good.
+- **Approach:** for text columns, a criteria containing `*`, `?` or `#` without an explicit operator is an implicit `Like` (Access filter semantics); an explicit `=` prefix stays the literal path, explicit operators keep their coercion, and the set-time parse stays loud. Align the M37/M62 semantics notes and the syntax help with the rule.
+- **Acceptance:** `*a*` matches every Name containing "a" (case-insensitive) in the table filter and the QBE path; `= *a*` still matches only the literal; unit and kittest pins cover both; the syntax help and the documented semantics map agree.
+- **Steps:** none yet (collected in the M42 review follow-up).
+- **Done:** done in `990ca85` (RED `2a511d6`)
+
+---
+
+### [x] M86 — Stored notice and error texts freeze the language of their creation — live switch leaves mixed languages — 🟡
+- **Location:** `crates/datacraft-ui/src/app/notices.rs` (the `NoticeLog` stores finished strings; `notice_for` localizes at creation), `crates/datacraft-ui/src/settings.rs` / `i18n::init_language` (live switch), failure texts via `failure_text`.
+- **Problem:** A live language switch leaves already-captured status/messages entries in the old language (live review 2026-11-11: UI switched to English, status line still read "Entwurf geladen aus … (2 Formulare, 0 Abfragen, 0 Berichte)"). The history stores rendered text, not the message identity, so the switch cannot re-render it.
+- **Approach:** store the message semantically — i18n key plus placeholder arguments (or the failure code plus its reason) — and translate at render time in the status bar and the messages dialog. The bounded log and the monotonic sequence stay. Covers both success notices and `Event::Failed` entries.
+- **Acceptance:** switching the language re-renders existing history entries in the new language; the newest line and the dialog agree; kittest pins a language switch after a notice has landed.
+- **Steps:** none yet (collected in the M42 review follow-up).
+- **Done:** done in `2d938d9` (RED `407bdc2`)
+
+---
+
+### [x] M78 — M42 window-chrome polish pass — the deferred subjective review findings — 🟡
+- **Location:** `crates/datacraft-ui/src/theme.rs` (458 lines), `shell.rs`, `ribbon.rs`, `backstage/*` — the token and paint surfaces.
+- **Problem:** M42 closed 2026-11-04 with the audit verdict "token-clean, no drift"; the subjective polish pass was deferred until the human reviews the restyled build and is still pending. ROADMAP §16 stage 0 lists it as part of the sweep — the stage is not honestly complete while it waits.
+- **Approach:** run the review live with the human, collect the findings as a short list, fix each inside the token system (no ad-hoc colors; a new token only when a finding names one), and keep `theme.rs` below 480 (split if the touch would cross). Findings that turn out structural (layout math, core decisions) become their own items instead of being patched in the polish pass.
+- **Review findings (2026-11-11):** the tool windows — seen on the relationship mapper in both palettes — read low-contrast: the window frame and title separator are nearly invisible, secondary text ("0 relationships", "This database has no relationships.") is too weak, the buttons are flat, and the accent color is absent. The pass raises the contrast in both palettes and works the accent into the window structure (title rule/frame), leaving layout math untouched.
+- **Acceptance:** the human's review list is either fixed or filed as items; canonical verification set green; `theme.rs` stays below 480; no color literal outside the token module (grep/test).
+- **Steps:** Phase 68 (68.6) — the live review ran 2026-11-11; the recorded finding waits for its own step (the phase closed with 68.6 blocked).
+- **Done:** done in `659498a` (RED `15e78ab`) — the tool windows carry the accent frame, strong controls and legible weak text in both palettes

@@ -28,6 +28,13 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   filter chip lists and removes individual filters, datasheet headers show
   their filter and sort state, and every tool window opens centered.
 
+### Fixed
+- core/ui: the second M42 review round (70) — bare wildcard filters on text
+  columns (`*a*`) match through the Access matcher instead of comparing the
+  literal, the message history stores messages semantically and follows a
+  live language switch, and the tool windows carry an accent frame with
+  stronger controls and legible secondary text in both palettes.
+
 ## [0.1.1] — 2026-11-10
 
 ### Added
