@@ -1880,3 +1880,33 @@
 - **Acceptance:** kittest steps frame by frame: the overlay is painted before the command's events land, the command runs exactly once, the overlay clears on success and on failure; existing command/UI suites unchanged; no async runtime and no command thread; `app.rs` stays below 480.
 - **Steps:** Phase 68 (68.5).
 - **Done:** done in `eb1a495` (RED `f152b93`); deferred: open/create/save-as — import and run-sql stay synchronous because their call sites consume the events in-frame
+
+---
+
+### [x] H57 — The relationship mapper shows MSys* system relationships and offers to delete them — 🟠
+- **Location:** `crates/datacraft-ui/src/relationships.rs` (list and per-row Löschen), `crates/datacraft-core/src/state` (relationship snapshot), `crates/datacraft-jet` (MSysRelationships decode).
+- **Problem:** The relationship mapper lists the file's internal navigation metadata (`MSysNavPaneGroups.*`, `MSysNavPaneGroupsToObjects.*`) as if they were user relationships and offers a Löschen button per row (live review 2026-11-11, with screenshot). Access hides system tables/relationships in its Relationships window; deleting such a row is a file-integrity risk with no user value.
+- **Approach:** filter relationships whose child or parent table starts with `MSys` at the snapshot/UI boundary (core keeps the raw data; document the filter on the snapshot), hide system tables from the relationship pickers, and never render the delete affordance for them. Decide and document whether the headless snapshot keeps or drops them.
+- **Acceptance:** the mapper lists only user relationships on the pinned fixtures; no delete affordance for system rows; the headless behavior is documented and pinned; a kittest covers a fixture with MSys relationships.
+- **Steps:** Phase 69 (planned from the M42 live review).
+- **Done:** done in `545bb47` (RED `3f6d46c`)
+
+---
+
+### [x] M79 — Toggle ribbon actions (Relationships, SQL, Expression) do not show whether their window is open — 🟡
+- **Location:** ribbon actions `relationships`, `query_sql`, `query_expression` (`crates/datacraft-core/src/ribbon.rs`, `crates/datacraft-ui/src/ribbon/actions.rs`), the toggling windows (`relationships.rs`, `sql_window.rs`, `expression_window.rs`), snapshot flags.
+- **Problem:** The three ribbon buttons toggle windows (ToggleRelationshipMapper/ToggleSqlWindow/ToggleExpressionWindow) but render identically whether the window is open or closed; a user cannot tell the state, especially when the window is behind another window (live review 2026-11-11).
+- **Approach:** paint the toggle state in the button from the snapshot's open flags (accent fill/border, like the Views selection), keeping the click mapping unchanged; verify and, where missing, add a close affordance to every toggled window (the mapper has Schließen; check SQL and expression).
+- **Acceptance:** the three buttons render their open state from the snapshot and update in the same frame; kittest pins open and closed rendering; every toggled window closes from its own chrome.
+- **Steps:** Phase 69 (planned from the M42 live review).
+- **Done:** done in `ca6553e` (RED `1b497b5`)
+
+---
+
+### [x] M80 — The shell does not follow lifecycle actions: open stays on File, create does not activate the new document — 🟡
+- **Location:** `crates/datacraft-ui/src/app.rs` (`dispatch`, `Event::DatabaseOpened` handling), `crates/datacraft-ui/src/ribbon.rs` (`follow_active_object`), `crates/datacraft-ui/src/flows.rs` (create flows), `crates/datacraft-ui/src/backstage/*`.
+- **Problem:** The shell does not follow lifecycle actions (live review 2026-11-11): after opening a database the ribbon stays where it was — often on the File backstage — instead of returning to Home; after Create Table/Form/Report the object exists but the shell does not switch to the new document.
+- **Approach:** on `DatabaseOpened` set the ribbon to Home (leaving the backstage); after a create flow, activate the created document's tab in the requested mode (the flows already know the object name). Keep it presentation-side; the headless behavior is unchanged.
+- **Acceptance:** open → the shell leaves the backstage and shows Home for the opened database; create → the new document is the active tab and its mode is the one the action names; kittest pins both transitions.
+- **Steps:** Phase 69 (planned from the M42 live review).
+- **Done:** done in `fd08379` (RED `4abc269`, corrected open test re-evidenced)

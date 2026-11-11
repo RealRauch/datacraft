@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-11T17:39
+# BACKLOG.md — Open items (As of: 2026-11-11T18:10
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -36,6 +36,41 @@
 - **Approach:** run the review live with the human, collect the findings as a short list, fix each inside the token system (no ad-hoc colors; a new token only when a finding names one), and keep `theme.rs` below 480 (split if the touch would cross). Findings that turn out structural (layout math, core decisions) become their own items instead of being patched in the polish pass.
 - **Acceptance:** the human's review list is either fixed or filed as items; canonical verification set green; `theme.rs` stays below 480; no color literal outside the token module (grep/test).
 - **Steps:** Phase 68 (68.6) — blocked until the human's live review notes exist.
+
+### [ ] M81 — Objects cannot be renamed from the UI (tables, queries, forms, reports) — 🟡
+- **Location:** navigation-pane context menu (`crates/datacraft-ui/src/nav_pane.rs`), design-view header, core command vocabulary (`crates/datacraft-core/src/command.rs`), Jet catalog/TDEF rewrite (`datacraft-jet`), sidecar (ADR-1).
+- **Problem:** Tables, queries, forms and reports cannot be renamed from the UI (live review 2026-11-11); the design view renames fields only. Access offers F2/context-menu rename — today a user must recreate the object.
+- **Approach:** one `RenameObject` command per kind (or a kind-tagged command) with the canonical-name rules; the Jet path is a catalog + TDEF rewrite (M7/M9 precedents), SQLite/CSV follow their DDL, the sidecar and open tabs follow the name. Scope the writer work in its own planning phase; this is a feature, not a polish fix.
+- **Acceptance:** rename a table/query/form/report from the nav pane; the object keeps its data/design; open tabs, sidecar entries and relationships that reference the name follow; wire parity for the bus command; precise failures for collisions and invalid names.
+- **Steps:** none yet (feature planning; Medium/High gates depending on the writer path).
+
+### [ ] M82 — The shortcuts page has no visible affordance — add a help glyph to the ribbon tab row — 🟡
+- **Location:** ribbon tab strip (`crates/datacraft-ui/src/ribbon.rs`), icon dispatcher (`icons.rs`).
+- **Problem:** F1 opens the shortcuts page, but nothing on screen says so (live review 2026-11-11: add a question-mark-in-circle symbol at the File/Home tab-row level, right-aligned).
+- **Approach:** a small circular "?" button right-aligned in the tab-strip row, tooltip "Keyboard Shortcuts (F1)", dispatching the same open action as F1; no new command.
+- **Acceptance:** the glyph renders right-aligned in the tab strip in both themes, opens/closes the page, carries the localized tooltip; kittest pins presence and click.
+- **Steps:** Phase 69 (planned from the M42 live review).
+
+### [ ] M83 — The status filter chip only clears — it should list and remove individual filters — 🟡
+- **Location:** status-bar filter chip (`crates/datacraft-ui/src/shell.rs`), `TabSnapshot.filters`, `SetTableFilter`/`ClearTableFilters`.
+- **Problem:** The chip shows the active filter count and only clears everything on click; a single column filter cannot be inspected or removed there (live review 2026-11-11: "löscht ja nur — hat der keine weitere sinnvolle Funktion?").
+- **Approach:** turn the chip into a menu/popover listing each active filter (column + criteria) with per-entry removal and an "all" action; each removal is one existing command (`SetTableFilter` with an empty criteria, or a dedicated remove command if the contract needs it). The chip keeps the count in its label.
+- **Acceptance:** the chip lists the live filters, removing one leaves the others, clearing all keeps the old behavior; one command per click; kittest pins list/remove/clear.
+- **Steps:** Phase 69 (planned from the M42 live review).
+
+### [ ] M84 — Filtered or sorted columns carry no header indicator in the table datasheet — 🟡
+- **Location:** datasheet header (`crates/datacraft-ui/src/datasheet/header.rs`), `TabSnapshot.filters`/sort state, icon dispatcher.
+- **Problem:** A filtered or sorted table column carries no indicator in the table datasheet's header (live review 2026-11-11); a user cannot see which column is filtered or sorted without opening the menu.
+- **Approach:** paint a filter glyph and the sort caret in the column header from the tab's view state (the sort caret exists for query grids); the tooltip names the criteria, the sort direction stays visible; keep the header's hit-test math unchanged.
+- **Acceptance:** the header shows filter and sort state per column, updated in the same frame and cleared when the state is removed; kittest pins both, plus a rect pin if geometry changes.
+- **Steps:** Phase 69 (planned from the M42 live review).
+
+### [ ] M85 — Every tool window opens top-left — open centered instead — 🟡
+- **Location:** every tool window: `relationships.rs`, `sql_window.rs`, `expression_window.rs`, `import_window.rs`, the filter dialog, `notices_dialog.rs`, `shortcuts_help.rs`.
+- **Problem:** egui windows default to the top-left corner; the live review asks for centered initial positions ("nicht nach oben links öffnen, sondern eher mittig").
+- **Approach:** one helper in the UI crate that computes a centered default position from the content rect and the window's default size on first open; windows stay movable afterwards (default position, not a fixed anchor). Apply to every tool window and dialog.
+- **Acceptance:** every tool window opens centered at 1280x800 and 960x600, remains movable, and keeps its size/behavior; kittest or rect pins cover at least the mapper and the messages dialog.
+- **Steps:** Phase 69 (planned from the M42 live review).
 
 ---
 
@@ -293,3 +328,6 @@
 - M76 — Status notices are one transient line — no history, no retrieval — done (done in `b1f1bbd` (RED `74ea3f6`))
 - M77 — No keyboard-shortcuts help page — shortcuts are undocumented in the app — done (done in `76aa538` (RED `c5aebee`))
 - M75 — No busy/progress affordance: blocking commands freeze an unpainted window — done (done in `eb1a495` (RED `f152b93`); deferred: open/create/save-as — import and run-sql stay synchronous because their call sites consume the events in-frame)
+- H57 — The relationship mapper shows MSys* system relationships and offers to delete them — done (done in `545bb47` (RED `3f6d46c`))
+- M79 — Toggle ribbon actions (Relationships, SQL, Expression) do not show whether their window is open — done (done in `ca6553e` (RED `1b497b5`))
+- M80 — The shell does not follow lifecycle actions: open stays on File, create does not activate the new document — done (done in `fd08379` (RED `4abc269`, corrected open test re-evidenced))
