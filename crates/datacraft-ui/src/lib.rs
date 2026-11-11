@@ -49,6 +49,7 @@ pub mod shell;
 pub mod shortcuts_help;
 pub mod sql_window;
 pub mod theme;
+pub mod tool_window;
 pub mod tooltips;
 pub mod vba_viewer;
 pub mod window;

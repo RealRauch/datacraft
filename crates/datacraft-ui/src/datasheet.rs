@@ -264,6 +264,10 @@ fn filter_dialog_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &m
             tab.ui_test_id
         )))
         .default_width(320.0)
+        .default_pos(crate::tool_window::centered_pos(
+            ui.ctx(),
+            egui::vec2(320.0, 240.0),
+        ))
         .show(ui, |ui| {
             let mut draft = {
                 let buffered = app.filter_draft(tab.id, column);

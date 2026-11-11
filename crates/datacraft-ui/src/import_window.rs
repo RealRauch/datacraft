@@ -25,6 +25,10 @@ pub fn import_window_ui(app: &mut App, ui: &mut egui::Ui) {
         .id(egui::Id::unique("datacraft.import_window".to_owned()))
         .open(&mut open)
         .default_width(440.0)
+        .default_pos(crate::tool_window::centered_pos(
+            ui.ctx(),
+            egui::vec2(440.0, 360.0),
+        ))
         .show(ui, |ui| import_window_body(app, ui));
     if !open {
         // The window's ✕ is a toggle like every other close path.

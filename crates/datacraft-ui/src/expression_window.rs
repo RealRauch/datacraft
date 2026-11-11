@@ -40,6 +40,10 @@ pub fn expression_window(app: &mut App, ui: &mut egui::Ui) {
     egui::Window::new(t("Expression"))
         .id(egui::Id::unique("datacraft.expression".to_owned()))
         .default_width(420.0)
+        .default_pos(crate::tool_window::centered_pos(
+            ui.ctx(),
+            egui::vec2(420.0, 320.0),
+        ))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 let label = ui.label(t("Expression"));

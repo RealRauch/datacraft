@@ -62,6 +62,10 @@ pub fn mapper_window(app: &mut App, ui: &mut egui::Ui) {
     egui::Window::new(t("Relationships"))
         .id(egui::Id::unique("datacraft.relationships"))
         .default_width(640.0)
+        .default_pos(crate::tool_window::centered_pos(
+            ui.ctx(),
+            egui::vec2(640.0, 420.0),
+        ))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.strong(plural(

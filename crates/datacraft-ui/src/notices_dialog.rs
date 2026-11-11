@@ -27,6 +27,10 @@ pub fn notices_dialog(app: &mut App, ui: &mut egui::Ui) {
         .open(&mut open)
         .resizable(true)
         .default_width(460.0)
+        .default_pos(crate::tool_window::centered_pos(
+            ui.ctx(),
+            egui::vec2(460.0, 320.0),
+        ))
         .show(ui.ctx(), |ui| {
             if entries.is_empty() {
                 ui.weak(t("No messages yet."));

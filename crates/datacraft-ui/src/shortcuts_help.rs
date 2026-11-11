@@ -20,6 +20,10 @@ pub fn shortcuts_help(app: &mut App, ui: &mut egui::Ui) {
         .open(&mut open)
         .resizable(false)
         .default_width(460.0)
+        .default_pos(crate::tool_window::centered_pos(
+            ui.ctx(),
+            egui::vec2(460.0, 360.0),
+        ))
         .show(ui.ctx(), |ui| {
             egui::Grid::new("shortcuts.help.grid")
                 .num_columns(2)

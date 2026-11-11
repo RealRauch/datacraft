@@ -39,6 +39,10 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
         .id(egui::Id::unique("datacraft.sql"))
         .default_width(720.0)
         .resizable(true)
+        .default_pos(crate::tool_window::centered_pos(
+            ui.ctx(),
+            egui::vec2(720.0, 420.0),
+        ))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.label(t("Statement"));
