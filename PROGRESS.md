@@ -419,7 +419,7 @@ their L30 splits.
 | 69.2 | Ribbon toggle actions render their open state from the snapshot (M79) | ✅ |
 | 69.3 | The shell follows lifecycle actions: open -> Home, create -> the new document (M80) | ✅ |
 | 69.4 | A help glyph in the ribbon tab row opens the shortcuts page (M82) | ✅ |
-| 69.5 | The status filter chip lists and removes individual filters (M83) | ⬜ |
+| 69.5 | The status filter chip lists and removes individual filters (M83) | ✅ |
 | 69.6 | Column headers show filter and sort state (M84) | ⬜ |
 | 69.7 | Tool windows open centered instead of top-left (M85) | ⬜ |
 | 69.8 | Phase 69 Quality Gate Review | ⬜ |

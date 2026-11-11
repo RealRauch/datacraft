@@ -63,7 +63,7 @@ impl eframe::App for App {
             .frame(egui::Frame::side_top_panel(ui.style()).fill(tokens.chrome))
             .show(ui, |ui| {
                 crate::layout_probe::record("shell.status_panel", ui.max_rect());
-                let mut clear_filters: Option<String> = None;
+                let mut filter_intent: Option<Command> = None;
                 ui.horizontal(|ui| {
                     // Left: database context (Access convention — the active
                     // document's object replaces the generic count).
@@ -116,32 +116,22 @@ impl eframe::App for App {
                         // page kittest and the i18n kernel tests.
                         crate::layout_probe::record("status.lock_notice", notice.rect);
                     }
-                    // Filter chip (step 44.5, M54): live when the active
-                    // table tab carries column filters — one click clears
-                    // them all over the bus; otherwise the placeholder
+                    // Filter chip (step 44.5, M54; per-filter removal step
+                    // 69.5, M83): the label carries the count, the menu
+                    // lists every active filter with a remove action, plus
+                    // the clear-all entry; otherwise the placeholder
                     // (step 21.7, U11) stays muted.
                     if let Some((kind, table)) = active.as_ref()
                         && kind == "table"
                     {
-                        let count = self
+                        let filters = self
                             .snapshot()
                             .tabs
                             .iter()
                             .find(|tab| tab.object_name == *table)
-                            .map(|tab| tab.filters.len())
-                            .unwrap_or(0);
-                        ui.push_id("status.filter", |ui| {
-                            let response = if count > 0 {
-                                ui.button(format!("{} ({count})", t("Filter")))
-                                    .on_hover_text(t("Click to clear all filters on this table."))
-                            } else {
-                                ui.add_enabled(false, egui::Button::new(t("Filter")))
-                                    .on_hover_text(t("No filter is active."))
-                            };
-                            if count > 0 && response.clicked() {
-                                clear_filters = Some(table.clone());
-                            }
-                        });
+                            .map(|tab| tab.filters.clone())
+                            .unwrap_or_default();
+                        filter_intent = filter_chip_ui(ui, table, &filters);
                     } else {
                         ui.push_id("status.filter", |ui| {
                             ui.add_enabled(false, egui::Button::new(t("Filter")))
@@ -154,8 +144,8 @@ impl eframe::App for App {
                         self.record_navigation_ui(ui);
                     });
                 });
-                if let Some(table) = clear_filters {
-                    self.dispatch(Command::ClearTableFilters { table });
+                if let Some(command) = filter_intent {
+                    self.dispatch(command);
                 }
             });
 
@@ -329,4 +319,46 @@ fn status_label(snapshot: &UiStateSnapshot, active: Option<(&str, &str)>) -> Str
             )
         }
     }
+}
+
+/// The status-bar filter chip (step 44.5, item M54; per-filter removal
+/// step 69.5, item M83): the label carries the count, the menu lists every
+/// active filter with a remove action (`SetTableFilter` with `None`
+/// criteria), plus the clear-all entry (`ClearTableFilters`). Returns the
+/// single command a click collected.
+pub fn filter_chip_ui(
+    ui: &mut egui::Ui,
+    table: &str,
+    filters: &std::collections::BTreeMap<String, String>,
+) -> Option<Command> {
+    let mut intent = None;
+    ui.push_id("status.filter", |ui| {
+        if filters.is_empty() {
+            ui.add_enabled(false, egui::Button::new(t("Filter")))
+                .on_hover_text(t("No filter is active."));
+            return;
+        }
+        ui.menu_button(format!("{} ({})", t("Filter"), filters.len()), |ui| {
+            for (field, criteria) in filters {
+                if ui.button(format!("{field}: {criteria}")).clicked() {
+                    intent = Some(Command::SetTableFilter {
+                        table: table.to_owned(),
+                        field: field.clone(),
+                        criteria: None,
+                    });
+                    ui.close();
+                }
+            }
+            ui.separator();
+            if ui.button(t("Clear all filters")).clicked() {
+                intent = Some(Command::ClearTableFilters {
+                    table: table.to_owned(),
+                });
+                ui.close();
+            }
+        })
+        .response
+        .on_hover_text(t("Click to inspect or remove the active filters."));
+    });
+    intent
 }

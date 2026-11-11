@@ -188,9 +188,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Kriterien: In Anführungszeichen gesetzte Like-Muster mit den Wildcards * (beliebige Zeichenfolge), ? (ein Zeichen), # (eine Ziffer) — z. B. Like \"A*\" — oder ein Vergleich =, <>, <, <=, >, >= mit einem an die Spaltenart angepassten Literal, z. B. > 100.",
     ),
     (
-        "Click to clear all filters on this table.",
-        "Klicken, um alle Filter dieser Tabelle zu löschen.",
+        "Click to inspect or remove the active filters.",
+        "Klicken Sie, um die aktiven Filter zu prüfen oder zu entfernen.",
     ),
+    ("Clear all filters", "Alle Filter löschen"),
     ("Sort Descending", "Absteigend sortieren"),
     ("Sort by Name", "Nach Name sortieren"),
     ("Sort by Type", "Nach Typ sortieren"),

@@ -62,9 +62,7 @@ fn chip_harness(app: App) -> Harness<'static, App> {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
             let filters = filters(app);
-            if let Some(command) =
-                datacraft_ui::shell::filter_chip_ui(ui, "Customers", &filters)
-            {
+            if let Some(command) = datacraft_ui::shell::filter_chip_ui(ui, "Customers", &filters) {
                 let _ = app.dispatch(command);
             }
         },
