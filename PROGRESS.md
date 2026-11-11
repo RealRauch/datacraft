@@ -418,4 +418,4 @@ and ROADMAP state the sweep honestly.
 | 68.4 | Keyboard-shortcuts help page on F1 (M77) | ✅ |
 | 68.5 | Busy overlay through the deferred-dispatch seam for blocking commands (M75); app/busy.rs split | ✅ |
 | 68.6 | Window-chrome polish pass from the human's live review (M78) — blocked on the review | ⛔ |
-| 68.7 | Phase 68 Quality Gate Review | ⬜ |
+| 68.7 | Phase 68 Quality Gate Review | 🔄 |
