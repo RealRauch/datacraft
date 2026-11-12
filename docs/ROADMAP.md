@@ -462,8 +462,10 @@ the owning phase starts.
   archives plus the checksums — M72 is closed by this run). v0.1.3 followed
   the same day: tag, fully green release run 43310995863, published draft
   with notes from CHANGELOG's [0.1.3] section (SQLite depth stage 0 and the
-  native-object inventory). The crates.io publication of 0.1.2/0.1.3 is
-  the checklist's separate publish step and remains open.
+  native-object inventory). Both versions are also on crates.io: all six
+  crates were published in checklist order for 0.1.2 and 0.1.3 on
+  2026-11-12 (0.1.2 from the tag worktree, 0.1.3 from `main`), and
+  `cargo install datacraft-mcp` resolves the published 0.1.3.
 - **Hygiene (2026-11-06):** §5 M4 corrected from ✅ to ⬜ — the
   designer/preview phases landed, the events/requery runtime of §2 Ring 4
   did not; §3's VBA re-evaluation gate keys on the runtime, not the designer.
