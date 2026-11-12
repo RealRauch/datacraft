@@ -7,14 +7,21 @@
 //! placeholder set.
 //!
 //! The catalog is split by UI area (`ui_chrome` for ribbon/nav/shell,
-//! `views` for documents and their grids) to stay below the file-size gate.
+//! `tooltips` for the hover registry, `dialogs` and `views` for documents
+//! and their grids) to stay below the file-size gate.
 
 mod dialogs;
+mod tooltips;
 mod ui_chrome;
 mod views;
 
 /// All catalog modules; lookups scan each in order.
-static MODULES: &[&[(&str, &str)]] = &[dialogs::TABLE, ui_chrome::TABLE, views::TABLE];
+static MODULES: &[&[(&str, &str)]] = &[
+    dialogs::TABLE,
+    tooltips::TABLE,
+    ui_chrome::TABLE,
+    views::TABLE,
+];
 
 /// German translation of an English source string.
 pub fn lookup(key: &str) -> Option<&'static str> {
