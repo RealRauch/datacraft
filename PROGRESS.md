@@ -9,6 +9,44 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 72 — Object rename (M81)
+
+**Scope (Steps):**
+
+- **72.1 Core rename command, name rules and reference follow-through (M81)**
+- **72.2 Jet/ACE table rename through the writer (M81)**
+- **72.3 SQLite native rename and CSV boundary (M81)**
+- **72.4 Nav-pane rename surface: context menu, F2, dialog (M81)**
+- **72.5 Documentation and phase gate (M81)**
+
+**Goal:** Give Access's rename to DataCraft — the live review (2026-11-11)
+and the human's requirement (2026-11-12) report that objects cannot be
+renamed, so a user must recreate a table/query/form/report. One
+kind-tagged `RenameObject { object, new_name }` bus command (the kind
+rides the existing `ObjectId`) covers all four kinds. A table rename is
+physical: Jet/ACE updates the catalog row's `Name` (the TDEF carries no
+table name) and every `MSysRelationships` row, SQLite runs
+`ALTER TABLE … RENAME`; sidecar objects rename in memory. References
+follow: open tabs, per-table datasheet view state, form filters, the
+sidecar's query/form/report sources, combo row sources and button
+actions. Stored view SQL text is deliberately not rewritten (free SQL,
+not a structural reference) and keeps its precise execution failure. The
+CSV driver answers its capability boundary. Low-class throughout (Rust
+source/tests only; no dependency, fixture or CI change).
+
+**Acceptance:** One `RenameObject` dispatch renames a table, query, form
+and report; the table keeps its rows and the rename persists across
+reopen on Jet/ACE and SQLite; relationships follow the table name on both
+backends; open tabs, datasheet state, form filters and sidecar
+references follow; collisions and empty/whitespace names answer precise
+failures (case-only renames are handled per backend and pinned); the
+nav-pane context menu and F2 reach the command with a localized dialog
+(kittest); CLI/MCP wire parity is pinned; the canonical verification set
+is green.
+
+**Verification:** Canonical set (fmt, clippy `-D warnings`, workspace
+tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
+
 
 
 
@@ -398,3 +436,8 @@
 | 71.2 | UI: nav-pane Views group, create/edit/delete dialog, read-only datasheet from the view SQL, kittest (M93) | ✅ |
 | 71.3 | SQLite: apply the view natively (CREATE VIEW / DROP VIEW), capability-gated, with contract pins (M93) | ✅ |
 | 71.4 | Phase 71 Quality Gate Review | ✅ |
+| 72.1 | Core rename command, name rules and reference follow-through (M81) | 🔄 |
+| 72.2 | Jet/ACE table rename through the writer (M81) | ⬜ |
+| 72.3 | SQLite native rename and CSV boundary (M81) | ⬜ |
+| 72.4 | Nav-pane rename surface: context menu, F2, dialog (M81) | ⬜ |
+| 72.5 | Documentation and phase gate (M81) | ⬜ |
