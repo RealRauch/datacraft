@@ -19,6 +19,14 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   queue behind a painted busy overlay instead of freezing an unannounced
   window (68).
 
+### Added
+- core/ui/sqlite: sidecar views (71) — a named SELECT stored in the
+  `.datacraft` sidecar, opened as a read-only result tab with an editor;
+  Jet/ACE/CSV execute it through the shadow SQL engine, while SQLite applies
+  it natively (`CREATE VIEW`/`DROP VIEW`) and rolls the sidecar change back
+  on a native failure. Trigger designs are decided in ROADMAP §19 but
+  deferred.
+
 ### Changed
 - ui: the M42 live-review pass (69) — the relationship mapper lists user
   relationships only (Access's `MSys*` system rows are filtered at load and
