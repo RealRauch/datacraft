@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-12T22:16
+# BACKLOG.md — Open items (As of: 2026-11-12T22:58
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -21,6 +21,13 @@
 ---
 
 ## 🟡 MEDIUM
+
+### [ ] M94 — Creation capability refusals answer the no_relationships code instead of create_database — 🟡
+- **Location:** `crates/datacraft-core/src/database.rs` (`create_database`, the `!self.port.capabilities().create_database` arm) and `crates/datacraft-core/src/database/template.rs` (`create_database_from_template`, same arm).
+- **Problem:** Both capability refusals carry `FailureCode::Capability(DisabledReason::NoRelationships)` while the vocabulary has `DisabledReason::CreateDatabase` (used correctly by the availability map). Headless clients read the machine-readable code and are told "no relationships" for a creation refusal — the I6 localization/code contract is wrong on the wire; the English reason is right, which is why no test caught it (`journal_caps.rs` asserts only the text).
+- **Approach:** Switch both arms to `DisabledReason::CreateDatabase`; pin the code in the existing capability tests (the reason text stays unchanged, so no UI catalog or wire text changes).
+- **Acceptance:** A refused creation answers `FailureCode::Capability(CreateDatabase)` on both commands; the test asserts the code, not only the prose; no other behavior changes.
+- **Steps:** rides 75.3 (the step touches `create_database` for the suffix rule) — Low, two-line fix plus pin.
 
 ---
 
@@ -58,21 +65,21 @@
 - **Problem:** Without an open database the app shows the empty workspace (ribbon, nav pane, status bar); the Open/New entry points live behind the File tab, so the first screen invites dead clicks (review idea 2026-11-11: "ohne geladene Datenbank immer die Backstage anzeigen").
 - **Approach:** while `snapshot.database.is_none()`, land on the File backstage at startup and after closing the last database; the workspace returns as soon as a database opens (M80's Home switch already does that). Keep the ribbon reachable, so Options/Info stay usable.
 - **Acceptance:** a cold start without a database shows the backstage; closing the last database returns to it; opening a database leaves it (M80); kittest pins all three transitions.
-- **Steps:** none yet (collected idea).
+- **Steps:** 75.1 (phase 75 — packaged 2026-11-12).
 
 ### [ ] L42 — The new-database flow is one page — split it into choose-what then choose-where (Access-style) — 🟢
 - **Location:** the backstage New page (`crates/datacraft-ui/src/backstage/pages.rs`), template cards, `CreateDatabaseFromTemplate`/`OpenDatabase` intents.
 - **Problem:** The New page mixes template cards (including the blank option) and the path field in one form; the review asks for the Access-style flow: first choose what (empty database / from template), then choose where and the name (review idea 2026-11-11).
 - **Approach:** a two-step page (or two panes): step 1 the kind (blank vs template list), step 2 the path + name (and format, see L43) + Create; Back returns to step 1 with the selection kept. Create still dispatches the same one chain per choice.
 - **Acceptance:** two explicit choices in order, the selection survives Back, the Create dispatch is unchanged, and a kittest pins the step transitions and the final creation.
-- **Steps:** none yet (collected idea; L43 rides the same page).
+- **Steps:** 75.2 (phase 75 — packaged 2026-11-12; L43 rides the same page).
 
 ### [ ] L43 — A blank database does not offer its format — choose .mdb (Jet4) vs SQLite at creation — 🟢
 - **Location:** the blank-database path of the backstage New page, `CreateDatabase` handling in core, the template registry.
 - **Problem:** Creating a blank database does not offer its format — it follows the path/template implicitly; the review asks for an explicit choice between `.mdb` (Jet4) and SQLite (review idea 2026-11-11).
 - **Approach:** a format picker on the blank path (Jet4 default, SQLite as the second family) driving the created file and the extension hint; the template path keeps its template-defined format. The command either carries the format explicitly or the picker and the path suffix agree deterministically — no silent mismatch.
 - **Acceptance:** a blank SQLite creation yields a working SQLite file whose snapshot reports `Sqlite`; Jet4 stays the default; the picker is capability-honest and kittest-pinned; a mismatching suffix vs picker answers a precise failure.
-- **Steps:** none yet (collected idea; rides L42's page).
+- **Steps:** 75.3 (phase 75 — packaged 2026-11-12; rides L42's page).
 
 ### [ ] M88 — Import Access SaveAsText form/report exports into sidecar designs (migration tool; requires Access) — 🟢
 - **Location:** a new migration/import path (core or a tool crate), the sidecar schema (`SchemaDocument` forms/reports), `tools/fixture-build` as the SaveAsText precedent.
