@@ -145,10 +145,7 @@ fn backstage_new_flow_keeps_the_selection_across_back() {
     harness.run();
     harness.get_by_label("Blank database").click();
     harness.run();
-    assert_eq!(
-        harness.state().new_database.step,
-        NewDatabaseStep::Location
-    );
+    assert_eq!(harness.state().new_database.step, NewDatabaseStep::Location);
 
     harness.get_by_label("Back to the choice").click();
     harness.run();
@@ -199,10 +196,14 @@ fn backstage_new_page_creates_from_a_template() {
         .as_ref()
         .expect("the created database opens");
     assert_eq!(database.format.to_string(), "Jet4");
-    assert_eq!(
-        database.tables.len(),
-        1,
-        "the template materializes its table"
+    assert!(
+        database.tables.iter().any(|table| table.name == "Contacts"),
+        "the template materializes its table: {:?}",
+        database
+            .tables
+            .iter()
+            .map(|table| table.name.as_str())
+            .collect::<Vec<_>>()
     );
     let _ = std::fs::remove_file(&path);
 }

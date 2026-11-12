@@ -155,12 +155,16 @@ const BACKSTAGE_TOOLTIPS: &[(&str, &str)] = &[
     ),
     ("backstage.save.close_database", "Close the open database."),
     (
+        "backstage.new.back",
+        "Return to the kind choice with the selection kept.",
+    ),
+    (
         "backstage.new.browse",
         "Choose the path for the new database.",
     ),
     (
         "backstage.new.create",
-        "Create the database from the selected template and open it.",
+        "Create the database from the selected choice and open it.",
     ),
     ("backstage.open.browse", "Choose a database file to open."),
     (
@@ -188,6 +192,7 @@ pub const BACKSTAGE_CONTROLS: &[&str] = &[
     "backstage.save.save_design",
     "backstage.save.load_design",
     "backstage.save.close_database",
+    "backstage.new.back",
     "backstage.new.browse",
     "backstage.new.create",
     "backstage.open.browse",

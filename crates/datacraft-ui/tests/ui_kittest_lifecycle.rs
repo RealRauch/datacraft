@@ -141,8 +141,14 @@ fn cold_start_without_a_database_shows_the_file_backstage() {
     let mut harness = full_shell_harness(app);
     harness.run();
     let labels = tree_labels(&harness);
-    assert!(labels.contains("Samples"), "the backstage is rendered: {labels}");
-    assert!(labels.contains("Back"), "the backstage nav is rendered: {labels}");
+    assert!(
+        labels.contains("Samples"),
+        "the backstage is rendered: {labels}"
+    );
+    assert!(
+        labels.contains("Back"),
+        "the backstage nav is rendered: {labels}"
+    );
     assert!(
         !labels.contains("Navigation Pane"),
         "the empty workspace is not painted: {labels}"
@@ -178,7 +184,10 @@ fn closing_the_last_database_returns_to_the_backstage() {
     let mut harness = full_shell_harness(app);
     harness.run();
     let labels = tree_labels(&harness);
-    assert!(labels.contains("Samples"), "the backstage is rendered: {labels}");
+    assert!(
+        labels.contains("Samples"),
+        "the backstage is rendered: {labels}"
+    );
     assert!(
         !labels.contains("Navigation Pane"),
         "the empty workspace is not painted: {labels}"

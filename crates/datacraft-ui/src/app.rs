@@ -117,10 +117,8 @@ pub struct App {
     pub(crate) busy: crate::busy::BusyState,
     /// Path buffer of the sidecar save/load ribbon actions (step 11.8).
     pub sidecar_path: String,
-    /// Path buffer of the backstage New Database page (phase 29, H44).
-    pub new_database_path: String,
-    /// Registry name of the template selected on the New Database page.
-    pub new_database_template: Option<String>,
+    /// Draft of the two-step New Database page (step 75.2, item L42).
+    pub new_database: crate::backstage::NewDatabaseDraft,
     /// Path buffer of the backstage Save-a-copy flow (step 27.2, M14).
     pub save_as_path: String,
     /// Whether the copy is protected (the checkbox next to the path).
@@ -223,8 +221,7 @@ impl App {
             shortcuts_help_open: false,
             busy: crate::busy::BusyState::default(),
             sidecar_path: String::new(),
-            new_database_path: String::new(),
-            new_database_template: None,
+            new_database: crate::backstage::NewDatabaseDraft::default(),
             save_as_path: String::new(),
             save_as_encrypted: false,
             save_as_password: String::new(),

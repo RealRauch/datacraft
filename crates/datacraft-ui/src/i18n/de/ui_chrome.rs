@@ -319,7 +319,9 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("New", "Neu"),
     ("Samples", "Beispiele"),
-    ("Choose a template", "Vorlage wählen"),
+    ("Choose what to create", "Was möchtest du erstellen"),
+    ("Blank database", "Leere Datenbank"),
+    ("Back to the choice", "Zurück zur Auswahl"),
     ("tables", "Tabellen"),
     ("path for the new database", "Pfad für die neue Datenbank"),
     ("Create Database", "Datenbank erstellen"),
@@ -415,8 +417,12 @@ pub static TABLE: &[(&str, &str)] = &[
         "Wählen Sie den Pfad für die neue Datenbank.",
     ),
     (
-        "Create the database from the selected template and open it.",
-        "Erstellen Sie die Datenbank aus der gewählten Vorlage und öffnen Sie sie.",
+        "Return to the kind choice with the selection kept.",
+        "Kehren Sie zur Auswahl der Art zurück; die Auswahl bleibt erhalten.",
+    ),
+    (
+        "Create the database from the selected choice and open it.",
+        "Erstellen Sie die Datenbank aus der gewählten Auswahl und öffnen Sie sie.",
     ),
     (
         "Choose a database file to open.",

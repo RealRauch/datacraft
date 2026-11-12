@@ -17,9 +17,12 @@ use crate::theme::tokens;
 
 mod info;
 mod nav;
+mod new_database;
 mod pages;
 pub(crate) mod recent;
 mod save;
+
+pub use new_database::{NewDatabaseDraft, NewDatabaseKind, NewDatabaseStep};
 
 /// Backstage pages — a deliberate subset of the Access set (Home, New,
 /// Open, Samples, Save, Info, Options); Recent Databases is follow-up U15.

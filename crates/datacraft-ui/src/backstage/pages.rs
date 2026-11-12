@@ -24,7 +24,7 @@ pub(super) fn page_body(app: &mut App, ui: &mut egui::Ui) {
     let mut intents: Vec<Command> = Vec::new();
     match app.backstage_page {
         BackstagePage::Home => home_page(app, ui, &mut intents),
-        BackstagePage::New => new_database_page(app, ui, &mut intents),
+        BackstagePage::New => super::new_database::new_database_page(app, ui, &mut intents),
         BackstagePage::Open => open_page(app, ui, &mut intents),
         BackstagePage::Samples => samples_page(app, ui, &mut intents),
         BackstagePage::Save => super::save::save_page(app, ui, &mut intents),
@@ -89,85 +89,6 @@ fn home_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         app.backstage_page = BackstagePage::Save;
     });
     recent_databases_ui(app, ui, intents);
-    status_line(app, ui);
-}
-
-/// New Database: pick a shipped template card and a target path; one click
-/// dispatches create + open (phase 29, H44).
-fn new_database_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
-    let templates = app.snapshot().templates.clone();
-    ui.label(t("Choose a template"));
-    ui.add_space(6.0);
-    ui.horizontal_wrapped(|ui| {
-        for template in &templates {
-            let selected = app.new_database_template.as_deref() == Some(template.name.as_str());
-            let caption = format!("{} — {} {}", template.title, template.tables, t("tables"));
-            let clicked = card(
-                ui,
-                format!("backstage.new.{}", template.name),
-                caption,
-                template.tables > 0,
-                selected,
-            );
-            if clicked {
-                app.new_database_template = Some(template.name.clone());
-            }
-        }
-    });
-    ui.add_space(8.0);
-    ui.label(t("path for the new database"));
-    ui.add(
-        egui::TextEdit::singleline(&mut app.new_database_path)
-            .desired_width(360.0)
-            .hint_text(t("path for the new database")),
-    );
-    let suggested = std::path::Path::new(app.new_database_path.trim())
-        .file_name()
-        .map_or_else(
-            || "database.mdb".to_owned(),
-            |n| n.to_string_lossy().into_owned(),
-        );
-    let browse = ui
-        .push_id("backstage.new.browse", |ui| ui.button(t("Browse…")))
-        .inner;
-    if tooltips::backstage_response(browse, "backstage.new.browse").clicked()
-        && let Some(path) = app.dialogs.pick_save_file(&suggested)
-    {
-        app.new_database_path = path.display().to_string();
-    }
-    ui.add_space(8.0);
-    // The button gates on the composition's create capability
-    // (step 42.2, L18); the dispatcher gate stays the second line.
-    let creation_restriction = crate::availability::restricted(
-        app.snapshot(),
-        datacraft_core::availability::ids::CREATE_DATABASE,
-    )
-    .copied();
-    if let Some(reason) = creation_restriction {
-        ui.weak(crate::availability::reason_text(&reason));
-    }
-    let enabled = creation_restriction.is_none()
-        && !app.new_database_path.trim().is_empty()
-        && app.new_database_template.is_some();
-    let create = ui
-        .push_id("backstage.new.create", |ui| {
-            ui.add_enabled(enabled, egui::Button::new(t("Create Database")))
-        })
-        .inner;
-    if tooltips::backstage_response(create, "backstage.new.create").clicked() {
-        let path = app.new_database_path.clone();
-        if let Some(template) = app.new_database_template.clone() {
-            intents.push(Command::CreateDatabaseFromTemplate {
-                path: path.clone().into(),
-                template,
-            });
-            intents.push(Command::OpenDatabase {
-                path: path.into(),
-                password: None,
-                source: None,
-            });
-        }
-    }
     status_line(app, ui);
 }
 
@@ -273,7 +194,7 @@ fn samples_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
 
 /// One card: painted mini-preview over the caption, the whole card clickable
 /// (Excel backstage grammar, step 38.2). Returns whether it was clicked.
-fn card(
+pub(super) fn card(
     ui: &mut egui::Ui,
     id_salt: String,
     caption: String,
