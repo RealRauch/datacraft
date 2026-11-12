@@ -65,6 +65,18 @@ impl MockPort {
     }
 
     /// Builder: attaches file-owned views (phase 73, step 73.1; M90).
+    pub fn with_indexes(&mut self, indexes: Vec<crate::port::SourceIndex>) -> &mut Self {
+        self.indexes = indexes;
+        self
+    }
+
+    /// Builder: attaches the read-only trigger inventory (M90).
+    pub fn with_triggers(&mut self, triggers: Vec<crate::port::SourceTrigger>) -> &mut Self {
+        self.triggers = triggers;
+        self
+    }
+
+    /// Builder: attaches file-owned views (phase 73, step 73.1; M90).
     pub fn with_native_views(&mut self, views: Vec<crate::port::NativeView>) -> &mut Self {
         self.view_defs = views
             .iter()

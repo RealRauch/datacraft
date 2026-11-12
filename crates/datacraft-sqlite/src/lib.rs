@@ -21,6 +21,9 @@ pub struct SqlitePort {
     tables: Vec<TableDef>,
     /// File-owned views (phase 73, step 73.1; M90) — read-only.
     native_views: Vec<NativeView>,
+    /// Read-only index/trigger inventory (phase 73, step 73.2; M90).
+    indexes: Vec<datacraft_core::port::SourceIndex>,
+    triggers: Vec<datacraft_core::port::SourceTrigger>,
     path: Option<PathBuf>,
     /// Whether the file opened read-write (read-only files still read).
     writable: bool,
@@ -94,6 +97,9 @@ impl StoragePort for SqlitePort {
         caps.native_queries = Support::No;
         caps.macros = Support::No;
         caps.vba = Support::No;
+        // Triggers are exposed read-only (inventory, no execute/create —
+        // phase 73, step 73.2; M90).
+        caps.triggers = Support::ReadOnly;
         caps
     }
 
@@ -140,6 +146,8 @@ impl StoragePort for SqlitePort {
         let (conn, writable) = open_database(path)?;
         let tables = collect_tables(&conn)?;
         let native_views = view_inventory::collect(&conn)?;
+        let indexes = source_objects::indexes(&conn)?;
+        let triggers = source_objects::triggers(&conn)?;
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
@@ -147,6 +155,8 @@ impl StoragePort for SqlitePort {
         self.conn = Some(conn);
         self.tables = tables;
         self.native_views = native_views;
+        self.indexes = indexes;
+        self.triggers = triggers;
         self.path = Some(path.to_path_buf());
         self.writable = writable;
         Ok(OpenedDatabase {
@@ -160,34 +170,14 @@ impl StoragePort for SqlitePort {
         self.conn = None;
         self.tables.clear();
         self.native_views.clear();
+        self.indexes.clear();
+        self.triggers.clear();
         self.path = None;
         self.writable = false;
     }
 
     fn create_database(&mut self, path: &Path, format: DatabaseFormat) -> Result<(), PortError> {
-        if format != DatabaseFormat::Sqlite {
-            return Err(PortError::Unsupported {
-                reason: "the SQLite backend creates SQLite databases only — use the Jet \
-                         backend for Jet4 files"
-                    .to_owned(),
-            });
-        }
-        if path.exists() {
-            return Err(PortError::WriteFailed {
-                detail: format!(
-                    "{}: file already exists — creating would overwrite it",
-                    path.display()
-                ),
-            });
-        }
-        // `Connection::open` creates a zero-byte file; VACUUM materializes
-        // the real database header so format detection sniffs the fresh
-        // file. A failed create leaves no debris behind.
-        let outcome = initialize_sqlite_file(path);
-        if outcome.is_err() {
-            let _ = std::fs::remove_file(path);
-        }
-        outcome
+        lifecycle::create(path, format)
     }
 
     fn tables(&self) -> Vec<TableDef> {
@@ -196,6 +186,14 @@ impl StoragePort for SqlitePort {
 
     fn native_views(&self) -> Result<Vec<NativeView>, PortError> {
         Ok(self.native_views.clone())
+    }
+
+    fn indexes(&self) -> Result<Vec<datacraft_core::port::SourceIndex>, PortError> {
+        Ok(self.indexes.clone())
+    }
+
+    fn triggers(&self) -> Result<Vec<datacraft_core::port::SourceTrigger>, PortError> {
+        Ok(self.triggers.clone())
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
@@ -464,9 +462,11 @@ COMMIT;",
 }
 
 mod ddl;
+mod lifecycle;
 mod mapping;
 mod relationships;
 mod rows;
+mod source_objects;
 mod view_inventory;
 
 use mapping::{
@@ -482,16 +482,4 @@ fn out_of_range(table: &str, row: usize, row_count: usize) -> PortError {
         len: 1,
         row_count,
     }
-}
-
-/// Creates and initializes a brand-new SQLite database file.
-fn initialize_sqlite_file(path: &Path) -> Result<(), PortError> {
-    let failed = |stage: &str, e: rusqlite::Error| PortError::WriteFailed {
-        detail: format!("{}: {stage}: {e}", path.display()),
-    };
-    let conn = Connection::open(path).map_err(|e| failed("opening", e))?;
-    conn.execute_batch("VACUUM")
-        .map_err(|e| failed("initializing", e))?;
-    conn.close().map_err(|(_, e)| failed("closing", e))?;
-    Ok(())
 }

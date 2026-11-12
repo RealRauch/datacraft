@@ -182,6 +182,64 @@ pub fn design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     if let Some(command) = intent {
         app.dispatch(command);
     }
+    file_objects_ui(app, tab, ui);
+}
+
+/// Read-only index/trigger inventory of the open file (phase 73, step
+/// 73.2; item M90): paint-only, no command and no affordance.
+fn file_objects_ui(app: &App, tab: &TabSnapshot, ui: &mut egui::Ui) {
+    let Some(db) = app.snapshot().database.as_ref() else {
+        return;
+    };
+    let indexes: Vec<&datacraft_core::port::SourceIndex> = db
+        .indexes
+        .iter()
+        .filter(|index| index.table.eq_ignore_ascii_case(&tab.object_name))
+        .collect();
+    let triggers: Vec<&datacraft_core::port::SourceTrigger> = db
+        .triggers
+        .iter()
+        .filter(|trigger| trigger.table.eq_ignore_ascii_case(&tab.object_name))
+        .collect();
+    if indexes.is_empty() && triggers.is_empty() {
+        return;
+    }
+    ui.separator();
+    let heading = ui.heading(t("File objects (read-only)"));
+    // Static text is culled from the semantic tree; the rect probe pins
+    // the section's presence (step 44.1 seam, M90).
+    crate::layout_probe::record("design.file_objects", heading.rect);
+    for index in indexes {
+        let mut text = format!("{} {}", t("Index"), index.name);
+        if !index.columns.is_empty() {
+            text.push_str(&format!(" ({})", index.columns.join(", ")));
+        }
+        if index.unique {
+            text.push_str(&format!(" — {}", t("unique")));
+        }
+        if index.automatic {
+            text.push_str(&format!(" — {}", t("automatic")));
+        }
+        ui.weak(text);
+    }
+    for trigger in triggers {
+        ui.weak(format!(
+            "{} {}: {}",
+            t("Trigger"),
+            trigger.name,
+            sql_excerpt(&trigger.sql)
+        ));
+    }
+}
+
+/// One-line excerpt of a trigger statement.
+fn sql_excerpt(sql: &str) -> String {
+    let flat = sql.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.chars().count() > 100 {
+        format!("{}…", flat.chars().take(100).collect::<String>())
+    } else {
+        flat
+    }
 }
 
 /// Two-column property sheet (name / value).

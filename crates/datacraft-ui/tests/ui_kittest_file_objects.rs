@@ -80,7 +80,7 @@ fn the_design_view_paints_the_file_object_inventory() {
             .any(|(id, rect)| id == "design.file_objects" && rect.width() > 0.0),
         "the inventory section is painted: {rects:?}"
     );
-    let database = harness.state().snapshot().database.expect("open");
+    let database = harness.state().snapshot().database.as_ref().expect("open");
     assert_eq!(database.indexes[0].name, "idx_people_city");
     assert_eq!(database.triggers[0].name, "people_guard");
 }

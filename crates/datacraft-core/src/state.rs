@@ -123,6 +123,14 @@ pub struct DatabaseState {
     /// win and are not repeated here.
     #[serde(default)]
     pub native_views: Vec<crate::port::NativeView>,
+    /// Indexes the opened file carries (phase 73, step 73.2; M90) —
+    /// read-only inventory.
+    #[serde(default)]
+    pub indexes: Vec<crate::port::SourceIndex>,
+    /// Triggers the opened file carries (phase 73, step 73.2; M90) —
+    /// inventory only.
+    #[serde(default)]
+    pub triggers: Vec<crate::port::SourceTrigger>,
     /// Native saved queries read from the file (step 15.3, M3; read-only).
     pub native_queries: Vec<crate::port::NativeQuery>,
     /// Why the native-query decode failed, if it did — the open still

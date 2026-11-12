@@ -58,15 +58,19 @@ fn indexes_are_listed_with_columns_and_uniqueness() {
     indexes.sort_by(|left, right| left.name.cmp(&right.name));
     assert_eq!(indexes.len(), 2, "{indexes:?}");
 
-    let auto = &indexes[0];
-    assert!(auto.automatic, "{auto:?}");
+    let auto = indexes
+        .iter()
+        .find(|index| index.automatic)
+        .expect("the UNIQUE constraint created an automatic index");
     assert_eq!(auto.table, "people");
     assert_eq!(auto.columns, ["name"]);
     assert!(auto.unique, "the UNIQUE constraint index is unique");
 
-    let explicit = &indexes[1];
+    let explicit = indexes
+        .iter()
+        .find(|index| index.name == "idx_people_city")
+        .expect("the explicit index");
     assert!(!explicit.automatic, "{explicit:?}");
-    assert_eq!(explicit.name, "idx_people_city");
     assert_eq!(explicit.columns, ["city"]);
     assert!(!explicit.unique);
 }

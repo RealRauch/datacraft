@@ -25,6 +25,9 @@ pub struct MockPort {
     native_queries: Vec<crate::port::NativeQuery>,
     /// File-owned views (phase 73, step 73.1; M90) — read-only.
     native_views: Vec<crate::port::NativeView>,
+    /// Read-only index/trigger inventory (phase 73, step 73.2; M90).
+    indexes: Vec<crate::port::SourceIndex>,
+    triggers: Vec<crate::port::SourceTrigger>,
     /// Column definitions of the native views, for read windows.
     view_defs: Vec<TableDef>,
     opened: Option<OpenedDatabase>,
@@ -167,6 +170,14 @@ impl StoragePort for MockPort {
 
     fn native_views(&self) -> Result<Vec<crate::port::NativeView>, PortError> {
         Ok(self.native_views.clone())
+    }
+
+    fn indexes(&self) -> Result<Vec<crate::port::SourceIndex>, PortError> {
+        Ok(self.indexes.clone())
+    }
+
+    fn triggers(&self) -> Result<Vec<crate::port::SourceTrigger>, PortError> {
+        Ok(self.triggers.clone())
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {

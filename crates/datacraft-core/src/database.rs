@@ -133,6 +133,9 @@ impl crate::core::Core {
                             .any(|design| design.name.eq_ignore_ascii_case(&view.name))
                     });
                 }
+                // Read-only source inventory (phase 73, step 73.2; M90).
+                let indexes = self.port.indexes().unwrap_or_default();
+                let triggers = self.port.triggers().unwrap_or_default();
                 let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
@@ -163,6 +166,8 @@ impl crate::core::Core {
                         .map(|document| document.views.clone())
                         .unwrap_or_default(),
                     native_views,
+                    indexes,
+                    triggers,
                     reports: sidecar
                         .as_ref()
                         .map(|document| document.reports.clone())

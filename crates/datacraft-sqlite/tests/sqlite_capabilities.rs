@@ -65,7 +65,8 @@ fn the_sqlite_driver_reports_its_writable_capabilities() {
     assert_eq!(caps.native_queries, Support::No);
     assert_eq!(caps.macros, Support::No);
     assert_eq!(caps.vba, Support::No);
-    assert_eq!(caps.triggers, Support::No);
+    // Triggers are exposed as a read-only inventory (phase 73, M90).
+    assert_eq!(caps.triggers, Support::ReadOnly);
     assert_eq!(caps.stored_procedures, Support::No);
 }
 

@@ -245,18 +245,6 @@ pub static TABLE: &[(&str, &str)] = &[
         "the open source cannot rename tables",
         "Die geöffnete Datenquelle kann keine Tabellen umbenennen",
     ),
-    ("New name", "Neuer Name"),
-    ("Read-only native view", "Schreibgeschützte native View"),
-    (
-        "The native view could not be read: {reason}",
-        "Die native View konnte nicht gelesen werden: {reason}",
-    ),
-    ("Rename {name}", "„{name}“ umbenennen"),
-    ("Current name: {name}", "Aktueller Name: {name}"),
-    (
-        "Rename the active table, query, form or report.",
-        "Benennt die aktive Tabelle, Abfrage, Formular oder Bericht um.",
-    ),
     (
         "the open source is read-only",
         "Die geöffnete Datenquelle ist schreibgeschützt",

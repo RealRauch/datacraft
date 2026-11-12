@@ -12,6 +12,7 @@ use crate::schema::{FieldValue, TableDef};
 mod capabilities;
 mod native_query;
 mod native_view;
+mod source_objects;
 mod write_op;
 
 pub use capabilities::{DriverCapabilities, DriverId, DriverInfo, Support};
@@ -19,6 +20,7 @@ pub use native_query::{
     NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
 };
 pub use native_view::NativeView;
+pub use source_objects::{SourceIndex, SourceTrigger};
 
 /// Binary format family of an opened database (domain vocabulary; the
 /// backends map their physical version detection onto it).
@@ -234,6 +236,17 @@ pub trait StoragePort {
     /// item M90) — read-only, never DataCraft's design layer. The default
     /// is empty: Jet/ACE and CSV carry none.
     fn native_views(&self) -> Result<Vec<NativeView>, PortError> {
+        Ok(Vec::new())
+    }
+    /// Indexes that live in the opened file itself (phase 73, step 73.2;
+    /// item M90) — read-only inventory. The default is empty.
+    fn indexes(&self) -> Result<Vec<SourceIndex>, PortError> {
+        Ok(Vec::new())
+    }
+    /// Triggers that live in the opened file itself (phase 73, step 73.2;
+    /// item M90) — inventory only, never created or executed. The default
+    /// is empty.
+    fn triggers(&self) -> Result<Vec<SourceTrigger>, PortError> {
         Ok(Vec::new())
     }
     /// Creates a table; errors on duplicate names.

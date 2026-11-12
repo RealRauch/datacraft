@@ -90,6 +90,14 @@ pub struct DatabaseSnapshot {
     /// read-only; sidecar designs with the same name are not repeated.
     #[serde(default)]
     pub native_views: Vec<NativeViewSnapshot>,
+    /// Indexes the opened source carries (phase 73, step 73.2; M90) —
+    /// read-only inventory.
+    #[serde(default)]
+    pub indexes: Vec<crate::port::SourceIndex>,
+    /// Triggers the opened source carries (phase 73, step 73.2; M90) —
+    /// inventory only.
+    #[serde(default)]
+    pub triggers: Vec<crate::port::SourceTrigger>,
     /// Why the native-query decode failed, if it did (step 23.3, M10).
     pub native_queries_error: Option<String>,
     /// Form design documents in creation order.
@@ -305,6 +313,8 @@ impl UiStateSnapshot {
                         fields: query.query_def().map(|def| def.fields).unwrap_or_default(),
                     }))
                     .collect(),
+                indexes: db.indexes.clone(),
+                triggers: db.triggers.clone(),
                 native_views: db
                     .native_views
                     .iter()
