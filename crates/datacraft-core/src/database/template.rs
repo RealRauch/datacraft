@@ -26,7 +26,7 @@ impl crate::core::Core {
         }
         if !self.port.capabilities().create_database {
             return failed(
-                FailureCode::Capability(crate::availability::DisabledReason::NoRelationships),
+                FailureCode::Capability(crate::availability::DisabledReason::CreateDatabase),
                 DriverCapabilities::unsupported(&self.port.driver_id(), "create database files"),
             );
         }
@@ -44,6 +44,18 @@ impl crate::core::Core {
             );
         };
         let format = template.format;
+        // The same suffix/format agreement as the plain creation (step
+        // 75.3, item L43), judged against the template-defined format.
+        if let Some(foreign) = format.creation_suffix_conflict(&path) {
+            return failed(
+                FailureCode::InvalidInput,
+                format!(
+                    "the path {} ends in .{foreign}, which does not match the template's \
+                     format {format} — rename the file or choose another template",
+                    path.display()
+                ),
+            );
+        }
         if let Err(e) = self.port.create_database(&path, format) {
             return failed(FailureCode::Port, e.to_string());
         }

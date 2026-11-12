@@ -322,6 +322,12 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Choose what to create", "Was möchtest du erstellen"),
     ("Blank database", "Leere Datenbank"),
     ("Back to the choice", "Zurück zur Auswahl"),
+    ("Jet 4 (.mdb)", "Jet 4 (.mdb)"),
+    ("SQLite (.sqlite)", "SQLite (.sqlite)"),
+    (
+        "The path ends in .{suffix}, which does not match the selected format {format}.",
+        "Der Pfad endet auf .{suffix}, was nicht zum gewählten Format {format} passt.",
+    ),
     ("tables", "Tabellen"),
     ("path for the new database", "Pfad für die neue Datenbank"),
     ("Create Database", "Datenbank erstellen"),

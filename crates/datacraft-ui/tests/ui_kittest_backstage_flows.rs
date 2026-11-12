@@ -219,9 +219,7 @@ fn backstage_new_blank_sqlite_with_a_jet_prefix_answers_precisely() {
 
     let dump = tree_dump(&harness);
     assert!(
-        dump.contains(
-            "The path ends in .mdb, which does not match the selected format SQLite."
-        ),
+        dump.contains("The path ends in .mdb, which does not match the selected format SQLite."),
         "the precise reason renders:\n{dump}"
     );
     assert!(disabled_line(&dump, "Button|Create Database|"), "{dump}");

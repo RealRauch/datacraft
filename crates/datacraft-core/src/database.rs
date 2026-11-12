@@ -241,11 +241,25 @@ impl crate::core::Core {
         path: std::path::PathBuf,
         format: crate::port::DatabaseFormat,
     ) -> Vec<Event> {
+        // Suffix/format agreement (step 75.3, item L43): the command
+        // carries the format explicitly, so only a known extension of the
+        // other creatable family is a contradiction — and it answers
+        // before the port, identically for every client.
+        if let Some(foreign) = format.creation_suffix_conflict(&path) {
+            return failed(
+                FailureCode::InvalidInput,
+                format!(
+                    "the path {} ends in .{foreign}, which does not match the chosen \
+                     format {format} — rename the file or choose the matching format",
+                    path.display()
+                ),
+            );
+        }
         // Capability gate (phase 30, M17): the driver declared creation
         // impossible — refuse before the port, same Failed shape.
         if !self.port.capabilities().create_database {
             return failed(
-                FailureCode::Capability(crate::availability::DisabledReason::NoRelationships),
+                FailureCode::Capability(crate::availability::DisabledReason::CreateDatabase),
                 DriverCapabilities::unsupported(&self.port.driver_id(), "create database files"),
             );
         }

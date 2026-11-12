@@ -45,6 +45,33 @@ pub enum DatabaseFormat {
     Csv,
 }
 
+impl DatabaseFormat {
+    /// The canonical extension of a family this build can create — without
+    /// the dot (step 75.3, item L43). The creation pickers suggest it and
+    /// the create commands compare against it.
+    pub fn create_extension(self) -> Option<&'static str> {
+        match self {
+            Self::Jet4 => Some("mdb"),
+            Self::Sqlite => Some("sqlite"),
+            Self::Jet3 | Self::Ace | Self::Csv => None,
+        }
+    }
+
+    /// The suffix conflict of a creation path (step 75.3, item L43): the
+    /// extension of the *other* creatable family, compared
+    /// case-insensitively. `None` accepts matching, unknown and missing
+    /// extensions — the create command carries the format explicitly, so
+    /// only a known extension of the other family is a contradiction.
+    pub fn creation_suffix_conflict(self, path: &std::path::Path) -> Option<&'static str> {
+        let extension = path.extension()?.to_str()?;
+        [Self::Jet4, Self::Sqlite]
+            .into_iter()
+            .filter(|family| *family != self)
+            .filter_map(Self::create_extension)
+            .find(|candidate| extension.eq_ignore_ascii_case(candidate))
+    }
+}
+
 /// Errors a storage backend reports through the port.
 ///
 /// `#[non_exhaustive]` (M22, ADR-7): adding a variant is not a breaking

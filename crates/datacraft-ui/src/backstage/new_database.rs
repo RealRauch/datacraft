@@ -11,8 +11,8 @@ use datacraft_core::port::DatabaseFormat;
 use eframe::egui;
 
 use crate::app::App;
-use crate::i18n::t;
-use crate::theme::fonts;
+use crate::i18n::{t, tr};
+use crate::theme::{fonts, tokens};
 use crate::tooltips;
 
 use super::pages::{backstage_button, card, status_line};
@@ -159,16 +159,37 @@ fn location_step(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>, r
         ui.label(egui::RichText::new(caption).strong().size(fonts::BODY_SIZE));
     });
     ui.add_space(8.0);
+    if matches!(kind, NewDatabaseKind::Blank) {
+        format_picker(app, ui, restricted);
+        ui.add_space(8.0);
+    }
     ui.label(t("path for the new database"));
     ui.add(
         egui::TextEdit::singleline(&mut app.new_database.path)
             .desired_width(360.0)
             .hint_text(t("path for the new database")),
     );
+    let chosen_format = chosen_format(app, &kind);
+    let conflict = chosen_format.and_then(|format| {
+        format
+            .creation_suffix_conflict(std::path::Path::new(app.new_database.path.trim()))
+            .map(|suffix| (suffix, format))
+    });
+    if let Some((suffix, format)) = conflict {
+        let format_text = format.to_string();
+        let reason = tr(
+            "The path ends in .{suffix}, which does not match the selected format {format}.",
+            &[("suffix", suffix), ("format", &format_text)],
+        );
+        ui.label(egui::RichText::new(reason).color(tokens(ui.visuals()).danger));
+    }
     let suggested = std::path::Path::new(app.new_database.path.trim())
         .file_name()
         .map_or_else(
-            || "database.mdb".to_owned(),
+            || match chosen_format {
+                Some(DatabaseFormat::Sqlite) => "database.sqlite".to_owned(),
+                _ => "database.mdb".to_owned(),
+            },
             |n| n.to_string_lossy().into_owned(),
         );
     let browse = ui
@@ -180,13 +201,13 @@ fn location_step(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>, r
         app.new_database.path = path.display().to_string();
     }
     ui.add_space(8.0);
-    let enabled = !restricted && !app.new_database.path.trim().is_empty();
+    let enabled = !restricted && !app.new_database.path.trim().is_empty() && conflict.is_none();
     backstage_button(app, ui, "create", t("Create Database"), enabled, |app| {
         let path = app.new_database.path.trim().to_owned();
         match app.new_database.kind.clone() {
-            Some(NewDatabaseKind::Blank) => intents.push(Command::CreateDatabaseFromTemplate {
+            Some(NewDatabaseKind::Blank) => intents.push(Command::CreateDatabase {
                 path: path.clone().into(),
-                template: "blank".to_owned(),
+                format: app.new_database.blank_format,
             }),
             Some(NewDatabaseKind::Template(template)) => {
                 intents.push(Command::CreateDatabaseFromTemplate {
@@ -202,4 +223,39 @@ fn location_step(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>, r
             source: None,
         });
     });
+}
+
+/// The blank path's format picker (step 75.3, item L43): Jet4 stays the
+/// default, SQLite is the second creatable family. The control follows the
+/// create capability, like the Create button.
+fn format_picker(app: &mut App, ui: &mut egui::Ui, restricted: bool) {
+    ui.label(t("Format"));
+    ui.add_enabled_ui(!restricted, |ui| {
+        ui.horizontal(|ui| {
+            ui.radio_value(
+                &mut app.new_database.blank_format,
+                DatabaseFormat::Jet4,
+                t("Jet 4 (.mdb)"),
+            );
+            ui.radio_value(
+                &mut app.new_database.blank_format,
+                DatabaseFormat::Sqlite,
+                t("SQLite (.sqlite)"),
+            );
+        });
+    });
+}
+
+/// The creation format the chosen kind implies (step 75.3, item L43): the
+/// blank path's picker, or the template's registry format.
+fn chosen_format(app: &App, kind: &NewDatabaseKind) -> Option<DatabaseFormat> {
+    match kind {
+        NewDatabaseKind::Blank => Some(app.new_database.blank_format),
+        NewDatabaseKind::Template(name) => app
+            .snapshot()
+            .templates
+            .iter()
+            .find(|template| template.name == *name)
+            .map(|template| template.format),
+    }
 }
