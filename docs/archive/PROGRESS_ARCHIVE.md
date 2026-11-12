@@ -1085,3 +1085,44 @@ is green.
 
 **Verification:** Canonical set (fmt, clippy `-D warnings`, workspace
 tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
+
+---
+
+### Phase 74 — Native Access objects (M87, M89)
+
+**Scope (Steps):**
+
+- **74.1 Native Access forms and reports: read-only MSysObjects inventory in snapshot and nav pane, no definition decoding (M87)**
+- **74.2 Time-boxed feasibility verdict on decoding native form/report definitions against the committed SaveAsText exports (M89)**
+- **74.3 Documentation and phase gate (M87, M89)**
+
+**Goal:** Make native Access form/report objects *visible* and decide,
+with evidence, whether their definitions can ever be decoded from the
+file. M87 is the cheap honest first step: the catalog decodes the
+`MSysObjects` form/report object types into a read-only inventory
+(name, type) on the snapshot, the navigation pane gains a read-only
+group with a precise "definitions are not decoded" hint, and no
+definition bytes are parsed and no write path exists. M89 is a
+time-boxed feasibility study, not a promise: one form blob from the
+pinned `programmability.accdb` fixture is correlated with the committed
+SaveAsText export of the *same* object (control order, rects, captions,
+sources, section structure); the study either establishes the container
+and property encoding for a supported subset or records "not feasible
+without a specification" with its evidence. Nothing ships without the
+verdict; clean-room rules apply (own black-box observation and public
+documents only). Low class: Rust source/tests/docs, no dependencies, no
+fixture changes, no write path.
+
+**Acceptance:** M87: a fixture with native forms/reports (the
+self-created `programmability.accdb`) lists their names and counts in
+snapshot and nav pane, the hint names the boundary, and the read-only
+group offers no write or definition tab; kittest and the port contract
+pins cover the empty sidecars for SQLite/CSV. M89: a written verdict
+with a blob↔text mapping for at least one form, a supported-subset
+decision, or a documented stop; the study leaves the backlog item
+accurately closed (follow-up work filed only when the verdict is
+"feasible").
+
+**Verification:** Canonical set (fmt, clippy `-D warnings`, workspace
+tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
+**Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests, lcov 18812/19688 = 95.551 %); file-size gate green (26 files ≥ 455, port_adapter entered the band at 488, no split forced); M89 verdict documented in FORMAT-JET; docs_validate clean; CI verification rides the push. (checkpoint: c85b7af)
