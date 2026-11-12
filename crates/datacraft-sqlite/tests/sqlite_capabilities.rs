@@ -56,7 +56,8 @@ fn the_sqlite_driver_reports_its_writable_capabilities() {
     assert!(caps.create_table);
     assert!(caps.drop_table);
     assert!(caps.create_database);
-    assert!(!caps.alter_table, "SQLite has no alter path yet");
+    assert!(!caps.alter_table, "SQLite has no field alter path yet");
+    assert!(caps.rename_table, "native ALTER TABLE RENAME");
     assert!(!caps.atomic_batch, "batches apply one by one");
     assert!(!caps.passwords, "SQLite has no database password");
     assert_eq!(caps.autonumber, Support::Yes);
@@ -87,6 +88,7 @@ fn a_read_only_sqlite_file_reports_read_only_capabilities() {
     assert!(!caps.write_rows);
     assert!(!caps.create_table);
     assert!(!caps.drop_table);
+    assert!(!caps.rename_table);
 
     // The declared read-only state is a contract on the calls, too.
     let error = port

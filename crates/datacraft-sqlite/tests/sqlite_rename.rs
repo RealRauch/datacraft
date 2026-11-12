@@ -88,15 +88,21 @@ fn created(stem: &str) -> (Core, Scratch) {
             "{events:?}"
         );
     }
-    for (id, label) in [(1, "Ada"), (2, "Grace")] {
-        core.dispatch(Command::InsertRow {
+    for label in ["Ada", "Grace"] {
+        let events = core.dispatch(Command::InsertRow {
             table: "parents".into(),
-            values: vec![FieldValue::Integer(id), FieldValue::Text(label.into())],
+            values: vec![FieldValue::Null, FieldValue::Text(label.into())],
         });
+        assert!(
+            !events
+                .iter()
+                .any(|event| matches!(event, Event::Failed { .. })),
+            "{events:?}"
+        );
     }
     core.dispatch(Command::InsertRow {
         table: "children".into(),
-        values: vec![FieldValue::Integer(10), FieldValue::Integer(1)],
+        values: vec![FieldValue::Null, FieldValue::Integer(1)],
     });
     (core, scratch)
 }

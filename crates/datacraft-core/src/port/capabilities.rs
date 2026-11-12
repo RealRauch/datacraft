@@ -72,6 +72,10 @@ pub struct DriverCapabilities {
     pub create_database: bool,
     /// Schemas can be altered in place (`alter_table`).
     pub alter_table: bool,
+    /// Tables can be renamed in place (`rename_table`, phase 72 / M81).
+    /// Declared separately from `alter_table`: a backend may support the
+    /// rename without field-level alterations (SQLite's current stage).
+    pub rename_table: bool,
     /// A batch via `write_row_ops` applies atomically — either every
     /// operation lands or none does.
     pub atomic_batch: bool,
@@ -109,6 +113,7 @@ impl DriverCapabilities {
             drop_table: false,
             create_database: false,
             alter_table: false,
+            rename_table: false,
             atomic_batch: false,
             passwords: false,
             autonumber: Support::No,
@@ -135,6 +140,7 @@ impl DriverCapabilities {
             drop_table: true,
             create_database: true,
             alter_table: true,
+            rename_table: true,
             atomic_batch: false,
             passwords: true,
             autonumber: Support::No,

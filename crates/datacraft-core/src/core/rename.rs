@@ -46,7 +46,7 @@ impl Core {
             .database
             .as_ref()
             .expect("checked by rename_object");
-        if !db.capabilities.alter_table {
+        if !db.capabilities.rename_table {
             return failed(
                 FailureCode::Capability(crate::availability::DisabledReason::AlterTables),
                 DriverCapabilities::unsupported(&db.driver, "rename tables for this source"),

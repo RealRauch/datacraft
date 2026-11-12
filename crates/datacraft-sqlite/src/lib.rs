@@ -116,18 +116,19 @@ impl StoragePort for SqlitePort {
         DriverId::new("sqlite")
     }
 
-    /// Per-session capabilities (phase 30, M17; ADR-7): no schema
-    /// alteration path yet, batches apply one by one (no transaction
-    /// wrapper), passwords do not exist, and the inventories Jet exposes
-    /// (native queries, macros, VBA) have no SQLite counterpart. A
-    /// read-only file disables the write capabilities; file creation is
-    /// session-independent.
+    /// Per-session capabilities (phase 30, M17; ADR-7): table renames ride
+    /// the native `ALTER TABLE`; field-level alterations, batches one by
+    /// one (no transaction wrapper), passwords do not exist, and the
+    /// inventories Jet exposes (native queries, macros, VBA) have no
+    /// SQLite counterpart. A read-only file disables the write
+    /// capabilities; file creation is session-independent.
     fn capabilities(&self) -> DriverCapabilities {
         let mut caps = DriverCapabilities::full();
         caps.write_rows = self.writable;
         caps.create_table = self.writable;
         caps.drop_table = self.writable;
         caps.alter_table = false;
+        caps.rename_table = self.writable;
         caps.atomic_batch = false;
         caps.passwords = false;
         caps.relationships = Support::Yes;
@@ -295,6 +296,52 @@ COMMIT;",
             })?;
         self.tables.remove(pos);
         Ok(canonical)
+    }
+
+    fn rename_table(&mut self, table: &str, new_name: &str) -> Result<String, PortError> {
+        let Some(pos) = self
+            .tables
+            .iter()
+            .position(|t| t.name.eq_ignore_ascii_case(table))
+        else {
+            return Err(PortError::TableNotFound(table.to_owned()));
+        };
+        let canonical = self.tables[pos].name.clone();
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
+        if canonical.eq_ignore_ascii_case(new_name) && canonical != new_name {
+            return Err(PortError::Unsupported {
+                reason: format!(
+                    "SQLite cannot change the case of a table name in place \
+                     ({canonical:?} -> {new_name:?}) — SQLite compares names case-insensitively"
+                ),
+            });
+        }
+        if self
+            .tables
+            .iter()
+            .enumerate()
+            .any(|(index, t)| index != pos && t.name.eq_ignore_ascii_case(new_name))
+        {
+            return Err(PortError::WriteFailed {
+                detail: format!("duplicate table name {new_name:?}"),
+            });
+        }
+        conn.execute(
+            &format!(
+                "ALTER TABLE {} RENAME TO {}",
+                quote_ident(&canonical),
+                quote_ident(new_name)
+            ),
+            [],
+        )
+        .map_err(|e| PortError::WriteFailed {
+            detail: format!("renaming table {canonical:?} failed: {e}"),
+        })?;
+        self.tables[pos].name = new_name.to_owned();
+        Ok(new_name.to_owned())
     }
 
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {

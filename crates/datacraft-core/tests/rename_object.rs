@@ -425,7 +425,7 @@ fn rename_gates_are_precise() {
     assert!(reason.contains("no database is open"), "{reason}");
 
     let mut caps = DriverCapabilities::full();
-    caps.alter_table = false;
+    caps.rename_table = false;
     let mut port = MockPort::with_tables(vec![table("T")]);
     port.with_capabilities(caps);
     let mut restricted = Core::new(Box::new(port));
