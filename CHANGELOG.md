@@ -58,6 +58,20 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   are `non_exhaustive`), so the CLI and MCP clients dispatch the command
   unchanged.
 
+### Added
+- sqlite/ui: SQLite depth stage 0 (73, M90–M92) — a foreign `.sqlite` file
+  now shows what it contains and reports its state honestly. The file's own
+  views open as read-only objects (nav-pane Views group, datasheet, SQL
+  path; sidecar designs keep the writable authority), indexes and triggers
+  get a read-only inventory in the table design view, and the Info page
+  lists the driver facts (`sqlite_version`, page size, journal mode,
+  encoding, `user_version`, busy timeout, `STRICT`/`WITHOUT ROWID` tables)
+  plus a bounded `quick_check` verdict — a damaged file opens with a precise
+  warning notice instead of a late, unrelated query error. The open sets an
+  explicit 5000 ms `busy_timeout` so short writer contention is waited out;
+  a WAL session reports its mode; `WITHOUT ROWID` row windows follow the
+  declared primary key and rowid writes answer a precise `Unsupported`.
+
 ## [0.1.1] — 2026-11-10
 
 ### Added

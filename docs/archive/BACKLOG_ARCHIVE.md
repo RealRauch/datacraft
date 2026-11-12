@@ -2012,3 +2012,33 @@
 - **Steps:** Phase 66 (66.1) — released 2026-11-10.
 - **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
 - **Done:** v0.1.2 tag run 43262808856 fully green — the draft carries the changelog-derived notes and all four assets (2026-11-12)
+
+---
+
+### [x] M90 — SQLite views and index/trigger metadata are invisible — surface them read-only — 🟡
+- **Location:** `crates/datacraft-sqlite` catalog (`sqlite_master`), core snapshot (`native_views`, `indexes`, `triggers`), UI navigation pane (Views group) and table design view.
+- **Problem:** SQLite views and the index/trigger metadata of a file are invisible today — a user cannot see what a foreign file contains beyond its tables, and the migration assessment has no source for it.
+- **Approach:** read `sqlite_master` views as **read-only objects** (a nav-pane Views group; datasheet and the SQL path read them, no write affordance); surface a read-only index/trigger inventory per table (name, columns or SQL excerpt). Trigger logic is never executed or created — inventory only (ADR-2 analog).
+- **Acceptance:** a fixture with views/indexes/triggers lists them read-only in snapshot and nav pane; views read their rows; no write affordance on views; kittest and port contract pins.
+- **Steps:** Phase 73 (73.1, 73.2).
+- **Done:** phase 73 (73.1 `1c51d3a`, 73.2 `42007d1`)
+
+---
+
+### [x] M91 — SQLite files carry no facts or health check — show version/journal/page facts and quick_check — 🟡
+- **Location:** `crates/datacraft-sqlite` open path, `SourceFacts` on the port/snapshot, the Info backstage page, the notice history.
+- **Problem:** The Info page shows only name and format; a SQLite file's journal mode (WAL), page size, encoding, SQLite version and `user_version` are invisible, and corruption surfaces late as an unrelated query error.
+- **Approach:** read the `PRAGMA` facts at open into the snapshot (additive driver facts), run a bounded `PRAGMA quick_check(1)` and surface a failure as a precise notice instead of a late query error; the Info page renders the facts in its Access-style fact rows.
+- **Acceptance:** the facts appear for a fixture; a deliberately corrupted fixture answers a precise failure at open; kittest and port pins cover both.
+- **Steps:** Phase 73 (73.3).
+- **Done:** phase 73 (73.3 `ec49f68`)
+
+---
+
+### [x] M92 — SQLite opens invite SQLITE_BUSY and silently mis-order WITHOUT ROWID tables — 🟡
+- **Location:** `crates/datacraft-sqlite` open and row-window paths (`PRAGMA`, the rowid-addressed update/delete statements).
+- **Problem:** The open sets no explicit `busy_timeout` (the driver default was implicit), the row window/write path assumes `rowid`, which does not exist on `WITHOUT ROWID` tables (silently wrong order or failure), and `STRICT` tables are not declared anywhere.
+- **Approach:** set a bounded, observable `busy_timeout` on open; surface `journal_mode = wal` as a fact (concurrent readers see the latest committed state); order `WITHOUT ROWID` tables by their declared primary key and answer a precise `Unsupported` on rowid writes; report `STRICT` and `WITHOUT ROWID` tables in the file facts.
+- **Acceptance:** a `WITHOUT ROWID` fixture reads in primary-key order or refuses precisely; the busy timeout is set and observable; a WAL fixture opens and reports the mode; kittest and port pins cover all three.
+- **Steps:** Phase 73 (73.4).
+- **Done:** phase 73 (73.4 `19e8e2d`)

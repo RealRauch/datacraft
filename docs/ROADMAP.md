@@ -688,7 +688,7 @@ own items:
 
 | Stage | Content | Notes |
 |---|---|---|
-| 0 — Visibility (now) | Views as read-only tables; index/trigger inventory; file facts (`sqlite_version`, `page_size`, `journal_mode`, `encoding`, `user_version`) and a bounded `quick_check` at open; robust open (`busy_timeout`, WAL notice) and `WITHOUT ROWID`/`STRICT` honesty. | Filed as M90–M92. |
+| 0 — Visibility (delivered 2026-11-12, phase 73) | Views as read-only objects; index/trigger inventory; file facts (`sqlite_version`, `page_size`, `journal_mode`, `encoding`, `user_version`, `busy_timeout`) and a bounded `quick_check` at open; robust open (`busy_timeout`, WAL fact) and `WITHOUT ROWID`/`STRICT` honesty. | M90–M92 delivered; a damaged file opens with a precise `SourceHealthWarning`. |
 | 1 — SQL pushdown | The SQL window runs read-only SQL directly against a SQLite source (full dialect, index use, views, `EXPLAIN QUERY PLAN`); the shadow materialization stays for Jet/CSV. | Writes stay on the command bus. |
 | 2 — Write parity | SQLite `alter_table` (ADD/RENAME natively, DROP via rebuild), `atomic_batch` via one transaction, index management (list/create/drop). | The capability flags flip to an honest `Yes`. |
 | 3 — Conversion & templates | Cross-format conversion Jet4/ACE ↔ SQLite (schema, data, relationships; the sidecar follows the name), SQLite templates alongside the Jet4 ones. | The Jet writer is the conversion target and matures through real use. |

@@ -990,7 +990,27 @@ affinity rules:
 under a GUID column parses to `Guid`); blobs → `Binary` (16-byte blobs
 under a GUID column become `Guid`). Row windows use `LIMIT/OFFSET` over
 the table's natural rowid order; a window starting beyond the count is
-`OutOfRange`, one starting at the count is empty.
+`OutOfRange`, one starting at the count is empty. `WITHOUT ROWID` tables
+have no rowid order: their window carries an explicit `ORDER BY` over the
+declared primary key (composite keys in key order), and rowid-based
+updates/deletes answer a precise `Unsupported` (phase 73, M92).
+
+**Foreign views, object inventory and file facts (phase 73, stage 0).**
+The file's own views (`sqlite_master type='view'`) are read-only catalog
+objects: `PRAGMA table_info` supplies their columns, read windows and the
+SQL path serve their rows, and every write answers a precise `Unsupported`.
+They never enter the table catalog, and a sidecar view design with the same
+name wins (the sidecar stays the design authority). Indexes
+(`type='index'`, automatic `sqlite_autoindex_*` constraint indexes included)
+and triggers (`type='trigger'`) are listed read-only — trigger SQL is never
+parsed, created or executed. The open reads the driver facts
+(`sqlite_version`, `page_size`, `journal_mode`, `encoding`, `user_version`,
+`busy_timeout`, plus the `strict_tables`/`without_rowid_tables` names when
+present) and runs a bounded `PRAGMA quick_check(1)`; a damaged file opens
+with a `SourceHealthWarning` naming the verdict instead of failing later in
+an unrelated query. The connection sets an explicit 5000 ms `busy_timeout`,
+so short writer contention is waited out rather than answering a bare
+`SQLITE_BUSY`; a WAL file's mode is visible as the `journal_mode` fact.
 
 **Writes (step 13.2).** `create_table` emits `CREATE TABLE` with the
 inverse of the affinity table: text → `VARCHAR(n)`/`TEXT`, integral numbers →
