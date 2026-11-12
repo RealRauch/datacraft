@@ -72,13 +72,6 @@
 - **Acceptance:** a `WITHOUT ROWID` fixture reads in primary-key order or refuses precisely; the busy timeout is set; a WAL fixture opens and reports the mode; kittest and port pins cover all three.
 - **Steps:** none yet (SQLite depth stage 0, ROADMAP §19).
 
-### [ ] M93 — DataCraft views: sidecar SELECT designs, shadow-engine execution, native on SQLite — 🟡
-- **Location:** `SchemaDocument` (`crates/datacraft-core/src/schema/document.rs`), core command vocabulary, `ObjectKind` (`lib.rs`), snapshot, nav pane, workspace/datasheet, `SqlitePort` (CREATE/DROP VIEW).
-- **Problem:** DataCraft has no view concept: a named `SELECT` cannot be saved, reopened or shared; SQLite files may contain native views (invisible, M90); Jet/ACE/CSV have no view engine at all. The review decided views are worth doing (they are cheap); triggers stay deferred in ROADMAP §19.
-- **Approach:** a sidecar `ViewDef { name, sql }` as design authority; `ObjectKind::View`, snapshot entries and a nav-pane group; opening a view runs its `SELECT` through the shadow engine on Jet/ACE/CSV, while on SQLite the view is applied natively (`CREATE VIEW`) and executed by SQLite. Name/collision and SELECT-only validation; read-only result tabs; renaming stays part of M81.
-- **Acceptance:** create/delete a view in the sidecar; opening it shows its rows read-only; Jet/CSV execute through the shadow engine, SQLite applies natively and the snapshot reports the view; all clients (GUI, CLI, MCP, direct bus) see it; kittest and contract pins cover both execution paths.
-- **Steps:** Phase 71 (71.1–71.3).
-
 ---
 
 ## 🟢 LOW
@@ -374,3 +367,4 @@
 - H58 — Wildcard patterns in filters are treated as literal equality — `*a*` returns an empty result set — done (done in `990ca85` (RED `2a511d6`))
 - M86 — Stored notice and error texts freeze the language of their creation — live switch leaves mixed languages — done (done in `2d938d9` (RED `407bdc2`))
 - M78 — M42 window-chrome polish pass — the deferred subjective review findings — done (done in `659498a` (RED `15e78ab`) — the tool windows carry the accent frame, strong controls and legible weak text in both palettes)
+- M93 — DataCraft views: sidecar SELECT designs, shadow-engine execution, native on SQLite — done (done in `8beb67a` (RED `b79c6b4`/`a5560bb`) — sidecar views with the shadow-engine and native SQLite paths; triggers deferred to ROADMAP §19)

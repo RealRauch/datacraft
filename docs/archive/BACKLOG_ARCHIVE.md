@@ -1981,3 +1981,13 @@
 - **Acceptance:** the human's review list is either fixed or filed as items; canonical verification set green; `theme.rs` stays below 480; no color literal outside the token module (grep/test).
 - **Steps:** Phase 68 (68.6) — the live review ran 2026-11-11; the recorded finding waits for its own step (the phase closed with 68.6 blocked).
 - **Done:** done in `659498a` (RED `15e78ab`) — the tool windows carry the accent frame, strong controls and legible weak text in both palettes
+
+---
+
+### [x] M93 — DataCraft views: sidecar SELECT designs, shadow-engine execution, native on SQLite — 🟡
+- **Location:** `SchemaDocument` (`crates/datacraft-core/src/schema/document.rs`), core command vocabulary, `ObjectKind` (`lib.rs`), snapshot, nav pane, workspace/datasheet, `SqlitePort` (CREATE/DROP VIEW).
+- **Problem:** DataCraft has no view concept: a named `SELECT` cannot be saved, reopened or shared; SQLite files may contain native views (invisible, M90); Jet/ACE/CSV have no view engine at all. The review decided views are worth doing (they are cheap); triggers stay deferred in ROADMAP §19.
+- **Approach:** a sidecar `ViewDef { name, sql }` as design authority; `ObjectKind::View`, snapshot entries and a nav-pane group; opening a view runs its `SELECT` through the shadow engine on Jet/ACE/CSV, while on SQLite the view is applied natively (`CREATE VIEW`) and executed by SQLite. Name/collision and SELECT-only validation; read-only result tabs; renaming stays part of M81.
+- **Acceptance:** create/delete a view in the sidecar; opening it shows its rows read-only; Jet/CSV execute through the shadow engine, SQLite applies natively and the snapshot reports the view; all clients (GUI, CLI, MCP, direct bus) see it; kittest and contract pins cover both execution paths.
+- **Steps:** Phase 71 (71.1–71.3).
+- **Done:** done in `8beb67a` (RED `b79c6b4`/`a5560bb`) — sidecar views with the shadow-engine and native SQLite paths; triggers deferred to ROADMAP §19

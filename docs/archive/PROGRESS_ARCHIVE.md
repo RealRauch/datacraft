@@ -989,3 +989,15 @@ a visible frame/title structure and legible secondary text in light and
 dark; the palette contrast tests stay green. Canonical set green on CI; no
 `.rs` file ≥ 500 lines.
 **Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests, lcov 17673/18486 = 95.602 %) and CI run 43105933972 fully green 13/13 (tests ubuntu/windows/macos, coverage, hygiene, boundaries, rustdoc, both oracles); items H58/M86/M78 archived; docs_validate clean.
+
+---
+
+### Phase 71 — Views
+
+**Scope (Steps):**
+
+- **71.1 Core: ViewDef in the sidecar, snapshot entries, create/delete/set-sql commands, SELECT-only validation, ObjectKind::View opens a tab (M93)**
+- **71.2 UI: nav-pane Views group, create/edit/delete dialog, read-only datasheet from the view SQL, kittest (M93)**
+- **71.3 SQLite: apply the view natively (CREATE VIEW / DROP VIEW), capability-gated, with contract pins (M93)**
+- **71.4 Phase 71 Quality Gate Review**
+**Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests, lcov 17843/18715 = 95.341 %) and CI run 43127407577 fully green (all 13 jobs); views work end to end (sidecar design, shadow-engine execution, native SQLite apply with rollback); port.rs split kept the size gate green; docs_validate clean.
