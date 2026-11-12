@@ -9,6 +9,47 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 73 — SQLite depth stage 0 (M90–M92)
+
+**Scope (Steps):**
+
+- **73.1 Native SQLite views as read-only objects: catalog, snapshot, nav-pane group, datasheet and SQL path (M90)**
+- **73.2 Read-only index/trigger inventory per table in the snapshot and a UI surface (M90)**
+- **73.3 File facts and a bounded quick_check at open: port channel, snapshot, Info page, precise notice (M91)**
+- **73.4 Robust open and honesty: busy_timeout, WAL fact/notice, WITHOUT ROWID and STRICT refusals (M92)**
+- **73.5 Documentation and phase gate (M90–M92)**
+
+**Goal:** Open ROADMAP §19 stage 0 — SQLite as a first-class source is
+*visible* and *honest* about foreign files, following the human decision of
+2026-11-12 and the item wording of M90–M92. A foreign `.sqlite` file's own
+views become read-only catalog objects (nav-pane Views group, read-only
+datasheet, SQL path), its indexes and triggers get a read-only inventory,
+and the Info page reports file facts (`sqlite_version`, page size, journal
+mode, encoding, `user_version`, `STRICT`/`WITHOUT ROWID`) plus a bounded
+`quick_check` verdict as a notice. The open itself becomes robust: a
+bounded `busy_timeout`, a WAL co-existence fact, and precise refusals for
+`WITHOUT ROWID` writes instead of a late SQLite error. Trigger logic is
+never created or executed (inventory only, ADR-2 analog); the sidecar view
+designs from M93 stay the writable design authority. All edits are Low
+class (Rust source/tests only; test databases are generated in scratch
+directories, no committed fixtures, no dependencies).
+
+**Acceptance:** A generated fixture carrying a native view, an index and a
+trigger lists all three read-only in snapshot and nav pane; the native view
+opens a read-only datasheet and answers rows through the SQL path, with no
+write affordance. The Info page shows the file facts and a `quick_check`
+verdict; a deliberately corrupted file answers a precise open notice
+instead of a late query error. A WAL file opens and reports its mode; a
+`WITHOUT ROWID` table answers a precise `Unsupported` on writes (or, where
+chosen, reads in declared-PK order) and `STRICT` is reported; a parallel
+writer no longer trips a bare `SQLITE_BUSY` inside the bus timeout. Port
+contract pins cover SQLite and the Jet/CSV side of every additive snapshot
+field; kittest pins cover the UI surfaces; the canonical verification set
+is green.
+
+**Verification:** Canonical set (fmt, clippy `-D warnings`, workspace
+tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
+
 
 
 
@@ -404,3 +445,8 @@
 | 72.3 | SQLite native rename and CSV boundary (M81) | ✅ |
 | 72.4 | Nav-pane rename surface: context menu, F2, dialog (M81) | ✅ |
 | 72.5 | Documentation and phase gate (M81) | ✅ |
+| 73.1 | Native SQLite views as read-only objects: catalog, snapshot, nav-pane group, datasheet and SQL path (M90) | ⬜ |
+| 73.2 | Read-only index/trigger inventory per table in the snapshot and a UI surface (M90) | ⬜ |
+| 73.3 | File facts and a bounded quick_check at open: port channel, snapshot, Info page, precise notice (M91) | ⬜ |
+| 73.4 | Robust open and honesty: busy_timeout, WAL fact/notice, WITHOUT ROWID and STRICT refusals (M92) | ⬜ |
+| 73.5 | Documentation and phase gate (M90–M92) | ⬜ |
