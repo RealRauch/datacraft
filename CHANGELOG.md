@@ -9,6 +9,17 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+### Added
+- ui/core: the empty-shell landing and the two-step New-database flow (75,
+  L41–L43) — a cold start and the close of the last database land on the File
+  backstage; the workspace returns with the next open, and the Back row still
+  reaches the ribbon. The New page asks what to create first (blank or a
+  shipped template) and where second, keeping the choice across Back. A blank
+  database chooses its family explicitly — Jet4 (`.mdb`, the default) or
+  SQLite — through `CreateDatabase`; a path whose known extension contradicts
+  the chosen format answers a precise `InvalidInput` before the port, for GUI,
+  CLI and MCP alike.
+
 ## [0.1.3] — 2026-11-12
 
 ### Added

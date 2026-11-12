@@ -2062,3 +2062,13 @@
 - **Acceptance:** a written verdict with evidence (blob ↔ text mapping for at least one form), a supported-subset decision, or a documented stop; nothing ships without the verdict; clean-room (own observation and public docs only, no third-party source).
 - **Steps:** Phase 74 (74.2) — documented stop, evidence in FORMAT-JET "Native form/report definitions — M89 feasibility".
 - **Done:** phase 74 (74.2 `ace9225`) — documented stop; evidence in FORMAT-JET "Native form/report definitions — M89 feasibility"
+
+---
+
+### [x] M94 — Creation capability refusals answer the no_relationships code instead of create_database — 🟡
+- **Location:** `crates/datacraft-core/src/database.rs` (`create_database`, the `!self.port.capabilities().create_database` arm) and `crates/datacraft-core/src/database/template.rs` (`create_database_from_template`, same arm).
+- **Problem:** Both capability refusals carry `FailureCode::Capability(DisabledReason::NoRelationships)` while the vocabulary has `DisabledReason::CreateDatabase` (used correctly by the availability map). Headless clients read the machine-readable code and are told "no relationships" for a creation refusal — the I6 localization/code contract is wrong on the wire; the English reason is right, which is why no test caught it (`journal_caps.rs` asserts only the text).
+- **Approach:** Switch both arms to `DisabledReason::CreateDatabase`; pin the code in the existing capability tests (the reason text stays unchanged, so no UI catalog or wire text changes).
+- **Acceptance:** A refused creation answers `FailureCode::Capability(CreateDatabase)` on both commands; the test asserts the code, not only the prose; no other behavior changes.
+- **Steps:** rides 75.3 (the step touches `create_database` for the suffix rule) — Low, two-line fix plus pin.
+- **Done:** fixed test-first in `04486dd` (RED `218ae58`) — both creation refusals now carry `FailureCode::Capability(DisabledReason::CreateDatabase)`; pinned by `create_database.rs`

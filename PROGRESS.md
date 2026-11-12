@@ -487,7 +487,7 @@ tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
 | 74.1 | Native Access forms and reports: read-only MSysObjects inventory in snapshot and nav pane, no definition decoding (M87) | ✅ |
 | 74.2 | Time-boxed feasibility verdict on decoding native form/report definitions against the committed SaveAsText exports (M89) | ✅ |
 | 74.3 | Documentation and phase gate (M87, M89) | ✅ |
-| 75.1 | Empty shell lands on the backstage, close returns to it (L41) | ⬜ |
-| 75.2 | New database: choose what, then choose where (L42) | ⬜ |
-| 75.3 | Blank database format choice: .mdb (Jet4) or SQLite (L43) | ⬜ |
-| 75.4 | Documentation and phase gate (L41–L43) | ⬜ |
+| 75.1 | Empty shell lands on the backstage, close returns to it (L41) | ✅ |
+| 75.2 | New database: choose what, then choose where (L42) | ✅ |
+| 75.3 | Blank database format choice: .mdb (Jet4) or SQLite (L43) | ✅ |
+| 75.4 | Documentation and phase gate (L41–L43) | 🔄 |
