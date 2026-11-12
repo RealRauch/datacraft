@@ -9,6 +9,8 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+## [0.1.2] — 2026-11-12
+
 ### Added
 - ui: the feedback & honesty sweep (ROADMAP §16 stage 0) — Ctrl+Z/Ctrl+Y
   reach the shipped undo/redo commands (an empty history stays a no-op), every
