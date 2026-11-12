@@ -9,6 +9,32 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+## [0.1.3] — 2026-11-12
+
+### Added
+- sqlite/ui: SQLite depth stage 0 (73, M90–M92) — a foreign `.sqlite` file
+  now shows what it contains and reports its state honestly. The file's own
+  views open as read-only objects (nav-pane Views group, datasheet, SQL
+  path; sidecar designs keep the writable authority), indexes and triggers
+  get a read-only inventory in the table design view, and the Info page
+  lists the driver facts (`sqlite_version`, page size, journal mode,
+  encoding, `user_version`, busy timeout, `STRICT`/`WITHOUT ROWID` tables)
+  plus a bounded `quick_check` verdict — a damaged file opens with a precise
+  warning notice instead of a late, unrelated query error. The open sets an
+  explicit 5000 ms `busy_timeout` so short writer contention is waited out;
+  a WAL session reports its mode; `WITHOUT ROWID` row windows follow the
+  declared primary key and rowid writes answer a precise `Unsupported`.
+
+### Added
+- core/jet/ui: native Access object inventory (74, M87) — the navigation
+  pane lists the catalog's native forms and reports read-only (names and
+  counts from the `MSysObjects` object types, a precise "definitions are
+  not decoded" hint, no tab and no write path). The companion feasibility
+  study (M89) established the `MSysAccessStorage` container and the
+  blob/`TypeInfo` string layer against the committed SaveAsText exports,
+  but the numeric property-id table has no public source; the verdict is a
+  documented stop, recorded in `docs/FORMAT-JET.md`.
+
 ## [0.1.2] — 2026-11-12
 
 ### Added
@@ -57,30 +83,6 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   capability boundary. The vocabulary is wire-additive (`Command`/`Event`
   are `non_exhaustive`), so the CLI and MCP clients dispatch the command
   unchanged.
-
-### Added
-- sqlite/ui: SQLite depth stage 0 (73, M90–M92) — a foreign `.sqlite` file
-  now shows what it contains and reports its state honestly. The file's own
-  views open as read-only objects (nav-pane Views group, datasheet, SQL
-  path; sidecar designs keep the writable authority), indexes and triggers
-  get a read-only inventory in the table design view, and the Info page
-  lists the driver facts (`sqlite_version`, page size, journal mode,
-  encoding, `user_version`, busy timeout, `STRICT`/`WITHOUT ROWID` tables)
-  plus a bounded `quick_check` verdict — a damaged file opens with a precise
-  warning notice instead of a late, unrelated query error. The open sets an
-  explicit 5000 ms `busy_timeout` so short writer contention is waited out;
-  a WAL session reports its mode; `WITHOUT ROWID` row windows follow the
-  declared primary key and rowid writes answer a precise `Unsupported`.
-
-### Added
-- core/jet/ui: native Access object inventory (74, M87) — the navigation
-  pane lists the catalog's native forms and reports read-only (names and
-  counts from the `MSysObjects` object types, a precise "definitions are
-  not decoded" hint, no tab and no write path). The companion feasibility
-  study (M89) established the `MSysAccessStorage` container and the
-  blob/`TypeInfo` string layer against the committed SaveAsText exports,
-  but the numeric property-id table has no public source; the verdict is a
-  documented stop, recorded in `docs/FORMAT-JET.md`.
 
 ## [0.1.1] — 2026-11-10
 

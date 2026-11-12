@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 rust-version = "1.98"
 license = "MIT OR Apache-2.0"
@@ -28,12 +28,12 @@ all = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
 datacraft-cli = { path = "crates/datacraft-cli" }
-datacraft-core = { path = "crates/datacraft-core", version = "0.1.2" }
-datacraft-csv = { path = "crates/datacraft-csv", version = "0.1.2" }
-datacraft-jet = { path = "crates/datacraft-jet", version = "0.1.2" }
-datacraft-mcp = { path = "crates/datacraft-mcp", version = "0.1.2" }
-datacraft-sqlite = { path = "crates/datacraft-sqlite", version = "0.1.2" }
-datacraft-storage = { path = "crates/datacraft-storage", version = "0.1.2" }
+datacraft-core = { path = "crates/datacraft-core", version = "0.1.3" }
+datacraft-csv = { path = "crates/datacraft-csv", version = "0.1.3" }
+datacraft-jet = { path = "crates/datacraft-jet", version = "0.1.3" }
+datacraft-mcp = { path = "crates/datacraft-mcp", version = "0.1.3" }
+datacraft-sqlite = { path = "crates/datacraft-sqlite", version = "0.1.3" }
+datacraft-storage = { path = "crates/datacraft-storage", version = "0.1.3" }
 csv = "1.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
