@@ -35,6 +35,8 @@ pub enum DisabledReason {
     /// The driver cannot alter the schema in place (the design view's
     /// edit controls).
     AlterTables,
+    /// The driver cannot rename tables in place (phase 72, item M81).
+    RenameTables,
     /// The composition cannot create new database files.
     CreateDatabase,
 }
@@ -56,6 +58,9 @@ pub mod ids {
     pub const RELATIONSHIPS_DELETE: &str = "relationships.delete";
     /// Navigation-pane context menu Delete.
     pub const NAV_DELETE: &str = "nav.delete";
+    /// Navigation-pane context menu Rename of a table (phase 72, M81);
+    /// sidecar objects (queries, forms, reports) are always renamable.
+    pub const NAV_RENAME: &str = "nav.rename";
     /// Datasheet new-record row.
     pub const NEW_RECORD: &str = "datasheet.new_record";
     /// Datasheet record deletion (row context menu / Del key, step 40.3,
@@ -94,6 +99,9 @@ pub fn affordances(caps: &DriverCapabilities) -> BTreeMap<String, DisabledReason
     }
     if !caps.drop_table {
         map.insert(ids::NAV_DELETE.to_owned(), DisabledReason::DropTables);
+    }
+    if !caps.rename_table {
+        map.insert(ids::NAV_RENAME.to_owned(), DisabledReason::RenameTables);
     }
     if !caps.write_rows {
         map.insert(ids::NEW_RECORD.to_owned(), DisabledReason::WriteRows);

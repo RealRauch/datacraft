@@ -46,6 +46,7 @@ fn restricted_capabilities_disable_the_matching_affordances() {
     let mut caps = DriverCapabilities::full();
     caps.create_table = false;
     caps.drop_table = false;
+    caps.rename_table = false;
     caps.write_rows = false;
     caps.relationships = Support::No;
     caps.passwords = false;
@@ -65,6 +66,10 @@ fn restricted_capabilities_disable_the_matching_affordances() {
             (
                 "nav.delete".to_owned(),
                 datacraft_core::availability::DisabledReason::DropTables,
+            ),
+            (
+                "nav.rename".to_owned(),
+                datacraft_core::availability::DisabledReason::RenameTables,
             ),
             (
                 "datasheet.new_record".to_owned(),
@@ -185,6 +190,10 @@ fn disabled_reasons_serialize_stable_on_the_wire() {
     assert_eq!(
         serde_json::to_value(DisabledReason::CreateDatabase).expect("serialize"),
         serde_json::json!("create_database")
+    );
+    assert_eq!(
+        serde_json::to_value(DisabledReason::RenameTables).expect("serialize"),
+        serde_json::json!("rename_tables")
     );
 }
 

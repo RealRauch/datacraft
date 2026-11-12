@@ -54,6 +54,8 @@ pub struct App {
     pub(crate) view_results: HashMap<TabId, datacraft_core::sql_types::SqlResult>,
     /// The open view editor draft (step 71.2, item M93).
     pub(crate) view_draft: Option<crate::views_window::ViewDraft>,
+    /// The open object-rename dialog (phase 72, step 72.4; item M81).
+    pub(crate) rename_draft: Option<crate::rename_dialog::RenameDraft>,
     /// Selected control per form-design tab.
     form_selection: HashMap<TabId, String>,
     /// Content drafts of the designer's control panel, keyed by tab and
@@ -191,6 +193,7 @@ impl App {
             results: HashMap::new(),
             view_results: HashMap::new(),
             view_draft: None,
+            rename_draft: None,
             form_selection: HashMap::new(),
             control_content_drafts: HashMap::new(),
             preview_page: HashMap::new(),

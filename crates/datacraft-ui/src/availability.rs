@@ -17,6 +17,7 @@ pub fn reason_text(reason: &DisabledReason) -> &'static str {
         DisabledReason::NoRelationships => t("the open source has no relationships"),
         DisabledReason::NoPasswords => t("the open source has no database passwords"),
         DisabledReason::AlterTables => t("the open source cannot alter the schema"),
+        DisabledReason::RenameTables => t("the open source cannot rename tables"),
         DisabledReason::CreateDatabase => t("the open source cannot create new databases"),
         // `DisabledReason` is non_exhaustive (M32): a reason from a newer
         // core still renders a localized, honest sentence.

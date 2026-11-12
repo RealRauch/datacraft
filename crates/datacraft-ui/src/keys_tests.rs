@@ -38,6 +38,7 @@ fn every_shortcut_has_exactly_one_help_row() {
         Shortcut::Undo,
         Shortcut::Redo,
         Shortcut::ShortcutsHelp,
+        Shortcut::Rename,
     ] {
         let rows = SHORTCUT_ROWS
             .iter()
@@ -47,7 +48,7 @@ fn every_shortcut_has_exactly_one_help_row() {
     }
     assert_eq!(
         SHORTCUT_ROWS.len(),
-        6,
+        7,
         "no help row exists without a shortcut"
     );
 }
@@ -55,6 +56,13 @@ fn every_shortcut_has_exactly_one_help_row() {
 #[test]
 fn f1_maps_to_the_shortcuts_help() {
     assert_eq!(shortcut(false, Key::F1), Some(Shortcut::ShortcutsHelp));
+}
+
+/// Step 72.4 (item M81): F2 addresses the active object's rename dialog.
+#[test]
+fn f2_maps_to_the_rename_dialog() {
+    assert_eq!(shortcut(false, Key::F2), Some(Shortcut::Rename));
+    assert_eq!(shortcut(true, Key::F2), None);
 }
 
 #[test]

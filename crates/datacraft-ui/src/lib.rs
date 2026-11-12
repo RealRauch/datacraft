@@ -42,6 +42,7 @@ pub mod notices_dialog;
 pub mod password_prompt;
 pub mod qbe;
 pub mod relationships;
+pub mod rename_dialog;
 pub mod report_design;
 pub mod ribbon;
 pub mod settings;

@@ -93,6 +93,21 @@ impl ObjectKind {
         }
     }
 
+    /// Parses the lower-case slug the snapshot and test ids carry
+    /// (`"table"`, `"query"`, …; phase 72 step 72.4).
+    pub fn from_slug(slug: &str) -> Option<Self> {
+        Some(match slug {
+            "table" => Self::Table,
+            "query" => Self::Query,
+            "view" => Self::View,
+            "form" => Self::Form,
+            "report" => Self::Report,
+            "macro" => Self::Macro,
+            "module" => Self::Module,
+            _ => return None,
+        })
+    }
+
     /// Whether tabs of this kind have a second (design) view (step 21.1,
     /// item U5). The read-only inventory viewers have exactly one view.
     pub fn has_design_view(self) -> bool {
@@ -151,6 +166,18 @@ mod tests {
         assert_eq!(ObjectKind::Report.slug(), "report");
         assert_eq!(ObjectKind::Macro.slug(), "macro");
         assert_eq!(ObjectKind::Module.slug(), "module");
+        for kind in [
+            ObjectKind::Table,
+            ObjectKind::Query,
+            ObjectKind::View,
+            ObjectKind::Form,
+            ObjectKind::Report,
+            ObjectKind::Macro,
+            ObjectKind::Module,
+        ] {
+            assert_eq!(ObjectKind::from_slug(kind.slug()), Some(kind));
+        }
+        assert_eq!(ObjectKind::from_slug("entity"), None);
     }
 
     proptest! {

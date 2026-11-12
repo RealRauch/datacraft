@@ -242,6 +242,17 @@ pub static TABLE: &[(&str, &str)] = &[
         "Die geöffnete Datenquelle kann keine Tabellen löschen",
     ),
     (
+        "the open source cannot rename tables",
+        "Die geöffnete Datenquelle kann keine Tabellen umbenennen",
+    ),
+    ("New name", "Neuer Name"),
+    ("Rename {name}", "„{name}“ umbenennen"),
+    ("Current name: {name}", "Aktueller Name: {name}"),
+    (
+        "Rename the active table, query, form or report.",
+        "Benennt die aktive Tabelle, Abfrage, Formular oder Bericht um.",
+    ),
+    (
         "the open source is read-only",
         "Die geöffnete Datenquelle ist schreibgeschützt",
     ),

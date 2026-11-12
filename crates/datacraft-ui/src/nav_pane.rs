@@ -66,6 +66,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     let sort = app.nav_sort;
 
     let mut open_intent: Option<(ObjectKind, String, Option<TabMode>)> = None;
+    let mut rename_intent: Option<(ObjectKind, String)> = None;
     let mut delete_intent: Option<(ObjectKind, String)> = None;
     let mut sort_intent: Option<NavSortOrder> = None;
     let mut new_view = false;
@@ -113,6 +114,42 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                                         if design {
                                             open_intent =
                                                 Some((kind, name.clone(), Some(TabMode::Design)));
+                                            ui.close();
+                                        }
+                                    }
+                                    if renamable(kind) {
+                                        // Tables gate on the rename
+                                        // capability (ADR-7); sidecar
+                                        // objects are always renamable.
+                                        let reason = if kind == ObjectKind::Table {
+                                            crate::availability::restricted(
+                                                app.snapshot(),
+                                                datacraft_core::availability::ids::NAV_RENAME,
+                                            )
+                                        } else {
+                                            None
+                                        };
+                                        let rename = ui
+                                            .push_id(
+                                                format!("nav.{header}.{name}.menu.rename"),
+                                                |ui| match reason {
+                                                    Some(reason) => ui
+                                                        .add_enabled(
+                                                            false,
+                                                            egui::Button::new(t("Rename")),
+                                                        )
+                                                        .on_hover_text(
+                                                            crate::availability::reason_text(
+                                                                reason,
+                                                            ),
+                                                        ),
+                                                    None => ui.button(t("Rename")),
+                                                },
+                                            )
+                                            .inner
+                                            .clicked();
+                                        if rename {
+                                            rename_intent = Some((kind, name.clone()));
                                             ui.close();
                                         }
                                     }
@@ -263,6 +300,8 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     }
     if let Some((kind, name)) = delete_intent {
         app.delete_object(kind, &name);
+    } else if let Some((kind, name)) = rename_intent {
+        app.open_rename_dialog(ObjectId::new(kind, name));
     } else if let Some((kind, name, mode)) = open_intent {
         let object = ObjectId::new(kind, name);
         match mode {
@@ -285,4 +324,13 @@ fn active_object_name(
 /// delete affordance.
 fn deletable(kind: ObjectKind) -> bool {
     !matches!(kind, ObjectKind::Macro | ObjectKind::Module)
+}
+
+/// Tables, queries, forms and reports rename (M81); the read-only
+/// inventories and the native view editor (M93) keep their own surface.
+fn renamable(kind: ObjectKind) -> bool {
+    matches!(
+        kind,
+        ObjectKind::Table | ObjectKind::Query | ObjectKind::Form | ObjectKind::Report
+    )
 }

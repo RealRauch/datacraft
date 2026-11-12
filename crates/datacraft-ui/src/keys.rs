@@ -39,6 +39,8 @@ pub enum Shortcut {
     Redo,
     /// F1 — opens or closes the shortcuts help page (step 68.4).
     ShortcutsHelp,
+    /// F2 — renames the active table/query/form/report (step 72.4, M81).
+    Rename,
 }
 
 /// Every shortcut with its display keys and action description; the help
@@ -63,6 +65,11 @@ pub const SHORTCUT_ROWS: &[(Shortcut, &str, &str)] = &[
         "F1",
         "Open or close this shortcuts page.",
     ),
+    (
+        Shortcut::Rename,
+        "F2",
+        "Rename the active table, query, form or report.",
+    ),
 ];
 
 /// Pure shortcut mapping: Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y, Esc, F1 (no
@@ -80,6 +87,7 @@ pub fn shortcut(ctrl: bool, key: egui::Key) -> Option<Shortcut> {
     match key {
         egui::Key::Escape => Some(Shortcut::CancelEdit),
         egui::Key::F1 => Some(Shortcut::ShortcutsHelp),
+        egui::Key::F2 => Some(Shortcut::Rename),
         _ => None,
     }
 }
@@ -103,6 +111,7 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
         egui::Key::Y,
         egui::Key::Escape,
         egui::Key::F1,
+        egui::Key::F2,
     ] {
         if !ctx.input(|input| input.key_pressed(key)) {
             continue;
@@ -134,7 +143,13 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
             }
             Some(Shortcut::CancelEdit) => {
                 app.keytips = None;
+                app.close_rename_dialog();
                 app.cancel_edit();
+            }
+            Some(Shortcut::Rename) => {
+                if let Some(object) = active_rename_target(app) {
+                    app.open_rename_dialog(object);
+                }
             }
             Some(Shortcut::ShortcutsHelp) => {
                 if app.shortcuts_help_open() {
@@ -150,6 +165,23 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
     if app.keytips == Some(KeyTipsPhase::Tabs) {
         select_tab_by_tip(app, ctx);
     }
+}
+
+/// The active tab's object when its kind is renamable (step 72.4, M81):
+/// F2 addresses the open document.
+fn active_rename_target(app: &App) -> Option<datacraft_core::ObjectId> {
+    let snapshot = app.snapshot();
+    let active = snapshot.active_tab?;
+    let tab = snapshot.tabs.iter().find(|tab| tab.id == active)?;
+    let kind = datacraft_core::ObjectKind::from_slug(&tab.object_kind)?;
+    matches!(
+        kind,
+        datacraft_core::ObjectKind::Table
+            | datacraft_core::ObjectKind::Query
+            | datacraft_core::ObjectKind::Form
+            | datacraft_core::ObjectKind::Report
+    )
+    .then(|| datacraft_core::ObjectId::new(kind, &tab.object_name))
 }
 
 /// Tabs phase: the first matching tab tip activates that ribbon tab and
