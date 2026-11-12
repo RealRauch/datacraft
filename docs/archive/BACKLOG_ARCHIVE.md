@@ -1991,3 +1991,13 @@
 - **Acceptance:** create/delete a view in the sidecar; opening it shows its rows read-only; Jet/CSV execute through the shadow engine, SQLite applies natively and the snapshot reports the view; all clients (GUI, CLI, MCP, direct bus) see it; kittest and contract pins cover both execution paths.
 - **Steps:** Phase 71 (71.1–71.3).
 - **Done:** done in `8beb67a` (RED `b79c6b4`/`a5560bb`) — sidecar views with the shadow-engine and native SQLite paths; triggers deferred to ROADMAP §19
+
+---
+
+### [x] M81 — Objects cannot be renamed from the UI (tables, queries, forms, reports) — 🟠
+- **Location:** navigation-pane context menu (`crates/datacraft-ui/src/nav_pane.rs`), the rename dialog and F2 (`rename_dialog.rs`, `keys.rs`), core command vocabulary (`crates/datacraft-core/src/command.rs`), the Jet catalog writer (`datacraft-jet/src/jet/writer_rename.rs`), the SQLite DDL path and the sidecar (ADR-1).
+- **Problem:** Tables, queries, forms and reports cannot be renamed from the UI (live review 2026-11-11); the design view renames fields only. Access offers F2/context-menu rename — today a user must recreate the object. The user states rename is required (2026-11-12).
+- **Approach:** one `RenameObject` command (kind-tagged through `ObjectId`) with the canonical-name rules; the Jet path rewrites the catalog row (the TDEF carries no name) and the `MSysRelationships` object columns, SQLite runs `ALTER TABLE … RENAME`, the sidecar and open tabs follow. Stored view SQL text stays verbatim.
+- **Acceptance:** rename a table/query/form/report from the nav pane; the object keeps its data/design; open tabs, sidecar entries and relationships that reference the name follow; wire parity for the bus command; precise failures for collisions and invalid names.
+- **Steps:** Phase 72 (72.1–72.5).
+- **Done:** phase 72 (72.1 `032fcec`, 72.2 `dac32cd`, 72.3 `2ddf5e4`, 72.4 `376a8bf`, 72.5 gate)

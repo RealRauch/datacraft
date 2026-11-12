@@ -43,6 +43,19 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   live language switch, and the tool windows carry an accent frame with
   stronger controls and legible secondary text in both palettes.
 
+### Added
+- core/jet/sqlite/ui: object renaming (72) — one additive `RenameObject` bus
+  command renames tables, queries, forms and reports from the navigation
+  pane's context menu or F2. Tables rename physically (Jet/ACE: the catalog
+  row plus every `MSysRelationships` object column; SQLite: `ALTER TABLE …
+  RENAME`), while open tabs, datasheet view state, form filters and the
+  sidecar's structural references follow the new name. Collisions and
+  invalid names answer precisely; stored view SQL text stays verbatim;
+  SQLite refuses case-only renames with a precise reason; CSV reports its
+  capability boundary. The vocabulary is wire-additive (`Command`/`Event`
+  are `non_exhaustive`), so the CLI and MCP clients dispatch the command
+  unchanged.
+
 ## [0.1.1] — 2026-11-10
 
 ### Added

@@ -315,6 +315,10 @@ multi-page trees beyond the parent field stay unobservable).
   `0x04` leaf index, `0x05` usage bitmaps, `0x08` unknown.
 - `MSysObjects` (the catalog) has its TDEF always at **page 2** (catalog
   enumeration lands in step 2.4).
+- A table's **name lives only in the catalog** (`MSysObjects.Name`); the TDEF
+  carries none. A rename therefore rewrites that cell — and the
+  `MSysRelationships` object columns (`szObject`, `szReferencedObject`) —
+  never the TDEF descriptor block (phase 72, M81).
 
 ## Data pages (type 0x01)
 
