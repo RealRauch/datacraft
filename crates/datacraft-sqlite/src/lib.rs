@@ -138,6 +138,39 @@ impl StoragePort for SqlitePort {
         caps
     }
 
+    /// SQLite applies sidecar views natively (step 71.3, item M93).
+    fn supports_native_views(&self) -> bool {
+        true
+    }
+
+    fn create_native_view(&mut self, name: &str, sql: &str) -> Result<(), PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
+        let statement = format!(
+            "CREATE VIEW {} AS {}",
+            crate::mapping::quote_ident(name),
+            sql.trim_end().trim_end_matches(';')
+        );
+        conn.execute_batch(&statement)
+            .map_err(|error| PortError::WriteFailed {
+                detail: error.to_string(),
+            })
+    }
+
+    fn drop_native_view(&mut self, name: &str) -> Result<(), PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        if !self.writable {
+            return Err(read_only());
+        }
+        let statement = format!("DROP VIEW IF EXISTS {}", crate::mapping::quote_ident(name));
+        conn.execute_batch(&statement)
+            .map_err(|error| PortError::WriteFailed {
+                detail: error.to_string(),
+            })
+    }
+
     fn open(&mut self, path: &Path, _password: Option<&str>) -> Result<OpenedDatabase, PortError> {
         // SQLite has no database password; the flag is ignored.
         read_magic(path)?;

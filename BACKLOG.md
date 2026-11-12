@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-12T00:16
+# BACKLOG.md — Open items (As of: 2026-11-12T00:38
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -71,6 +71,13 @@
 - **Approach:** set a bounded `busy_timeout` on open; detect `journal_mode = wal` and surface it as a co-existence fact/notice (concurrent readers see the latest committed state); order `WITHOUT ROWID` tables by their declared primary key or answer a precise `Unsupported` — never a silently wrong order; report `STRICT` in the file facts.
 - **Acceptance:** a `WITHOUT ROWID` fixture reads in primary-key order or refuses precisely; the busy timeout is set; a WAL fixture opens and reports the mode; kittest and port pins cover all three.
 - **Steps:** none yet (SQLite depth stage 0, ROADMAP §19).
+
+### [ ] M93 — DataCraft views: sidecar SELECT designs, shadow-engine execution, native on SQLite — 🟡
+- **Location:** `SchemaDocument` (`crates/datacraft-core/src/schema/document.rs`), core command vocabulary, `ObjectKind` (`lib.rs`), snapshot, nav pane, workspace/datasheet, `SqlitePort` (CREATE/DROP VIEW).
+- **Problem:** DataCraft has no view concept: a named `SELECT` cannot be saved, reopened or shared; SQLite files may contain native views (invisible, M90); Jet/ACE/CSV have no view engine at all. The review decided views are worth doing (they are cheap); triggers stay deferred in ROADMAP §19.
+- **Approach:** a sidecar `ViewDef { name, sql }` as design authority; `ObjectKind::View`, snapshot entries and a nav-pane group; opening a view runs its `SELECT` through the shadow engine on Jet/ACE/CSV, while on SQLite the view is applied natively (`CREATE VIEW`) and executed by SQLite. Name/collision and SELECT-only validation; read-only result tabs; renaming stays part of M81.
+- **Acceptance:** create/delete a view in the sidecar; opening it shows its rows read-only; Jet/CSV execute through the shadow engine, SQLite applies natively and the snapshot reports the view; all clients (GUI, CLI, MCP, direct bus) see it; kittest and contract pins cover both execution paths.
+- **Steps:** Phase 71 (71.1–71.3).
 
 ---
 

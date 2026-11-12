@@ -1,9 +1,10 @@
-//! View design dispatch (step 71.1, item M93).
+//! View design dispatch (step 71.1/71.3, item M93).
 //!
 //! Sidecar view designs: create/update/delete with name and shape
-//! validation; the definitions live in `DatabaseState.views` and are
-//! executed by the shadow engine (Jet/ACE/CSV) or applied natively on
-//! SQLite.
+//! validation; SQLite applies them natively (the port answers
+//! `supports_native_views`), while Jet/ACE/CSV execute the stored SELECT
+//! through the shadow engine. A native failure rolls the sidecar change
+//! back — the two authorities never diverge silently.
 
 use crate::core::failed;
 use crate::event::Event;
@@ -21,7 +22,8 @@ impl crate::core::Core {
     }
 
     /// Creates a named SELECT view; the name is unique against tables and
-    /// other views (case-insensitive).
+    /// other views (case-insensitive). On SQLite the view is applied
+    /// natively; a native failure rolls the sidecar push back (71.3).
     pub(crate) fn create_view(&mut self, name: &str, sql: &str) -> Vec<Event> {
         if self.state.database.is_none() {
             return failed(
@@ -68,10 +70,22 @@ impl crate::core::Core {
             .expect("checked above")
             .views
             .push(ViewDef::new(canonical.clone(), sql.trim()));
+        if self.port.supports_native_views()
+            && let Err(error) = self.port.create_native_view(&canonical, sql.trim())
+        {
+            self.state
+                .database
+                .as_mut()
+                .expect("checked above")
+                .views
+                .pop();
+            return failed(FailureCode::Port, error.to_string());
+        }
         vec![Event::ViewCreated { name: canonical }]
     }
 
-    /// Replaces a view's SELECT statement.
+    /// Replaces a view's SELECT statement; the native view is re-created
+    /// on SQLite, and a failure restores the sidecar and the native view.
     pub(crate) fn set_view_sql(&mut self, name: &str, sql: &str) -> Vec<Event> {
         let Some(db) = self.state.database.as_mut() else {
             return failed(
@@ -93,27 +107,68 @@ impl crate::core::Core {
         else {
             return failed(FailureCode::NotFound, format!("view {name:?} not found"));
         };
+        let old_sql = view.sql.clone();
         view.sql = sql.trim().to_owned();
         let canonical = view.name.clone();
+        if self.port.supports_native_views() {
+            let applied = self
+                .port
+                .drop_native_view(&canonical)
+                .and_then(|()| self.port.create_native_view(&canonical, sql.trim()));
+            if let Err(error) = applied {
+                if let Some(view) = self
+                    .state
+                    .database
+                    .as_mut()
+                    .expect("checked above")
+                    .views
+                    .iter_mut()
+                    .find(|view| view.name == canonical)
+                {
+                    view.sql = old_sql.clone();
+                }
+                // Best effort: put the previous native definition back.
+                let _ = self.port.create_native_view(&canonical, &old_sql);
+                return failed(FailureCode::Port, error.to_string());
+            }
+        }
         vec![Event::ViewChanged { name: canonical }]
     }
 
-    /// Deletes a view and closes its tabs.
+    /// Deletes a view; on SQLite the native view drops first, so a failing
+    /// native drop keeps the sidecar unchanged.
     pub(crate) fn delete_view(&mut self, name: &str) -> Vec<Event> {
+        let canonical = {
+            let Some(db) = self.state.database.as_ref() else {
+                return failed(
+                    FailureCode::NoDatabase,
+                    "no database is open — open a database first",
+                );
+            };
+            let Some(view) = db
+                .views
+                .iter()
+                .find(|view| view.name.eq_ignore_ascii_case(name))
+            else {
+                return failed(FailureCode::NotFound, format!("view {name:?} not found"));
+            };
+            view.name.clone()
+        };
+        if self.port.supports_native_views()
+            && let Err(error) = self.port.drop_native_view(&canonical)
+        {
+            return failed(FailureCode::Port, error.to_string());
+        }
         let Some(db) = self.state.database.as_mut() else {
             return failed(
                 FailureCode::NoDatabase,
                 "no database is open — open a database first",
             );
         };
-        let Some(position) = db
-            .views
-            .iter()
-            .position(|view| view.name.eq_ignore_ascii_case(name))
-        else {
+        let Some(position) = db.views.iter().position(|view| view.name == canonical) else {
             return failed(FailureCode::NotFound, format!("view {name:?} not found"));
         };
-        let canonical = db.views.remove(position).name;
+        db.views.remove(position);
         let dependent: Vec<crate::ids::TabId> = self
             .state
             .tabs

@@ -11,6 +11,7 @@ use crate::schema::{FieldValue, TableDef};
 
 mod capabilities;
 mod native_query;
+mod write_op;
 
 pub use capabilities::{DriverCapabilities, DriverId, DriverInfo, Support};
 pub use native_query::{
@@ -277,6 +278,27 @@ pub trait StoragePort {
             reason: "schema alteration is not supported by this backend".to_owned(),
         })
     }
+    /// Whether the backend can apply sidecar views natively (step 71.3,
+    /// item M93): SQLite compiles them to `CREATE VIEW`, while Jet/ACE/CSV
+    /// rely on the shadow SQL engine and answer `false`.
+    fn supports_native_views(&self) -> bool {
+        false
+    }
+    /// Creates one native view in the open database (step 71.3, M93).
+    /// Backends without a view engine answer a precise `Unsupported`.
+    fn create_native_view(&mut self, name: &str, sql: &str) -> Result<(), PortError> {
+        let _ = (name, sql);
+        Err(PortError::Unsupported {
+            reason: "native views are not supported by this backend".to_owned(),
+        })
+    }
+    /// Drops one native view (step 71.3, M93).
+    fn drop_native_view(&mut self, name: &str) -> Result<(), PortError> {
+        let _ = name;
+        Err(PortError::Unsupported {
+            reason: "native views are not supported by this backend".to_owned(),
+        })
+    }
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
     /// Creates one referential relationship (step 32.3, item M16).
@@ -346,43 +368,7 @@ pub enum SchemaChange {
     },
 }
 
-/// One row operation of a batch write (the journal's port vocabulary).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum RowWriteOp {
-    /// Appends a row.
-    Insert(Vec<FieldValue>),
-    /// Replaces the row at `row`.
-    Update {
-        /// Zero-based live-row index in the evolving row set.
-        row: usize,
-        /// Full positional value list.
-        values: Vec<FieldValue>,
-    },
-    /// Removes the row at `row`.
-    Delete {
-        /// Zero-based live-row index in the evolving row set.
-        row: usize,
-    },
-}
-
-/// Window slice shared by implementations: start beyond the count is an
-/// error, the tail window is empty.
-pub fn window_slice(
-    table: &str,
-    range: RowRange,
-    count: usize,
-) -> Result<(usize, usize), PortError> {
-    if range.start > count {
-        return Err(PortError::OutOfRange {
-            table: table.to_owned(),
-            start: range.start,
-            len: range.len,
-            row_count: count,
-        });
-    }
-    let end = range.start.saturating_add(range.len).min(count);
-    Ok((range.start, end))
-}
+pub use write_op::{RowWriteOp, window_slice};
 
 pub use crate::port_mock::MockPort;
 

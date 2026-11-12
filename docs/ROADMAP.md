@@ -709,3 +709,25 @@ the UI.
 filed as M90–M92); new dependencies (e.g. an FTS/JSON extension decision) are
 Medium gates; nothing executes SQL provided by a database file without an
 explicit user action.
+
+**View designs (2026-11-12, human-approved):** a view is a named `SELECT`
+stored as a sidecar design object (`views`), independent of the format.
+Execution follows the sink/source rule: on SQLite the view is applied
+natively (`CREATE VIEW`) and executed by SQLite; on Jet/ACE/CSV DataCraft
+executes the stored `SELECT` through the shadow SQL engine. The UI presents
+views as their own nav-pane group with a read-only datasheet; the sidecar
+stays the design authority, the file the execution authority where the
+format has one. Native SQLite views are additionally visible read-only
+(M90).
+
+**Trigger model (deferred, decided 2026-11-12):** a trigger is an
+event-driven DML program; executing it inside DataCraft means owning its
+semantics. The model therefore fixes a strict subset before any code:
+`AFTER INSERT/UPDATE/DELETE` on DataCraft writes, `OLD`/`NEW` row images,
+`WHEN` through the Ring-1 expression engine, one DML statement per trigger
+(no DDL, no recursion), explicit deterministic ordering, atomicity inside
+the same journal/batch unit, and no non-deterministic statements. Mapping:
+SQLite compiles the subset to native `CREATE TRIGGER`; Jet/ACE/CSV are
+interpreted by DataCraft — with the documented island caveat that sidecar
+triggers fire only on DataCraft writes. Not started; its own phase once the
+view work has landed.
