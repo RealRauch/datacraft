@@ -41,6 +41,7 @@ impl App {
         for tab_id in closed {
             self.rows.remove(&tab_id);
             self.results.remove(&tab_id);
+            self.view_results.remove(&tab_id);
             self.load_errors.remove(&tab_id);
             self.new_row.remove(&tab_id);
             self.column_widths.remove(&tab_id);
@@ -77,6 +78,15 @@ impl App {
             )
         }) {
             self.results.clear();
+        }
+        // View results follow the definitions (step 71.2, item M93).
+        if events.iter().any(|e| {
+            matches!(
+                e,
+                Event::DatabaseClosed | Event::ViewChanged { .. } | Event::ViewDeleted { .. }
+            )
+        }) {
+            self.view_results.clear();
         }
         // Every row-mutating event invalidates the caches of the tabs it
         // affects: table tabs by name, form tabs by their bound source
@@ -218,6 +228,43 @@ impl App {
                         crate::i18n::tr(
                             "The query could not be run: {reason}",
                             &[("reason", &error.to_string())],
+                        ),
+                    );
+                }
+            }
+        }
+        // View results run through the shadow engine on first appearance
+        // (step 71.2, item M93); the cache drops on ViewChanged/Deleted.
+        let view_tabs: Vec<(TabId, String)> = self
+            .snapshot
+            .tabs
+            .iter()
+            .filter(|tab| tab.object_kind == "view")
+            .map(|tab| (tab.id, tab.object_name.clone()))
+            .collect();
+        for (tab_id, name) in view_tabs {
+            if self.view_results.contains_key(&tab_id) {
+                continue;
+            }
+            let Some(sql) = self.snapshot.database.as_ref().and_then(|db| {
+                db.views
+                    .iter()
+                    .find(|view| view.name.eq_ignore_ascii_case(&name))
+                    .map(|view| view.sql.clone())
+            }) else {
+                continue;
+            };
+            match self.core.run_sql(&sql) {
+                Ok(result) => {
+                    self.view_results.insert(tab_id, result);
+                    self.load_errors.remove(&tab_id);
+                }
+                Err(reason) => {
+                    self.load_errors.insert(
+                        tab_id,
+                        crate::i18n::tr(
+                            "The view could not be run: {reason}",
+                            &[("reason", &reason)],
                         ),
                     );
                 }

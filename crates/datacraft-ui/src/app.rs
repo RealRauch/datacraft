@@ -50,6 +50,10 @@ pub struct App {
     rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
     /// Query results per query tab, refreshed when the QBE model changes.
     results: HashMap<TabId, QueryResult>,
+    /// Cached SQL results of open view tabs (step 71.2, item M93).
+    pub(crate) view_results: HashMap<TabId, datacraft_core::sql_types::SqlResult>,
+    /// The open view editor draft (step 71.2, item M93).
+    pub(crate) view_draft: Option<crate::views_window::ViewDraft>,
     /// Selected control per form-design tab.
     form_selection: HashMap<TabId, String>,
     /// Content drafts of the designer's control panel, keyed by tab and
@@ -185,6 +189,8 @@ impl App {
             alt_down: false,
             rows: HashMap::new(),
             results: HashMap::new(),
+            view_results: HashMap::new(),
+            view_draft: None,
             form_selection: HashMap::new(),
             control_content_drafts: HashMap::new(),
             preview_page: HashMap::new(),

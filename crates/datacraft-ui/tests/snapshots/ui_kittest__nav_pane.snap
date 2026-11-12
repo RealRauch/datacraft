@@ -5,3 +5,4 @@ expression: tree_dump(&harness)
 Button|All Access Objects|
 DisclosureTriangle|Tables|
 Button|Customers|
+Button|New View|

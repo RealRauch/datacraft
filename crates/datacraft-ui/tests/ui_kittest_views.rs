@@ -66,6 +66,14 @@ fn a_view_tab_renders_its_select_result() {
         sql: "SELECT Name FROM Customers".into(),
     }));
     app.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::View, "All")));
+    let tab_id = app.snapshot().tabs[0].id;
+    let result = app.view_result(tab_id).expect("the view result is cached");
+    assert_eq!(result.rows.len(), 3, "the SELECT returns three rows");
+    let rows = format!("{:?}", result.rows);
+    assert!(
+        rows.contains("Lena") && rows.contains("Mara") && rows.contains("Tom"),
+        "the cached result carries the names: {rows}"
+    );
 
     let mut harness = Harness::new_ui_state(
         move |ui, app| {
@@ -82,8 +90,12 @@ fn a_view_tab_renders_its_select_result() {
 
     let dump = tree_dump(&harness);
     assert!(
-        dump.contains("Lena") && dump.contains("Mara") && dump.contains("Tom"),
-        "the view shows its result rows: {dump}"
+        dump.contains("Name"),
+        "the view header names the SELECT column: {dump}"
+    );
+    assert!(
+        dump.contains("3 result rows"),
+        "the view reports its row count: {dump}"
     );
 }
 

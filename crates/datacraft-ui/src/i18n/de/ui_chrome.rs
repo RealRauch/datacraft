@@ -468,4 +468,12 @@ pub static TABLE: &[(&str, &str)] = &[
         "Writing the database copy…",
         "Datenbankkopie wird geschrieben…",
     ),
+    ("New View", "Neue Ansicht"),
+    ("Edit SQL", "SQL bearbeiten"),
+    ("View name", "Ansichtsname"),
+    ("No result yet.", "Noch kein Ergebnis."),
+    (
+        "The view could not be run: {reason}",
+        "Die Ansicht konnte nicht ausgeführt werden: {reason}",
+    ),
 ];

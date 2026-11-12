@@ -24,6 +24,7 @@ use crate::i18n::{t, tr};
 /// ids stay language-neutral). The catalog parity test enumerates them.
 pub(crate) const SECTION_TABLES: &str = "Tables";
 pub(crate) const SECTION_QUERIES: &str = "Queries";
+pub(crate) const SECTION_VIEWS: &str = "Views";
 pub(crate) const SECTION_FORMS: &str = "Forms";
 pub(crate) const SECTION_REPORTS: &str = "Reports";
 pub(crate) const SECTION_MACROS: &str = "Macros";
@@ -49,6 +50,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         && db.forms.is_empty()
         && db.reports.is_empty()
         && db.queries.is_empty()
+        && db.views.is_empty()
         && db.macros.is_empty()
         && db
             .vba
@@ -66,6 +68,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     let mut open_intent: Option<(ObjectKind, String, Option<TabMode>)> = None;
     let mut delete_intent: Option<(ObjectKind, String)> = None;
     let mut sort_intent: Option<NavSortOrder> = None;
+    let mut new_view = false;
     egui::ScrollArea::vertical().show(ui, |ui| {
         // Section: a collapsible group whose entries open from the context
         // menu (Open / Design / Delete); the header carries the sort menu.
@@ -195,6 +198,13 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 .collect(),
         );
         section(
+            SECTION_VIEWS,
+            db.views
+                .iter()
+                .map(|v| (v.name.clone(), ObjectKind::View))
+                .collect(),
+        );
+        section(
             SECTION_FORMS,
             db.forms
                 .iter()
@@ -228,6 +238,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 })
                 .unwrap_or_default(),
         );
+
         // A native-query decode failure is visible at the Queries group, not
         // silently swallowed (step 23.3, M10). Rendered after the sections so
         // the section closure's borrow of `ui` has ended.
@@ -239,8 +250,16 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             );
         }
     });
+    // The view entry point sits below the scrolling list (the section
+    // closure holds the ui borrow inside the scroll area).
+    if ui.small_button(t("New View")).clicked() {
+        new_view = true;
+    }
     if let Some(order) = sort_intent {
         app.nav_sort = order;
+    }
+    if new_view {
+        app.open_view_editor(None);
     }
     if let Some((kind, name)) = delete_intent {
         app.delete_object(kind, &name);

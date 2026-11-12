@@ -52,6 +52,7 @@ pub mod theme;
 pub mod tool_window;
 pub mod tooltips;
 pub mod vba_viewer;
+pub mod views_window;
 pub mod window;
 pub mod workspace;
 

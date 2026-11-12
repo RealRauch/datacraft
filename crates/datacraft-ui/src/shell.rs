@@ -32,6 +32,7 @@ impl eframe::App for App {
         crate::busy::busy_frame(self, ui);
         crate::notices_dialog::notices_dialog(self, ui);
         crate::shortcuts_help::shortcuts_help(self, ui);
+        crate::views_window::view_editor(self, ui);
         let tokens = tokens(ui.visuals());
 
         // The File tab owns a full-page backstage (step 21.3, U7): it

@@ -134,6 +134,9 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                     TabMode::Datasheet => crate::datasheet::query_results_ui(app, &tab, ui),
                     TabMode::Design => crate::qbe::qbe_ui(app, &tab, ui),
                 },
+                Some(tab) if tab.object_kind == "view" => {
+                    crate::views_window::view_ui(app, &tab, ui);
+                }
                 Some(tab) if tab.object_kind == "macro" => {
                     crate::macro_viewer::macro_viewer_ui(app, &tab, ui);
                 }
