@@ -436,8 +436,8 @@ tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
 | 71.2 | UI: nav-pane Views group, create/edit/delete dialog, read-only datasheet from the view SQL, kittest (M93) | ✅ |
 | 71.3 | SQLite: apply the view natively (CREATE VIEW / DROP VIEW), capability-gated, with contract pins (M93) | ✅ |
 | 71.4 | Phase 71 Quality Gate Review | ✅ |
-| 72.1 | Core rename command, name rules and reference follow-through (M81) | 🔄 |
-| 72.2 | Jet/ACE table rename through the writer (M81) | ⬜ |
+| 72.1 | Core rename command, name rules and reference follow-through (M81) | ✅ |
+| 72.2 | Jet/ACE table rename through the writer (M81) | 🔄 |
 | 72.3 | SQLite native rename and CSV boundary (M81) | ⬜ |
 | 72.4 | Nav-pane rename surface: context menu, F2, dialog (M81) | ⬜ |
 | 72.5 | Documentation and phase gate (M81) | ⬜ |
