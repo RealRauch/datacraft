@@ -28,6 +28,8 @@ pub struct MockPort {
     /// Read-only index/trigger inventory (phase 73, step 73.2; M90).
     indexes: Vec<crate::port::SourceIndex>,
     triggers: Vec<crate::port::SourceTrigger>,
+    /// Driver facts and the health verdict (phase 73, step 73.3; M91).
+    source_facts: crate::port::SourceFacts,
     /// Column definitions of the native views, for read windows.
     view_defs: Vec<TableDef>,
     opened: Option<OpenedDatabase>,
@@ -178,6 +180,10 @@ impl StoragePort for MockPort {
 
     fn triggers(&self) -> Result<Vec<crate::port::SourceTrigger>, PortError> {
         Ok(self.triggers.clone())
+    }
+
+    fn source_facts(&self) -> crate::port::SourceFacts {
+        self.source_facts.clone()
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {

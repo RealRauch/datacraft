@@ -98,6 +98,13 @@ pub struct DatabaseSnapshot {
     /// inventory only.
     #[serde(default)]
     pub triggers: Vec<crate::port::SourceTrigger>,
+    /// Driver facts of the opened file (phase 73, step 73.3; M91).
+    #[serde(default)]
+    pub facts: Vec<crate::port::SourceFact>,
+    /// The file's health verdict: `None` = passed or not checked,
+    /// `Some(reason)` = the bounded check reported damage (M91).
+    #[serde(default)]
+    pub health: Option<String>,
     /// Why the native-query decode failed, if it did (step 23.3, M10).
     pub native_queries_error: Option<String>,
     /// Form design documents in creation order.
@@ -315,6 +322,8 @@ impl UiStateSnapshot {
                     .collect(),
                 indexes: db.indexes.clone(),
                 triggers: db.triggers.clone(),
+                facts: db.source_facts.facts.clone(),
+                health: db.source_facts.health.clone(),
                 native_views: db
                     .native_views
                     .iter()

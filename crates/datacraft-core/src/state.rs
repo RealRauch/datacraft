@@ -131,6 +131,10 @@ pub struct DatabaseState {
     /// inventory only.
     #[serde(default)]
     pub triggers: Vec<crate::port::SourceTrigger>,
+    /// Driver facts and the file's health verdict (phase 73, step 73.3;
+    /// M91), read at open.
+    #[serde(default)]
+    pub source_facts: crate::port::SourceFacts,
     /// Native saved queries read from the file (step 15.3, M3; read-only).
     pub native_queries: Vec<crate::port::NativeQuery>,
     /// Why the native-query decode failed, if it did — the open still

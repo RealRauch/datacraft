@@ -4,7 +4,7 @@
 //! file carries. DataCraft lists it read-only; trigger SQL is never
 //! parsed, created or executed.
 
-use datacraft_core::port::{PortError, SourceIndex, SourceTrigger};
+use datacraft_core::port::{PortError, SourceFact, SourceFacts, SourceIndex, SourceTrigger};
 use rusqlite::Connection;
 
 use crate::mapping::{quote_ident, read_failed};
@@ -72,6 +72,69 @@ fn index_details(
         }
     }
     Ok((unique, columns))
+}
+
+/// Driver facts plus the bounded `quick_check(1)` verdict (M91). The
+/// check reports at most one error; a healthy file answers `"ok"`.
+pub(crate) fn facts(conn: &Connection) -> SourceFacts {
+    let mut facts = Vec::new();
+    if let Some(version) = query_text(conn, "SELECT sqlite_version()") {
+        facts.push(SourceFact {
+            name: "sqlite_version".into(),
+            value: version,
+        });
+    }
+    for (name, pragma) in [
+        ("page_size", "page_size"),
+        ("journal_mode", "journal_mode"),
+        ("encoding", "encoding"),
+        ("user_version", "user_version"),
+    ] {
+        if let Some(value) = query_text(conn, &format!("PRAGMA {pragma}")) {
+            facts.push(SourceFact {
+                name: name.into(),
+                value,
+            });
+        }
+    }
+    SourceFacts {
+        facts,
+        health: quick_check(conn),
+    }
+}
+
+/// `Some(reason)` when `quick_check(1)` does not answer `"ok"`.
+fn quick_check(conn: &Connection) -> Option<String> {
+    let outcome = (|| -> Result<Vec<String>, rusqlite::Error> {
+        let mut statement = conn.prepare("PRAGMA quick_check(1)")?;
+        let mut rows = statement.query([])?;
+        let mut messages = Vec::new();
+        while let Some(row) = rows.next()? {
+            messages.push(row.get::<_, String>(0)?);
+        }
+        Ok(messages)
+    })();
+    match outcome {
+        Ok(messages) if messages == ["ok"] => None,
+        Ok(messages) if messages.is_empty() => Some("quick_check: no verdict".to_owned()),
+        Ok(messages) => Some(format!("quick_check: {}", messages.join("; "))),
+        Err(error) => Some(format!("quick_check: {error}")),
+    }
+}
+
+/// First column of the first row as text (integers and text alike).
+fn query_text(conn: &Connection, sql: &str) -> Option<String> {
+    conn.query_row(sql, [], |row| {
+        use rusqlite::types::ValueRef;
+        Ok(match row.get_ref(0)? {
+            ValueRef::Null => String::new(),
+            ValueRef::Integer(value) => value.to_string(),
+            ValueRef::Real(value) => value.to_string(),
+            ValueRef::Text(bytes) => String::from_utf8_lossy(bytes).into_owned(),
+            ValueRef::Blob(bytes) => format!("{} bytes", bytes.len()),
+        })
+    })
+    .ok()
 }
 
 /// All triggers of user tables, in creation order.

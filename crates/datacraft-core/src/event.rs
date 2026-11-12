@@ -65,6 +65,13 @@ pub enum Event {
         /// The affected field (canonical name after the change).
         field: String,
     },
+    /// The opened file's own bounded health check reported damage (phase
+    /// 73, step 73.3; item M91). The open still succeeds; the reason is
+    /// precise and every client surfaces it (UI notice, agent read).
+    SourceHealthWarning {
+        /// The check's verbatim verdict (English, locatable).
+        reason: String,
+    },
     /// An object was renamed (phase 72, step 72.1; item M81). Tabs,
     /// sidecar references and relationships already follow the new name.
     ObjectRenamed {

@@ -5,6 +5,17 @@
 pub static TABLE: &[(&str, &str)] = &[
     ("New name", "Neuer Name"),
     ("Read-only native view", "Schreibgeschützte native View"),
+    ("SQLite version", "SQLite-Version"),
+    ("Page size", "Seitengröße"),
+    ("Journal mode", "Journal-Modus"),
+    ("Encoding", "Kodierung"),
+    ("User version", "Benutzerversion"),
+    ("Integrity check", "Integritätsprüfung"),
+    ("ok", "ok"),
+    (
+        "The database's own integrity check reported: {reason}",
+        "Die Integritätsprüfung der Datenbank meldet: {reason}",
+    ),
     (
         "File objects (read-only)",
         "Dateiobjekte (schreibgeschützt)",

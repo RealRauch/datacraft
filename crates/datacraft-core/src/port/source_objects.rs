@@ -33,3 +33,25 @@ pub struct SourceTrigger {
     /// The defining statement verbatim.
     pub sql: String,
 }
+
+/// One driver fact of the opened file (stable machine name + display
+/// value): engine version, page size, journal mode, encoding, …
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourceFact {
+    /// Stable fact name (`sqlite_version`, `page_size`, …).
+    pub name: String,
+    /// The value as text (locale-neutral; the UI formats labels).
+    pub value: String,
+}
+
+/// Driver facts plus the file's own health verdict (phase 73, step 73.3;
+/// item M91).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourceFacts {
+    /// Facts in a stable display order.
+    pub facts: Vec<SourceFact>,
+    /// `None` = no check ran or it passed; `Some(reason)` = the file's own
+    /// bounded health check (`quick_check(1)`) reported damage. The open
+    /// still succeeds; every client surfaces the reason.
+    pub health: Option<String>,
+}

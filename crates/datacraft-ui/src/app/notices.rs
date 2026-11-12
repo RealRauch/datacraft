@@ -159,10 +159,13 @@ pub(crate) const NOTICE_DESIGN_SAVED: &str = "Design saved to {path}";
 /// Design sidecar loaded.
 pub(crate) const NOTICE_DESIGN_LOADED: &str =
     "Design loaded from {path} ({forms} forms, {queries} queries, {reports} reports)";
+/// The file's own integrity check reported damage (phase 73, M91).
+pub(crate) const NOTICE_SOURCE_HEALTH: &str =
+    "The database's own integrity check reported: {reason}";
 
 /// Every catalog key `notice_for` can store (i18n coverage test).
 #[cfg(test)]
-pub(crate) fn notice_keys() -> [&'static str; 6] {
+pub(crate) fn notice_keys() -> [&'static str; 7] {
     [
         NOTICE_COPY_SAVED,
         NOTICE_COPY_SAVED_ENCRYPTED,
@@ -170,6 +173,7 @@ pub(crate) fn notice_keys() -> [&'static str; 6] {
         NOTICE_PASSWORD_REMOVED,
         NOTICE_DESIGN_SAVED,
         NOTICE_DESIGN_LOADED,
+        NOTICE_SOURCE_HEALTH,
     ]
 }
 
@@ -197,6 +201,10 @@ pub(crate) fn notice_for(events: &[Event]) -> Option<NoticeMessage> {
         Event::DesignDocumentSaved { path } => Some(NoticeMessage::Key {
             key: NOTICE_DESIGN_SAVED,
             args: vec![("path".to_owned(), path.display().to_string())],
+        }),
+        Event::SourceHealthWarning { reason } => Some(NoticeMessage::Key {
+            key: NOTICE_SOURCE_HEALTH,
+            args: vec![("reason".to_owned(), reason.clone())],
         }),
         Event::DesignDocumentLoaded {
             path,

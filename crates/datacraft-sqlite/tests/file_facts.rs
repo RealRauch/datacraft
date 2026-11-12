@@ -81,10 +81,13 @@ fn a_corrupt_file_reports_a_precise_health_reason() {
     )
     .expect("create table");
     let payload = "x".repeat(200);
-    for _ in 0..2000 {
+    // One transaction keeps the fixture cheap; 600 rows span several pages.
+    conn.execute_batch("BEGIN;").expect("begin");
+    for _ in 0..600 {
         conn.execute("INSERT INTO big (payload) VALUES (?1)", [&payload])
             .expect("insert");
     }
+    conn.execute_batch("COMMIT;").expect("commit");
     drop(conn);
     let size = std::fs::metadata(&path).expect("metadata").len() as usize;
     // Corrupt the last page (a data page) while the catalog stays readable.

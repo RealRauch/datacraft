@@ -35,6 +35,27 @@ pub(super) fn info_page(app: &mut App, ui: &mut egui::Ui) {
             ui.label(value);
         });
     }
+    // Driver facts and the health verdict (phase 73, step 73.3; M91):
+    // stable machine names map to localized labels; unknown names stay
+    // verbatim. A damaged file names the exact reason.
+    let tokens = crate::theme::tokens(ui.visuals());
+    for fact in &db.facts {
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new(fact_label(&fact.name)).strong());
+            ui.label(&fact.value);
+        });
+    }
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(t("Integrity check")).strong());
+        match &db.health {
+            Some(reason) => {
+                ui.colored_label(tokens.danger, reason);
+            }
+            None => {
+                ui.label(t("ok"));
+            }
+        }
+    });
     // Access co-existence (step 53.2, item M59): a detected lock file is
     // a database fact — the name plus the full localized remedy (the
     // same key the status bar's hover text carries).
@@ -46,6 +67,19 @@ pub(super) fn info_page(app: &mut App, ui: &mut egui::Ui) {
         ui.label(
             egui::RichText::new(tr(crate::shell::LOCK_NOTICE_DETAIL, &[("file", file)])).weak(),
         );
+    }
+}
+
+/// Localized label of one driver fact; unknown facts keep their wire name
+/// (phase 73, step 73.3; M91).
+fn fact_label(name: &str) -> String {
+    match name {
+        "sqlite_version" => t("SQLite version").to_owned(),
+        "page_size" => t("Page size").to_owned(),
+        "journal_mode" => t("Journal mode").to_owned(),
+        "encoding" => t("Encoding").to_owned(),
+        "user_version" => t("User version").to_owned(),
+        other => other.to_owned(),
     }
 }
 

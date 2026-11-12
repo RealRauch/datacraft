@@ -20,7 +20,7 @@ pub use native_query::{
     NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
 };
 pub use native_view::NativeView;
-pub use source_objects::{SourceIndex, SourceTrigger};
+pub use source_objects::{SourceFact, SourceFacts, SourceIndex, SourceTrigger};
 
 /// Binary format family of an opened database (domain vocabulary; the
 /// backends map their physical version detection onto it).
@@ -248,6 +248,12 @@ pub trait StoragePort {
     /// is empty.
     fn triggers(&self) -> Result<Vec<SourceTrigger>, PortError> {
         Ok(Vec::new())
+    }
+    /// Driver facts and the file's own health verdict (phase 73, step
+    /// 73.3; item M91). Read at open: the check is bounded and runs once.
+    /// The default reports no facts and a healthy file.
+    fn source_facts(&self) -> SourceFacts {
+        SourceFacts::default()
     }
     /// Creates a table; errors on duplicate names.
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError>;

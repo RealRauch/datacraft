@@ -136,6 +136,9 @@ impl crate::core::Core {
                 // Read-only source inventory (phase 73, step 73.2; M90).
                 let indexes = self.port.indexes().unwrap_or_default();
                 let triggers = self.port.triggers().unwrap_or_default();
+                // Driver facts and the bounded health verdict (phase 73,
+                // step 73.3; M91) ride the open.
+                let source_facts = self.port.source_facts();
                 let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
@@ -168,6 +171,7 @@ impl crate::core::Core {
                     native_views,
                     indexes,
                     triggers,
+                    source_facts: source_facts.clone(),
                     reports: sidecar
                         .as_ref()
                         .map(|document| document.reports.clone())
@@ -184,6 +188,9 @@ impl crate::core::Core {
                     redo: Vec::new(),
                 });
                 let mut events = vec![Event::DatabaseOpened { name, format }];
+                if let Some(reason) = source_facts.health {
+                    events.push(Event::SourceHealthWarning { reason });
+                }
                 if let Some(document) = sidecar {
                     events.push(Event::DesignDocumentLoaded {
                         path: sidecar_path,

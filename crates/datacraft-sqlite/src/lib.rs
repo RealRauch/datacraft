@@ -24,6 +24,8 @@ pub struct SqlitePort {
     /// Read-only index/trigger inventory (phase 73, step 73.2; M90).
     indexes: Vec<datacraft_core::port::SourceIndex>,
     triggers: Vec<datacraft_core::port::SourceTrigger>,
+    /// Driver facts and the health verdict (phase 73, step 73.3; M91).
+    source_facts: datacraft_core::port::SourceFacts,
     path: Option<PathBuf>,
     /// Whether the file opened read-write (read-only files still read).
     writable: bool,
@@ -148,6 +150,7 @@ impl StoragePort for SqlitePort {
         let native_views = view_inventory::collect(&conn)?;
         let indexes = source_objects::indexes(&conn)?;
         let triggers = source_objects::triggers(&conn)?;
+        let source_facts = source_objects::facts(&conn);
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
@@ -157,6 +160,7 @@ impl StoragePort for SqlitePort {
         self.native_views = native_views;
         self.indexes = indexes;
         self.triggers = triggers;
+        self.source_facts = source_facts;
         self.path = Some(path.to_path_buf());
         self.writable = writable;
         Ok(OpenedDatabase {
@@ -172,6 +176,7 @@ impl StoragePort for SqlitePort {
         self.native_views.clear();
         self.indexes.clear();
         self.triggers.clear();
+        self.source_facts = datacraft_core::port::SourceFacts::default();
         self.path = None;
         self.writable = false;
     }
@@ -194,6 +199,10 @@ impl StoragePort for SqlitePort {
 
     fn triggers(&self) -> Result<Vec<datacraft_core::port::SourceTrigger>, PortError> {
         Ok(self.triggers.clone())
+    }
+
+    fn source_facts(&self) -> datacraft_core::port::SourceFacts {
+        self.source_facts.clone()
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
