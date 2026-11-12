@@ -26,7 +26,10 @@ fn ribbon_harness(app: App) -> Harness<'static, App> {
 /// Hovering the Navigation Pane button renders the registry sentence.
 #[test]
 fn hovering_a_ribbon_action_renders_its_tooltip() {
-    let app = App::new(Box::new(MockPort::new()));
+    let mut app = App::new(Box::new(MockPort::new()));
+    // The shell lands on the File tab without a database (step 75.1, L41);
+    // this pin drives the ribbon widget directly, so it selects Home.
+    app.active_ribbon_tab = "home";
     let mut harness = ribbon_harness(app);
     harness.run();
 

@@ -23,6 +23,7 @@ mod editors;
 mod form_edit;
 mod grid_state;
 mod help;
+mod lifecycle;
 pub(crate) mod notices;
 
 /// Root application state.
@@ -177,13 +178,14 @@ impl App {
     pub fn new(port: Box<dyn StoragePort>) -> Self {
         let core = Core::new(port);
         let snapshot = core.inspect();
+        let active_ribbon_tab = Self::landing_tab(&snapshot);
         Self {
             core,
             snapshot,
             dialogs: Box::new(crate::dialogs::NativeDialogs),
             open_path: String::new(),
             active_object_kind: None,
-            active_ribbon_tab: "home",
+            active_ribbon_tab,
             backstage_page: crate::backstage::BackstagePage::default(),
             nav_sort: datacraft_core::nav::NavSortOrder::default(),
             window_title: "DataCraft".to_owned(),
@@ -274,29 +276,9 @@ impl App {
         }
         // Password flow (step 16.2, M5) lives in `password_prompt.rs`.
         self.handle_password_events(&events);
-        if events
-            .iter()
-            .any(|event| matches!(event, Event::DatabaseOpened { .. }))
-            && let Some(db) = self.snapshot.database.as_ref()
-        {
-            // ADR-1: the design layer lives next to the database file.
-            let path = db.path.clone();
-            self.sidecar_path = datacraft_core::schema::SchemaDocument::sidecar_path(&path)
-                .to_string_lossy()
-                .into_owned();
-            // Item U15: a successful open feeds the bounded recent list.
-            self.record_recent_database(&path);
-            // The shell follows the open (step 69.3, M80): leave the
-            // backstage and return to Home.
-            self.active_ribbon_tab = "home";
-            self.backstage_page = crate::backstage::BackstagePage::Home;
-        }
-        if events
-            .iter()
-            .any(|event| matches!(event, Event::DatabaseClosed))
-        {
-            self.sidecar_path.clear();
-        }
+        // Lifecycle follow-through (step 69.3, M80; step 75.1, L41) lives
+        // in `app/lifecycle.rs` (L30).
+        self.follow_database_lifecycle(&events);
         self.maintain_caches(&events);
         events
     }
