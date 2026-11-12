@@ -12,6 +12,7 @@ mod field;
 mod properties;
 mod value;
 
+pub(crate) use def::validate_object_name;
 pub use def::{FieldDef, TableDef};
 pub use document::{SCHEMA_VERSION, SchemaDocument};
 pub use error::SchemaError;

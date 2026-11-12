@@ -47,6 +47,7 @@ pub struct MockPort {
 }
 
 mod alter;
+mod rename;
 
 impl MockPort {
     /// Creates an empty mock that opens as `"mock"` (Jet4).
@@ -309,6 +310,10 @@ impl StoragePort for MockPort {
         change: crate::port::SchemaChange,
     ) -> Result<(), PortError> {
         alter::alter(self, table, change)
+    }
+
+    fn rename_table(&mut self, table: &str, new_name: &str) -> Result<String, PortError> {
+        rename::rename(self, table, new_name)
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {

@@ -13,6 +13,7 @@ use crate::snapshot::UiStateSnapshot;
 use crate::state::AppState;
 
 mod relationships;
+mod rename;
 mod table_view_state;
 mod tabs;
 mod views;
@@ -402,6 +403,7 @@ impl Core {
             Command::InsertRow { table, values } => self.insert_row(&table, &values),
             Command::UpdateRow { table, row, values } => self.update_row(&table, row, &values),
             Command::DeleteRow { table, row } => self.delete_row(&table, row),
+            Command::RenameObject { object, new_name } => self.rename_object(&object, &new_name),
             Command::PreviewWrite { table, ops } => self.preview_write(&table, ops),
             Command::ApplyWrite { token } => self.apply_write(token),
             Command::RollbackWrite { token } => self.rollback_write(token),
@@ -451,6 +453,9 @@ fn clears_history(command: &Command) -> bool {
             | Command::SetFieldProperties { .. }
             | Command::ApplyWrite { .. }
             | Command::RollbackWrite { .. }
+    ) || matches!(
+        command,
+        Command::RenameObject { object, .. } if object.kind == crate::ObjectKind::Table
     )
 }
 

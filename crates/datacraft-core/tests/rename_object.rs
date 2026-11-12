@@ -121,13 +121,22 @@ fn table_rename_moves_tabs_view_state_and_relationships() {
     assert_eq!(tab.sort_field.as_deref(), Some("name"));
     // The row survived the rename and the old name is gone.
     let rows = core
-        .read_rows("Clients", datacraft_core::port::RowRange { start: 0, len: 10 })
+        .read_rows(
+            "Clients",
+            datacraft_core::port::RowRange { start: 0, len: 10 },
+        )
         .expect("rows under the new name");
     assert_eq!(
         rows[0][1],
         datacraft_core::schema::FieldValue::Text("Ada".into())
     );
-    assert!(core.read_rows("Customers", datacraft_core::port::RowRange { start: 0, len: 10 }).is_err());
+    assert!(
+        core.read_rows(
+            "Customers",
+            datacraft_core::port::RowRange { start: 0, len: 10 }
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -140,7 +149,9 @@ fn table_rename_follows_sidecar_references() {
         col: 0,
         value: QbeValue::Text("Customers".into()),
     });
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     core.dispatch(Command::SetFormSource {
         form: "Card".into(),
         table: "Customers".into(),
@@ -156,7 +167,9 @@ fn table_rename_follows_sidecar_references() {
             },
         ),
     });
-    core.dispatch(Command::CreateReport { name: "Sheet".into() });
+    core.dispatch(Command::CreateReport {
+        name: "Sheet".into(),
+    });
     core.dispatch(Command::SetReportSource {
         report: "Sheet".into(),
         table: "Customers".into(),
@@ -188,7 +201,9 @@ fn query_rename_follows_tabs_combo_sources_and_button_actions() {
         col: 0,
         value: QbeValue::Text("Customers".into()),
     });
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     core.dispatch(Command::AddFormControl {
         form: "Card".into(),
         control: control(
@@ -214,9 +229,7 @@ fn query_rename_follows_tabs_combo_sources_and_button_actions() {
         form: "Card".into(),
         control: "run".into(),
         data: ControlData::Button {
-            action: Some(ButtonAction::RunQuery {
-                query: "Q1".into(),
-            }),
+            action: Some(ButtonAction::RunQuery { query: "Q1".into() }),
         },
     }));
     core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Query, "Q1")));
@@ -245,8 +258,12 @@ fn query_rename_follows_tabs_combo_sources_and_button_actions() {
 #[test]
 fn form_rename_follows_tabs_subforms_filters_and_button_actions() {
     let mut core = opened();
-    core.dispatch(Command::CreateForm { name: "Card".into() });
-    core.dispatch(Command::CreateForm { name: "Host".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
+    core.dispatch(Command::CreateForm {
+        name: "Host".into(),
+    });
     core.dispatch(Command::AddFormControl {
         form: "Host".into(),
         control: control(
@@ -308,14 +325,18 @@ fn form_rename_follows_tabs_subforms_filters_and_button_actions() {
         } if form == "ClientCard"
     ));
     assert_eq!(core.form_filter("ClientCard"), Some("id = 1"));
-    assert!(core.state().form_filters.get("Card").is_none());
+    assert!(!core.state().form_filters.contains_key("Card"));
 }
 
 #[test]
 fn report_rename_follows_tabs_and_button_actions() {
     let mut core = opened();
-    core.dispatch(Command::CreateReport { name: "Sheet".into() });
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::CreateReport {
+        name: "Sheet".into(),
+    });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     core.dispatch(Command::AddFormControl {
         form: "Card".into(),
         control: control(
@@ -335,7 +356,10 @@ fn report_rename_follows_tabs_and_button_actions() {
             }),
         },
     }));
-    core.dispatch(Command::OpenObject(ObjectId::new(ObjectKind::Report, "Sheet")));
+    core.dispatch(Command::OpenObject(ObjectId::new(
+        ObjectKind::Report,
+        "Sheet",
+    )));
 
     let events = core.dispatch(rename(ObjectKind::Report, "Sheet", "Invoice"));
     let (kind, old, new) = renamed(&events);
@@ -375,7 +399,10 @@ fn names_are_validated_and_collisions_are_precise() {
     let clash = failed_reason(&core.dispatch(rename(ObjectKind::Table, "Customers", "listing")));
     assert!(clash.contains("duplicate"), "{clash}");
 
-    assert_eq!(core.state().database.as_ref().expect("open").tables[0].name, "Customers");
+    assert_eq!(
+        core.state().database.as_ref().expect("open").tables[0].name,
+        "Customers"
+    );
 }
 
 #[test]
@@ -422,7 +449,9 @@ fn table_renames_clear_the_row_history_sidecar_renames_keep_it() {
         ],
     });
     assert_eq!(core.state().database.as_ref().expect("open").undo.len(), 1);
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     core.dispatch(rename(ObjectKind::Form, "Card", "ClientCard"));
     assert_eq!(core.state().database.as_ref().expect("open").undo.len(), 1);
     core.dispatch(rename(ObjectKind::Table, "Customers", "Clients"));

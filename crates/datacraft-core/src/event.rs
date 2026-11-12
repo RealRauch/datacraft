@@ -65,6 +65,16 @@ pub enum Event {
         /// The affected field (canonical name after the change).
         field: String,
     },
+    /// An object was renamed (phase 72, step 72.1; item M81). Tabs,
+    /// sidecar references and relationships already follow the new name.
+    ObjectRenamed {
+        /// Kind of the renamed object.
+        kind: crate::ObjectKind,
+        /// Canonical name before the rename.
+        old_name: String,
+        /// Canonical name after the rename.
+        new_name: String,
+    },
     /// A row was appended to a table (step 13.2, H36).
     RowInserted {
         /// Canonical table name.

@@ -278,6 +278,16 @@ pub trait StoragePort {
             reason: "schema alteration is not supported by this backend".to_owned(),
         })
     }
+    /// Renames one table in place (phase 72, item M81); rows, indexes and
+    /// relationships follow the name. Gated on `alter_table` by the
+    /// dispatcher; backends that cannot rewrite their catalog answer a
+    /// precise `Unsupported` (the default).
+    fn rename_table(&mut self, table: &str, new_name: &str) -> Result<String, PortError> {
+        let _ = (table, new_name);
+        Err(PortError::Unsupported {
+            reason: "table renames are not supported by this backend".to_owned(),
+        })
+    }
     /// Whether the backend can apply sidecar views natively (step 71.3,
     /// item M93): SQLite compiles them to `CREATE VIEW`, while Jet/ACE/CSV
     /// rely on the shadow SQL engine and answer `false`.
@@ -448,6 +458,15 @@ mod tests {
         let port = DefaultPort;
         assert_eq!(port.source_format(), None);
         assert!(port.driver_inventory().is_empty());
+    }
+
+    /// The table-rename default answers a precise Unsupported — backends
+    /// with a catalog rewrite override it (phase 72, M81).
+    #[test]
+    fn table_rename_defaults_to_unsupported() {
+        let mut port = DefaultPort;
+        let reason = port.rename_table("T", "U").expect_err("default refuses");
+        assert!(reason.to_string().contains("table renames"), "{reason}");
     }
 
     /// The relationship write defaults answer a precise Unsupported —

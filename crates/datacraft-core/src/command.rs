@@ -1,7 +1,9 @@
-//! The command language (step 4.1, item H13; ARCHITECTURE §5).
-//!
-//! Every user-visible action — GUI or agent — is exactly one command; the
-//! dispatch mechanism is fixed here.
+//! The command language (step 4.1, item H13; ARCHITECTURE §5): every
+//! user-visible action — GUI or agent — is exactly one command. The enum
+//! is `#[non_exhaustive]` (M22, ADR-7): adding a command is not a breaking
+//! change for clients compiled against a published engine — out-of-crate
+//! consumers match with a wildcard arm; wire (serde) consumers are
+//! unaffected.
 
 use crate::ObjectId;
 use crate::canvas::Rect;
@@ -18,11 +20,6 @@ mod source;
 pub use source::{SourceSpec, effective_path};
 
 /// One user-visible action.
-///
-/// `#[non_exhaustive]` (M22, ADR-7): adding a command is not a breaking
-/// change for clients compiled against a published engine — out-of-crate
-/// consumers match with a wildcard arm; wire (serde) consumers are
-/// unaffected.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Command {
@@ -35,9 +32,8 @@ pub enum Command {
         /// or `None` for unprotected files.
         #[serde(default)]
         password: Option<String>,
-        /// Source override (step 65.1, item L8; ADR-7): `None` (absent on
-        /// the wire) opens the plain `path` — the historical,
-        /// byte-identical behavior; `Some` is authoritative and resolves
+        /// Source override (step 65.1, L8; ADR-7): `None` opens the plain
+        /// `path` byte-identically; `Some` is authoritative and resolves
         /// through [`SourceSpec`] (`file://` opens like its path, other
         /// schemes answer the no-server-driver boundary).
         #[serde(default)]
@@ -45,9 +41,8 @@ pub enum Command {
     },
     /// Closes the open database and all of its tabs.
     CloseDatabase,
-    /// Creates a brand-new, empty database file (phase 29, item H44). The
-    /// file must not exist; the new database is not opened — dispatch
-    /// `OpenDatabase` afterwards.
+    /// Creates a brand-new, empty database file (phase 29, H44). The file
+    /// must not exist; dispatch `OpenDatabase` to open it afterwards.
     CreateDatabase {
         /// Filesystem path of the new file.
         path: PathBuf,
@@ -55,17 +50,15 @@ pub enum Command {
         format: crate::port::DatabaseFormat,
     },
     /// Materializes a shipped template into a brand-new file (phase 29,
-    /// item H44) over the port; the new database is not opened. Registry
-    /// names are listed in the snapshot's `templates`.
+    /// H44); the new database is not opened. Names come from `templates`.
     CreateDatabaseFromTemplate {
         /// Filesystem path of the new file.
         path: PathBuf,
         /// Registry name of the template (case-insensitive).
         template: String,
     },
-    /// Writes a copy of the open database under `path` (step 27.2, M14);
-    /// `password` protects the copy, the original stays untouched and
-    /// open. Gated on the driver's `passwords` capability.
+    /// Writes a copy under `path` (step 27.2, M14): the original stays
+    /// untouched; gated on the driver's `passwords` capability.
     SaveDatabaseAs {
         /// Filesystem path of the copy; it must not exist yet.
         path: PathBuf,
@@ -73,8 +66,8 @@ pub enum Command {
         #[serde(default)]
         password: Option<String>,
     },
-    /// Replaces the open database's password in place (step 27.2, item
-    /// M14); the old password is the one the session was opened with.
+    /// Replaces the password in place (step 27.2, M14); the old password
+    /// is the one the session was opened with.
     ChangePassword {
         /// New password, or `None` to remove the protection.
         #[serde(default)]
@@ -85,10 +78,9 @@ pub enum Command {
         /// Full field-level definition.
         definition: TableDef,
     },
-    /// Imports an external CSV file as a new table into the open
-    /// database (step 58.1, item M50): parsed with inferred column
-    /// kinds, created and filled over the ordinary write path — the
-    /// source is never touched; GUI, CLI and MCP share this chain.
+    /// Imports an external CSV file as a new table (step 58.1, M50):
+    /// inferred kinds, filled over the write path — the source is never
+    /// touched; GUI, CLI and MCP share this chain.
     ImportFile {
         /// The CSV file to read (header row + records).
         source: std::path::PathBuf,
@@ -190,6 +182,14 @@ pub enum Command {
     DiscardWrite {
         /// Token from the preview.
         token: u64,
+    },
+    /// Renames one table, query, form or report (step 72.1, item M81);
+    /// tabs, sidecar references and relationships follow the new name.
+    RenameObject {
+        /// The object to rename (kind + current name).
+        object: ObjectId,
+        /// The new name, validated against the kind's namespace.
+        new_name: String,
     },
     /// Opens the object in a tab (re-activates an existing tab instead of
     /// opening a second one for the same object).
