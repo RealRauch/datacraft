@@ -1211,6 +1211,54 @@ expression `[StockLevel] > 0`). Jet 3 keeps macro definitions inside
 `MSysAccessObjects`; that compound-file chunking is not decoded yet, so
 Jet 3 names are reported with `definition_decoded = false`.
 
+## Native form/report definitions — M89 feasibility (2026-11-12)
+
+**Question.** Can native Access form/report definitions be decoded from the
+file itself, without an Access/SaveAsText round-trip? Time-boxed study
+against the pinned `programmability.accdb` and its committed SaveAsText
+exports (`tools/fixture-build/objects/{forms,reports}/*.txt`).
+
+**Container (established).** `MSysAccessStorage` carries `Forms` and
+`Reports` storages. Their `\u{3}DirData` stream uses the same directory
+encoding as `Scripts` (the existing `decode_dir_data`): `(index, name)`
+pairs — observed `[(0, "Items Browser"), (1, "Movement Editor"),
+(2, "Category Picker")]` and `[(0, "Stock Summary")]`. The child storage
+`<index>` holds `Blob` (the definition: 926–1692 bytes for the three
+forms), `TypeInfo` (an ASCII symbol table), `PropData` (13 bytes) and
+`BlobDelta` (empty).
+
+**Blob framing (partially established).** The definition blob is a
+sequence of property records. UTF-16 string properties are identifiable:
+`[u32 id][u16 type = 0x14][u32 flags][u32 flags][u32 byte-length]
+[UTF-16LE value]`. Observed for the `Detail` section name (`id = 0xDF`,
+length 12) and the `txtItemName` control name (`id = 0xDF`, length 22) —
+the same id carries both names, i.e. `0xDF` is the `Name` property.
+Non-string properties follow the same framing with other type tags (e.g.
+`0x1B`) and numeric payloads. `TypeInfo` supplies an ASCII table of the
+form's symbol names (section, control names, bound fields) — observed
+`Detail`, `txtItemName`, `Label1`, `txtStockLevel`, `Label2`, `cmdFilter`,
+`ItemId`, `ItemName`, …; one form carries an empty `TypeInfo`.
+
+**Correlation with SaveAsText (ground truth).** `items-browser.txt` names
+the same section (`Detail`), controls (`txtItemName`, `txtStockLevel`,
+`cmdFilter`) and bound fields (`ItemName`, `StockLevel`);
+`movement-editor` and `category-picker` correlate the same way. The blob's
+UTF-16 names are the control/section `Name` values; the field names sit in
+`TypeInfo`.
+
+**Verdict: stop — not feasible without a specification.** The container,
+directory and the string-property framing are reconstructible, but the
+property-id table (which numeric id means `Left`/`Top`/`Width`/`Caption`/
+`ControlSource`, and which flags carry defaults) has no public source; the
+ids would have to be inferred one by one against exports. A names-only
+subset (section/control names) would be possible, but it adds no
+user-visible value over the catalog inventory (M87) and no
+rects/captions/sources. DataCraft therefore ships the read-only name/type
+inventory only and does not decode definition bytes. The committed exports
+remain the migration route for Access owners (M88). Clean-room: all
+evidence above is own black-box observation of the pinned fixture and its
+committed exports.
+
 ## VBA project extraction (step 17.2, item L5)
 
 The ACE VBA project lives under `MSysAccessStorage`:
