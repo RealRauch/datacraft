@@ -2042,3 +2042,23 @@
 - **Acceptance:** a `WITHOUT ROWID` fixture reads in primary-key order or refuses precisely; the busy timeout is set and observable; a WAL fixture opens and reports the mode; kittest and port pins cover all three.
 - **Steps:** Phase 73 (73.4).
 - **Done:** phase 73 (73.4 `19e8e2d`)
+
+---
+
+### [x] M87 — Native Access forms and reports are invisible — add a read-only inventory from MSysObjects — 🟡
+- **Location:** `crates/datacraft-jet` catalog (`MSysObjects` object types), core snapshot (`DatabaseSnapshot`), UI navigation pane.
+- **Problem:** Native Access forms and reports are invisible today: the catalog keeps only Type 1 (tables), so the nav pane and agents cannot even say that a database contains 12 forms and 5 reports. The README matrix states native forms/reports are neither read nor written (ADR-1); the inventory is the honest first step short of decoding definitions.
+- **Approach:** decode the `MSysObjects` form/report object types (`-32768` form, `-32764` report; verified against fixtures) into a read-only inventory (name, type) on the snapshot; the nav pane gains a read-only "Native forms/reports" group with a precise "definitions are not decoded" hint. No definition bytes are parsed.
+- **Acceptance:** a fixture with native forms/reports lists their names and counts in the snapshot and the nav pane; the hint names the boundary; no write path and no Access-object byte decoding; kittest and port contract pins.
+- **Steps:** Phase 74 (74.1).
+- **Done:** phase 74 (74.1 `6ebdfa5`) — read-only inventory from the MSysObjects types -32768/-32764
+
+---
+
+### [x] M89 — Decode native Access form/report definitions from the file — time-boxed feasibility with the committed exports as ground truth — 🟡
+- **Location:** `crates/datacraft-jet/src/jet/access.rs` (the MSysAccessStorage/MSysAccessObjects compound decode that already extracts VBA), `tools/fixture-build/objects/forms/*.txt` + `objects/reports/*.txt` (committed SaveAsText ground truth), the pinned programmability fixture.
+- **Problem:** Most users do not have Access, so the SaveAsText route (M88) cannot serve them; reading native form/report definitions from the file itself is the only Access-free path. The definitions are stored as proprietary property-bag streams with no public specification, and no shipped parser exists.
+- **Approach:** a time-boxed feasibility study, not a promise: extract one form blob from the pinned fixture, correlate it with the committed SaveAsText export of the *same* object (control order, rects, captions, sources, section structure) — the text is our ground truth. Establish the container/property encoding for the supported subset, then decide. Stop condition: if the property encoding cannot be reconstructed reliably within the time box, record "not feasible without a specification" with the evidence and close.
+- **Acceptance:** a written verdict with evidence (blob ↔ text mapping for at least one form), a supported-subset decision, or a documented stop; nothing ships without the verdict; clean-room (own observation and public docs only, no third-party source).
+- **Steps:** Phase 74 (74.2) — documented stop, evidence in FORMAT-JET "Native form/report definitions — M89 feasibility".
+- **Done:** phase 74 (74.2 `ace9225`) — documented stop; evidence in FORMAT-JET "Native form/report definitions — M89 feasibility"

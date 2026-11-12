@@ -72,6 +72,16 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   a WAL session reports its mode; `WITHOUT ROWID` row windows follow the
   declared primary key and rowid writes answer a precise `Unsupported`.
 
+### Added
+- core/jet/ui: native Access object inventory (74, M87) — the navigation
+  pane lists the catalog's native forms and reports read-only (names and
+  counts from the `MSysObjects` object types, a precise "definitions are
+  not decoded" hint, no tab and no write path). The companion feasibility
+  study (M89) established the `MSysAccessStorage` container and the
+  blob/`TypeInfo` string layer against the committed SaveAsText exports,
+  but the numeric property-id table has no public source; the verdict is a
+  documented stop, recorded in `docs/FORMAT-JET.md`.
+
 ## [0.1.1] — 2026-11-10
 
 ### Added
