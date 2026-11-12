@@ -9,6 +9,7 @@ use datacraft_core::command::Command;
 use datacraft_core::port::{DriverCapabilities, MockPort};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_ui::app::App;
+use datacraft_ui::backstage::{NewDatabaseKind, NewDatabaseStep};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 
@@ -87,22 +88,37 @@ fn tree_dump(harness: &Harness<'static, App>) -> String {
     lines.join("\n")
 }
 
-/// The New Database page (phase 29, H44): selecting the blank template and
-/// clicking Create queues create + open — the new database ends up open.
+/// The New Database page (phase 29, H44; two-step flow step 75.2, L42):
+/// choosing "Blank database" advances to the location step; Create queues
+/// create + open — the new database ends up open.
 #[test]
-fn backstage_new_page_creates_from_a_template() {
+fn backstage_new_page_creates_a_blank_database_after_two_steps() {
     let mut app = mock_app();
     app.dispatch(Command::CloseDatabase);
     let path =
         std::env::temp_dir().join(format!("datacraft-kittest-{}-new.mdb", std::process::id()));
     let _ = std::fs::remove_file(&path);
-    app.new_database_path = path.to_string_lossy().into_owned();
+    app.new_database.path = path.to_string_lossy().into_owned();
     let mut harness = backstage_flow_harness(app);
 
     harness.get_by_label("New").click();
     harness.run();
-    harness.get_by_label("Blank database — 0 tables").click();
+    assert_eq!(
+        harness.state().new_database.step,
+        NewDatabaseStep::Kind,
+        "the page opens on the kind step"
+    );
+    harness.get_by_label("Blank database").click();
     harness.run();
+    assert_eq!(
+        harness.state().new_database.step,
+        NewDatabaseStep::Location,
+        "the card advances to the location step"
+    );
+    assert_eq!(
+        harness.state().new_database.kind,
+        Some(NewDatabaseKind::Blank)
+    );
     harness.get_by_label("Create Database").click();
     // Create + open each take a busy frame, and the open returns to Home.
     harness.run_steps(10);
@@ -114,6 +130,80 @@ fn backstage_new_page_creates_from_a_template() {
         .as_ref()
         .expect("the created database opens");
     assert_eq!(database.format.to_string(), "Jet4");
+    let _ = std::fs::remove_file(&path);
+}
+
+/// The kind choice survives Back (step 75.2, L42): stepping back keeps the
+/// selection, and the kept selection advances again.
+#[test]
+fn backstage_new_flow_keeps_the_selection_across_back() {
+    let mut app = mock_app();
+    app.dispatch(Command::CloseDatabase);
+    let mut harness = backstage_flow_harness(app);
+
+    harness.get_by_label("New").click();
+    harness.run();
+    harness.get_by_label("Blank database").click();
+    harness.run();
+    assert_eq!(
+        harness.state().new_database.step,
+        NewDatabaseStep::Location
+    );
+
+    harness.get_by_label("Back to the choice").click();
+    harness.run();
+    assert_eq!(harness.state().new_database.step, NewDatabaseStep::Kind);
+    assert_eq!(
+        harness.state().new_database.kind,
+        Some(NewDatabaseKind::Blank),
+        "the selection survives Back"
+    );
+
+    harness.get_by_label("Blank database").click();
+    harness.run();
+    assert_eq!(
+        harness.state().new_database.step,
+        NewDatabaseStep::Location,
+        "the kept selection advances again"
+    );
+}
+
+/// The template path still materializes the shipped template (step 75.2,
+/// L42): the card selects its registry name and Create+Open runs the same
+/// chain as before.
+#[test]
+fn backstage_new_page_creates_from_a_template() {
+    let mut app = mock_app();
+    app.dispatch(Command::CloseDatabase);
+    let path =
+        std::env::temp_dir().join(format!("datacraft-kittest-{}-tmpl.mdb", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    app.new_database.path = path.to_string_lossy().into_owned();
+    let mut harness = backstage_flow_harness(app);
+
+    harness.get_by_label("New").click();
+    harness.run();
+    harness.get_by_label("Contacts — 1 tables").click();
+    harness.run();
+    assert_eq!(
+        harness.state().new_database.kind,
+        Some(NewDatabaseKind::Template("contacts".to_owned()))
+    );
+    harness.get_by_label("Create Database").click();
+    harness.run_steps(10);
+
+    let database = harness
+        .state()
+        .snapshot()
+        .database
+        .as_ref()
+        .expect("the created database opens");
+    assert_eq!(database.format.to_string(), "Jet4");
+    assert_eq!(
+        database.tables.len(),
+        1,
+        "the template materializes its table"
+    );
     let _ = std::fs::remove_file(&path);
 }
 

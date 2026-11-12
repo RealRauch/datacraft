@@ -10,6 +10,7 @@ use datacraft_core::port::{DriverCapabilities, MockPort};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_core::snapshot::TabSnapshot;
 use datacraft_ui::app::App;
+use datacraft_ui::backstage::{BackstagePage, NewDatabaseKind, NewDatabaseStep};
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT;
 
@@ -111,6 +112,15 @@ fn schema_edit_controls_gate_on_the_alter_tables_capability() {
     assert!(enabled_line(&dump, "CheckBox|Required|"), "{dump}");
 }
 
+/// Seeds the New page on the location step with a blank kind and a path —
+/// the capability is then the only possible blocker (step 75.2, L42).
+fn ready_new_database(app: &mut App) {
+    app.backstage_page = BackstagePage::New;
+    app.new_database.step = NewDatabaseStep::Location;
+    app.new_database.kind = Some(NewDatabaseKind::Blank);
+    app.new_database.path = "new.mdb".to_owned();
+}
+
 #[test]
 fn create_database_button_gates_on_the_create_capability() {
     let mut caps = DriverCapabilities::full();
@@ -123,7 +133,7 @@ fn create_database_button_gates_on_the_create_capability() {
         password: None,
         source: None,
     });
-    app.backstage_page = datacraft_ui::backstage::BackstagePage::New;
+    ready_new_database(&mut app);
     let mut harness = Harness::new_ui_state(
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
@@ -140,15 +150,15 @@ fn create_database_button_gates_on_the_create_capability() {
     );
     assert!(disabled_line(&dump, "Button|Create Database|"), "{dump}");
 
-    // Contrast: a creation-capable composition keeps the button live
-    // (still gated on path and template selection).
+    // Contrast: a creation-capable composition keeps the button live once
+    // a kind is chosen and a path is entered.
     let mut app = App::new(Box::new(MockPort::with_tables(vec![customers()])));
     app.dispatch(Command::OpenDatabase {
         path: "shop.mdb".into(),
         password: None,
         source: None,
     });
-    app.backstage_page = datacraft_ui::backstage::BackstagePage::New;
+    ready_new_database(&mut app);
     let mut harness = Harness::new_ui_state(
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
@@ -164,7 +174,7 @@ fn create_database_button_gates_on_the_create_capability() {
         "{dump}"
     );
     assert!(
-        disabled_line(&dump, "Button|Create Database|"),
-        "no path and template selected yet:\n{dump}"
+        !disabled_line(&dump, "Button|Create Database|"),
+        "a chosen kind and path keep the button live:\n{dump}"
     );
 }
