@@ -82,6 +82,12 @@ impl MockPort {
         self
     }
 
+    /// Builder: attaches the native form/report inventory (M87).
+    pub fn with_native_objects(&mut self, objects: Vec<crate::port::NativeObject>) -> &mut Self {
+        self.native_objects = objects;
+        self
+    }
+
     /// Builder: attaches file-owned views (phase 73, step 73.1; M90).
     pub fn with_native_views(&mut self, views: Vec<crate::port::NativeView>) -> &mut Self {
         self.view_defs = views

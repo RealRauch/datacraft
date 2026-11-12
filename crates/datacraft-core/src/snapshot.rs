@@ -105,6 +105,10 @@ pub struct DatabaseSnapshot {
     /// `Some(reason)` = the bounded check reported damage (M91).
     #[serde(default)]
     pub health: Option<String>,
+    /// Native Access forms/reports named by the catalog (phase 74, step
+    /// 74.1; M87) — read-only, definitions never decoded.
+    #[serde(default)]
+    pub native_objects: Vec<NativeObjectSnapshot>,
     /// Why the native-query decode failed, if it did (step 23.3, M10).
     pub native_queries_error: Option<String>,
     /// Form design documents in creation order.
@@ -128,6 +132,18 @@ pub struct DatabaseSnapshot {
     /// localize the notice from this field (ADR-4); absent when no lock
     /// file exists beside the database.
     pub lock_file: Option<String>,
+}
+
+/// One native Access form/report in the snapshot (phase 74, step 74.1;
+/// item M87). Read-only: no tab, no definition bytes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeObjectSnapshot {
+    /// Object name as the catalog reports it.
+    pub name: String,
+    /// Form or report.
+    pub kind: crate::port::NativeObjectKind,
+    /// `navpane.<expanded|collapsed>.native.<kind>.<name>`.
+    pub ui_test_id: String,
 }
 
 /// One file-owned (native) view in the snapshot (phase 73, step 73.1;
@@ -324,6 +340,24 @@ impl UiStateSnapshot {
                 triggers: db.triggers.clone(),
                 facts: db.source_facts.facts.clone(),
                 health: db.source_facts.health.clone(),
+                native_objects: db
+                    .native_objects
+                    .iter()
+                    .map(|object| NativeObjectSnapshot {
+                        name: object.name.clone(),
+                        kind: object.kind,
+                        ui_test_id: format!(
+                            "navpane.{}.native.{}.{}",
+                            if state.nav_pane_visible {
+                                "expanded"
+                            } else {
+                                "collapsed"
+                            },
+                            object.kind.slug(),
+                            object.name.to_lowercase()
+                        ),
+                    })
+                    .collect(),
                 native_views: db
                     .native_views
                     .iter()

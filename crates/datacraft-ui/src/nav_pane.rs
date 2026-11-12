@@ -51,6 +51,8 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         && db.reports.is_empty()
         && db.queries.is_empty()
         && db.views.is_empty()
+        && db.native_views.is_empty()
+        && db.native_objects.is_empty()
         && db.macros.is_empty()
         && db
             .vba
@@ -280,6 +282,31 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 })
                 .unwrap_or_default(),
         );
+
+        // Native Access forms/reports (phase 74, step 74.1; item M87):
+        // catalog names only — read-only, no definition decoding, no tab.
+        if !db.native_objects.is_empty() {
+            let count = db.native_objects.len();
+            ui.push_id("nav.native_objects", |ui| {
+                egui::CollapsingHeader::new(
+                    egui::RichText::new(tr(
+                        "Native forms and reports ({count})",
+                        &[("count", &count.to_string())],
+                    ))
+                    .strong(),
+                )
+                .default_open(true)
+                .show(ui, |ui| {
+                    for object in &db.native_objects {
+                        ui.add_enabled(false, egui::Button::new(&object.name));
+                    }
+                    let hint = ui.weak(t(
+                        "Definitions are not decoded — these objects are listed read-only.",
+                    ));
+                    crate::layout_probe::record("nav.native_objects_hint", hint.rect);
+                });
+            });
+        }
 
         // A native-query decode failure is visible at the Queries group, not
         // silently swallowed (step 23.3, M10). Rendered after the sections so

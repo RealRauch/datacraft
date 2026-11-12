@@ -34,6 +34,38 @@ pub struct SourceTrigger {
     pub sql: String,
 }
 
+/// Kind of a native Access form/report object (phase 74, step 74.1; item
+/// M87). The definitions are proprietary and stay undecoded — the kind is
+/// catalog data only.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeObjectKind {
+    /// A native Access form.
+    Form,
+    /// A native Access report.
+    Report,
+}
+
+impl NativeObjectKind {
+    /// Lower-case identifier used in snapshot test ids.
+    pub fn slug(self) -> &'static str {
+        match self {
+            Self::Form => "form",
+            Self::Report => "report",
+        }
+    }
+}
+
+/// One native Access form/report in the file's catalog (read-only
+/// inventory; no definition bytes are decoded).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeObject {
+    /// Object name as the catalog reports it.
+    pub name: String,
+    /// Form or report.
+    pub kind: NativeObjectKind,
+}
+
 /// One driver fact of the opened file (stable machine name + display
 /// value): engine version, page size, journal mode, encoding, …
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

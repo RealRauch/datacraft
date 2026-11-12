@@ -14,6 +14,14 @@ use crate::types::StorageValue;
 /// Object type constant for tables in MSysObjects rows.
 pub const OBJECT_TYPE_TABLE: i64 = 1;
 
+/// Native Access form (`MSysObjects.Type`), observed on the pinned
+/// `programmability.accdb` fixture (phase 74, step 74.1; item M87).
+pub const OBJECT_TYPE_FORM: i64 = -32768;
+
+/// Native Access report (`MSysObjects.Type`), observed on the same
+/// fixture.
+pub const OBJECT_TYPE_REPORT: i64 = -32764;
+
 /// One catalog entry.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CatalogEntry {

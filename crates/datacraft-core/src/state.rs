@@ -135,6 +135,10 @@ pub struct DatabaseState {
     /// M91), read at open.
     #[serde(default)]
     pub source_facts: crate::port::SourceFacts,
+    /// Native Access forms/reports named by the catalog (phase 74, step
+    /// 74.1; M87) — read-only inventory.
+    #[serde(default)]
+    pub native_objects: Vec<crate::port::NativeObject>,
     /// Native saved queries read from the file (step 15.3, M3; read-only).
     pub native_queries: Vec<crate::port::NativeQuery>,
     /// Why the native-query decode failed, if it did — the open still

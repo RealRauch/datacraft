@@ -42,11 +42,8 @@ fn the_catalog_lists_native_forms_and_reports() {
         .collect();
     assert_eq!(reports, ["Stock Summary"], "{objects:?}");
     // The inventory never turns a form into a table.
-    let tables: Vec<&str> = port
-        .tables()
-        .iter()
-        .map(|table| table.name.as_str())
-        .collect();
+    let catalog = port.tables();
+    let tables: Vec<&str> = catalog.iter().map(|table| table.name.as_str()).collect();
     assert!(!tables.contains(&"Items Browser"), "{tables:?}");
 }
 

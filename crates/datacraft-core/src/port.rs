@@ -20,7 +20,9 @@ pub use native_query::{
     NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
 };
 pub use native_view::NativeView;
-pub use source_objects::{SourceFact, SourceFacts, SourceIndex, SourceTrigger};
+pub use source_objects::{
+    NativeObject, NativeObjectKind, SourceFact, SourceFacts, SourceIndex, SourceTrigger,
+};
 
 /// Binary format family of an opened database (domain vocabulary; the
 /// backends map their physical version detection onto it).
@@ -254,6 +256,12 @@ pub trait StoragePort {
     /// The default reports no facts and a healthy file.
     fn source_facts(&self) -> SourceFacts {
         SourceFacts::default()
+    }
+    /// Native Access forms/reports named by the catalog (phase 74, step
+    /// 74.1; item M87) — read-only inventory, definitions never decoded.
+    /// The default is empty.
+    fn native_objects(&self) -> Result<Vec<NativeObject>, PortError> {
+        Ok(Vec::new())
     }
     /// Creates a table; errors on duplicate names.
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError>;

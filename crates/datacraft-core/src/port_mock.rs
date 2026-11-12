@@ -30,6 +30,8 @@ pub struct MockPort {
     triggers: Vec<crate::port::SourceTrigger>,
     /// Driver facts and the health verdict (phase 73, step 73.3; M91).
     source_facts: crate::port::SourceFacts,
+    /// Native Access form/report inventory (phase 74, step 74.1; M87).
+    native_objects: Vec<crate::port::NativeObject>,
     /// Column definitions of the native views, for read windows.
     view_defs: Vec<TableDef>,
     opened: Option<OpenedDatabase>,
@@ -184,6 +186,10 @@ impl StoragePort for MockPort {
 
     fn source_facts(&self) -> crate::port::SourceFacts {
         self.source_facts.clone()
+    }
+
+    fn native_objects(&self) -> Result<Vec<crate::port::NativeObject>, PortError> {
+        Ok(self.native_objects.clone())
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {

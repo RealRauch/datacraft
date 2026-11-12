@@ -5,6 +5,14 @@
 pub static TABLE: &[(&str, &str)] = &[
     ("New name", "Neuer Name"),
     ("Read-only native view", "Schreibgeschützte native View"),
+    (
+        "Native forms and reports ({count})",
+        "Native Formulare und Berichte ({count})",
+    ),
+    (
+        "Definitions are not decoded — these objects are listed read-only.",
+        "Definitionen werden nicht dekodiert — diese Objekte sind schreibgeschützt aufgelistet.",
+    ),
     ("SQLite version", "SQLite-Version"),
     ("Page size", "Seitengröße"),
     ("Journal mode", "Journal-Modus"),

@@ -3,9 +3,13 @@
 //! the port boundary.
 
 use datacraft_core::macro_def::{MacroAction, MacroDef};
+use datacraft_core::port::{NativeObject, NativeObjectKind};
 use datacraft_core::vba::{VbaModule, VbaModuleKind, VbaProject};
 
-use crate::jet::{StoredMacro, StoredModuleKind, StoredVbaProject};
+use crate::jet::{
+    CatalogEntry, OBJECT_TYPE_FORM, OBJECT_TYPE_REPORT, StoredMacro, StoredModuleKind,
+    StoredVbaProject,
+};
 
 /// Maps the macro inventory onto the core domain.
 pub(crate) fn macros_to_core(stored: Vec<StoredMacro>) -> Vec<MacroDef> {
@@ -19,6 +23,26 @@ pub(crate) fn macros_to_core(stored: Vec<StoredMacro>) -> Vec<MacroDef> {
                 .map(|argument| MacroAction { argument })
                 .collect(),
             definition_decoded: macro_def.definition_decoded,
+        })
+        .collect()
+}
+
+/// Maps the catalog's native form/report object types onto the core
+/// inventory (phase 74, step 74.1; item M87). Names only — no definition
+/// bytes are touched.
+pub(crate) fn native_objects_to_core(entries: Vec<CatalogEntry>) -> Vec<NativeObject> {
+    entries
+        .into_iter()
+        .filter_map(|entry| {
+            let kind = match entry.object_type {
+                OBJECT_TYPE_FORM => NativeObjectKind::Form,
+                OBJECT_TYPE_REPORT => NativeObjectKind::Report,
+                _ => return None,
+            };
+            (!entry.name.starts_with("MSys")).then_some(NativeObject {
+                name: entry.name,
+                kind,
+            })
         })
         .collect()
 }

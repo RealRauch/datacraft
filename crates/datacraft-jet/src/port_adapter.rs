@@ -46,6 +46,9 @@ pub struct Jet4Port {
     complex: ComplexCatalog,
     /// Named macros read at open (step 17.1, L4; read-only).
     macros: Vec<datacraft_core::macro_def::MacroDef>,
+    /// Native form/report inventory read at open (phase 74, step 74.1;
+    /// item M87; read-only).
+    native_objects: Vec<datacraft_core::port::NativeObject>,
     /// Extracted VBA project (step 17.2, L5; read-only).
     vba: Option<datacraft_core::vba::VbaProject>,
     /// Why the VBA extraction failed, if it did (observable degradation).
@@ -155,6 +158,8 @@ impl StoragePort for Jet4Port {
         let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
         let entries = collect_tables(&reader, &complex)?;
         let macros = crate::port_objects::macros_to_core(reader.macros().map_err(map_open)?);
+        let native_objects =
+            crate::port_objects::native_objects_to_core(reader.catalog().map_err(map_open)?);
         let (vba, vba_error) = match reader.vba_project() {
             Ok(project) => (project.map(crate::port_objects::vba_to_core), None),
             // Extraction failure is reported through the port, not by
@@ -172,6 +177,7 @@ impl StoragePort for Jet4Port {
             .collect();
         self.complex = complex;
         self.macros = macros;
+        self.native_objects = native_objects;
         self.vba = vba;
         self.vba_error = vba_error;
         self.reader = Some(reader);
@@ -195,6 +201,7 @@ impl StoragePort for Jet4Port {
         self.pages.clear();
         self.complex = ComplexCatalog::default();
         self.macros.clear();
+        self.native_objects.clear();
         self.vba = None;
         self.vba_error = None;
         self.path = None;
@@ -322,6 +329,10 @@ impl StoragePort for Jet4Port {
 
     fn macros(&self) -> Result<Vec<datacraft_core::macro_def::MacroDef>, PortError> {
         Ok(self.macros.clone())
+    }
+
+    fn native_objects(&self) -> Result<Vec<datacraft_core::port::NativeObject>, PortError> {
+        Ok(self.native_objects.clone())
     }
 
     fn vba_project(&self) -> Result<Option<datacraft_core::vba::VbaProject>, PortError> {

@@ -9,7 +9,7 @@ use datacraft_core::command::Command;
 use datacraft_core::port::{MockPort, NativeObject, NativeObjectKind};
 use datacraft_ui::app::App;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 fn native_app() -> App {
     let mut port = MockPort::new();
@@ -60,7 +60,7 @@ fn the_nav_pane_lists_native_objects_read_only() {
     let labels: Vec<String> = harness
         .root()
         .children_recursive()
-        .filter_map(|node| node.accesskit_node().label().map(str::to_owned))
+        .filter_map(|node| node.accesskit_node().label().as_deref().map(str::to_owned))
         .collect();
     let joined = labels.join("|");
     assert!(

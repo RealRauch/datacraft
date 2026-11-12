@@ -139,6 +139,7 @@ impl crate::core::Core {
                 // Driver facts and the bounded health verdict (phase 73,
                 // step 73.3; M91) ride the open.
                 let source_facts = self.port.source_facts();
+                let native_objects = self.port.native_objects().unwrap_or_default();
                 let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
@@ -172,6 +173,7 @@ impl crate::core::Core {
                     indexes,
                     triggers,
                     source_facts: source_facts.clone(),
+                    native_objects,
                     reports: sidecar
                         .as_ref()
                         .map(|document| document.reports.clone())
