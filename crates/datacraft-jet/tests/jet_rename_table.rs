@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
-use datacraft_core::port::{DatabaseFormat, Relationship, RowRange, StoragePort};
+use datacraft_core::port::{DatabaseFormat, Relationship, RowRange};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_core::{ObjectId, ObjectKind};
 use datacraft_jet::port_adapter::Jet4Port;
@@ -241,9 +241,42 @@ fn case_only_renames_survive_reopen() {
 }
 
 #[test]
+fn an_unknown_catalog_name_is_refused_by_the_writer() {
+    let (mut core, scratch) = created(DatabaseFormat::Jet4, "ghost");
+    core.dispatch(Command::CloseDatabase);
+    let bytes = std::fs::read(&scratch.0).expect("read the database");
+    let mut writer = datacraft_jet::jet::Jet4Writer::new(bytes).expect("writer");
+    let error = writer.rename_table("Ghost", "X").expect_err("unknown");
+    assert!(error.to_string().contains("Ghost"), "{error}");
+}
+
+#[test]
 fn renaming_a_table_in_an_ace_database_persists() {
-    let (mut core, scratch) = created(DatabaseFormat::Ace, "ace");
-    let events = rename_table(&mut core, "Customers", "Clients");
+    let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("testV2010.accdb");
+    let path = scratch_path("ace").with_extension("accdb");
+    let scratch = Scratch(path.clone());
+    std::fs::copy(&source, &path).expect("copy the ACE fixture");
+    let mut core = open(&path);
+    let events = core.dispatch(Command::CreateTable {
+        definition: TableDef::new(
+            "RenameMe",
+            vec![FieldDef::new(
+                "id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
+        ),
+    });
+    assert!(failures(&events).is_none(), "{events:?}");
+    core.dispatch(Command::InsertRow {
+        table: "RenameMe".into(),
+        values: vec![FieldValue::Integer(1)],
+    });
+
+    let events = rename_table(&mut core, "RenameMe", "Clients");
     assert!(failures(&events).is_none(), "{events:?}");
     core.dispatch(Command::CloseDatabase);
 
@@ -251,5 +284,5 @@ fn renaming_a_table_in_an_ace_database_persists() {
     let database = reopened.inspect().database.expect("reopen");
     assert_eq!(database.format, DatabaseFormat::Ace);
     assert!(database.tables.iter().any(|table| table.name == "Clients"));
-    assert_eq!(rows(&reopened, "Clients").len(), 2);
+    assert_eq!(rows(&reopened, "Clients").len(), 1);
 }

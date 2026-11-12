@@ -288,6 +288,29 @@ impl StoragePort for Jet4Port {
         Ok(())
     }
 
+    fn rename_table(&mut self, table: &str, new_name: &str) -> Result<String, PortError> {
+        if self.reader.is_none() {
+            return Err(no_database());
+        }
+        let Some(canonical) = self
+            .pages
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(table))
+            .map(|(name, _)| name.clone())
+        else {
+            return Err(PortError::TableNotFound(table.to_owned()));
+        };
+        if self.pages.iter().any(|(name, _)| {
+            !name.eq_ignore_ascii_case(&canonical) && name.eq_ignore_ascii_case(new_name)
+        }) {
+            return Err(PortError::WriteFailed {
+                detail: format!("duplicate table name {new_name:?}"),
+            });
+        }
+        self.with_writer(|writer| writer.rename_table(&canonical, new_name))?;
+        Ok(new_name.to_owned())
+    }
+
     fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {
         let Some(reader) = self.reader.as_ref() else {
             return Ok(Vec::new());

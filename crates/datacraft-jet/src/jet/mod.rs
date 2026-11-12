@@ -28,6 +28,7 @@ pub mod writer;
 pub mod writer_acl;
 pub mod writer_drop;
 pub mod writer_indexes;
+pub mod writer_rename;
 pub mod writer_rows;
 pub mod writer_schema;
 pub mod writer_tables;
