@@ -22,14 +22,6 @@
 
 ## 🟡 MEDIUM
 
-### [ ] M72 — release.yml's draft step fails: --generate-notes needs a checkout — 🟡
-- **Location:** `.github/workflows/release.yml` (the "Draft GitHub release" job's create step).
-- **Problem:** The v0.1.0 tag run (42508568656) ended red: `gh release create --generate-notes` shells out to git, but the job holds only the downloaded artifacts (no `.git` checkout) — "fatal: not a git repository". The draft and all four assets were created anyway (uploads happen before notes generation), so the release stayed intact; the red run and the thin default notes are the residue (the notes were composed manually from CHANGELOG's [0.1.0] section at publication, 2026-11-10).
-- **Approach:** Preferred: generate the notes from `CHANGELOG.md`'s dated section via `--notes-file` — the changelog is the reviewed source of truth per the L38 cadence, so the draft carries the real entries with no manual follow-up. Alternative: check out the repository before the create step. `.github/workflows/*` is High-class — explicit human release required before implementation.
-- **Acceptance:** A tag-triggered release run completes fully green including the draft step, and the created draft carries the changelog-derived notes without manual follow-up.
-- **Steps:** Phase 66 (66.1) — released 2026-11-10.
-- **Finding (v0.1.1 live run 42904578821):** the first fix's checkout (added for the notes) ran after the artifact download — checkout's default `clean` wiped the untracked `dist/`, and the create step failed with "no matches found for `dist/datacraft-*`". Fix 2 (phase 67) reorders the steps; the v0.1.1 draft was created manually from the run's verified bundle (checksums re-verified 3x OK). The workflow's live acceptance still rides the next tag run.
-
 ### [ ] M87 — Native Access forms and reports are invisible — add a read-only inventory from MSysObjects — 🟡
 - **Location:** `crates/datacraft-jet` catalog (`MSysObjects` object types), core snapshot (`DatabaseSnapshot`), UI navigation pane.
 - **Problem:** Native Access forms and reports are invisible today: the catalog keeps only Type 1 (tables), so the nav pane and agents cannot even say that a database contains 12 forms and 5 reports. The README matrix states native forms/reports are neither read nor written (ADR-1); the inventory is the honest first step short of decoding definitions.
@@ -362,3 +354,4 @@
 - M78 — M42 window-chrome polish pass — the deferred subjective review findings — done (done in `659498a` (RED `15e78ab`) — the tool windows carry the accent frame, strong controls and legible weak text in both palettes)
 - M93 — DataCraft views: sidecar SELECT designs, shadow-engine execution, native on SQLite — done (done in `8beb67a` (RED `b79c6b4`/`a5560bb`) — sidecar views with the shadow-engine and native SQLite paths; triggers deferred to ROADMAP §19)
 - M81 — Objects cannot be renamed from the UI (tables, queries, forms, reports) — done (phase 72 (72.1 `032fcec`, 72.2 `dac32cd`, 72.3 `2ddf5e4`, 72.4 `376a8bf`, 72.5 gate))
+- M72 — release.yml's draft step fails: --generate-notes needs a checkout — done (v0.1.2 tag run 43262808856 fully green — the draft carries the changelog-derived notes and all four assets (2026-11-12))

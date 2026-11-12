@@ -456,8 +456,11 @@ the owning phase starts.
   composed from CHANGELOG's [0.1.0] section — the workflow's
   `--generate-notes` draft step fails without a checkout (M72). v0.1.1 followed on
   2026-11-10: six crates on crates.io, tag and published GitHub release, with
-  the draft-step fix landed (phases 66/67) — the workflow's live
-  acceptance rides the next tag (M72).
+  the draft-step fix landed (phases 66/67). v0.1.2 followed on 2026-11-12:
+  tag plus a fully green release run (43262808856) — the draft step composes
+  its notes from CHANGELOG's [0.1.2] section and attaches the three archives
+  and the checksums; the draft release awaits the human publication review
+  (M72 is closed by this run).
 - **Hygiene (2026-11-06):** §5 M4 corrected from ✅ to ⬜ — the
   designer/preview phases landed, the events/requery runtime of §2 Ring 4
   did not; §3's VBA re-evaluation gate keys on the runtime, not the designer.
