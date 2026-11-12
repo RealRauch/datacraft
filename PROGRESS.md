@@ -9,46 +9,45 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 73 — SQLite depth stage 0 (M90–M92)
+
+### Phase 74 — Native Access objects (M87, M89)
 
 **Scope (Steps):**
 
-- **73.1 Native SQLite views as read-only objects: catalog, snapshot, nav-pane group, datasheet and SQL path (M90)**
-- **73.2 Read-only index/trigger inventory per table in the snapshot and a UI surface (M90)**
-- **73.3 File facts and a bounded quick_check at open: port channel, snapshot, Info page, precise notice (M91)**
-- **73.4 Robust open and honesty: busy_timeout, WAL fact/notice, WITHOUT ROWID and STRICT refusals (M92)**
-- **73.5 Documentation and phase gate (M90–M92)**
+- **74.1 Native Access forms and reports: read-only MSysObjects inventory in snapshot and nav pane, no definition decoding (M87)**
+- **74.2 Time-boxed feasibility verdict on decoding native form/report definitions against the committed SaveAsText exports (M89)**
+- **74.3 Documentation and phase gate (M87, M89)**
 
-**Goal:** Open ROADMAP §19 stage 0 — SQLite as a first-class source is
-*visible* and *honest* about foreign files, following the human decision of
-2026-11-12 and the item wording of M90–M92. A foreign `.sqlite` file's own
-views become read-only catalog objects (nav-pane Views group, read-only
-datasheet, SQL path), its indexes and triggers get a read-only inventory,
-and the Info page reports file facts (`sqlite_version`, page size, journal
-mode, encoding, `user_version`, `STRICT`/`WITHOUT ROWID`) plus a bounded
-`quick_check` verdict as a notice. The open itself becomes robust: a
-bounded `busy_timeout`, a WAL co-existence fact, and precise refusals for
-`WITHOUT ROWID` writes instead of a late SQLite error. Trigger logic is
-never created or executed (inventory only, ADR-2 analog); the sidecar view
-designs from M93 stay the writable design authority. All edits are Low
-class (Rust source/tests only; test databases are generated in scratch
-directories, no committed fixtures, no dependencies).
+**Goal:** Make native Access form/report objects *visible* and decide,
+with evidence, whether their definitions can ever be decoded from the
+file. M87 is the cheap honest first step: the catalog decodes the
+`MSysObjects` form/report object types into a read-only inventory
+(name, type) on the snapshot, the navigation pane gains a read-only
+group with a precise "definitions are not decoded" hint, and no
+definition bytes are parsed and no write path exists. M89 is a
+time-boxed feasibility study, not a promise: one form blob from the
+pinned `programmability.accdb` fixture is correlated with the committed
+SaveAsText export of the *same* object (control order, rects, captions,
+sources, section structure); the study either establishes the container
+and property encoding for a supported subset or records "not feasible
+without a specification" with its evidence. Nothing ships without the
+verdict; clean-room rules apply (own black-box observation and public
+documents only). Low class: Rust source/tests/docs, no dependencies, no
+fixture changes, no write path.
 
-**Acceptance:** A generated fixture carrying a native view, an index and a
-trigger lists all three read-only in snapshot and nav pane; the native view
-opens a read-only datasheet and answers rows through the SQL path, with no
-write affordance. The Info page shows the file facts and a `quick_check`
-verdict; a deliberately corrupted file answers a precise open notice
-instead of a late query error. A WAL file opens and reports its mode; a
-`WITHOUT ROWID` table answers a precise `Unsupported` on writes (or, where
-chosen, reads in declared-PK order) and `STRICT` is reported; a parallel
-writer no longer trips a bare `SQLITE_BUSY` inside the bus timeout. Port
-contract pins cover SQLite and the Jet/CSV side of every additive snapshot
-field; kittest pins cover the UI surfaces; the canonical verification set
-is green.
+**Acceptance:** M87: a fixture with native forms/reports (the
+self-created `programmability.accdb`) lists their names and counts in
+snapshot and nav pane, the hint names the boundary, and the read-only
+group offers no write or definition tab; kittest and the port contract
+pins cover the empty sidecars for SQLite/CSV. M89: a written verdict
+with a blob↔text mapping for at least one form, a supported-subset
+decision, or a documented stop; the study leaves the backlog item
+accurately closed (follow-up work filed only when the verdict is
+"feasible").
 
 **Verification:** Canonical set (fmt, clippy `-D warnings`, workspace
 tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
+
 
 
 
@@ -445,8 +444,11 @@ tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
 | 72.3 | SQLite native rename and CSV boundary (M81) | ✅ |
 | 72.4 | Nav-pane rename surface: context menu, F2, dialog (M81) | ✅ |
 | 72.5 | Documentation and phase gate (M81) | ✅ |
-| 73.1 | Native SQLite views as read-only objects: catalog, snapshot, nav-pane group, datasheet and SQL path (M90) | ⬜ |
-| 73.2 | Read-only index/trigger inventory per table in the snapshot and a UI surface (M90) | ⬜ |
-| 73.3 | File facts and a bounded quick_check at open: port channel, snapshot, Info page, precise notice (M91) | ⬜ |
-| 73.4 | Robust open and honesty: busy_timeout, WAL fact/notice, WITHOUT ROWID and STRICT refusals (M92) | ⬜ |
-| 73.5 | Documentation and phase gate (M90–M92) | ⬜ |
+| 73.1 | Native SQLite views as read-only objects: catalog, snapshot, nav-pane group, datasheet and SQL path (M90) | ✅ |
+| 73.2 | Read-only index/trigger inventory per table in the snapshot and a UI surface (M90) | ✅ |
+| 73.3 | File facts and a bounded quick_check at open: port channel, snapshot, Info page, precise notice (M91) | ✅ |
+| 73.4 | Robust open and honesty: busy_timeout, WAL fact/notice, WITHOUT ROWID and STRICT refusals (M92) | ✅ |
+| 73.5 | Documentation and phase gate (M90–M92) | ✅ |
+| 74.1 | Native Access forms and reports: read-only MSysObjects inventory in snapshot and nav pane, no definition decoding (M87) | ⬜ |
+| 74.2 | Time-boxed feasibility verdict on decoding native form/report definitions against the committed SaveAsText exports (M89) | ⬜ |
+| 74.3 | Documentation and phase gate (M87, M89) | ⬜ |
