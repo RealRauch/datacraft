@@ -149,6 +149,11 @@ fn create_database_button_gates_on_the_create_capability() {
         "the restricted composition shows the reason:\n{dump}"
     );
     assert!(disabled_line(&dump, "Button|Create Database|"), "{dump}");
+    assert!(
+        dump.lines()
+            .any(|line| line.contains("|Jet 4 (.mdb)|") && line.ends_with(" disabled")),
+        "the format picker follows the create capability (step 75.3, L43):\n{dump}"
+    );
 
     // Contrast: a creation-capable composition keeps the button live once
     // a kind is chosen and a path is entered.
@@ -176,5 +181,10 @@ fn create_database_button_gates_on_the_create_capability() {
     assert!(
         !disabled_line(&dump, "Button|Create Database|"),
         "a chosen kind and path keep the button live:\n{dump}"
+    );
+    assert!(
+        dump.lines()
+            .any(|line| line.contains("|Jet 4 (.mdb)|") && !line.ends_with(" disabled")),
+        "the capable composition keeps the picker live:\n{dump}"
     );
 }

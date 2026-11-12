@@ -6,10 +6,12 @@
 //! `Event::DatabaseCreated` do not exist yet — the suite fails to compile
 //! until the command lands.
 
+use datacraft_core::availability::DisabledReason;
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
-use datacraft_core::port::{DatabaseFormat, MockPort};
+use datacraft_core::failure::FailureCode;
+use datacraft_core::port::{DatabaseFormat, DriverCapabilities, MockPort};
 
 fn scratch(name: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!(
@@ -103,4 +105,124 @@ fn create_database_commands_round_trip_through_json() {
     assert!(json.contains("\"format\":\"sqlite\""), "{json}");
     let back: Command = serde_json::from_str(&json).expect("deserialize command");
     assert_eq!(back, command);
+}
+
+/// The suffix/format agreement (step 75.3, item L43): a path naming the
+/// other creatable family's extension answers a precise `InvalidInput`
+/// before the port — the command still carries the format explicitly.
+#[test]
+fn a_suffix_from_the_other_family_is_refused_before_the_port() {
+    let mut core = Core::new(Box::new(MockPort::failing_writes("the port was reached")));
+    let path = scratch("mismatch.mdb");
+    let events = core.dispatch(Command::CreateDatabase {
+        path: path.clone(),
+        format: DatabaseFormat::Sqlite,
+    });
+    match events.first() {
+        Some(Event::Failed { code, reason }) => {
+            assert_eq!(*code, FailureCode::InvalidInput, "{reason}");
+            assert!(
+                reason.contains(".mdb") && reason.contains("SQLite"),
+                "the reason names the suffix and the format: {reason}"
+            );
+            assert!(
+                !reason.contains("the port was reached"),
+                "the check precedes the port: {reason}"
+            );
+        }
+        other => panic!("expected a Failed event, got {other:?}"),
+    }
+}
+
+#[test]
+fn jet4_creation_refuses_a_sqlite_suffix() {
+    let mut core = Core::new(Box::new(MockPort::new()));
+    let events = core.dispatch(Command::CreateDatabase {
+        path: scratch("mismatch.sqlite"),
+        format: DatabaseFormat::Jet4,
+    });
+    match events.first() {
+        Some(Event::Failed { code, reason }) => {
+            assert_eq!(*code, FailureCode::InvalidInput, "{reason}");
+            assert!(
+                reason.contains(".sqlite") && reason.contains("Jet4"),
+                "{reason}"
+            );
+        }
+        other => panic!("expected a Failed event, got {other:?}"),
+    }
+}
+
+/// Matching extensions are accepted case-insensitively; unknown or missing
+/// extensions stay legal because the command carries the format.
+#[test]
+fn matching_and_unknown_suffixes_are_accepted() {
+    for (name, format) in [
+        ("ok.mdb", DatabaseFormat::Jet4),
+        ("ok.SQLITE", DatabaseFormat::Sqlite),
+        ("notes.db", DatabaseFormat::Sqlite),
+        ("notes", DatabaseFormat::Jet4),
+    ] {
+        let mut core = Core::new(Box::new(MockPort::new()));
+        let events = core.dispatch(Command::CreateDatabase {
+            path: scratch(name),
+            format,
+        });
+        assert!(
+            matches!(events.first(), Some(Event::DatabaseCreated { .. })),
+            "{name} ({format}): {events:?}"
+        );
+    }
+}
+
+/// The template path applies the same rule against the template-defined
+/// format (step 75.3, L43).
+#[test]
+fn template_creation_applies_the_same_suffix_rule() {
+    let mut core = Core::new(Box::new(MockPort::new()));
+    let events = core.dispatch(Command::CreateDatabaseFromTemplate {
+        path: scratch("contacts.sqlite"),
+        template: "contacts".to_owned(),
+    });
+    match events.first() {
+        Some(Event::Failed { code, reason }) => {
+            assert_eq!(*code, FailureCode::InvalidInput, "{reason}");
+            assert!(
+                reason.contains(".sqlite") && reason.contains("Jet4"),
+                "{reason}"
+            );
+        }
+        other => panic!("expected a Failed event, got {other:?}"),
+    }
+}
+
+/// Item M94 (rides this step): a capability refusal names the create-
+/// database capability, not the relationship one.
+#[test]
+fn a_creation_refusal_carries_the_create_database_capability_code() {
+    let mut caps = DriverCapabilities::full();
+    caps.create_database = false;
+    let mut port = MockPort::new();
+    port.with_capabilities(caps);
+    let mut core = Core::new(Box::new(port));
+    for command in [
+        Command::CreateDatabase {
+            path: scratch("blocked.mdb"),
+            format: DatabaseFormat::Jet4,
+        },
+        Command::CreateDatabaseFromTemplate {
+            path: scratch("blocked-template.mdb"),
+            template: "contacts".to_owned(),
+        },
+    ] {
+        let events = core.dispatch(command);
+        match events.first() {
+            Some(Event::Failed { code, .. }) => assert_eq!(
+                *code,
+                FailureCode::Capability(DisabledReason::CreateDatabase),
+                "{events:?}"
+            ),
+            other => panic!("expected a capability refusal, got {other:?}"),
+        }
+    }
 }

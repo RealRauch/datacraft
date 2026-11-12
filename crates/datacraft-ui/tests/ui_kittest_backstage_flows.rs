@@ -6,8 +6,9 @@
 //! the real seam.
 
 use datacraft_core::command::Command;
-use datacraft_core::port::{DriverCapabilities, MockPort};
+use datacraft_core::port::{DatabaseFormat, DriverCapabilities, MockPort};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
+use datacraft_storage::detecting::DetectingPort;
 use datacraft_ui::app::App;
 use datacraft_ui::backstage::{NewDatabaseKind, NewDatabaseStep};
 use egui_kittest::Harness;
@@ -88,6 +89,12 @@ fn tree_dump(harness: &Harness<'static, App>) -> String {
     lines.join("\n")
 }
 
+/// True when a node labelled `prefix` renders disabled.
+fn disabled_line(dump: &str, prefix: &str) -> bool {
+    dump.lines()
+        .any(|line| line.starts_with(prefix) && line.ends_with(" disabled"))
+}
+
 /// The New Database page (phase 29, H44; two-step flow step 75.2, L42):
 /// choosing "Blank database" advances to the location step; Create queues
 /// create + open — the new database ends up open.
@@ -119,6 +126,16 @@ fn backstage_new_page_creates_a_blank_database_after_two_steps() {
         harness.state().new_database.kind,
         Some(NewDatabaseKind::Blank)
     );
+    assert_eq!(
+        harness.state().new_database.blank_format,
+        DatabaseFormat::Jet4,
+        "Jet4 stays the blank default (step 75.3, L43)"
+    );
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("SQLite (.sqlite)"),
+        "the format picker renders on the blank path:\n{dump}"
+    );
     harness.get_by_label("Create Database").click();
     // Create + open each take a busy frame, and the open returns to Home.
     harness.run_steps(10);
@@ -131,6 +148,83 @@ fn backstage_new_page_creates_a_blank_database_after_two_steps() {
         .expect("the created database opens");
     assert_eq!(database.format.to_string(), "Jet4");
     let _ = std::fs::remove_file(&path);
+}
+
+/// Choosing SQLite on the blank path creates a real SQLite file through the
+/// composed drivers and opens it (step 75.3, item L43): the snapshot reports
+/// the SQLite family and the file carries the SQLite magic.
+#[test]
+fn backstage_new_blank_sqlite_creates_a_working_sqlite_database() {
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-kittest-{}-fresh.sqlite",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+    let mut app = App::new(Box::new(DetectingPort::new()));
+    // L41: the cold start already shows the File backstage.
+    app.new_database.path = path.to_string_lossy().into_owned();
+    let mut harness = backstage_flow_harness(app);
+
+    harness.get_by_label("New").click();
+    harness.run();
+    harness.get_by_label("Blank database").click();
+    harness.run();
+    harness.get_by_label("SQLite (.sqlite)").click();
+    harness.run();
+    assert_eq!(
+        harness.state().new_database.blank_format,
+        DatabaseFormat::Sqlite
+    );
+    harness.get_by_label("Create Database").click();
+    harness.run_steps(10);
+
+    let database = harness
+        .state()
+        .snapshot()
+        .database
+        .as_ref()
+        .expect("the created database opens");
+    assert_eq!(
+        database.format.to_string(),
+        "SQLite",
+        "the snapshot reports the chosen family"
+    );
+    let bytes = std::fs::read(&path).expect("the created file exists");
+    assert!(
+        bytes.starts_with(b"SQLite format 3\0"),
+        "the file carries the SQLite header"
+    );
+
+    // Windows cannot delete a file with a live SQLite handle (F5).
+    harness.state_mut().dispatch(Command::CloseDatabase);
+    let _ = std::fs::remove_file(&path);
+}
+
+/// A path naming the other family's extension answers precisely before the
+/// command is queued (step 75.3, item L43): the localized reason names the
+/// suffix and the format, and Create stays disabled.
+#[test]
+fn backstage_new_blank_sqlite_with_a_jet_prefix_answers_precisely() {
+    let mut app = mock_app();
+    app.dispatch(Command::CloseDatabase);
+    app.new_database.path = "wrong-name.mdb".to_owned();
+    let mut harness = backstage_flow_harness(app);
+
+    harness.get_by_label("New").click();
+    harness.run();
+    harness.get_by_label("Blank database").click();
+    harness.run();
+    harness.get_by_label("SQLite (.sqlite)").click();
+    harness.run();
+
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains(
+            "The path ends in .mdb, which does not match the selected format SQLite."
+        ),
+        "the precise reason renders:\n{dump}"
+    );
+    assert!(disabled_line(&dump, "Button|Create Database|"), "{dump}");
 }
 
 /// The kind choice survives Back (step 75.2, L42): stepping back keeps the
@@ -185,6 +279,11 @@ fn backstage_new_page_creates_from_a_template() {
     assert_eq!(
         harness.state().new_database.kind,
         Some(NewDatabaseKind::Template("contacts".to_owned()))
+    );
+    let dump = tree_dump(&harness);
+    assert!(
+        !dump.contains("SQLite (.sqlite)"),
+        "a template defines its format — no picker:\n{dump}"
     );
     harness.get_by_label("Create Database").click();
     harness.run_steps(10);
