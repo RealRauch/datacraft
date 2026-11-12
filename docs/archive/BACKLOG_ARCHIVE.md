@@ -2072,3 +2072,33 @@
 - **Acceptance:** A refused creation answers `FailureCode::Capability(CreateDatabase)` on both commands; the test asserts the code, not only the prose; no other behavior changes.
 - **Steps:** rides 75.3 (the step touches `create_database` for the suffix rule) — Low, two-line fix plus pin.
 - **Done:** fixed test-first in `04486dd` (RED `218ae58`) — both creation refusals now carry `FailureCode::Capability(DisabledReason::CreateDatabase)`; pinned by `create_database.rs`
+
+---
+
+### [x] L41 — Without an open database the shell should present the backstage instead of an empty workspace — 🟢
+- **Location:** app startup (`App::new`), `crates/datacraft-ui/src/shell.rs` (the frame), `active_ribbon_tab` / `backstage_page`.
+- **Problem:** Without an open database the app shows the empty workspace (ribbon, nav pane, status bar); the Open/New entry points live behind the File tab, so the first screen invites dead clicks (review idea 2026-11-11: "ohne geladene Datenbank immer die Backstage anzeigen").
+- **Approach:** while `snapshot.database.is_none()`, land on the File backstage at startup and after closing the last database; the workspace returns as soon as a database opens (M80's Home switch already does that). Keep the ribbon reachable, so Options/Info stay usable.
+- **Acceptance:** a cold start without a database shows the backstage; closing the last database returns to it; opening a database leaves it (M80); kittest pins all three transitions.
+- **Steps:** 75.1 (phase 75 — packaged 2026-11-12).
+- **Done:** fixed test-first in `ac48be2` (RED `802aa83`) — the shell lands on the File backstage at cold start and after the last close; the Back row returns to the ribbon; M80's open→Home pin unchanged
+
+---
+
+### [x] L42 — The new-database flow is one page — split it into choose-what then choose-where (Access-style) — 🟢
+- **Location:** the backstage New page (`crates/datacraft-ui/src/backstage/pages.rs`), template cards, `CreateDatabaseFromTemplate`/`OpenDatabase` intents.
+- **Problem:** The New page mixes template cards (including the blank option) and the path field in one form; the review asks for the Access-style flow: first choose what (empty database / from template), then choose where and the name (review idea 2026-11-11).
+- **Approach:** a two-step page (or two panes): step 1 the kind (blank vs template list), step 2 the path + name (and format, see L43) + Create; Back returns to step 1 with the selection kept. Create still dispatches the same one chain per choice.
+- **Acceptance:** two explicit choices in order, the selection survives Back, the Create dispatch is unchanged, and a kittest pins the step transitions and the final creation.
+- **Steps:** 75.2 (phase 75 — packaged 2026-11-12; L43 rides the same page).
+- **Done:** fixed test-first in `780fd99` (RED `0fcc1f4`) — two-step New page in `backstage/new_database.rs` (split from `pages.rs`): kind cards, then location with Back; the selection survives Back; template and blank chains unchanged
+
+---
+
+### [x] L43 — A blank database does not offer its format — choose .mdb (Jet4) vs SQLite at creation — 🟢
+- **Location:** the blank-database path of the backstage New page, `CreateDatabase` handling in core, the template registry.
+- **Problem:** Creating a blank database does not offer its format — it follows the path/template implicitly; the review asks for an explicit choice between `.mdb` (Jet4) and SQLite (review idea 2026-11-11).
+- **Approach:** a format picker on the blank path (Jet4 default, SQLite as the second family) driving the created file and the extension hint; the template path keeps its template-defined format. The command either carries the format explicitly or the picker and the path suffix agree deterministically — no silent mismatch.
+- **Acceptance:** a blank SQLite creation yields a working SQLite file whose snapshot reports `Sqlite`; Jet4 stays the default; the picker is capability-honest and kittest-pinned; a mismatching suffix vs picker answers a precise failure.
+- **Steps:** 75.3 (phase 75 — packaged 2026-11-12; rides L42's page).
+- **Done:** fixed test-first in `04486dd` (RED `218ae58`) — blank databases choose Jet4 (default) or SQLite via `CreateDatabase`; the core suffix/format agreement answers `InvalidInput` before the port for every client; real SQLite creation pinned through `DetectingPort`; M94 rode the same step

@@ -1126,3 +1126,79 @@ accurately closed (follow-up work filed only when the verdict is
 **Verification:** Canonical set (fmt, clippy `-D warnings`, workspace
 tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
 **Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests, lcov 18812/19688 = 95.551 %); file-size gate green (26 files ≥ 455, port_adapter entered the band at 488, no split forced); M89 verdict documented in FORMAT-JET; docs_validate clean; CI verification rides the push. (checkpoint: c85b7af)
+
+---
+
+### Phase 75 — Empty shell and the New-database flow
+
+**Scope (Steps):**
+
+- **75.1 Empty shell lands on the backstage, close returns to it (L41)**
+- **75.2 New database: choose what, then choose where (L42)**
+- **75.3 Blank database format choice: .mdb (Jet4) or SQLite (L43)**
+- **75.4 Documentation and phase gate (L41–L43)**
+
+**Goal:** Make the shell honest about the state "nothing is loaded" and
+give the New-database flow the Access shape. The three collected review
+ideas of 2026-11-11 belong together because they all touch the same first
+screen.
+
+L41 — today a cold start paints the empty workspace (ribbon, nav pane,
+status bar) while every entry point lives behind File, so the first screen
+invites dead clicks. From now on the shell lands on the File backstage
+(Home page) whenever no database is open — at construction and after
+`Event::DatabaseClosed` leaves nothing open. The backstage's Back row
+still returns to the ribbon, Options/Info stay one click away, and M80's
+open→Home rule is untouched. The decision is UI presentation state
+(`App`), not a core rule: no command, no wire change. The step carries
+the forced L30 split `app.rs` (491) → `app/lifecycle.rs` (the
+DatabaseOpened/Closed follow-through leaves the root file).
+
+L42 — the New page currently mixes the kind choice (template cards,
+including `blank`) and the target path in one form. It becomes a two-step
+page: step 1 chooses *what* (a dedicated blank card plus the non-blank
+template cards), step 2 chooses *where* (path, the L43 format picker on
+the blank path, Create, Back). A card click advances directly; Back
+returns to step 1 with the selection kept (the selected card stays
+marked). Each choice still dispatches exactly one chain:
+`CreateDatabaseFromTemplate` + `OpenDatabase` for templates and (with
+L43) `CreateDatabase` + `OpenDatabase` for blank. The page and its draft
+state move into `backstage/new_database.rs` (split out of
+`backstage/pages.rs`, 455), so the state is one App field instead of the
+two loose buffers. Creation stays gated on the `backstage.create_database`
+availability map where the snapshot reports it; the dispatcher gate stays
+the second line (L18 precedent).
+
+L43 — a blank database no longer follows the implicit `blank`
+template/`.mdb` path: step 2 offers Jet4 (default) and SQLite, and the
+command carries the choice explicitly (`CreateDatabase { path, format }`;
+the template path keeps its template-defined format). The Browse
+suggestion follows the picker (`database.mdb` / `database.sqlite`). The
+suffix/format agreement is enforced once, in core
+(`create_database`/`create_database_from_template`): a path ending in a
+known contract extension of the other family (`.mdb` for SQLite,
+`.sqlite` for Jet4) answers a precise failure naming suffix and format
+before the port — the same answer for GUI, CLI and MCP; other or missing
+extensions stay legal because the command already carries the format.
+All edits are Low class (Rust source/tests and UI-owned strings only; no
+dependency, fixture, workflow or wire-shape change).
+
+**Acceptance:** L41: a cold start without a database renders the File
+backstage (full-shell kittest), closing the last database returns to it
+(Home page), opening leaves it (the M80 pin stays green), and the Back
+row returns to the ribbon. L42: a kittest walks card → step 2 → Back →
+step 1 with the selection kept and then creates and opens a database;
+the creation-capability restriction renders on both steps. L43: choosing
+SQLite and a `.sqlite` path creates a real SQLite file through
+`DetectingPort` and the opened snapshot reports `Sqlite`; Jet4 stays the
+default; the format rides `CreateDatabase` (pinned through the recorded
+port call); a `.mdb` path with SQLite (and `.sqlite` with Jet4) answers a
+precise core failure naming both, and the UI surfaces it; the picker is
+capability-gated and kittest-pinned. i18n parity (new keys in the German
+catalog), the tooltip inventory and the canonical verification set are
+green; the file-size gate stays green (band files touched: `app.rs` and
+`backstage/pages.rs`, both split within their steps).
+
+**Verification:** Canonical set (fmt, clippy `-D warnings`, workspace
+tests, lcov ≥ 95 %), file-size gate, `docs_validate` clean, CI green.
+**Verification:** Canonical set green locally (fmt, clippy -D warnings, workspace tests 207 test targets, lcov 18837/19714 = 95.551 %); file-size gate green (max 499; three splits: app.rs → app/lifecycle.rs, backstage/pages.rs → backstage/new_database.rs, i18n/de/ui_chrome.rs → de/tooltips.rs); docs_validate clean; CI verification rides the push. (checkpoint: 76ddee8)
