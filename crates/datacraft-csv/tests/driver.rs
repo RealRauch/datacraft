@@ -56,6 +56,7 @@ fn the_csv_driver_reports_its_honest_capabilities() {
     assert!(caps.drop_table);
     assert!(caps.create_database);
     assert!(!caps.alter_table, "CSV has no alter path");
+    assert!(!caps.rename_table, "CSV has no table rename path");
     assert!(caps.atomic_batch, "one rewrite per call is atomic");
     assert!(!caps.passwords);
     assert_eq!(caps.autonumber, Support::No);
@@ -191,6 +192,10 @@ fn csv_capability_gaps_answer_precisely() {
             },
         )
         .expect_err("alter_table is unsupported on CSV");
+    assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
+    let error = port
+        .rename_table("people", "folks")
+        .expect_err("rename_table is unsupported on CSV");
     assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
     assert!(port.relationships().expect("none").is_empty());
 
