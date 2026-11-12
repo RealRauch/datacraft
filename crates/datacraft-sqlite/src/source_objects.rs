@@ -89,6 +89,7 @@ pub(crate) fn facts(conn: &Connection) -> SourceFacts {
         ("journal_mode", "journal_mode"),
         ("encoding", "encoding"),
         ("user_version", "user_version"),
+        ("busy_timeout", "busy_timeout"),
     ] {
         if let Some(value) = query_text(conn, &format!("PRAGMA {pragma}")) {
             facts.push(SourceFact {
@@ -97,10 +98,60 @@ pub(crate) fn facts(conn: &Connection) -> SourceFacts {
             });
         }
     }
+    if let Ok((strict, without_rowid)) = table_options(conn) {
+        if !strict.is_empty() {
+            facts.push(SourceFact {
+                name: "strict_tables".into(),
+                value: strict.join(", "),
+            });
+        }
+        if !without_rowid.is_empty() {
+            facts.push(SourceFact {
+                name: "without_rowid_tables".into(),
+                value: without_rowid.join(", "),
+            });
+        }
+    }
     SourceFacts {
         facts,
         health: quick_check(conn),
     }
+}
+
+/// Table names carrying the `STRICT` and `WITHOUT ROWID` options (M92).
+/// The options follow the closing parenthesis of the table body.
+pub(crate) fn table_options(conn: &Connection) -> Result<(Vec<String>, Vec<String>), PortError> {
+    let mut statement = conn
+        .prepare(
+            "SELECT name, sql FROM sqlite_master \
+             WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid",
+        )
+        .map_err(|e| read_failed("sqlite_master", e))?;
+    let mut rows = statement
+        .query([])
+        .map_err(|e| read_failed("sqlite_master", e))?;
+    let mut strict = Vec::new();
+    let mut without_rowid = Vec::new();
+    while let Some(row) = rows.next().map_err(|e| read_failed("sqlite_master", e))? {
+        let name: String = row.get(0).map_err(|e| read_failed("sqlite_master", e))?;
+        let sql: Option<String> = row.get(1).map_err(|e| read_failed("sqlite_master", e))?;
+        let Some(sql) = sql else {
+            continue;
+        };
+        let lower = sql.to_ascii_lowercase();
+        let suffix = lower.rsplit_once(')').map_or("", |(_, suffix)| suffix);
+        let tokens: Vec<&str> = suffix
+            .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+            .filter(|token| !token.is_empty())
+            .collect();
+        if tokens.contains(&"strict") {
+            strict.push(name.clone());
+        }
+        if tokens.windows(2).any(|pair| pair == ["without", "rowid"]) {
+            without_rowid.push(name);
+        }
+    }
+    Ok((strict, without_rowid))
 }
 
 /// `Some(reason)` when `quick_check(1)` does not answer `"ok"`.

@@ -1,4 +1,5 @@
 use super::*;
+use crate::values::parse_guid;
 
 #[test]
 fn affinity_table_maps_declared_types() {

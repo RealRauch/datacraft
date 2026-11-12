@@ -79,6 +79,9 @@ fn fact_label(name: &str) -> String {
         "journal_mode" => t("Journal mode").to_owned(),
         "encoding" => t("Encoding").to_owned(),
         "user_version" => t("User version").to_owned(),
+        "busy_timeout" => t("Busy timeout").to_owned(),
+        "strict_tables" => t("STRICT tables").to_owned(),
+        "without_rowid_tables" => t("WITHOUT ROWID tables").to_owned(),
         other => other.to_owned(),
     }
 }

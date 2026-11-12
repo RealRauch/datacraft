@@ -8,11 +8,12 @@ use std::path::Path;
 
 use crate::ddl::pk_is_autoincrement;
 use datacraft_core::port::{PortError, Relationship};
-use datacraft_core::schema::{
-    AutoKind, BinaryKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
-use rusqlite::types::ValueRef;
+use datacraft_core::schema::{AutoKind, BinaryKind, FieldDef, FieldKind, NumericKind, TableDef};
 use rusqlite::{Connection, OpenFlags};
+
+// Value conversion lives in `values.rs`; the re-export keeps the call
+// sites (`rows.rs`, `lib.rs`) stable.
+pub(crate) use crate::values::{sql_value, to_field_value};
 
 /// The 16-byte file magic of every SQLite 3 database.
 const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\x00";
@@ -101,36 +102,6 @@ pub(crate) fn sql_type(kind: &FieldKind) -> Result<String, PortError> {
     })
 }
 
-/// Domain value -> SQLite parameter, keeping the column's storage class.
-pub(crate) fn sql_value(kind: &FieldKind, value: &FieldValue) -> rusqlite::types::Value {
-    use rusqlite::types::Value as Sql;
-    match value {
-        FieldValue::Null => Sql::Null,
-        FieldValue::Boolean(b) => Sql::Integer(i64::from(*b)),
-        FieldValue::Integer(i) => Sql::Integer(*i),
-        FieldValue::Float(f) => Sql::Real(*f),
-        FieldValue::Currency(c) => Sql::Integer(*c),
-        FieldValue::DateTime(days) => Sql::Real(*days),
-        FieldValue::Decimal(scaled) => {
-            let scale = match kind {
-                FieldKind::Number(NumericKind::Decimal { scale, .. }) => u32::from(*scale),
-                _ => 0,
-            };
-            if scale == 0 {
-                Sql::Integer(i64::try_from(*scaled).unwrap_or(i64::MAX))
-            } else {
-                Sql::Real(*scaled as f64 / decimal_factor(scale) as f64)
-            }
-        }
-        FieldValue::Text(text) => Sql::Text(text.clone()),
-        FieldValue::Binary(bytes) => Sql::Blob(bytes.clone()),
-        FieldValue::Guid(bytes) => Sql::Blob(bytes.to_vec()),
-        // Defensive: SQLite tables never carry complex kinds; the display
-        // text keeps the mapping total.
-        FieldValue::Complex(_) => Sql::Text(datacraft_core::present::display_value(value)),
-    }
-}
-
 /// Reads the file's leading 16 bytes and rejects non-SQLite content.
 pub(crate) fn read_magic(path: &Path) -> Result<(), PortError> {
     let mut file = std::fs::File::open(path).map_err(|e| PortError::OpenFailed {
@@ -169,6 +140,14 @@ pub(crate) fn open_database(path: &Path) -> Result<(Connection, bool), PortError
         conn.execute_batch("PRAGMA foreign_keys=ON;")
             .map_err(|e| PortError::OpenFailed {
                 detail: format!("{}: enabling foreign keys: {e}", path.display()),
+            })?;
+        // Bounded writer contention (phase 73, step 73.4; item M92): a
+        // short lock held by another writer is waited out instead of
+        // answering a bare SQLITE_BUSY. The bound is explicit and visible
+        // as the `busy_timeout` fact.
+        conn.busy_timeout(std::time::Duration::from_millis(5000))
+            .map_err(|e| PortError::OpenFailed {
+                detail: format!("{}: setting the busy timeout: {e}", path.display()),
             })?;
         Ok(conn)
     };
@@ -343,66 +322,6 @@ pub(crate) fn text_budget(declared: &str) -> u16 {
         .map_or(255, |n| n.clamp(1, 255))
 }
 
-/// Converts one stored cell using the column's domain kind (booleans,
-/// currency, decimal scale and GUID blobs need the schema context).
-pub(crate) fn to_field_value(kind: &FieldKind, value: ValueRef<'_>) -> FieldValue {
-    match value {
-        ValueRef::Null => FieldValue::Null,
-        ValueRef::Integer(i) => match kind {
-            FieldKind::Boolean { .. } => FieldValue::Boolean(i != 0),
-            FieldKind::Currency => FieldValue::Currency(i),
-            FieldKind::DateTime => FieldValue::DateTime(i as f64),
-            FieldKind::Number(NumericKind::Decimal { scale, .. }) => {
-                FieldValue::Decimal(i128::from(i) * decimal_factor(u32::from(*scale)))
-            }
-            _ => FieldValue::Integer(i),
-        },
-        ValueRef::Real(f) => match kind {
-            FieldKind::DateTime => FieldValue::DateTime(f),
-            FieldKind::Number(NumericKind::Decimal { scale, .. }) => {
-                FieldValue::Decimal((f * decimal_factor(u32::from(*scale)) as f64).round() as i128)
-            }
-            _ => FieldValue::Float(f),
-        },
-        ValueRef::Text(bytes) => {
-            let text = String::from_utf8_lossy(bytes).into_owned();
-            match kind {
-                FieldKind::Guid => {
-                    parse_guid(&text).map_or(FieldValue::Text(text), FieldValue::Guid)
-                }
-                _ => FieldValue::Text(text),
-            }
-        }
-        ValueRef::Blob(bytes) => match kind {
-            FieldKind::Guid => <[u8; 16]>::try_from(bytes)
-                .map_or_else(|_| FieldValue::Binary(bytes.to_vec()), FieldValue::Guid),
-            _ => FieldValue::Binary(bytes.to_vec()),
-        },
-    }
-}
-
-/// 10^scale as an exact integer factor for decimal scaling.
-pub(crate) fn decimal_factor(scale: u32) -> i128 {
-    10i128.pow(scale.min(28))
-}
-
-/// Canonical 8-4-4-4-12 hex GUID text (with or without braces).
-pub(crate) fn parse_guid(text: &str) -> Option<[u8; 16]> {
-    let hex: String = text
-        .trim_matches(|c| c == '{' || c == '}')
-        .chars()
-        .filter(|c| *c != '-')
-        .collect();
-    if hex.len() != 32 {
-        return None;
-    }
-    let mut bytes = [0u8; 16];
-    for (index, byte) in bytes.iter_mut().enumerate() {
-        *byte = u8::from_str_radix(&hex[index * 2..index * 2 + 2], 16).ok()?;
-    }
-    Some(bytes)
-}
-
 /// Foreign keys of one table as port relationships.
 pub(crate) fn foreign_keys(
     conn: &Connection,
@@ -439,6 +358,25 @@ pub(crate) fn foreign_keys(
         });
     }
     Ok(out)
+}
+
+/// Primary-key columns of `table` in key order (composite keys included;
+/// `WITHOUT ROWID` windows order by exactly this, item M92).
+pub(crate) fn pk_columns(conn: &Connection, table: &str) -> Result<Vec<String>, PortError> {
+    let mut statement = conn
+        .prepare(&format!("PRAGMA table_info({})", quote_ident(table)))
+        .map_err(|e| read_failed(table, e))?;
+    let mut rows = statement.query([]).map_err(|e| read_failed(table, e))?;
+    let mut keyed: Vec<(i64, String)> = Vec::new();
+    while let Some(row) = rows.next().map_err(|e| read_failed(table, e))? {
+        let name: String = row.get(1).map_err(|e| read_failed(table, e))?;
+        let pk: i64 = row.get(5).map_err(|e| read_failed(table, e))?;
+        if pk > 0 {
+            keyed.push((pk, name));
+        }
+    }
+    keyed.sort_by_key(|(order, _)| *order);
+    Ok(keyed.into_iter().map(|(_, name)| name).collect())
 }
 
 /// Name of the single-column primary key of `table`, if any.

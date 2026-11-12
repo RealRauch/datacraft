@@ -11,7 +11,7 @@ use datacraft_core::port::{
     DatabaseFormat, DriverCapabilities, DriverId, NativeView, OpenedDatabase, PortError,
     Relationship, RowRange, StoragePort, Support,
 };
-use datacraft_core::schema::{FieldKind, FieldValue, TableDef};
+use datacraft_core::schema::{FieldValue, TableDef};
 use rusqlite::Connection;
 
 /// SQLite backend over one open database file.
@@ -26,6 +26,9 @@ pub struct SqlitePort {
     triggers: Vec<datacraft_core::port::SourceTrigger>,
     /// Driver facts and the health verdict (phase 73, step 73.3; M91).
     source_facts: datacraft_core::port::SourceFacts,
+    /// Tables declared `WITHOUT ROWID` (phase 73, step 73.4; M92): read
+    /// windows follow the primary key, rowid writes answer precisely.
+    without_rowid: Vec<String>,
     path: Option<PathBuf>,
     /// Whether the file opened read-write (read-only files still read).
     writable: bool,
@@ -59,6 +62,24 @@ impl SqlitePort {
             return Ok(TableDef::new(&view.name, view.fields.clone()));
         }
         Err(PortError::TableNotFound(name.to_owned()))
+    }
+
+    /// Precise rowid-addressing rejection for `WITHOUT ROWID` tables
+    /// (phase 73, step 73.4; M92).
+    fn reject_without_rowid(&self, name: &str) -> Result<(), PortError> {
+        if self
+            .without_rowid
+            .iter()
+            .any(|table| table.eq_ignore_ascii_case(name))
+        {
+            return Err(PortError::Unsupported {
+                reason: format!(
+                    "{name:?} is a WITHOUT ROWID table — row addressing by rowid is not \
+                     supported; edit the rows in SQLite directly"
+                ),
+            });
+        }
+        Ok(())
     }
 
     /// Precise write rejection for a file-owned view (M90).
@@ -151,6 +172,7 @@ impl StoragePort for SqlitePort {
         let indexes = source_objects::indexes(&conn)?;
         let triggers = source_objects::triggers(&conn)?;
         let source_facts = source_objects::facts(&conn);
+        let (_, without_rowid) = source_objects::table_options(&conn)?;
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
@@ -161,6 +183,7 @@ impl StoragePort for SqlitePort {
         self.indexes = indexes;
         self.triggers = triggers;
         self.source_facts = source_facts;
+        self.without_rowid = without_rowid;
         self.path = Some(path.to_path_buf());
         self.writable = writable;
         Ok(OpenedDatabase {
@@ -177,6 +200,7 @@ impl StoragePort for SqlitePort {
         self.indexes.clear();
         self.triggers.clear();
         self.source_facts = datacraft_core::port::SourceFacts::default();
+        self.without_rowid.clear();
         self.path = None;
         self.writable = false;
     }
@@ -331,30 +355,7 @@ COMMIT;",
     }
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
-        let conn = self.conn.as_ref().ok_or_else(no_database)?;
-        let def = self.readable(table)?;
-        let count = count_rows(conn, &def.name)?;
-        let (start, end) = datacraft_core::port::window_slice(table, range, count)?;
-        let sql = format!(
-            "SELECT * FROM {} LIMIT ?1 OFFSET ?2",
-            quote_ident(&def.name)
-        );
-        let mut statement = conn.prepare(&sql).map_err(|e| read_failed(&def.name, e))?;
-        let len = i64::try_from(end - start).unwrap_or(i64::MAX);
-        let offset = i64::try_from(start).unwrap_or(i64::MAX);
-        let mut rows = statement
-            .query(rusqlite::params![len, offset])
-            .map_err(|e| read_failed(&def.name, e))?;
-        let mut out = Vec::with_capacity(end - start);
-        while let Some(row) = rows.next().map_err(|e| read_failed(&def.name, e))? {
-            let mut values = Vec::with_capacity(def.fields.len());
-            for (index, field) in def.fields.iter().enumerate() {
-                let value = row.get_ref(index).map_err(|e| read_failed(&def.name, e))?;
-                values.push(to_field_value(&field.kind, value));
-            }
-            out.push(values);
-        }
-        Ok(out)
+        self.read_window(table, range)
     }
 
     fn update_row(
@@ -363,93 +364,11 @@ COMMIT;",
         row: usize,
         values: &[FieldValue],
     ) -> Result<(), PortError> {
-        let conn = self.conn.as_ref().ok_or_else(no_database)?;
-        if !self.writable {
-            return Err(read_only());
-        }
-        self.reject_view(table)?;
-        let def = self
-            .tables
-            .iter()
-            .find(|t| t.name.eq_ignore_ascii_case(table))
-            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?
-            .clone();
-        if values.len() != def.fields.len() {
-            return Err(PortError::WriteFailed {
-                detail: format!(
-                    "update {:?}: expected {} values, found {}",
-                    def.name,
-                    def.fields.len(),
-                    values.len()
-                ),
-            });
-        }
-        // AutoNumber columns keep their engine-assigned value.
-        let mut assignments = Vec::new();
-        let mut params = Vec::new();
-        for (field, value) in def.fields.iter().zip(values) {
-            if matches!(field.kind, FieldKind::AutoNumber(_)) {
-                continue;
-            }
-            params.push(sql_value(&field.kind, value));
-            assignments.push(format!("{} = ?{}", quote_ident(&field.name), params.len()));
-        }
-        if assignments.is_empty() {
-            // Only AutoNumber columns: verify the row exists.
-            let count = count_rows(conn, &def.name)?;
-            return if row < count {
-                Ok(())
-            } else {
-                Err(out_of_range(table, row, count))
-            };
-        }
-        params.push(rusqlite::types::Value::Integer(
-            i64::try_from(row).unwrap_or(i64::MAX),
-        ));
-        let sql = format!(
-            "UPDATE {} SET {} WHERE rowid = (SELECT rowid FROM {} ORDER BY rowid LIMIT 1 OFFSET ?{})",
-            quote_ident(&def.name),
-            assignments.join(", "),
-            quote_ident(&def.name),
-            params.len()
-        );
-        let affected = conn
-            .execute(&sql, rusqlite::params_from_iter(params))
-            .map_err(|e| PortError::WriteFailed {
-                detail: format!("update of {:?} failed: {e}", def.name),
-            })?;
-        if affected == 0 {
-            return Err(out_of_range(table, row, count_rows(conn, &def.name)?));
-        }
-        Ok(())
+        self.write_update(table, row, values)
     }
 
     fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
-        let conn = self.conn.as_ref().ok_or_else(no_database)?;
-        if !self.writable {
-            return Err(read_only());
-        }
-        self.reject_view(table)?;
-        let def = self
-            .tables
-            .iter()
-            .find(|t| t.name.eq_ignore_ascii_case(table))
-            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?;
-        let sql = format!(
-            "DELETE FROM {} WHERE rowid = (SELECT rowid FROM {} ORDER BY rowid LIMIT 1 OFFSET ?1)",
-            quote_ident(&def.name),
-            quote_ident(&def.name)
-        );
-        let offset = i64::try_from(row).unwrap_or(i64::MAX);
-        let affected =
-            conn.execute(&sql, rusqlite::params![offset])
-                .map_err(|e| PortError::WriteFailed {
-                    detail: format!("delete from {:?} failed: {e}", def.name),
-                })?;
-        if affected == 0 {
-            return Err(out_of_range(table, row, count_rows(conn, &def.name)?));
-        }
-        Ok(())
+        self.write_delete(table, row)
     }
 
     fn create_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {
@@ -475,12 +394,14 @@ mod lifecycle;
 mod mapping;
 mod relationships;
 mod rows;
+mod rows_io;
 mod source_objects;
+mod values;
 mod view_inventory;
 
 use mapping::{
-    collect_tables, count_rows, create_sql, foreign_keys, no_database, open_database, quote_ident,
-    read_failed, read_magic, read_only, sql_value, to_field_value,
+    collect_tables, create_sql, foreign_keys, no_database, open_database, quote_ident, read_magic,
+    read_only,
 };
 
 /// Out-of-range error for a single addressed row.

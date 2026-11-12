@@ -11,6 +11,9 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Encoding", "Kodierung"),
     ("User version", "Benutzerversion"),
     ("Integrity check", "Integritätsprüfung"),
+    ("Busy timeout", "Busy-Timeout"),
+    ("STRICT tables", "STRICT-Tabellen"),
+    ("WITHOUT ROWID tables", "WITHOUT-ROWID-Tabellen"),
     ("ok", "ok"),
     (
         "The database's own integrity check reported: {reason}",
