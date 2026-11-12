@@ -118,6 +118,11 @@ pub struct DatabaseState {
     pub reports: Vec<crate::report::ReportDef>,
     /// View designs in creation order (step 71.1, M93).
     pub views: Vec<crate::view::ViewDef>,
+    /// File-owned views of the opened source (phase 73, step 73.1; M90) —
+    /// read-only, never the design layer. Sidecar views with the same name
+    /// win and are not repeated here.
+    #[serde(default)]
+    pub native_views: Vec<crate::port::NativeView>,
     /// Native saved queries read from the file (step 15.3, M3; read-only).
     pub native_queries: Vec<crate::port::NativeQuery>,
     /// Why the native-query decode failed, if it did — the open still

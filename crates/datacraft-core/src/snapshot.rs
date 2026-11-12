@@ -86,6 +86,10 @@ pub struct DatabaseSnapshot {
     pub queries: Vec<QueryEntrySnapshot>,
     /// Sidecar view designs in creation order (step 71.1, item M93).
     pub views: Vec<ViewEntrySnapshot>,
+    /// File-owned views of the opened source (phase 73, step 73.1; M90) —
+    /// read-only; sidecar designs with the same name are not repeated.
+    #[serde(default)]
+    pub native_views: Vec<NativeViewSnapshot>,
     /// Why the native-query decode failed, if it did (step 23.3, M10).
     pub native_queries_error: Option<String>,
     /// Form design documents in creation order.
@@ -109,6 +113,18 @@ pub struct DatabaseSnapshot {
     /// localize the notice from this field (ADR-4); absent when no lock
     /// file exists beside the database.
     pub lock_file: Option<String>,
+}
+
+/// One file-owned (native) view in the snapshot (phase 73, step 73.1;
+/// item M90). Read-only: no design tab, no write affordance.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeViewSnapshot {
+    /// View name as the file reports it.
+    pub name: String,
+    /// The source statement verbatim (the tab's boundary hint).
+    pub sql: String,
+    /// `navpane.<expanded|collapsed>.node.view.<name>`.
+    pub ui_test_id: String,
 }
 
 /// Snapshot of the extracted VBA project (module tree only — source is
@@ -288,6 +304,18 @@ impl UiStateSnapshot {
                         )),
                         fields: query.query_def().map(|def| def.fields).unwrap_or_default(),
                     }))
+                    .collect(),
+                native_views: db
+                    .native_views
+                    .iter()
+                    .map(|view| NativeViewSnapshot {
+                        name: view.name.clone(),
+                        sql: view.sql.clone(),
+                        ui_test_id: state.nav_pane_test_id(&crate::ObjectId::new(
+                            crate::ObjectKind::View,
+                            &view.name,
+                        )),
+                    })
                     .collect(),
                 views: db
                     .views

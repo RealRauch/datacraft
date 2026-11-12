@@ -12,6 +12,35 @@ use crate::failure::FailureCode;
 use crate::view::ViewDef;
 
 impl crate::core::Core {
+    /// Reads one file-owned view's rows (phase 73, step 73.1; M90). The
+    /// view is never writable; the UI renders the result read-only.
+    pub fn native_view_result(&self, name: &str) -> Result<crate::sql_types::SqlResult, String> {
+        let db = self
+            .state
+            .database
+            .as_ref()
+            .ok_or_else(|| "no database is open".to_owned())?;
+        let view = db
+            .native_views
+            .iter()
+            .find(|view| view.name.eq_ignore_ascii_case(name))
+            .ok_or_else(|| format!("native view {name:?} not found"))?;
+        let rows = self
+            .port
+            .read_rows(
+                &view.name,
+                crate::port::RowRange {
+                    start: 0,
+                    len: usize::MAX,
+                },
+            )
+            .map_err(|error| error.to_string())?;
+        Ok(crate::sql_types::SqlResult {
+            columns: view.fields.iter().map(|field| field.name.clone()).collect(),
+            rows,
+        })
+    }
+
     /// Routes one sidecar view command (step 71.1, item M93).
     pub(crate) fn view_command(&mut self, action: crate::view::ViewCommand) -> Vec<Event> {
         match action {
@@ -55,6 +84,10 @@ impl crate::core::Core {
             .any(|table| table.name.eq_ignore_ascii_case(trimmed))
             || db
                 .views
+                .iter()
+                .any(|existing| existing.name.eq_ignore_ascii_case(trimmed))
+            || db
+                .native_views
                 .iter()
                 .any(|existing| existing.name.eq_ignore_ascii_case(trimmed))
         {

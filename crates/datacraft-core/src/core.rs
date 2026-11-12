@@ -189,7 +189,7 @@ impl Core {
         let Some(db) = &self.state.database else {
             return Err("no database is open".to_owned());
         };
-        let mut sources = Vec::with_capacity(db.tables.len());
+        let mut sources = Vec::with_capacity(db.tables.len() + db.native_views.len());
         for table in &db.tables {
             let rows = self
                 .port
@@ -202,6 +202,24 @@ impl Core {
                 )
                 .map_err(|e| format!("materializing {:?} failed: {e}", table.name))?;
             sources.push((table.clone(), rows));
+        }
+        // File-owned views materialize as read-only sources (M90): the SQL
+        // window sees them like tables without touching the design layer.
+        for view in &db.native_views {
+            let rows = self
+                .port
+                .read_rows(
+                    &view.name,
+                    crate::port::RowRange {
+                        start: 0,
+                        len: usize::MAX,
+                    },
+                )
+                .map_err(|e| format!("materializing view {:?} failed: {e}", view.name))?;
+            sources.push((
+                crate::schema::TableDef::new(&view.name, view.fields.clone()),
+                rows,
+            ));
         }
         crate::sql_engine::run_sql(sql, &sources)
     }

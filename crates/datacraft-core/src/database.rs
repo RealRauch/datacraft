@@ -121,6 +121,18 @@ impl crate::core::Core {
                         Err(error) => sidecar_error = Some(error.to_string()),
                     }
                 }
+                // File-owned views (phase 73, step 73.1; M90): the source
+                // reports them; the sidecar stays the design authority, so a
+                // design with the same name filters the foreign entry.
+                let mut native_views = self.port.native_views().unwrap_or_default();
+                if let Some(document) = &sidecar {
+                    native_views.retain(|view| {
+                        !document
+                            .views
+                            .iter()
+                            .any(|design| design.name.eq_ignore_ascii_case(&view.name))
+                    });
+                }
                 let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
@@ -150,6 +162,7 @@ impl crate::core::Core {
                         .as_ref()
                         .map(|document| document.views.clone())
                         .unwrap_or_default(),
+                    native_views,
                     reports: sidecar
                         .as_ref()
                         .map(|document| document.reports.clone())
@@ -249,6 +262,10 @@ impl crate::core::Core {
             .tables
             .iter()
             .any(|t| t.name.to_lowercase() == definition.name.to_lowercase())
+            || db
+                .native_views
+                .iter()
+                .any(|v| v.name.to_lowercase() == definition.name.to_lowercase())
         {
             return failed(
                 FailureCode::Duplicate,

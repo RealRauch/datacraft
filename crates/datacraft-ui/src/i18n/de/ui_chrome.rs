@@ -246,6 +246,11 @@ pub static TABLE: &[(&str, &str)] = &[
         "Die geöffnete Datenquelle kann keine Tabellen umbenennen",
     ),
     ("New name", "Neuer Name"),
+    ("Read-only native view", "Schreibgeschützte native View"),
+    (
+        "The native view could not be read: {reason}",
+        "Die native View konnte nicht gelesen werden: {reason}",
+    ),
     ("Rename {name}", "„{name}“ umbenennen"),
     ("Current name: {name}", "Aktueller Name: {name}"),
     (

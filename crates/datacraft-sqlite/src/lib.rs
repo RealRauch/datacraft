@@ -8,8 +8,8 @@
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{
-    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
-    RowRange, StoragePort, Support,
+    DatabaseFormat, DriverCapabilities, DriverId, NativeView, OpenedDatabase, PortError,
+    Relationship, RowRange, StoragePort, Support,
 };
 use datacraft_core::schema::{FieldKind, FieldValue, TableDef};
 use rusqlite::Connection;
@@ -19,6 +19,8 @@ use rusqlite::Connection;
 pub struct SqlitePort {
     conn: Option<Connection>,
     tables: Vec<TableDef>,
+    /// File-owned views (phase 73, step 73.1; M90) — read-only.
+    native_views: Vec<NativeView>,
     path: Option<PathBuf>,
     /// Whether the file opened read-write (read-only files still read).
     writable: bool,
@@ -33,6 +35,37 @@ impl SqlitePort {
     /// The open file's path (tests and diagnostics).
     pub fn path(&self) -> Option<&Path> {
         self.path.as_deref()
+    }
+
+    /// Resolves a readable table or file-owned view (M90).
+    fn readable(&self, name: &str) -> Result<TableDef, PortError> {
+        if let Some(table) = self
+            .tables
+            .iter()
+            .find(|table| table.name.eq_ignore_ascii_case(name))
+        {
+            return Ok(table.clone());
+        }
+        if let Some(view) = self
+            .native_views
+            .iter()
+            .find(|view| view.name.eq_ignore_ascii_case(name))
+        {
+            return Ok(TableDef::new(&view.name, view.fields.clone()));
+        }
+        Err(PortError::TableNotFound(name.to_owned()))
+    }
+
+    /// Precise write rejection for a file-owned view (M90).
+    fn reject_view(&self, name: &str) -> Result<(), PortError> {
+        if self
+            .native_views
+            .iter()
+            .any(|view| view.name.eq_ignore_ascii_case(name))
+        {
+            return Err(view_inventory::read_only(name));
+        }
+        Ok(())
     }
 }
 
@@ -82,7 +115,9 @@ impl StoragePort for SqlitePort {
         conn.execute_batch(&statement)
             .map_err(|error| PortError::WriteFailed {
                 detail: error.to_string(),
-            })
+            })?;
+        self.native_views = view_inventory::collect(conn)?;
+        Ok(())
     }
 
     fn drop_native_view(&mut self, name: &str) -> Result<(), PortError> {
@@ -94,7 +129,9 @@ impl StoragePort for SqlitePort {
         conn.execute_batch(&statement)
             .map_err(|error| PortError::WriteFailed {
                 detail: error.to_string(),
-            })
+            })?;
+        self.native_views = view_inventory::collect(conn)?;
+        Ok(())
     }
 
     fn open(&mut self, path: &Path, _password: Option<&str>) -> Result<OpenedDatabase, PortError> {
@@ -102,12 +139,14 @@ impl StoragePort for SqlitePort {
         read_magic(path)?;
         let (conn, writable) = open_database(path)?;
         let tables = collect_tables(&conn)?;
+        let native_views = view_inventory::collect(&conn)?;
         let name = path.file_stem().map_or_else(
             || "database".to_owned(),
             |s| s.to_string_lossy().into_owned(),
         );
         self.conn = Some(conn);
         self.tables = tables;
+        self.native_views = native_views;
         self.path = Some(path.to_path_buf());
         self.writable = writable;
         Ok(OpenedDatabase {
@@ -120,6 +159,7 @@ impl StoragePort for SqlitePort {
     fn close(&mut self) {
         self.conn = None;
         self.tables.clear();
+        self.native_views.clear();
         self.path = None;
         self.writable = false;
     }
@@ -152,6 +192,10 @@ impl StoragePort for SqlitePort {
 
     fn tables(&self) -> Vec<TableDef> {
         self.tables.clone()
+    }
+
+    fn native_views(&self) -> Result<Vec<NativeView>, PortError> {
+        Ok(self.native_views.clone())
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
@@ -281,11 +325,7 @@ COMMIT;",
 
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError> {
         let conn = self.conn.as_ref().ok_or_else(no_database)?;
-        let def = self
-            .tables
-            .iter()
-            .find(|t| t.name.eq_ignore_ascii_case(table))
-            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?;
+        let def = self.readable(table)?;
         let count = count_rows(conn, &def.name)?;
         let (start, end) = datacraft_core::port::window_slice(table, range, count)?;
         let sql = format!(
@@ -320,6 +360,7 @@ COMMIT;",
         if !self.writable {
             return Err(read_only());
         }
+        self.reject_view(table)?;
         let def = self
             .tables
             .iter()
@@ -381,6 +422,7 @@ COMMIT;",
         if !self.writable {
             return Err(read_only());
         }
+        self.reject_view(table)?;
         let def = self
             .tables
             .iter()
@@ -425,6 +467,7 @@ mod ddl;
 mod mapping;
 mod relationships;
 mod rows;
+mod view_inventory;
 
 use mapping::{
     collect_tables, count_rows, create_sql, foreign_keys, no_database, open_database, quote_ident,

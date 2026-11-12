@@ -23,6 +23,10 @@ pub struct MockPort {
     native_queries_error: Option<String>,
     /// Native query inventory (M3 surface; set by tests).
     native_queries: Vec<crate::port::NativeQuery>,
+    /// File-owned views (phase 73, step 73.1; M90) — read-only.
+    native_views: Vec<crate::port::NativeView>,
+    /// Column definitions of the native views, for read windows.
+    view_defs: Vec<TableDef>,
     opened: Option<OpenedDatabase>,
     open_fail: Option<String>,
     write_fail: Option<String>,
@@ -47,127 +51,8 @@ pub struct MockPort {
 }
 
 mod alter;
+mod builders;
 mod rename;
-
-impl MockPort {
-    /// Creates an empty mock that opens as `"mock"` (Jet4).
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Creates a mock pre-seeded with table definitions.
-    pub fn with_tables(tables: Vec<TableDef>) -> Self {
-        Self {
-            tables,
-            ..Self::default()
-        }
-    }
-
-    /// Builder: attaches row data for a table (case-insensitive reads).
-    pub fn with_row_data(
-        &mut self,
-        table: impl Into<String>,
-        rows: Vec<Vec<FieldValue>>,
-    ) -> &mut Self {
-        self.rows.insert(table.into(), rows);
-        self
-    }
-
-    /// Builder: attaches referential relationships.
-    pub fn with_relationships(&mut self, relationships: Vec<Relationship>) -> &mut Self {
-        self.relationships = relationships;
-        self
-    }
-
-    /// Builder: attaches the named-macro inventory (step 17.1, L4).
-    pub fn with_macros(&mut self, macros: Vec<crate::macro_def::MacroDef>) -> &mut Self {
-        self.macros = macros;
-        self
-    }
-
-    /// Builder: attaches an extracted VBA project (step 17.2, L5).
-    pub fn with_vba(&mut self, project: crate::vba::VbaProject) -> &mut Self {
-        self.vba = Some(project);
-        self
-    }
-
-    /// Builder: makes the VBA extraction fail with `reason` (observable
-    /// degradation; the database still opens).
-    pub fn with_vba_error(&mut self, reason: impl Into<String>) -> &mut Self {
-        self.vba_error = Some(reason.into());
-        self
-    }
-
-    /// Builder: makes the native-query decode fail with `reason` (M10).
-    pub fn with_native_queries_error(&mut self, reason: impl Into<String>) -> &mut Self {
-        self.native_queries_error = Some(reason.into());
-        self
-    }
-
-    /// Builder: attaches a native query inventory (M3).
-    pub fn with_native_queries(&mut self, queries: Vec<crate::port::NativeQuery>) -> &mut Self {
-        self.native_queries = queries;
-        self
-    }
-
-    /// Creates a mock whose `open` always fails with `detail`.
-    pub fn failing_open(detail: impl Into<String>) -> Self {
-        Self {
-            open_fail: Some(detail.into()),
-            ..Self::default()
-        }
-    }
-
-    /// Creates a mock whose write operations always fail with `detail`.
-    pub fn failing_writes(detail: impl Into<String>) -> Self {
-        Self {
-            write_fail: Some(detail.into()),
-            ..Self::default()
-        }
-    }
-
-    /// Builder: makes every subsequent write fail with `detail`.
-    pub fn with_write_failure(&mut self, detail: impl Into<String>) -> &mut Self {
-        self.write_fail = Some(detail.into());
-        self
-    }
-
-    /// Builder: makes every subsequent row read fail with `detail`
-    /// (materialization-failure tests).
-    pub fn with_read_failure(&mut self, detail: impl Into<String>) -> &mut Self {
-        self.read_fail = Some(detail.into());
-        self
-    }
-
-    /// Builder: requires `password` on `open` (database-password flow, M5).
-    pub fn with_password(&mut self, password: impl Into<String>) -> &mut Self {
-        self.password = Some(password.into());
-        self
-    }
-
-    /// Builder: overrides the reported capabilities (phase 30, M17 —
-    /// simulated restricted drivers).
-    pub fn with_capabilities(&mut self, capabilities: DriverCapabilities) -> &mut Self {
-        self.reported_capabilities = Some(capabilities);
-        self
-    }
-
-    /// Builder: `open` reports a detected Access lock file (step 53.2,
-    /// item M59 — the name travels as data; combine with
-    /// `with_capabilities` for the read-only shape).
-    pub fn with_lock_file(&mut self, name: impl Into<String>) -> &mut Self {
-        self.lock_file = Some(name.into());
-        self
-    }
-
-    /// Resolves a table definition case-insensitively.
-    fn table_def(&self, table: &str) -> Result<&TableDef, PortError> {
-        self.tables
-            .iter()
-            .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
-            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))
-    }
-}
 
 /// Out-of-range error for a single addressed row.
 fn out_of_range(table: &str, row: usize, row_count: usize) -> PortError {
@@ -280,6 +165,10 @@ impl StoragePort for MockPort {
         self.tables.clone()
     }
 
+    fn native_views(&self) -> Result<Vec<crate::port::NativeView>, PortError> {
+        Ok(self.native_views.clone())
+    }
+
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {
         if let Some(detail) = &self.write_fail {
             return Err(PortError::WriteFailed {
@@ -296,6 +185,7 @@ impl StoragePort for MockPort {
                 detail: detail.clone(),
             });
         }
+        self.reject_view(name)?;
         let pos = self
             .tables
             .iter()
@@ -309,6 +199,7 @@ impl StoragePort for MockPort {
         table: &str,
         change: crate::port::SchemaChange,
     ) -> Result<(), PortError> {
+        self.reject_view(table)?;
         alter::alter(self, table, change)
     }
 
@@ -346,6 +237,7 @@ impl StoragePort for MockPort {
                 detail: detail.clone(),
             });
         }
+        self.reject_view(table)?;
         let Some(pos) = self
             .tables
             .iter()
@@ -379,6 +271,7 @@ impl StoragePort for MockPort {
                 detail: detail.clone(),
             });
         }
+        self.reject_view(table)?;
         let def = self.table_def(table)?.clone();
         if values.len() != def.fields.len() {
             return Err(PortError::WriteFailed {
@@ -411,6 +304,7 @@ impl StoragePort for MockPort {
                 detail: detail.clone(),
             });
         }
+        self.reject_view(table)?;
         let def = self.table_def(table)?.clone();
         let rows = self
             .rows

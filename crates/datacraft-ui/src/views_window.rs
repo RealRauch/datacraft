@@ -124,14 +124,28 @@ impl App {
 /// The view tab: toolbar plus the read-only result grid.
 pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let tokens = tokens(ui.visuals());
-    ui.horizontal(|ui| {
-        if ui.small_button(t("Edit SQL")).clicked() {
-            app.open_view_editor(Some(&tab.object_name));
-        }
-        if ui.small_button(t("Delete")).clicked() {
-            app.delete_view(&tab.object_name);
-        }
+    // File-owned views (M90) are read-only: the design and delete
+    // affordances belong to the sidecar authority only.
+    let native = app.snapshot().database.as_ref().is_some_and(|db| {
+        db.native_views
+            .iter()
+            .any(|view| view.name.eq_ignore_ascii_case(&tab.object_name))
     });
+    if native {
+        let hint = ui.weak(t("Read-only native view"));
+        // Static text is culled from the semantic tree; the rect probe
+        // pins its presence (step 44.1 seam, M90).
+        crate::layout_probe::record("view.native_hint", hint.rect);
+    } else {
+        ui.horizontal(|ui| {
+            if ui.small_button(t("Edit SQL")).clicked() {
+                app.open_view_editor(Some(&tab.object_name));
+            }
+            if ui.small_button(t("Delete")).clicked() {
+                app.delete_view(&tab.object_name);
+            }
+        });
+    }
     if let Some(reason) = app.load_error(tab.id) {
         ui.colored_label(tokens.danger, reason);
         return;

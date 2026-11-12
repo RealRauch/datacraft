@@ -9,8 +9,9 @@ use datacraft_core::port::{MockPort, NativeView};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_core::{ObjectId, ObjectKind};
 use datacraft_ui::app::App;
+use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 fn people() -> TableDef {
     TableDef::new(
@@ -58,11 +59,26 @@ fn native_view_harness(app: App) -> Harness<'static, App> {
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
-            datacraft_ui::nav_pane::nav_pane_ui(app, ui);
-            let Some(tab) = app.snapshot().tabs.first().cloned() else {
-                return;
-            };
-            datacraft_ui::views_window::view_ui(app, &tab, ui);
+            datacraft_ui::layout_probe::clear();
+            let height = ui.available_height();
+            ui.horizontal_top(|ui| {
+                ui.allocate_ui_with_layout(
+                    egui::vec2(220.0, height),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| datacraft_ui::nav_pane::nav_pane_ui(app, ui),
+                );
+                ui.separator();
+                ui.allocate_ui_with_layout(
+                    egui::vec2(ui.available_width(), height),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        let Some(tab) = app.snapshot().tabs.first().cloned() else {
+                            return;
+                        };
+                        datacraft_ui::views_window::view_ui(app, &tab, ui);
+                    },
+                );
+            });
         },
         app,
     )
@@ -86,13 +102,26 @@ fn a_native_view_is_listed_and_renders_read_only() {
         dump.contains("adults"),
         "the nav pane lists the foreign view: {dump}"
     );
+    // The grid paints its cells (no label nodes for body text), so the
+    // data path is asserted on the cached result beside the painted row
+    // selector.
+    let tab = harness.state().snapshot().tabs[0].id;
+    let result = harness
+        .state()
+        .view_result(tab)
+        .expect("the native view result is cached");
+    assert_eq!(result.columns, ["id", "name"]);
+    assert_eq!(result.rows[0][1], FieldValue::Text("Ada".into()));
     assert!(
-        dump.contains("Ada"),
-        "the read-only datasheet renders the view rows: {dump}"
+        dump.contains("     1"),
+        "the read-only datasheet paints the row selector: {dump}"
     );
+    let rects = datacraft_ui::layout_probe::drain();
     assert!(
-        dump.contains("Read-only native view"),
-        "the tab names the boundary: {dump}"
+        rects
+            .iter()
+            .any(|(id, rect)| id == "view.native_hint" && rect.width() > 0.0),
+        "the tab names the boundary (rect probe): {rects:?}"
     );
     assert!(
         !dump.contains("Edit SQL") && !dump.contains("Delete"),

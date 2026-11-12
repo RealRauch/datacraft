@@ -282,6 +282,14 @@ impl crate::core::Core {
         db.queries = document.queries;
         db.reports = document.reports;
         db.views = document.views;
+        // The loaded sidecar is the design authority: a file-owned view with
+        // the same name is no longer a standalone foreign entry (M90).
+        let design_names: Vec<String> = db.views.iter().map(|view| view.name.clone()).collect();
+        db.native_views.retain(|view| {
+            !design_names
+                .iter()
+                .any(|name| name.eq_ignore_ascii_case(&view.name))
+        });
         vec![Event::DesignDocumentLoaded {
             path: path.to_path_buf(),
             forms,

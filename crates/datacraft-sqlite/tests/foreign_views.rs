@@ -68,11 +68,8 @@ fn a_foreign_view_is_listed_with_its_columns() {
         .collect();
     assert_eq!(columns, ["id", "name", "born", "shout"]);
     // The view never becomes a writable table.
-    let tables: Vec<&str> = port
-        .tables()
-        .iter()
-        .map(|table| table.name.as_str())
-        .collect();
+    let catalog = port.tables();
+    let tables: Vec<&str> = catalog.iter().map(|table| table.name.as_str()).collect();
     assert_eq!(tables, ["people"]);
 }
 

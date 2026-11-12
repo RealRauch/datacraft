@@ -134,6 +134,53 @@ fn the_sidecar_view_wins_over_the_foreign_entry() {
 }
 
 #[test]
+fn native_view_names_occupy_the_object_namespace() {
+    let mut core = opened();
+    let table = TableDef::new(
+        "adults",
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
+    );
+    let events = core.dispatch(Command::CreateTable { definition: table });
+    let reason = events
+        .iter()
+        .find_map(|event| match event {
+            Event::Failed { reason, .. } => Some(reason.clone()),
+            _ => None,
+        })
+        .expect("a table may not shadow a view");
+    assert!(reason.contains("duplicate"), "{reason}");
+
+    let events = core.dispatch(Command::View(datacraft_core::view::ViewCommand::Create {
+        name: "adults".into(),
+        sql: "SELECT 1 AS one".into(),
+    }));
+    let reason = events
+        .iter()
+        .find_map(|event| match event {
+            Event::Failed { reason, .. } => Some(reason.clone()),
+            _ => None,
+        })
+        .expect("a sidecar view may not shadow a foreign view");
+    assert!(reason.contains("duplicate"), "{reason}");
+
+    let events = core.dispatch(Command::RenameObject {
+        object: ObjectId::new(ObjectKind::Table, "people"),
+        new_name: "adults".into(),
+    });
+    let reason = events
+        .iter()
+        .find_map(|event| match event {
+            Event::Failed { reason, .. } => Some(reason.clone()),
+            _ => None,
+        })
+        .expect("a table rename may not shadow a view");
+    assert!(reason.contains("duplicate"), "{reason}");
+}
+
+#[test]
 fn drivers_without_a_view_inventory_report_none() {
     let mut core = Core::new(Box::new(MockPort::with_tables(vec![people()])));
     core.dispatch(Command::OpenDatabase {

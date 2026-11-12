@@ -23,6 +23,7 @@ impl SqlitePort {
         if !self.writable {
             return Err(read_only());
         }
+        self.reject_view(table)?;
         let def = self
             .tables
             .iter()

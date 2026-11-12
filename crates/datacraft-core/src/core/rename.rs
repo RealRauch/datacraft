@@ -74,11 +74,16 @@ impl Core {
                 format!("duplicate table name {new_name:?}"),
             );
         }
-        // Tables and views share one object namespace (M93).
+        // Tables and views share one object namespace (M93); the file's own
+        // views (M90) occupy it too.
         if db
             .views
             .iter()
             .any(|view| view.name.eq_ignore_ascii_case(new_name))
+            || db
+                .native_views
+                .iter()
+                .any(|view| view.name.eq_ignore_ascii_case(new_name))
         {
             return failed(
                 FailureCode::Duplicate,

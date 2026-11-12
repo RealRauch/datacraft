@@ -239,6 +239,11 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             db.views
                 .iter()
                 .map(|v| (v.name.clone(), ObjectKind::View))
+                .chain(
+                    db.native_views
+                        .iter()
+                        .map(|v| (v.name.clone(), ObjectKind::View)),
+                )
                 .collect(),
         );
         section(

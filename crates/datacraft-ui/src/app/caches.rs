@@ -246,15 +246,41 @@ impl App {
             if self.view_results.contains_key(&tab_id) {
                 continue;
             }
-            let Some(sql) = self.snapshot.database.as_ref().and_then(|db| {
+            let sidecar_sql = self.snapshot.database.as_ref().and_then(|db| {
                 db.views
                     .iter()
                     .find(|view| view.name.eq_ignore_ascii_case(&name))
                     .map(|view| view.sql.clone())
-            }) else {
+            });
+            if let Some(sql) = sidecar_sql {
+                match self.core.run_sql(&sql) {
+                    Ok(result) => {
+                        self.view_results.insert(tab_id, result);
+                        self.load_errors.remove(&tab_id);
+                    }
+                    Err(reason) => {
+                        self.load_errors.insert(
+                            tab_id,
+                            crate::i18n::tr(
+                                "The view could not be run: {reason}",
+                                &[("reason", &reason)],
+                            ),
+                        );
+                    }
+                }
                 continue;
-            };
-            match self.core.run_sql(&sql) {
+            }
+            // File-owned views read their rows through the port (M90) —
+            // never through the shadow engine, which knows only tables.
+            let native = self.snapshot.database.as_ref().is_some_and(|db| {
+                db.native_views
+                    .iter()
+                    .any(|view| view.name.eq_ignore_ascii_case(&name))
+            });
+            if !native {
+                continue;
+            }
+            match self.core.native_view_result(&name) {
                 Ok(result) => {
                     self.view_results.insert(tab_id, result);
                     self.load_errors.remove(&tab_id);
@@ -263,7 +289,7 @@ impl App {
                     self.load_errors.insert(
                         tab_id,
                         crate::i18n::tr(
-                            "The view could not be run: {reason}",
+                            "The native view could not be read: {reason}",
                             &[("reason", &reason)],
                         ),
                     );
