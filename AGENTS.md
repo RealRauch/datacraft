@@ -236,4 +236,5 @@ Hard rules (CI-enforced):
 - Never add a dependency, change `Cargo.toml`, or touch CI workflows without
   the matching release gate.
 - Never put UI logic, locale or filesystem paths into `datacraft-core`.
-- Never claim compatibility beyond the verified matrix in `README.md`.
+- Never claim compatibility beyond the verified matrix in `README.md` and
+  its evidence rows in `docs/COMPATIBILITY.md`.

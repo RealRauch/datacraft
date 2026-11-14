@@ -23,7 +23,7 @@ API.
 
 **Why DataCraft** ·
 [What works today](#what-works-today) ·
-[Quick start](#quick-start) ·
+[Download and install](#download-and-install) ·
 [Architecture](#architecture) ·
 [Roadmap](#roadmap) ·
 [Quality gates](#quality-gates) ·
@@ -31,6 +31,11 @@ API.
 [License and credits](#license-and-credits)
 
 </div>
+
+![The DataCraft desktop shell with the Bike Shop sample open in the datasheet view](https://raw.githubusercontent.com/RealRauch/datacraft/main/docs/images/screenshot-light.png)
+
+*The Bike Shop sample in the datasheet view — the same shell on Windows,
+macOS and Linux.*
 
 > [!NOTE]
 > **DataCraft is in early development.** Phases 1–29 are complete: the
@@ -57,6 +62,35 @@ API.
 > picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
 > the verified compatibility claims are in
 > [Compatibility matrix](#compatibility-matrix-verified-2026-11-12).
+
+## Download and install
+
+Prebuilt archives for Windows, macOS and Linux are on the
+[releases page](https://github.com/RealRauch/datacraft/releases/latest).
+Each archive carries the desktop shell (`datacraft`), the CLI
+(`datacraft-cli`), the MCP endpoint (`datacraft-mcp`), the sample
+databases and the third-party notices. Unpack it and run the binary — no
+Rust toolchain needed. The same page carries the `checksums-sha256.txt`.
+
+From source (Rust 1.98+, pinned in `rust-toolchain.toml`; rustup installs
+it automatically on build):
+
+```bash
+git clone https://github.com/RealRauch/datacraft
+cd datacraft
+cargo run -p datacraft-ui        # the desktop shell
+cargo test --workspace           # unit, integration, proptest and golden-file tests
+```
+
+Headless clients of the same command bus:
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"inspect"}' | cargo run -p datacraft-mcp
+cargo run -p datacraft-cli -- open fixtures/testV2000.mdb --json
+```
+
+The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
+`mdbtools` installed there); golden-file tests run everywhere.
 
 ## Why DataCraft
 
@@ -115,65 +149,30 @@ the honest phase-by-phase picture is in
 
 ## Compatibility matrix (verified 2026-11-12)
 
-Every compatibility claim below names its evidence; unsupported paths are
-stated in the same row. Re-verified 2026-11-10 for the v0.1.1 release:
-every evidence suite named below is green on CI `main` (run 42895207902;
-the mechanical claim); the real-engine checks stand from the 2026-11-07
-Access walkthrough and the DAO create-path oracle (phase 49.2, item M63). **Read** means decode through the `StoragePort`;
-**write** means the path is exercised against a real file in the named
-suite. Writes are verified as Access-readable and usage-map-consistent —
-byte-identical output to Microsoft Access is **not** claimed.
+**Read** means decode through the `StoragePort`; **write** means the path
+is exercised against a real file. Writes are verified as Access-readable
+and usage-map-consistent — byte-identical output to Microsoft Access is
+**not** claimed. The evidence behind every row — the test suites, oracle
+lanes and CI runs — is in
+[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
-| Format / path | Read | Write | Evidence | Known limits |
-| --- | --- | --- | --- | --- |
-| **Jet3 `.mdb`** | ✅ tables, TDEF chains, jump-table rows, overflow/LVAL, embedded OLE, RC4 password | ⬜ | `jet3.rs`, `jet3_remainders.rs`, `jet_encryption.rs` against `testV1997.mdb` / `test2V1997.mdb` | fixture-tested only (no libmdb oracle); no write path; Jet3 VBA/macro definitions stay name-only |
-| **Jet4 `.mdb`** | ✅ tables, catalog, rows, OLE/memo, relationships, native queries, index metadata, RC4 password | ✅ create table, insert, update, delete, drop table, table rename (catalog + relationship rows), design-time alter (add/drop/rename a field/required), field indexes (metadata + uniqueness), relationship create/delete, journaled batches, LongInteger AutoNumber counter; created files and their tables are **engine-accepted** (2026-11-07 DAO oracle: `TableDefs` enumerates them, rows read and written through the engine, engine-side CREATE/INSERT/DROP round-trip on the same file) and **user-verified in real Access** (2026-11-07 walkthrough: opens without repair, template rows read, Access and DataCraft writes interleave with the autonumber continuing across engines, schema create/drop round-trips both ways) | `jet_table.rs`, `jet_catalog.rs`, `native_queries.rs`, `jet_encryption.rs`; `jet_writer*.rs`, `jet_port_writes.rs`, `jet_row_writes.rs`, `jet_autonumber.rs`, `jet_table_drop.rs`, `jet_alter_table.rs`, `jet_index_writes.rs`, `jet_create_shape.rs`; oracle + `mdb-export` CI plus the Windows DAO open/read/write oracle (phase 49.2) | writer verified on Jet4 `.mdb` only; created tables carry the engine's default ACL and the observed index-leaf maintenance, so catalog resolution works; Memo/OLE/Binary index keys on existing physical indexes answer `Unsupported` and leaves are rebuilt, never split (multi-page indexes stay roadmap M15); table drops free the dropped table's index pages (M66 contract test); engine-refused databases (e.g. pre-49.2 create-path output) are recovered by re-encoding through the create path (`examples/recover_mdb.rs`, 49.4 — `SaveDatabaseAs` copies pages and cannot repair, M67); MSysQueries attribute 12 and unmapped constructs answer `Unsupported` (the open carries `native_queries_error`, surfaced at the Queries group) |
-| **ACE `.accdb`** | ✅ 2007/2010/2016 tables, complex values, named macros, VBA project | ✅ create table, insert, update, delete, drop table, table rename, design-time alter (add/drop/rename a field/required), field indexes (metadata + uniqueness), relationship create/delete on ACE 2007/2010 | `ace_fixtures.rs`, `complex_values.rs`, `macros.rs`, `vba.rs`; oracle on three template fixtures; `ace_writer.rs`, `ace_port_writes.rs`, `server_e2e_ace.rs` (phase 25) | no external ACE oracle (mdb-tools reads no `.accdb`) — the write reference is decode∘op∘decode against the pristine pinned bytes; office-encrypted files answer `Unsupported` at the reader and writer boundary |
-| **Access co-existence** | ✅ a sibling Access lock file (`.ldb` / `.laccdb`) is detected at open — the session opens **read-only** with the lock file named in the snapshot (CLI/MCP data), the status bar and the Info page | ⬜ read-only while the lock file exists | `jet_capabilities.rs` (locked-session caps + precise `Unsupported` on every write), `driver_caps.rs` (the snapshot data), `ui_layout.rs` / `ui_kittest.rs` (localized notices); FORMAT-JET §Access co-existence | DataCraft never creates or deletes lock files; detection is existence-only — the lock protocol's contents are clean-room-unclear (M59); close Access and remove the lock file to edit here |
-| **SQLite** | ✅ catalog, rows, foreign keys; the file's own views (read-only), index/trigger inventory, file facts + bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX` from `IndexMode`, foreign-key create/delete (transactional table rebuild, enforced) | `sqlite_port.rs`, `sqlite_writes.rs`, `sqlite_row_writes.rs`, `sqlite_indexes.rs`, `foreign_views.rs`, `foreign_objects.rs`, `file_facts.rs`, `robust_open.rs` (phase 73) | separate backend behind the same command vocabulary; schema alteration (and therefore index changes after create) remains unsupported; `WITHOUT ROWID` tables read in key order and refuse rowid-based updates/deletes; native view/trigger definitions are never created or executed |
-| **CSV directories** | ✅ catalog, rows | ✅ create directory, create/drop table, insert/update/delete (one atomic rewrite per call) | `crates/datacraft-csv` (`tests/driver.rs`, `tests/error_paths.rs`, `tests/inference.rs`), `server_e2e_csv.rs` (phase 30, 36) | column kinds inferred at open (all-integer → Long Integer, all-float → Double, all-ISO-date → Date/Time; one quoted cell or any ambiguity keeps Short Text; values read as text); no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
-| **Form runtime (ADR-8)** | ✅ bound text/checkbox/combo editing with per-record commit, button actions, form-scoped filters | ✅ row writes through the source driver (capability-gated) | `row_edit_zls.rs`, `form_control_data.rs`, `form_filter.rs`, `button_action.rs`, `ui_kittest_form_edit.rs`, `ui_kittest_control_content.rs`; ADR-8 (ARCHITECTURE §17) | no macro/VBA actions (ADR-2); the runtime's design data lives in the sidecar, filters are session state — never written into Jet/ACE; no Access SaveAsText/COM round trip |
-| **Design layer (ADR-1)** | sidecar `.datacraft` forms, queries, reports, views (named SELECTs — SQLite applies them natively, Jet/ACE/CSV execute them through the shadow engine); native saved queries read-only; the navigation pane lists the catalog's native Access forms/reports read-only (names and counts, no definition decoding — M87; the M89 feasibility verdict is a documented stop in `docs/FORMAT-JET.md`) | ✅ sidecar save/load; sibling sidecar auto-loads on open (errors surface as `sidecar_error`); ⬜ native form/report writes | `schema_document.rs`, `canvas.rs`, `form_runtime.rs`; `native_queries.rs`; `native_objects.rs`; `sidecar_auto_load.rs`, `server_e2e_samples.rs` (phase 29) | native Access form/report definitions are neither decoded nor written; the sidecar is versioned and database-name checked |
-| **Samples & templates** | ✅ every shipped sample opens with its expected tables/rows | ✅ `CreateDatabase` (Jet4 + SQLite), `CreateDatabaseFromTemplate` (blank, contacts, inventory, bike_shop) | `create_database.rs`, `create_template.rs`, `create_from_template.rs`, `samples.rs`, `server_e2e_samples.rs` against the committed `samples/` set; `make_samples --check` + `sha256sum -c samples/manifest` | Jet3/ACE files are never created (`Unsupported`); the Jet engine accepts the shipped Jet4 samples and template-created databases (DAO oracle + the real-Access user walkthrough, 2026-11-07: opens, reads, writes and schema round-trips); template field properties persist through the `.datacraft` sidecar (H45) |
-| **Programmability** | ✅ macro names + coarse arguments; VBA modules, source, static analysis | ⬜ read-only | `macros.rs`, `port_macros.rs`, `vba.rs`, `vba_project.rs`, `vba_analysis.rs` | no macro/VBA execution (ADR-2), no p-code; Jet3 macro/VBA definitions are not decoded |
+| Format / path | Read | Write | Known limits |
+| --- | --- | --- | --- |
+| **Jet3 `.mdb`** | ✅ tables, TDEF chains, jump-table rows, overflow/LVAL, embedded OLE, RC4 password | ⬜ | fixture-tested only (no libmdb oracle); no write path; Jet3 VBA/macro definitions stay name-only |
+| **Jet4 `.mdb`** | ✅ tables, catalog, rows, OLE/memo, relationships, native queries, index metadata, RC4 password | ✅ create table, insert, update, delete, drop table, table rename (catalog + relationship rows), design-time alter (add/drop/rename a field/required), field indexes (metadata + uniqueness), relationship create/delete, journaled batches, LongInteger AutoNumber counter; created files and their tables are **engine-accepted** (2026-11-07 DAO oracle: `TableDefs` enumerates them, rows read and written through the engine, engine-side CREATE/INSERT/DROP round-trip on the same file) and **user-verified in real Access** (2026-11-07 walkthrough: opens without repair, template rows read, Access and DataCraft writes interleave with the autonumber continuing across engines, schema create/drop round-trips both ways) | writer verified on Jet4 `.mdb` only; created tables carry the engine's default ACL and the observed index-leaf maintenance, so catalog resolution works; Memo/OLE/Binary index keys on existing physical indexes answer `Unsupported` and leaves are rebuilt, never split (multi-page indexes stay roadmap M15); table drops free the dropped table's index pages (M66 contract test); engine-refused databases (e.g. pre-49.2 create-path output) are recovered by re-encoding through the create path (`examples/recover_mdb.rs`, 49.4 — `SaveDatabaseAs` copies pages and cannot repair, M67); MSysQueries attribute 12 and unmapped constructs answer `Unsupported` (the open carries `native_queries_error`, surfaced at the Queries group) |
+| **ACE `.accdb`** | ✅ 2007/2010/2016 tables, complex values, named macros, VBA project | ✅ create table, insert, update, delete, drop table, table rename, design-time alter (add/drop/rename a field/required), field indexes (metadata + uniqueness), relationship create/delete on ACE 2007/2010 | no external ACE oracle (mdb-tools reads no `.accdb`) — the write reference is decode∘op∘decode against the pristine pinned bytes; office-encrypted files answer `Unsupported` at the reader and writer boundary |
+| **Access co-existence** | ✅ a sibling Access lock file (`.ldb` / `.laccdb`) is detected at open — the session opens **read-only** with the lock file named in the snapshot (CLI/MCP data), the status bar and the Info page | ⬜ read-only while the lock file exists | DataCraft never creates or deletes lock files; detection is existence-only — the lock protocol's contents are clean-room-unclear (M59); close Access and remove the lock file to edit here |
+| **SQLite** | ✅ catalog, rows, foreign keys; the file's own views (read-only), index/trigger inventory, file facts + bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX` from `IndexMode`, foreign-key create/delete (transactional table rebuild, enforced) | separate backend behind the same command vocabulary; schema alteration (and therefore index changes after create) remains unsupported; `WITHOUT ROWID` tables read in key order and refuse rowid-based updates/deletes; native view/trigger definitions are never created or executed |
+| **CSV directories** | ✅ catalog, rows | ✅ create directory, create/drop table, insert/update/delete (one atomic rewrite per call) | column kinds inferred at open (all-integer → Long Integer, all-float → Double, all-ISO-date → Date/Time; one quoted cell or any ambiguity keeps Short Text; values read as text); no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
+| **Form runtime (ADR-8)** | ✅ bound text/checkbox/combo editing with per-record commit, button actions, form-scoped filters | ✅ row writes through the source driver (capability-gated) | no macro/VBA actions (ADR-2); the runtime's design data lives in the sidecar, filters are session state — never written into Jet/ACE; no Access SaveAsText/COM round trip |
+| **Design layer (ADR-1)** | sidecar `.datacraft` forms, queries, reports, views (named SELECTs — SQLite applies them natively, Jet/ACE/CSV execute them through the shadow engine); native saved queries read-only; the navigation pane lists the catalog's native Access forms/reports read-only (names and counts, no definition decoding — M87; the M89 feasibility verdict is a documented stop in `docs/FORMAT-JET.md`) | ✅ sidecar save/load; sibling sidecar auto-loads on open (errors surface as `sidecar_error`); ⬜ native form/report writes | native Access form/report definitions are neither decoded nor written; the sidecar is versioned and database-name checked |
+| **Samples & templates** | ✅ every shipped sample opens with its expected tables/rows | ✅ `CreateDatabase` (Jet4 + SQLite), `CreateDatabaseFromTemplate` (blank, contacts, inventory, bike_shop) | Jet3/ACE files are never created (`Unsupported`); the Jet engine accepts the shipped Jet4 samples and template-created databases (DAO oracle + the real-Access user walkthrough, 2026-11-07: opens, reads, writes and schema round-trips); template field properties persist through the `.datacraft` sidecar (H45) |
+| **Programmability** | ✅ macro names + coarse arguments; VBA modules, source, static analysis | ⬜ read-only | no macro/VBA execution (ADR-2), no p-code; Jet3 macro/VBA definitions are not decoded |
 
 **Sidecar vs native (ADR-1).** DataCraft's form, sidecar-query and report
 designs live in `<database>.datacraft`; they are never written into Jet/ACE.
 Native Access objects — saved queries, macros, VBA — are read-only. Opening a
 database does not modify it.
-
-**Review by format.** Jet3 is the narrowest read-only path (fixture-tested,
-no oracle); Jet4 has the deepest verified read/write path; ACE adds complex
-values and read-only programmability; SQLite round-trips through its own
-backend. These rows are the only compatibility statements the project makes —
-broader wording was removed in step 17.4.
-
-## Quick start
-
-Requires the Rust toolchain pinned in `rust-toolchain.toml` (rustup installs
-it automatically on build).
-
-```bash
-git clone https://github.com/RealRauch/datacraft
-cd datacraft
-cargo run -p datacraft-ui        # the desktop shell
-cargo test --workspace           # unit, integration, proptest and golden-file tests
-```
-
-Headless clients of the same command bus:
-
-```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"inspect"}' | cargo run -p datacraft-mcp
-cargo run -p datacraft-cli -- open fixtures/testV2000.mdb --json
-```
-
-The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
-`mdbtools` installed there); golden-file tests run everywhere.
-
-```bash
-cargo llvm-cov --workspace --exclude datacraft-ui \
-  --lcov --output-path lcov.info --fail-under-lines 95   # the coverage gate, as CI runs it
-```
 
 ## Architecture
 

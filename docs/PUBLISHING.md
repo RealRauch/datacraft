@@ -121,7 +121,8 @@ is a decision, not an oversight; revisit only if a library consumer appears.
    platform archives (binaries + samples + third-party notices), runs the
    packaged smoke, collects sha256 checksums and drafts the GitHub release;
    a human reviews and publishes the draft (PLAYBOOK §9).
-7. Re-verify the README compatibility matrix and date-stamp it.
+7. Re-verify the README compatibility matrix plus its evidence in
+   `docs/COMPATIBILITY.md` and date-stamp both.
 
 ## Repository settings (before the visibility switch)
 

@@ -3,7 +3,7 @@
 > Moved out of the README in phase 79 (M96). This is the long-form
 > inventory behind the README's short "What works today" overview. The
 > binding compatibility claims stay in the README matrix; the full
-> evidence is catalogued in `docs/COMPATIBILITY.md` (created in step 79.3).
+> evidence is catalogued in [COMPATIBILITY.md](COMPATIBILITY.md).
 
 ## What works today
 
