@@ -87,6 +87,17 @@ fn preview_ui(app: &mut App, preview: &ImportPreview, ui: &mut egui::Ui) {
             ("shown", &preview.rows.len().to_string()),
         ],
     ));
+    // The detected dialect (step 80.2, item H59): the decode path reports
+    // what it chose, so a detection is never silent.
+    if let Some(dialect) = &preview.dialect {
+        ui.weak(tr(
+            "Detected encoding: {encoding} — delimiter: {delimiter}",
+            &[
+                ("encoding", &dialect.encoding.to_string()),
+                ("delimiter", dialect.delimiter_label()),
+            ],
+        ));
+    }
     egui::Grid::new("import.preview.fields")
         .striped(true)
         .show(ui, |ui| {

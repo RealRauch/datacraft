@@ -14,7 +14,10 @@ use datacraft_csv::CsvPort;
 fn scratch_dir(stem: &str) -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!("datacraft-csv-enc-{}-{n}-{stem}", std::process::id()))
+    std::env::temp_dir().join(format!(
+        "datacraft-csv-enc-{}-{n}-{stem}",
+        std::process::id()
+    ))
 }
 
 struct Scratch(PathBuf);
@@ -91,10 +94,7 @@ fn a_tab_separated_table_opens_with_two_columns() {
     let rows = port
         .read_rows("tabbed", RowRange { start: 0, len: 10 })
         .expect("read");
-    assert_eq!(
-        text_of(&rows),
-        vec![vec!["1".to_owned(), "x".to_owned()]]
-    );
+    assert_eq!(text_of(&rows), vec![vec!["1".to_owned(), "x".to_owned()]]);
     drop(scratch);
 }
 

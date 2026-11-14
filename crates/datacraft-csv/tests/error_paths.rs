@@ -250,18 +250,30 @@ fn csv_drop_table_removes_the_file_and_survives_a_reopen() {
     );
 }
 
-/// Broken files fail the open with a locatable reason: non-UTF-8 bytes,
-/// a header-less file, an unnamed header column and a broken quote; a
-/// leading BOM is stripped instead.
+/// Broken files fail the open with a locatable reason: an undefined
+/// Windows-1252 byte, a truncated UTF-16 BOM stream, a header-less file,
+/// an unnamed header column and a broken quote; a leading BOM is
+/// stripped instead. (Since step 80.2, item H59, the decode ladder names
+/// UTF-16 and Windows-1252 precisely instead of one flat UTF-8 refusal.)
 #[test]
 fn csv_open_rejects_broken_files_and_strips_a_bom() {
     let scratch = csv_database();
 
+    std::fs::write(scratch.0.join("broken.csv"), [0x81]).expect("write bytes");
+    let error = CsvPort::new()
+        .open(&scratch.0, None)
+        .expect_err("a byte undefined in Windows-1252 must fail");
+    assert!(
+        error.to_string().contains("0x81") && error.to_string().contains("Windows-1252"),
+        "{error}"
+    );
+    let _ = std::fs::remove_file(scratch.0.join("broken.csv"));
+
     std::fs::write(scratch.0.join("broken.csv"), [0xFF, 0xFE, 0x41]).expect("write bytes");
     let error = CsvPort::new()
         .open(&scratch.0, None)
-        .expect_err("non-UTF-8 content must fail");
-    assert!(error.to_string().contains("not valid UTF-8"), "{error}");
+        .expect_err("a truncated UTF-16 BOM stream must fail");
+    assert!(error.to_string().contains("UTF-16"), "{error}");
     let _ = std::fs::remove_file(scratch.0.join("broken.csv"));
 
     std::fs::write(scratch.0.join("empty.csv"), "").expect("write an empty file");

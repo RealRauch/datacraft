@@ -105,7 +105,6 @@ fn the_import_file_window_imports_a_csv_over_the_bus() {
     assert_eq!(preview.total_rows, 2);
     let dialect = preview
         .dialect
-        .clone()
         .expect("the preview reports the detected dialect");
     assert_eq!(dialect.encoding, datacraft_core::import::CsvEncoding::Utf8);
     assert_eq!(dialect.delimiter, b',');

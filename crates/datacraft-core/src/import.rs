@@ -12,11 +12,16 @@ use std::path::Path;
 
 use crate::schema::{FieldDef, FieldKind, NumericKind};
 
+pub mod dialect;
+
+pub use dialect::{CsvEncoding, Dialect, decode_csv_text, delimiter_label, detect_delimiter};
+
 /// Maximum Short Text length of every CSV column (the L7 constant).
 pub const MAX_TEXT_LEN: u16 = 255;
 
 /// One parsed CSV source: the typed field definitions (header + inferred
 /// kinds) and the raw text rows (without the header).
+#[derive(Debug)]
 pub struct CsvTable {
     /// The inferred field definitions in column order.
     pub fields: Vec<FieldDef>,
@@ -38,34 +43,46 @@ pub struct ImportPreview {
     pub rows: Vec<Vec<String>>,
     /// The full data-row count of the source.
     pub total_rows: usize,
+    /// The detected encoding and delimiter of the source (step 80.2,
+    /// item H59); `None` only in snapshots persisted before the
+    /// detection existed (serde default keeps them loadable).
+    #[serde(default)]
+    pub dialect: Option<Dialect>,
 }
 
 /// The preview row cap: the window renders these rows, the count names
 /// the rest.
 pub const PREVIEW_ROWS: usize = 8;
 
-/// Reads and parses one CSV file: UTF-8 text with a leading BOM stripped,
-/// ragged rows and invalid CSV fail with a locatable reason (LESSONS #4).
-/// The source file is only ever read.
-pub fn read_csv_file(path: &Path) -> Result<CsvTable, String> {
+/// Reads and parses one CSV file through the shared decode path
+/// (step 80.2, item H59): valid UTF-8 first (byte-order mark stripped),
+/// then UTF-16 BOM streams, then Windows-1252; the delimiter is sniffed
+/// and reported in the dialect. Ragged rows and undecodable bytes fail
+/// with a locatable reason (LESSONS #4). The source file is only ever
+/// read.
+pub fn read_csv_file(path: &Path) -> Result<(CsvTable, Dialect), String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let text = String::from_utf8(bytes)
-        .map_err(|e| format!("{}: not valid UTF-8: {e}", path.display()))?;
-    let text = match text.strip_prefix('\u{feff}') {
-        Some(stripped) => stripped.to_owned(),
-        None => text,
-    };
-    read_csv_text(&text)
+    let (text, dialect) = decode_csv_text(bytes).map_err(|e| format!("{}: {e}", path.display()))?;
+    parse_csv_text(&text, dialect.delimiter).map(|table| (table, dialect))
 }
 
-/// Parses one CSV text into a [`CsvTable`]: the header row names the
-/// fields, the L7 inference types them, every data row stays text.
+/// Parses one CSV text into a [`CsvTable`] with the sniffed delimiter:
+/// the header row names the fields, the L7 inference types them, every
+/// data row stays text.
 pub fn read_csv_text(text: &str) -> Result<CsvTable, String> {
-    let records = parse_records(text)?;
+    let delimiter = detect_delimiter(text);
+    parse_csv_text(text, delimiter)
+}
+
+/// Parses one CSV text with an explicit delimiter into a [`CsvTable`]:
+/// the header row names the fields, the L7 inference types them, every
+/// data row stays text.
+pub fn parse_csv_text(text: &str, delimiter: u8) -> Result<CsvTable, String> {
+    let records = parse_records(text, delimiter)?;
     let header = records
         .first()
         .ok_or_else(|| "the source has no header row".to_owned())?;
-    let mask = quote_mask(text);
+    let mask = quote_mask(text, delimiter);
     let kinds = infer_field_kinds(&records, &mask);
     let fields = header
         .iter()
@@ -81,10 +98,11 @@ pub fn read_csv_text(text: &str) -> Result<CsvTable, String> {
 /// Parses one CSV text into uniform records; ragged rows fail with a
 /// locatable reason (the csv crate's `flexible(false)` makes a ragged row
 /// a reader error, so every record carries the header's arity).
-fn parse_records(text: &str) -> Result<Vec<Vec<String>>, String> {
+fn parse_records(text: &str, delimiter: u8) -> Result<Vec<Vec<String>>, String> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
         .flexible(false)
+        .delimiter(delimiter)
         .from_reader(text.as_bytes());
     let mut records: Vec<Vec<String>> = Vec::new();
     for (index, record) in reader.records().enumerate() {
@@ -204,11 +222,13 @@ fn is_iso_date(cell: &str) -> bool {
 
 /// Marks which parsed cells were quoted in the raw text (L7): a small
 /// RFC-4180 state machine over the same bytes the CSV crate parsed —
-/// quoted fields, escaped `""` quotes and embedded commas/newlines stay
-/// inside the quotes. Only the *flag* is consumed (for inference); the
-/// parsed records remain the csv crate's single source of truth. A mask
-/// that disagrees with the records degrades to all-unquoted.
-pub fn quote_mask(text: &str) -> Vec<Vec<bool>> {
+/// quoted fields, escaped `""` quotes and embedded delimiters/newlines
+/// stay inside the quotes. Only the *flag* is consumed (for inference);
+/// the parsed records remain the csv crate's single source of truth. A
+/// mask that disagrees with the records degrades to all-unquoted. The
+/// delimiter is the sniffed one (step 80.2, item H59).
+pub fn quote_mask(text: &str, delimiter: u8) -> Vec<Vec<bool>> {
+    let delimiter = delimiter as char;
     let mut rows: Vec<Vec<bool>> = Vec::new();
     let mut row: Vec<bool> = Vec::new();
     let mut cell_quoted = false;
@@ -229,7 +249,7 @@ pub fn quote_mask(text: &str) -> Vec<Vec<bool>> {
                     in_quotes = true;
                     cell_quoted = true;
                 }
-                ',' => {
+                _ if c == delimiter => {
                     row.push(cell_quoted);
                     cell_quoted = false;
                 }

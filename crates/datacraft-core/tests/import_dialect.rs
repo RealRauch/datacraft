@@ -16,15 +16,11 @@ fn scratch(name: &str) -> PathBuf {
 }
 
 fn utf16le(text: &str) -> Vec<u8> {
-    text.encode_utf16()
-        .flat_map(u16::to_le_bytes)
-        .collect()
+    text.encode_utf16().flat_map(u16::to_le_bytes).collect()
 }
 
 fn utf16be(text: &str) -> Vec<u8> {
-    text.encode_utf16()
-        .flat_map(u16::to_be_bytes)
-        .collect()
+    text.encode_utf16().flat_map(u16::to_be_bytes).collect()
 }
 
 #[test]
@@ -55,10 +51,7 @@ fn a_utf16le_bom_source_decodes_to_the_same_table() {
     assert_eq!(dialect.encoding, CsvEncoding::Utf16Le);
     assert_eq!(dialect.delimiter, b',');
     assert_eq!(table.fields.len(), 2);
-    assert_eq!(
-        table.rows,
-        vec![vec!["gär".to_owned(), "tür".to_owned()]]
-    );
+    assert_eq!(table.rows, vec![vec!["gär".to_owned(), "tür".to_owned()]]);
 }
 
 #[test]
@@ -81,10 +74,7 @@ fn a_windows1252_semicolon_source_imports_with_its_text() {
     assert_eq!(dialect.encoding, CsvEncoding::Windows1252);
     assert_eq!(dialect.delimiter, b';');
     assert_eq!(table.fields.len(), 2);
-    assert_eq!(
-        table.rows,
-        vec![vec!["gär".to_owned(), "tor".to_owned()]]
-    );
+    assert_eq!(table.rows, vec![vec!["gär".to_owned(), "tor".to_owned()]]);
 }
 
 #[test]
@@ -139,8 +129,7 @@ fn the_sniff_survives_quoted_commas_and_prefers_the_consistent_delimiter() {
     std::fs::write(&comma_quoted, b"a,b\n\"x,y\",z\n").expect("write");
     let (_, dialect) = read_csv_file(&comma_quoted).expect("parse");
     assert_eq!(
-        dialect.delimiter,
-        b',',
+        dialect.delimiter, b',',
         "quotes keep the embedded commas out of the count"
     );
 
@@ -148,14 +137,10 @@ fn the_sniff_survives_quoted_commas_and_prefers_the_consistent_delimiter() {
     std::fs::write(&semicolon, b"a;b\n\"x,y\";z\n").expect("write");
     let (table, dialect) = read_csv_file(&semicolon).expect("parse");
     assert_eq!(
-        dialect.delimiter,
-        b';',
+        dialect.delimiter, b';',
         "the consistent semicolon count wins over the ragged comma count"
     );
-    assert_eq!(
-        table.rows,
-        vec![vec!["x,y".to_owned(), "z".to_owned()]]
-    );
+    assert_eq!(table.rows, vec![vec!["x,y".to_owned(), "z".to_owned()]]);
 }
 
 #[test]

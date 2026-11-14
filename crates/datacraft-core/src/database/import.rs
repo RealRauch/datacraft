@@ -44,7 +44,7 @@ impl Core {
         if table.trim().is_empty() {
             return failed(FailureCode::InvalidInput, "the target table name is empty");
         }
-        let parsed = match crate::import::read_csv_file(source) {
+        let (parsed, _dialect) = match crate::import::read_csv_file(source) {
             Ok(parsed) => parsed,
             Err(reason) => {
                 return failed(FailureCode::Io, format!("{}: {reason}", source.display()));
@@ -86,7 +86,7 @@ impl Core {
                 "no database is open — open a database first",
             );
         }
-        let parsed = match crate::import::read_csv_file(source) {
+        let (parsed, dialect) = match crate::import::read_csv_file(source) {
             Ok(parsed) => parsed,
             Err(reason) => {
                 self.state.import_preview = None;
@@ -107,6 +107,7 @@ impl Core {
                 .take(crate::import::PREVIEW_ROWS)
                 .collect(),
             total_rows,
+            dialect: Some(dialect),
         });
         Vec::new()
     }

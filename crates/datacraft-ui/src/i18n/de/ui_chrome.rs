@@ -67,6 +67,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "{total} rows detected — showing the first {shown}",
         "{total} Zeilen erkannt — die ersten {shown} werden gezeigt",
     ),
+    (
+        "Detected encoding: {encoding} — delimiter: {delimiter}",
+        "Erkannte Kodierung: {encoding} — Trennzeichen: {delimiter}",
+    ),
     ("Import File", "Datei importieren"),
     ("Info", "Info"),
     ("Label", "Bezeichnungsfeld"),
