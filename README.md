@@ -26,7 +26,7 @@ API.
 [Download and install](#download-and-install) ·
 [Architecture](#architecture) ·
 [Roadmap](#roadmap) ·
-[Quality gates](#quality-gates) ·
+[Contributing](#contributing) ·
 [Design](#design--branding) ·
 [License and credits](#license-and-credits)
 
@@ -246,90 +246,22 @@ The binding mapping contract is
 
 ## Roadmap
 
-Delivered phases and the open work:
-
-| Phase | Delivers | Status |
-| --- | --- | --- |
-| 1 — Blueprint & Skeleton | architecture blueprint, workspace, CI gates, testing policy | ✅ |
-| 2 — Storage Engine Core | `StorageEngine` trait, Jet page layer, TDEF/TDAT decoder, libmdb oracle | ✅ |
-| 3 — Data Model & Schema | Access data types, field properties, serde persistence | ✅ |
-| 4 — Headless Core & Command API | command bus, state query, test IDs, JSON-RPC stub | ✅ |
-| 5 — UI Skeleton (egui) | app shell, ribbon, navigation pane, tabbed workspace | ✅ |
-| 6 — Datasheet & Design View | shared grid core, datasheet, table design view | ✅ |
-| 7 — QBE Query Builder | relationship mapper, QBE grid, query engine | ✅ |
-| 8 — Form & Report Canvas | WYSIWYG canvas, Access control types, form runtime | ✅ |
-| 9 — MCP Endpoint & Automation | MCP/JSON-RPC server, headless E2E harness, CLI client, release prep | ✅ |
-| 10 — Jet4 Writer, Reports & Release | Jet4 writer workstream, Jet3 read, report designer + print preview, fixture pin integrity | ✅ |
-| 11 — Port Write-Through & Journal | insert/update/delete through the port, journaled write profiles | ✅ |
-| 12 — Access Look & Theme | Original palette, Access ribbon/nav-pane/status/datasheet styling | ✅ |
-| 13 — SQLite & SQL | SQLite source backend, SQL window, insert flows | ✅ |
-| 14 — ACCDB Read | ACE fixtures and the ACE read path | ✅ |
-| 15 — Expressions & Saved Queries | expression service, field wiring, `MSysQueries` decode | ✅ |
-| 16 — Complex Values & Encryption | attachments/multi-value/version history, RC4 passwords, Jet3 remainders | ✅ |
-| 17 — Macros, VBA & Docs Accuracy | read-only macro inventory, VBA extraction/viewer/static analysis, verified compatibility matrix | ✅ |
-| 18–19 — UI Localization & Settings | i18n kernel, complete German catalog, `ui.json`, language switcher | ✅ |
-| 20 — Look & Typography | neutral tokens, Inter/JetBrains Mono typography, original vector iconography, Light/Dark/System appearance | ✅ |
-| 21 — Access UI Alignment | contextual ribbon tabs, quick access toolbar, backstage, datasheet/nav-pane/tab UX, keyboard | ✅ |
-| 22 — Settings Hardening | atomic `ui.json` save, window position/maximized state, off-screen rescue | ✅ |
-| 23 — Hardening & Test Gaps | CLI process E2E (exit codes, stderr), headless kittest UI suite with AccessKit snapshots, native-query decode errors surfaced at open | ✅ |
-| 24 — Jet Writer Remainder | AutoNumber counter maintenance, table drops through the writer, design-time schema editing (add/drop/rename/required) | ✅ |
-| 25 — ACCDB Write | ACE write contracts, port write-through and bus E2E on `.accdb` | ✅ |
-| 26–29 — Release, Queries, UI Rest, Samples | release engineering (matrix, checksums, packaged smoke), native query execution + encrypted save-as, undo/redo + recent databases, create-database flow, templates and shipped samples | ✅ |
-| 30 — Driver Model | declarative per-session capabilities, registry detection, CSV directory driver as the out-of-tree proof, capability-disabled UI affordances (ADR-7) | ✅ |
-| 31 — Publishing & Crate Split | jet/sqlite/mcp as standalone crates behind the composite, publish-ready vocabulary, Semver/MSRV/changelog policy | ✅ |
-| 32 — Schema Writing | persisted field properties, index creation, relationship/foreign-key creation | ✅ |
-| 33 — Journal Capability Gating | journaled batches gate on the declared atomic_batch capability | ✅ |
-| 34 — Cross-Cutting Review | storage/drivers, core, UI and public-API reviews with in-phase fixes | ✅ |
-| 35 — Documentation Sweep | entry-point docs, ARCHITECTURE stale sections, FORMAT-JET/TESTING, matrix re-verification | 🔄 |
-| 36 — Driver Edge Suites | CSV/detecting/MCP coverage, driver inventory in the snapshot, CSV type inference, tri-state Boolean NULL decision | ✅ |
-| 37 — Release Readiness | self-created fixtures replace Northwind, fixture rebuild tooling, licenses/attribution, history hygiene | ✅ |
-| 38 — UI Restyle | icon glyph port, backstage restyle, native dialogs behind the seam, window chrome polish | ✅ |
-| 39 — Correctness Fences | named date pictures, SQL-dialect fence, QBE criteria fence, cache load errors surfaced | ✅ |
-| 40 — Datasheet UX | keyboard record navigation, horizontal scroll + freeze columns, row deletion, in-place cell editing | ✅ |
-| 41 — GUI Parity | relationship mapper affordances, expression window, VBA analysis viewer, report grouping picker, ribbon truth pass | ✅ |
-| 42 — Core Correctness | SQLite affinity edge cases, capability-gated design edits, by-name QBE projection | ✅ |
-| 43 — Coverage & CI Pinning | coverage gap audit, cargo-llvm-cov pinned in the CI coverage job | ✅ |
-| 44 — UI Layout & Affordance Audit | content-sized ribbon groups, panel-geometry pins, Close Database, German label semantics, datasheet sort/filter with the core view state, the layout-rect seam | ✅ |
-| 45 — Walkthrough Fixes | column filter dialog replaces the in-menu editor (menus cannot host text editing), record-navigation arrow order | ✅ |
-| 46 — Form Runtime Layout | the runtime renders the designed layout: the shared designer canvas, controls at their stored rects and sizes | ✅ |
-| 47 — Walkthrough Fixes II | activating an object surfaces its contextual ribbon tab (backstage and same-kind switches never yank) | ✅ |
-| 48 — Walkthrough Fixes III | record counter reads its cursor, datasheet trailing panels stay above the status bar (the add-record path), filter-dialog criteria syntax | ✅ |
-| 49 — Page-0 Tail & Access Compatibility | the writer emits and maintains the tail and remaining region fields; DataCraft-created files open in real Access; the recovery example re-encodes engine-refused files | ✅ |
-| 50 — CI macOS Re-Admission | macOS back in the test and oracle matrices; README/AGENTS/TESTING aligned | ✅ |
-| 51 — Changelog Cadence | per-phase changelog maintenance (coarse entries) and the Unreleased catch-up | ✅ |
-| 52 — CI Ubuntu Diagnosis | the ld SIGBUS root-caused to disk exhaustion on the migrated ubuntu-26 image; the headroom step keeps the job green | ✅ |
-| 53 — Access Co-existence | a sibling lock file (`.ldb`/`.laccdb`) opens the database read-only with the localized notice; DataCraft never creates or deletes lock files | ✅ |
-| 54 — Next-Version Note | the unreleased set names its target version at every phase close | ✅ |
-| 55 — Docs Truth Pass | coverage-gate wording, the save-as repair boundary, the headless-only journal batch, the German step titles | ✅ |
-| 56 — Release Readiness | publish metadata, workspace dependency versions and the lexer's last `expect` — the six crates publish cleanly | ✅ |
-| 57 — Report Grouping Bookkeeping | the M48 grouping picker reconciled (delivered in 41.4) | ✅ |
-| 58 — Import File | external CSV files import as tables of the open Jet4/SQLite database over one bus chain (preview, inferred kinds, capability-gated) | ✅ |
-| 59 — CI Hardening | dependency-boundary guard, rustdoc `-D warnings` and the CLI smoke join the gates | ✅ |
-| 60 — Small Closes | the expression window's row context; the oracle skip is visible as `ignored` | ✅ |
-| 61 — Fixture Generators | deterministic canonical-database generators beside the pins | ✅ |
-| 62 — Failure Codes | every dispatch failure carries a stable machine-readable code; the UI localizes known codes | ✅ |
-| 63 — Designer Control Content | the selected control's content property (label text, caption, bound field, subform) in both designers over one bus command | ✅ |
-| 64 — Form Runtime Completion | Access-verified runtime: per-record editing with Esc semantics, zero-length strings, two-state checkboxes, combo row sources with free entry, button actions and form-scoped filters | ✅ |
-
-**Scope note:** compatibility is bought ring by ring — expression service →
+Delivered phases and open work live in [docs/ROADMAP.md](docs/ROADMAP.md);
+the step-by-step history is in [PROGRESS.md](PROGRESS.md) and the
+changelog. Compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
-interpreter or runtime**; VBA is extracted, displayed and statically analyzed
-only (Phase 17, ADR-2). The ring model and rationale are in
-[docs/ROADMAP.md](docs/ROADMAP.md); the verified claim set is the
+interpreter or runtime**; VBA is extracted, displayed and statically
+analyzed only (ADR-2). The verified claim set is the
 [compatibility matrix](#compatibility-matrix-verified-2026-11-12).
+## Contributing
 
-## Quality gates
-
-Mechanically enforced in CI on every push and pull request:
-
-| Gate | Enforcement |
-| --- | --- |
-| Test coverage ≥ 95 % | CI exports lcov and evaluates ≥ 95 % lines with an explicit parse — the tool's embedded `--fail-under-lines` check diverged from its own export (M64); a local `--fail-under-lines 95` run is an approximation, `datacraft-ui` is the registered exception |
-| Source files < 500 lines | CI job fails on any `.rs` file ≥ 500 lines |
-| **No technical debt** | CI scan: no `TODO`/`FIXME`/`HACK`/`XXX` in tracked files (append-only archives excluded) |
-| Formatting & lints | `rustfmt --check`, `clippy -D warnings` |
-| Cross-platform tests | Matrix: ubuntu-latest, windows-latest, macos-latest (macOS re-admitted 2026-11-07, item L25; the release workflow still builds and smokes macOS artifacts) |
-| Format oracle | libmdb cross-check of the decoded Jet4/ACE fixture tables and rows |
+The working agreement is [`AGENTS.md`](AGENTS.md); the practical entry —
+test-first, the canonical verification set, the gate table and where the
+detail lives — is [`CONTRIBUTING.md`](CONTRIBUTING.md). CI enforces
+coverage ≥ 95 % lines, every `.rs` file below 500 lines, no banned
+technical-debt markers, `rustfmt` and `clippy -D warnings`, rustdoc, the
+crate-boundary guard and a three-OS test matrix; the oracle suite
+cross-checks the Jet/ACE decoders against libmdb.
 
 ## Design & branding
 

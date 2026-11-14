@@ -434,6 +434,37 @@ phase to what it delivered:
 | 45 — Walkthrough Fixes | column filter dialog replaces the in-menu editor (menus cannot host text editing), record-navigation arrow order |
 | 46 — Form Runtime Layout | the runtime renders the designed layout: the shared designer canvas, controls at their stored rects and sizes |
 | 47 — Walkthrough Fixes II | activating an object surfaces its contextual ribbon tab (backstage and same-kind switches never yank) |
+| 48 — Walkthrough Fixes III | record counter reads its cursor, datasheet trailing panels stay above the status bar, filter-dialog criteria syntax |
+| 49 — Page-0 Tail & Access Compatibility | the writer emits and maintains the page-0 tail; DataCraft-created files open in real Access; the recovery example re-encodes engine-refused files |
+| 50 — CI macOS Re-Admission | macOS back in the test and oracle matrices; README/AGENTS/TESTING aligned |
+| 51 — Changelog Cadence | per-phase changelog maintenance with coarse entries and the Unreleased catch-up |
+| 52 — CI Ubuntu Diagnosis | the ld SIGBUS root-caused to disk exhaustion on the migrated runner image; the headroom step keeps the job green |
+| 53 — Access Co-existence | a sibling Access lock file opens the database read-only with the localized notice; DataCraft never creates or deletes lock files |
+| 54 — Next-Version Note | the unreleased set names its target version at every phase close |
+| 55 — Docs Truth Pass | coverage-gate wording, the save-as repair boundary, the headless-only journal batch, the German step titles |
+| 56 — Release Readiness | publish metadata, workspace dependency versions and the lexer's last `expect` — the crates publish cleanly |
+| 57 — Report Grouping Bookkeeping | the M48 grouping picker reconciled (delivered in 41.4) |
+| 58 — Import File | external CSV files import as tables of the open Jet4/SQLite database over one bus chain (preview, inferred kinds, capability-gated) |
+| 59 — CI Hardening | dependency-boundary guard, rustdoc `-D warnings` and the CLI smoke join the gates |
+| 60 — Small Closes | the expression window's row context; the oracle skip is visible as `ignored` |
+| 61 — Fixture Generators | deterministic canonical-database generators beside the pinned fixtures |
+| 62 — Failure Codes | every dispatch failure carries a stable machine-readable code; the UI localizes known codes |
+| 63 — Designer Control Content | the selected control's content property in both designers over one bus command |
+| 64 — Form Runtime Completion | Access-verified runtime: per-record editing with Esc semantics, zero-length strings, two-state checkboxes, combo row sources, button actions, form-scoped filters |
+| 65 — Server-Source Readiness | `SourceSpec {Path, Uri}` with `file://` resolution and the precise no-server-driver boundary across all four clients |
+| 66 — Release Notes from the Changelog | the draft-release step composes its notes from the changelog's dated section |
+| 67 — Release Draft Fix | the publish job checks out before downloading the artifact (v0.1.1 live finding) |
+| 68 — Shell Completion | Ctrl+Z/Ctrl+Y, complete tooltip registry, notice/error history, shortcuts page, busy overlay, window-chrome polish |
+| 69 — UI Follow-Ups | MSys relationship filter, toggle open-state, lifecycle navigation, help glyph, filter chip, header state, centered tool windows |
+| 70 — Filter & Notice Fixes | wildcard patterns as an implicit Like for text filters; notice history follows a live language switch; tool-window contrast |
+| 71 — Sidecar Views | `ViewDef` in the sidecar, nav-pane Views group, native SQLite views, SELECT-only validation |
+| 72 — Object Renaming | rename command and rules, Jet/ACE and SQLite rename, nav-pane context menu/F2, reference follow-through |
+| 73 — SQLite Honesty | native views read-only, index/trigger inventory, file facts plus `quick_check`, busy timeout, WAL, `WITHOUT ROWID`/`STRICT` |
+| 74 — Native Access Objects | read-only `MSysObjects` inventory for forms/reports; the M89 feasibility verdict is a documented stop |
+| 75 — Shell Lifecycle Polish | the empty shell lands on the backstage; the two-step new-database flow; the Jet4/SQLite format choice |
+| 76 — Crate Split | `datacraft-types`, `-expr` and `-query` extracted; the `sql-engine` feature moves behind the query crate |
+| 77 — Import Feasibility | jetdb evaluated against the fixture and the SaveAsText exports; Route B decided and the control/property subset frozen |
+| 78 — Access Migration Tool | `datacraft-import` reads native Jet4/ACE form/report designs without Access and merges the supported subset into the `.datacraft` sidecar |
 
 ## 14. Compatibility scope & VBA — decision record
 
