@@ -167,8 +167,11 @@ the maintainer's review and publication.
 43605443021 (phase 78 tree) and 43605596742 (release commit) were green;
 `cargo package --list` was clean for all ten; `cargo install
 datacraft-mcp --version 0.2.0` and `cargo install datacraft-import
---version 0.2.0` resolved and ran from the registry. The tag/draft-release
-step is not part of this publication yet.
+--version 0.2.0` resolved and ran from the registry. The annotated
+`v0.2.0` tag triggered release run 43607675085 (green, 7m52s): three
+platform archives plus `checksums-sha256.txt` landed on the draft, which
+was published after review at
+<https://github.com/RealRauch/datacraft/releases/tag/v0.2.0>.
 
 ## History rewrite (pre-public, M34)
 
