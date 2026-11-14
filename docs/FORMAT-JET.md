@@ -1259,6 +1259,19 @@ remain the migration route for Access owners (M88). Clean-room: all
 evidence above is own black-box observation of the pinned fixture and its
 committed exports.
 
+**Update (2026-11-14).** A public third-party route now exists: `jetdb`
+(pure Rust, MIT OR Apache-2.0) reads form/report designs from Jet4/ACE
+files without Access and publishes the property-ID and control-type tables
+it derived against SaveAsText output (`docs/form-design.md`; e.g. `Caption`
+0x0011, `ControlSource` 0x001B, `Left` 0x0036, `Top` 0x008D, `Width`
+0x0096, `Height` 0x002C). Access 97 form/report designs stay unsupported,
+and IDs above 0x01C4 are deliberately unnamed because Access for Microsoft
+365 shifts them by one. This does not turn the statement above into an
+official specification — our own decoder, if built, must still derive from
+own observation — but it does mean a no-Access migration route exists and
+is tracked in M88. The free Access Runtime is not an export substitute:
+runtime mode disables the design surfaces and the VBA editor.
+
 ## VBA project extraction (step 17.2, item L5)
 
 The ACE VBA project lives under `MSysAccessStorage`:
