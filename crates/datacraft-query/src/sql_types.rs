@@ -2,12 +2,12 @@
 //! engine in step 31.2 so the snapshot vocabulary stays C-free).
 //!
 //! These types are part of the state and the wire in every build; only the
-//! engine that *produces* a [`SqlResult`] sits behind the `sql-engine`
-//! feature (`rusqlite` is optional in `datacraft-core`).
+//! engine that *produces* a [`SqlResult`] sits behind this crate's
+//! `sql-engine` feature (`rusqlite` is optional, step 76.4).
 
 use serde::{Deserialize, Serialize};
 
-use crate::schema::{FieldValue, TableDef};
+use datacraft_types::{FieldValue, TableDef};
 
 /// Columns plus positional rows of one SQL result.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

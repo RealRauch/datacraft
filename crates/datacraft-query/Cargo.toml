@@ -12,7 +12,17 @@ description = "QBE model, criteria parsing and query evaluation of DataCraft"
 [dependencies]
 datacraft-expr = { workspace = true }
 datacraft-types = { workspace = true }
+rusqlite = { workspace = true, optional = true }
 serde = { workspace = true }
+
+[features]
+default = []
+# The shadow SQL engine materializes sources into a throwaway in-memory
+# SQLite database — the only C-backed surface of the engine. It sits behind
+# this crate's feature so a default-feature build of the query layer (and
+# therefore of datacraft-core) never pulls rusqlite (step 76.4 / L37);
+# datacraft-core forwards its own `sql-engine` switch here.
+sql-engine = ["dep:rusqlite"]
 
 [lints]
 workspace = true

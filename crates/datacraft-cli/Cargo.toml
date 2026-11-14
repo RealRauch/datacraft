@@ -8,7 +8,7 @@ authors.workspace = true
 description = "Command-line client of the DataCraft command bus (fourth headless client)"
 
 [dependencies]
-datacraft-core = { workspace = true }
+datacraft-core = { workspace = true, features = ["sql-engine"] }
 datacraft-csv = { workspace = true }
 datacraft-storage = { workspace = true }
 serde_json = { workspace = true }

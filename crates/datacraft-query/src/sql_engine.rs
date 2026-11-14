@@ -8,9 +8,10 @@
 //! Agent safety gate: exactly one statement, and only `SELECT`/`WITH`.
 //! Everything else is rejected before SQLite sees it.
 //!
-//! The engine sits behind the `sql-engine` feature (`rusqlite` is optional
-//! in `datacraft-core`, step 31.2 / M19): the result types live in
-//! [`crate::sql_types`] so the state and the wire vocabulary stay C-free.
+//! The engine sits behind this crate's `sql-engine` feature (`rusqlite` is
+//! optional, step 31.2 / M19, moved here in step 76.4): the result types
+//! live in [`crate::sql_types`] so the state and the wire vocabulary stay
+//! C-free and a default-feature core never pulls rusqlite.
 //!
 //! Dialect fence (step 39.2, item M36): the window speaks SQLite semantics,
 //! documented, never silently Access-shaped — Currency materializes
@@ -22,8 +23,8 @@
 use rusqlite::Connection;
 use rusqlite::types::ValueRef;
 
-use crate::schema::{AutoKind, FieldKind, FieldValue, NumericKind, TableDef};
 pub use crate::sql_types::{Source, SqlResult};
+use datacraft_types::{AutoKind, FieldKind, FieldValue, NumericKind, TableDef};
 
 /// Executes one `SELECT`/`WITH` statement over the materialized sources.
 pub fn run_sql(sql: &str, sources: &[Source]) -> Result<SqlResult, String> {
@@ -179,7 +180,7 @@ fn sql_value(kind: &FieldKind, value: &FieldValue) -> rusqlite::types::Value {
         FieldValue::Text(text) => Sql::Text(text.clone()),
         FieldValue::Binary(bytes) => Sql::Blob(bytes.clone()),
         FieldValue::Guid(bytes) => Sql::Blob(bytes.to_vec()),
-        FieldValue::Complex(_) => Sql::Text(crate::present::display_value(value)),
+        FieldValue::Complex(_) => Sql::Text(datacraft_types::display_value(value)),
     }
 }
 
@@ -219,7 +220,7 @@ fn quote_ident(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::schema::{FieldDef, TableDef};
+    use datacraft_types::{FieldDef, TableDef};
 
     #[test]
     fn quoting_escapes_embedded_double_quotes() {
@@ -335,7 +336,7 @@ mod tests {
         assert_eq!(affinity(&FieldKind::Guid), "BLOB");
         assert_eq!(
             affinity(&FieldKind::MultiValue(
-                crate::schema::MultiValueKind::Text { max_len: 5 }
+                datacraft_types::MultiValueKind::Text { max_len: 5 }
             )),
             "TEXT"
         );
@@ -346,8 +347,8 @@ mod tests {
     /// engine has no complex type).
     #[test]
     fn complex_values_materialize_as_display_text() {
-        let value = FieldValue::Complex(vec![crate::schema::ComplexRecord {
-            fields: vec![crate::schema::ComplexField {
+        let value = FieldValue::Complex(vec![datacraft_types::ComplexRecord {
+            fields: vec![datacraft_types::ComplexField {
                 name: "Value".to_owned(),
                 value: FieldValue::Text("a".to_owned()),
             }],
@@ -368,7 +369,7 @@ mod tests {
     fn materialization_rejects_ragged_rows() {
         let def = TableDef::new(
             "t",
-            vec![crate::schema::FieldDef::new(
+            vec![datacraft_types::FieldDef::new(
                 "x",
                 FieldKind::Number(NumericKind::LongInteger),
             )],

@@ -14,3 +14,6 @@ pub mod native_query;
 pub mod qbe;
 pub mod query_criteria;
 pub mod query_engine;
+#[cfg(feature = "sql-engine")]
+pub mod sql_engine;
+pub mod sql_types;

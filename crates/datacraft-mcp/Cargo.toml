@@ -10,7 +10,7 @@ readme.workspace = true
 description = "Headless stdio JSON-RPC 2.0 endpoint of the DataCraft command bus (standalone binary crate)"
 
 [dependencies]
-datacraft-core = { workspace = true }
+datacraft-core = { workspace = true, features = ["sql-engine"] }
 datacraft-csv = { workspace = true }
 datacraft-storage = { workspace = true }
 

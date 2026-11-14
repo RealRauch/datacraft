@@ -43,8 +43,8 @@ pub mod row_edit;
 pub mod schema;
 pub mod snapshot;
 #[cfg(feature = "sql-engine")]
-pub mod sql_engine;
-pub mod sql_types;
+pub use datacraft_query::sql_engine;
+pub use datacraft_query::sql_types;
 pub mod state;
 pub mod table_view;
 pub mod templates;

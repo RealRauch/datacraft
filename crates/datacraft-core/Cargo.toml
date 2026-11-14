@@ -14,7 +14,6 @@ datacraft-expr = { workspace = true }
 datacraft-query = { workspace = true }
 datacraft-types = { workspace = true }
 csv = { workspace = true }
-rusqlite = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
@@ -22,13 +21,24 @@ serde_json = { workspace = true }
 proptest = { workspace = true }
 
 [features]
-default = ["sql-engine"]
-# The shadow SQL engine (step 13.3, H37) materializes sources into a
-# throwaway in-memory SQLite — the only C-backed surface of the engine.
-# Pure-Rust consumers (datacraft-jet) build with default-features = false;
-# the RunSql command then dispatches and answers a precise failure
-# (step 31.2 / M19).
-sql-engine = ["dep:rusqlite"]
+default = []
+# The shadow SQL engine lives in datacraft-query behind that crate's own
+# `sql-engine` feature (step 76.4, item L37); this switch forwards to it.
+# A default-feature core stays rusqlite-free — the query layer, the
+# expression service and the type vocabulary carry no C dependency.
+sql-engine = ["datacraft-query/sql-engine"]
+
+[[test]]
+name = "sql_engine"
+required-features = ["sql-engine"]
+
+[[test]]
+name = "sql_command"
+required-features = ["sql-engine"]
+
+[[test]]
+name = "native_views"
+required-features = ["sql-engine"]
 
 [lints]
 workspace = true
