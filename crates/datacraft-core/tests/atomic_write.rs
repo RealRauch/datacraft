@@ -50,10 +50,8 @@ fn the_observed_write_records_the_stage_flush_rename_order() {
     let path = scratch("observed");
     std::fs::write(&path, b"old").expect("seed");
     let mut stages = Vec::new();
-    atomic_write::write_replacing_observed(&path, b"new", &mut |event| {
-        stages.push(event.clone())
-    })
-    .expect("replace");
+    atomic_write::write_replacing_observed(&path, b"new", &mut |event| stages.push(event.clone()))
+        .expect("replace");
     assert_eq!(stages.len(), 3, "staged, flushed and renamed in order");
     let staged = match &stages[0] {
         StagingEvent::Staged(staging) => staging.clone(),
@@ -99,7 +97,10 @@ fn staging_paths_are_unique_across_calls() {
     let path = scratch("unique");
     let first = atomic_write::staging_path(&path);
     let second = atomic_write::staging_path(&path);
-    assert_ne!(first, second, "two writers must never share one staging file");
+    assert_ne!(
+        first, second,
+        "two writers must never share one staging file"
+    );
     assert_eq!(
         first.parent(),
         path.parent(),
@@ -158,7 +159,8 @@ fn a_stale_orphan_staging_file_does_not_block_a_new_write() {
 fn a_read_only_target_still_refuses_the_replacement() {
     let path = scratch("readonly");
     std::fs::write(&path, b"old").expect("seed");
-    let mut permissions = std::fs::metadata(&path).expect("metadata").permissions();
+    let original = std::fs::metadata(&path).expect("metadata").permissions();
+    let mut permissions = original.clone();
     permissions.set_readonly(true);
     std::fs::set_permissions(&path, permissions).expect("set read-only");
     let error = atomic_write::write_replacing(&path, b"new").expect_err("read-only refusal");
@@ -167,9 +169,7 @@ fn a_read_only_target_still_refuses_the_replacement() {
         "the refusal must name the read-only target, got {error}"
     );
     assert_eq!(std::fs::read(&path).expect("read"), b"old");
-    let mut permissions = std::fs::metadata(&path).expect("metadata").permissions();
-    permissions.set_readonly(false);
-    std::fs::set_permissions(&path, permissions).expect("clear read-only");
+    std::fs::set_permissions(&path, original).expect("clear read-only");
 }
 
 #[test]
@@ -214,11 +214,8 @@ mod unix_only {
             &mut std::fs::metadata(&path).expect("metadata").permissions(),
             0o640,
         );
-        std::fs::set_permissions(
-            &path,
-            std::os::unix::fs::PermissionsExt::from_mode(0o640),
-        )
-        .expect("set the mode");
+        std::fs::set_permissions(&path, std::os::unix::fs::PermissionsExt::from_mode(0o640))
+            .expect("set the mode");
         atomic_write::write_replacing(&path, b"new").expect("replace");
         let mode = std::os::unix::fs::PermissionsExt::mode(
             &std::fs::metadata(&path).expect("metadata").permissions(),
@@ -229,19 +226,20 @@ mod unix_only {
 
 #[cfg(windows)]
 #[test]
-fn a_windows_file_lock_fails_the_write_which_then_succeeds_after_release() {
+fn a_windows_handle_holding_the_target_does_not_block_the_replacement() {
+    // Modern Windows (10 1809+) renames with POSIX semantics, so an open
+    // handle without FILE_SHARE_DELETE does not block the replacement.
+    // The sharing-violation retry that covers the MoveFileExW fallback
+    // (FAT/network volumes) is pinned by the retry contract tests with
+    // simulated errors 32/33 in the module itself.
     let path = scratch("winlock");
     std::fs::write(&path, b"old").expect("seed");
-    // A plain open handle holds the target without FILE_SHARE_DELETE, so
-    // the rename hits the OS sharing/lock error the bounded retry covers.
     let lock = std::fs::File::open(&path).expect("lock the target");
-    let error = atomic_write::write_replacing(&path, b"new").expect_err("rename must hit the lock");
-    assert!(!error.to_string().is_empty());
+    atomic_write::write_replacing(&path, b"new").expect("replace while the handle is open");
+    assert_eq!(std::fs::read(&path).expect("read"), b"new");
     assert!(
         staging_files(&path).is_empty(),
-        "the staging file must be cleaned up after the retry budget is spent"
+        "the staging file must be cleaned up after the replacement"
     );
     drop(lock);
-    atomic_write::write_replacing(&path, b"new").expect("the retry budget frees the path");
-    assert_eq!(std::fs::read(&path).expect("read"), b"new");
 }
