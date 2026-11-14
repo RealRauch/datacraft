@@ -33,8 +33,20 @@ datacraft-storage ──► datacraft-jet, datacraft-sqlite
 datacraft-jet ──► datacraft-core          (clean-room pure-Rust Jet/ACE backend)
 datacraft-sqlite ──► datacraft-core       (SQLite backend, rusqlite bundled)
 datacraft-csv ──► datacraft-core          (CSV directory driver, ADR-7)
-datacraft-core ──► (nothing internal)
+datacraft-core ──► datacraft-query, datacraft-expr, datacraft-types
+                                          (command bus; re-exports the
+                                           query/expression/type paths)
+datacraft-query ──► datacraft-expr, datacraft-types
+                                          (QBE, criteria, native execution;
+                                           optional `sql-engine` → rusqlite)
+datacraft-expr ──► datacraft-types        (expression engine)
+datacraft-types ──► (nothing internal)    (value and schema vocabulary)
 ```
+
+`datacraft-core`'s `sql-engine` feature is **off by default** and forwards to
+`datacraft-query/sql-engine`; the three client roots (UI, CLI, MCP) enable it
+explicitly, so a default-feature core (and the pure-Rust Jet crate) never
+pulls rusqlite.
 
 Binary targets are the only composition roots allowed to name
 `datacraft-storage` and `datacraft-csv` (`crates/*/src/main.rs`,

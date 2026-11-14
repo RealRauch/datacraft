@@ -19,6 +19,15 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   SQLite — through `CreateDatabase`; a path whose known extension contradicts
   the chosen format answers a precise `InvalidInput` before the port, for GUI,
   CLI and MCP alike.
+- types/expr/query/core: the crate-family split (76, L36–L37) — three new
+  published crates `datacraft-types`, `datacraft-expr` and `datacraft-query`
+  now carry the value/schema vocabulary, the expression engine and the
+  query layer beneath `datacraft-core`, which re-exports every existing path
+  (`datacraft_core::{schema, expr, qbe, query_engine, native_exec,
+  sql_types}` and the native-query port vocabulary) unchanged. The shadow
+  SQL engine's rusqlite dependency moved behind `datacraft-query`'s
+  `sql-engine` feature; core's switch forwards to it and is off by default,
+  so a default-feature core is C-free. No behaviour change.
 
 ## [0.1.3] — 2026-11-12
 

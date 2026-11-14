@@ -185,7 +185,10 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 
 | Layer | Crate | Job |
 | --- | --- | --- |
-| core | `datacraft-core` | domain model, schema, command bus, query engine, application state, snapshots, JSON-RPC transport (Phases 3–4, 7) |
+| core | `datacraft-core` | domain model, command bus, application state, snapshots, JSON-RPC transport (Phases 3–4; the query/expression/type paths are re-exports since Phase 76) |
+| query | `datacraft-query` | QBE model, criteria parsing, query evaluation, native saved-query execution and the shadow SQL engine behind the optional `sql-engine` feature (Phase 76, L37) |
+| expr | `datacraft-expr` | Access-style expression engine — lexer, parser, evaluator, function library, format and `Like` matching (Phase 76, L36) |
+| types | `datacraft-types` | the value and schema vocabulary below core: `FieldValue`, field kinds, table/field definitions, properties and the shared pure helpers (Phase 76, L36) |
 | jet | `datacraft-jet` | clean-room pure-Rust Jet3/Jet4 read + Jet4/ACE write backends behind the core-owned `StoragePort` seam, libmdb oracle (`cfg(test)` only) (Phase 2, 10; split in Phase 31) |
 | sqlite | `datacraft-sqlite` | SQLite backend behind the same seam (rusqlite, statically bundled) (Phase 13; split in Phase 31) |
 | csv | `datacraft-csv` | CSV directory driver behind the same seam — a directory of `*.csv` files is one database (ADR-7, Phase 30) |
@@ -199,14 +202,20 @@ datacraft-ui (egui) ───────► datacraft-core (command bus) ──
 datacraft-cli (shell) ──────┘            ▲                        ├─ datacraft-jet (Jet/ACE)
 JSON-RPC / MCP (datacraft-mcp) ──────────┘                        ├─ datacraft-sqlite (SQLite)
                                                                   └─ datacraft-csv (CSV directories)
+
+datacraft-core ──► datacraft-query ──► datacraft-expr ──► datacraft-types
 ```
 
 Dependency direction is one-way and review- and CI-enforced (the
 boundary guard fails the push on a violation): `jet → core`,
-`sqlite → core`, `csv → core`, `storage → jet, sqlite`, `core → nothing`;
-the three client binaries (`datacraft-ui`, `datacraft-cli`,
+`sqlite → core`, `csv → core`, `storage → jet, sqlite`,
+`core → query → expr → types`; the three client binaries
+(`datacraft-ui`, `datacraft-cli`,
 `datacraft-mcp`) name `core + storage + csv` and are the composition
-roots that build the composite. Library and UI code never touches a
+roots that build the composite. `core`'s `sql-engine` feature is off by
+default and forwards to `datacraft-query/sql-engine`; the three client
+roots enable it, so a default-feature core never pulls rusqlite. Library
+and UI code never touches a
 driver directly — every client speaks the same command language, and a
 ribbon button dispatches the identical `Command` as an MCP tool call.
 The crates.io publishing order, the Semver/MSRV policy and the release

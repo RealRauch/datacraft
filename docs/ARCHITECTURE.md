@@ -64,6 +64,9 @@ headlessly (Principle 4) and the tool agent-operable (Principle 3).
 ```text
 crates/
 ├── datacraft-core/      domain model, command bus, app state, test IDs
+├── datacraft-query/     QBE, criteria parsing, native execution (Ph. 76, L37)
+├── datacraft-expr/      expression engine — parse/evaluate/format (Ph. 76, L36)
+├── datacraft-types/     value and schema vocabulary below core (Ph. 76, L36)
 ├── datacraft-jet/       clean-room pure-Rust Jet/ACE backend (Ph. 2+, split 31.2)
 ├── datacraft-sqlite/    SQLite backend, rusqlite statically bundled (Ph. 13, split 31.2)
 ├── datacraft-storage/   driver composite: detection + samples (Ph. 30)
@@ -88,8 +91,22 @@ datacraft-storage ──► datacraft-jet, datacraft-sqlite, datacraft-core
 datacraft-jet     ──► datacraft-core   (clean-room Jet/ACE backend)
 datacraft-sqlite  ──► datacraft-core   (rusqlite backend)
 datacraft-csv     ──► datacraft-core   (out-of-tree driver, ADR-7)
-datacraft-core    ──► (nothing internal)
+datacraft-core    ──► datacraft-query, datacraft-expr, datacraft-types
+                                       (command bus; re-exports the paths)
+datacraft-query   ──► datacraft-expr, datacraft-types
+                                       (QBE, criteria, native execution)
+datacraft-expr    ──► datacraft-types  (expression engine)
+datacraft-types   ──► (nothing internal)  (value and schema vocabulary)
 ```
+
+The three bottom crates are the phase-76 answer to the crate-split policy
+(ROADMAP §17): `core → query → expr → types` is acyclic, and core keeps its
+direct `expr`/`types` edges only for the public re-exports
+(`datacraft_core::{expr, schema, qbe, query_engine, native_exec, sql_types}`
+plus `port::NativeQuery*`). The shadow SQL engine is the only rusqlite
+consumer and lives in `datacraft-query` behind that crate's `sql-engine`
+feature; core's switch forwards to it and is **off by default**, so a
+default-feature core is C-free by construction.
 
 Out-of-tree drivers depend only on `datacraft-core` and are composed at
 the binary composition roots via `DetectingPort::with_fallback` (ADR-7,
@@ -323,6 +340,9 @@ datacraft/
 ├── rust-toolchain.toml         pinned toolchain (H3)
 ├── crates/
 │   ├── datacraft-core/         lib — domain, commands, state
+│   ├── datacraft-query/        lib — QBE, criteria, native execution (L37)
+│   ├── datacraft-expr/         lib — expression engine (L36)
+│   ├── datacraft-types/        lib — value and schema vocabulary (L36)
 │   ├── datacraft-csv/          lib — CSV directory driver (ADR-7)
 │   ├── datacraft-jet/          lib — clean-room Jet/ACE backend (pure Rust)
 │   ├── datacraft-sqlite/       lib — SQLite backend (rusqlite bundled)

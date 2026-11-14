@@ -627,6 +627,17 @@ crate in question (piggyback rule) — no dedicated split phases.
 **Downstream:** new crate = Medium release gate per occurrence; direction
 review binding; AGENTS §1 graph updated after each split.
 
+**Status (2026-11-14, phase 76):** both sanctioned splits are delivered.
+`datacraft-types` carries the value/schema vocabulary and the shared pure
+helpers, `datacraft-expr` the expression engine, `datacraft-query` the QBE
+model, criteria parsing, evaluation, native execution and the shadow SQL
+engine; the graph is `core → query → expr → types` (acyclic, boundary guard
+green), and the `sql-engine` boundary is structural — core's feature forwards
+to the query crate and is off by default, so a default-feature core never
+pulls rusqlite. Core re-exports every moved public path, so no client
+changed. The split cap of two (three crates including the type boundary) is
+thereby reached; no further splits are planned under this record.
+
 ## 18. Performance benchmarking vs. Access — decision record
 
 **Decision (2026-11-08, human-approved):** DataCraft measures itself against

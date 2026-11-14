@@ -9,23 +9,34 @@
 Dependency order defines the publish order — a crate is published only after
 the versions it compiles against exist on the registry:
 
-1. `datacraft-core` — the headless engine (command bus, port trait, state,
-   snapshots, JSON-RPC transport). The `sql-engine` feature is optional with
-   `default = on`.
-2. `datacraft-jet` — clean-room pure-Rust Jet/ACE backend. Declares
+1. `datacraft-types` — the value and schema vocabulary below core
+   (`FieldValue`, field kinds, table/field definitions, properties and the
+   shared pure helpers). No internal dependencies (phase 76, L36).
+2. `datacraft-expr` — the expression engine on top of `datacraft-types`
+   (phase 76, L36).
+3. `datacraft-query` — QBE model, criteria parsing, query evaluation and
+   native execution on top of `datacraft-expr`/`datacraft-types`. Its own
+   `sql-engine` feature carries the optional rusqlite dependency (phase 76,
+   L37).
+4. `datacraft-core` — the headless engine (command bus, port trait, state,
+   snapshots, JSON-RPC transport). It re-exports the query/expression/type
+   paths; its `sql-engine` feature is **off by default** and forwards to
+   `datacraft-query/sql-engine`, so a default-feature core is C-free.
+5. `datacraft-jet` — clean-room pure-Rust Jet/ACE backend. Declares
    `datacraft-core` with `default-features = false`: the crate is C-free by
-   construction (no rusqlite in its dependency graph). Two surfaces are
+   construction (no rusqlite in its dependency graph) — the declaration pins
+   that guarantee independently of core's default set. Two surfaces are
    public and semver-covered: the port-facing API (`Jet4Port`,
    `StorageError`, the `types` vocabulary) and the raw format layer under
    `datacraft_jet::jet` (readers, writers, page/TDEF/row helpers), which
    exists for consumers that need format-level access and for the crate's
    integration tests. The raw layer follows the same semver rules; a
    refactor of its signatures is a minor bump pre-1.0.
-3. `datacraft-sqlite` — SQLite backend (rusqlite, statically bundled).
-4. `datacraft-csv` — CSV directory driver (ADR-7 out-of-tree proof).
-5. `datacraft-storage` — driver composite (format-detecting registry plus the
+6. `datacraft-sqlite` — SQLite backend (rusqlite, statically bundled).
+7. `datacraft-csv` — CSV directory driver (ADR-7 out-of-tree proof).
+8. `datacraft-storage` — driver composite (format-detecting registry plus the
    samples generator) for consumers that want the shipped backends bundled.
-6. `datacraft-mcp` — headless stdio JSON-RPC 2.0 endpoint
+9. `datacraft-mcp` — headless stdio JSON-RPC 2.0 endpoint
    (`cargo install datacraft-mcp`).
 
 **Testing surface:** `datacraft_core::port::MockPort` is public on purpose —
@@ -46,7 +57,7 @@ is a decision, not an oversight; revisit only if a library consumer appears.
 
 - **Pre-1.0 the family versions in lockstep:** the workspace
   `[workspace.package] version` is the single source of truth (currently
-  `0.1.0`). A breaking change bumps the minor (`0.y` → `0.y+1.0`), additions
+  `0.1.3`). A breaking change bumps the minor (`0.y` → `0.y+1.0`), additions
   and fixes bump the patch. From 1.0 on, standard Semver applies (breaking =
   major). Independent per-crate versions are deliberately postponed until
   after 1.0 — the family is small and releases are coordinated anyway.
