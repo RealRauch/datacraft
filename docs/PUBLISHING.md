@@ -160,6 +160,16 @@ release was recreated from the run's bundle after the draft job's
 missing-repo bug (fixed in `5a22d82` for the next tag). The draft awaits
 the maintainer's review and publication.
 
+**v0.2.0 (2026-11-14):** the ten-crate family published in the order above
+— the crate split (`datacraft-types`, `-expr`, `-query`) and
+`datacraft-import` join, and the lockstep minor bump carries the breaking
+`sql-engine` default change (off; forwards to the query crate). CI runs
+43605443021 (phase 78 tree) and 43605596742 (release commit) were green;
+`cargo package --list` was clean for all ten; `cargo install
+datacraft-mcp --version 0.2.0` and `cargo install datacraft-import
+--version 0.2.0` resolved and ran from the registry. The tag/draft-release
+step is not part of this publication yet.
+
 ## History rewrite (pre-public, M34)
 
 Executed 2026-11-03 with `git filter-repo --invert-paths` (step 37.5) on the
