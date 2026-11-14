@@ -93,6 +93,7 @@
 
 
 
+
 ---
 
 ## Progress
@@ -454,3 +455,5 @@
 | 81.3 | Documentation and phase gate: COMPATIBILITY macOS-unverified note, kittest flows green, M97 archive | ✅ |
 | 82.1 | WSL Ubuntu toolchain (rustup minimal + clippy) and scripts/unix-gate.sh with WSL-native target dir and auto-clean (M105) | ✅ |
 | 82.2 | Gate run verified end-to-end, sparse VHDX, Windows-side CARGO_TARGET_DIR, documentation and phase gate (M105) | ✅ |
+| 83.1 | scripts/clean-targets.ps1 with report/apply modes and the keep-only-last-build policy (M106, RED first: report run before any delete) | ✅ |
+| 83.2 | Apply run against the 99 GB target, weekly scheduled task, CONTRIBUTING documentation and phase gate (M106) | ✅ |
