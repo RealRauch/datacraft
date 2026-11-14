@@ -545,7 +545,7 @@ file-size gate — all green.
 | 78.3 | Six-kind and defaults fixture via the Access COM generator | ✅ |
 | 78.4 | Documentation, packaging and phase gate | ✅ |
 | 79.1 | Audience contract, README outline and the growth-rule amendment (PLAYBOOK §2, AGENTS §7) | ✅ |
-| 79.2 | docs/FEATURES.md — move the feature inventory; README keeps a short overview | ⬜ |
+| 79.2 | docs/FEATURES.md — move the feature inventory; README keeps a short overview | ✅ |
 | 79.3 | docs/COMPATIBILITY.md — move the full evidence matrix; README keeps the dated short matrix | ⬜ |
 | 79.4 | User entry — current screenshot plus a release-download and install path | ⬜ |
 | 79.5 | CONTRIBUTING.md — quality gates and workflow; README keeps a one-line gate statement | ⬜ |
