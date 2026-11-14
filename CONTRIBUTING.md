@@ -64,6 +64,26 @@ DATACRAFT_ORACLE_MDB=… cargo test -p datacraft-jet --test oracle -- --ignored
 
 A local skip reads as `ignored`; it is not a green oracle.
 
+### The unix-side early catch (optional, WSL)
+
+CI is the binding gate for every `cfg(unix)` code path — a Windows
+checkout never compiles them, so unix-only findings surface only in the
+push's run. With WSL Ubuntu, `scripts/unix-gate.sh` catches that class
+locally before the push:
+
+```bash
+wsl -d Ubuntu -- bash -lc "cd /mnt/d/Development/datacraft && scripts/unix-gate.sh clippy"
+```
+
+Disk discipline is part of the script's contract (M105): the target
+directory lives on the WSL-native filesystem (`~/.datacraft-target`,
+never on a mounted Windows drive), and it is **removed after every run**
+unless `--keep` is passed — nothing accumulates in the distro.
+`scripts/unix-gate.sh tests` adds the full workspace test suite,
+`clean` removes a leftover target. What remains is the pinned toolchain
+in `~/.cargo`/`~/.rustup` and nothing else from a run. The script also
+refuses a `CARGO_TARGET_DIR` on `/mnt/*` by construction.
+
 ## What CI enforces
 
 | Gate | Enforcement |

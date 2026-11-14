@@ -92,6 +92,7 @@
 
 
 
+
 ---
 
 ## Progress
@@ -451,3 +452,5 @@
 | 81.1 | Dialog seam rework: DialogRequest/DialogAnswer queue, ScriptedDialogs through the same queue, native host on rfd's async API (M97, RED first) | ✅ |
 | 81.2 | Call-site migration: parked intents for the ten sites, one-pending guard, per-frame answer poll (M97) | ✅ |
 | 81.3 | Documentation and phase gate: COMPATIBILITY macOS-unverified note, kittest flows green, M97 archive | ✅ |
+| 82.1 | WSL Ubuntu toolchain (rustup minimal + clippy) and scripts/unix-gate.sh with WSL-native target dir and auto-clean (M105) | ✅ |
+| 82.2 | Gate run verified end-to-end, sparse VHDX, Windows-side CARGO_TARGET_DIR, documentation and phase gate (M105) | ✅ |
