@@ -497,4 +497,4 @@ clean and CI green.
 | 78.1 | Import library: mapping, defaults, unsupported report and the contract test | ✅ |
 | 78.2 | CLI and sidecar merge: arguments, atomic save, exit codes, subprocess E2E | ✅ |
 | 78.3 | Six-kind and defaults fixture via the Access COM generator | ✅ |
-| 78.4 | Documentation, packaging and phase gate | ⬜ |
+| 78.4 | Documentation, packaging and phase gate | 🔄 |

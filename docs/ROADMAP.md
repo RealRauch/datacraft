@@ -753,16 +753,21 @@ view work has landed.
 
 ## 20. Access form/report migration — Route B and the Route A fallback
 
-**Route B (decided 2026-11-14, ADR-9 in `docs/ARCHITECTURE.md` §18):** a
-separate, optional tool crate (`datacraft-import`) links `jetdb` 0.4 (MIT OR
-Apache-2.0, pure Rust, no COM/FFI) and maps native Jet4/ACE form/report
-designs into `.datacraft` sidecar designs. It is not part of the UI/CLI/MCP
-composition, never writes the database, and carries the third-party
-knowledge openly (`THIRD-PARTY-NOTICES.md`, README). The engine stays
-clean-room. Feasibility evidence: 77.1 — jetdb 0.4.0 reproduced the committed
-fixture's object/control inventory exactly, with 61/75 control properties
-exact and the 14 omissions all reconstructible Access defaults. Access 97
-(Jet3) designs stay out of scope.
+**Route B (decided 2026-11-14, ADR-9 in `docs/ARCHITECTURE.md` §18;
+delivered in Phase 78):** a separate, optional tool crate
+(`datacraft-import`) links `jetdb` 0.4 (MIT OR Apache-2.0, pure Rust, no
+COM/FFI) and maps native Jet4/ACE form/report designs into `.datacraft`
+sidecar designs. It is not part of the UI/CLI/MCP composition, never writes
+the database, and carries the third-party knowledge openly
+(`THIRD-PARTY-NOTICES.md`, README). The engine stays clean-room.
+Feasibility evidence: 77.1 — jetdb 0.4.0 reproduced the committed fixture's
+object/control inventory exactly, with 61/75 control properties exact and
+the 14 omissions all reconstructible Access defaults. Phase 78 ships the
+tool with the six-kind/defaults fixture (`fixtures/formDesignsV2016.accdb`),
+the exact expected-sidecar contract and the CLI/merge suite. Known
+first-cut limitations: combo row sources, controls whose geometry Access
+stored only as a form default (reported, not guessed), and Access 97
+(Jet3) designs.
 
 **Route A — own decoder (fallback, fully specified).** Replace the jetdb
 adapter with a DataCraft-owned decoder so the migration path itself carries

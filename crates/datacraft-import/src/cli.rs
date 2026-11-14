@@ -47,7 +47,12 @@ pub fn run(
     };
     match execute(&options, out) {
         Ok(0) => 0,
-        Ok(code) => code,
+        Ok(code) => {
+            if options.strict {
+                let _ = writeln!(err, "strict: unsupported entries present");
+            }
+            code
+        }
         Err(error) => {
             let _ = writeln!(err, "error: {error}");
             1
@@ -134,7 +139,6 @@ fn execute(options: &Options, out: &mut dyn Write) -> Result<i32, ImportError> {
         report_summary(&import.report, &sidecar, out);
     }
     if options.strict && has_unsupported(&import.report) {
-        let _ = writeln!(out, "strict: unsupported entries present");
         return Ok(1);
     }
     Ok(0)
@@ -251,5 +255,120 @@ mod tests {
             "{}",
             String::from_utf8_lossy(&err)
         );
+    }
+
+    fn fixture(name: &str) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures")
+            .join(name)
+            .canonicalize()
+            .expect("the fixture is present")
+    }
+
+    fn scratch(tag: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after the epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "datacraft-import-unit-{tag}-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&path).expect("create the scratch directory");
+        path
+    }
+
+    #[test]
+    fn execute_writes_the_sidecar_and_the_human_summary() {
+        let scratch = scratch("execute");
+        let sidecar = scratch.join("programmability.datacraft");
+        let options = Options {
+            database: fixture("programmability.accdb"),
+            sidecar: Some(sidecar.clone()),
+            strict: false,
+            json: false,
+        };
+        let mut out = Vec::new();
+        assert_eq!(execute(&options, &mut out).expect("imports"), 0);
+        let stdout = String::from_utf8_lossy(&out);
+        assert!(stdout.contains("imported 4 objects"), "{stdout}");
+        assert!(stdout.contains("wrote "), "{stdout}");
+        assert!(sidecar.exists());
+    }
+
+    #[test]
+    fn execute_merges_an_existing_sidecar() {
+        use datacraft_core::form::FormDef;
+        use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, SchemaDocument, TableDef};
+        let scratch = scratch("merge");
+        let sidecar = scratch.join("programmability.datacraft");
+        let mut existing = SchemaDocument::new("programmability");
+        existing.tables = vec![TableDef::new(
+            "Customers",
+            vec![FieldDef::new(
+                "ID",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
+        )];
+        existing.forms = vec![FormDef::new("Keep Me"), FormDef::new("Items Browser")];
+        existing.save(&sidecar).expect("write the existing sidecar");
+        let options = Options {
+            database: fixture("programmability.accdb"),
+            sidecar: Some(sidecar.clone()),
+            strict: false,
+            json: false,
+        };
+        let mut out = Vec::new();
+        assert_eq!(execute(&options, &mut out).expect("imports"), 0);
+        let merged = SchemaDocument::load(&sidecar).expect("loads");
+        assert_eq!(merged.tables.len(), 1);
+        assert!(merged.forms.iter().any(|form| form.name == "Keep Me"));
+        assert_eq!(merged.forms.len(), 4, "three imported + one kept");
+    }
+
+    #[test]
+    fn execute_emits_json_and_strict_exits_one() {
+        let scratch = scratch("json-strict");
+        let sidecar = scratch.join("formDesignsV2016.datacraft");
+        let options = Options {
+            database: fixture("formDesignsV2016.accdb"),
+            sidecar: Some(sidecar.clone()),
+            strict: true,
+            json: true,
+        };
+        let mut out = Vec::new();
+        assert_eq!(execute(&options, &mut out).expect("imports"), 1);
+        let value: serde_json::Value =
+            serde_json::from_slice(&out).expect("standard output is JSON");
+        assert_eq!(value["report"]["objects"].as_array().map(Vec::len), Some(3));
+        assert!(sidecar.exists());
+    }
+
+    #[test]
+    fn execute_reports_a_malformed_sidecar() {
+        let scratch = scratch("bad-sidecar");
+        let sidecar = scratch.join("broken.datacraft");
+        std::fs::write(&sidecar, "{not json").expect("write the broken sidecar");
+        let options = Options {
+            database: fixture("programmability.accdb"),
+            sidecar: Some(sidecar),
+            strict: false,
+            json: false,
+        };
+        let mut out = Vec::new();
+        let error = execute(&options, &mut out).expect_err("sidecar error");
+        assert!(error.to_string().contains("sidecar"), "{error}");
+    }
+
+    #[test]
+    fn error_variants_render_and_chain_their_sources() {
+        let io = ImportError::Io(std::io::Error::other("disk full"));
+        assert!(io.to_string().contains("disk full"));
+        assert!(std::error::Error::source(&io).is_some());
+        let sidecar = ImportError::Sidecar(datacraft_core::schema::SchemaError::Parse {
+            detail: "bad".to_owned(),
+        });
+        assert!(sidecar.to_string().contains("bad"));
+        assert!(std::error::Error::source(&sidecar).is_some());
     }
 }

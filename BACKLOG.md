@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-14T15:05
+# BACKLOG.md — Open items (As of: 2026-11-14T15:28
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -49,7 +49,14 @@
 - **Caveat:** The Access path still assumes the user can export via `SaveAsText`; the finding above removes that prerequisite for the no-Access route. The committed fixture exports make the text format a usable ground truth for the binary decoder (M89).
 - **Approach:** a clean-room parser for the SaveAsText text format (Begin/End blocks, property lines) mapping the supported control subset (label, text box, check box, combo, command button, subform) with rect/caption/source properties into `FormDef`/`ReportDef` sidecar documents. Unsupported properties/controls are collected per object into a precise list, never silently dropped. The export step runs in Access/COM only at migration time (never in the product, AGENTS §6); the parser and import are pure Rust commands/tools. Events/VBA stay unbound (ADR-2). Depending on the decision above, the binary route reads the same subset through jetdb (as an oracle or as a linked adapter).
 - **Acceptance:** an exported (or `jetdb`-read) sample form imports into a sidecar design whose runtime renders the supported controls at their rects; the unsupported list is precise; a fixture pair (source + expected sidecar) pins the mapping; no COM/unsafe path in the shipped code; the no-Access route is exercised once on the committed fixture.
-- **Steps:** 77.1 (jetdb feasibility against the committed fixture) + 77.2 (route decision, High gate) + 77.3 (subset and fixture pair) — phase 77, packaged 2026-11-14, decision ADR-9. Implementation is Phase 78 (`datacraft-import`, Route B), released 2026-11-14.
+- **Steps:** 77.1 (jetdb feasibility against the committed fixture) + 77.2 (route decision, High gate) + 77.3 (subset and fixture pair) — phase 77, packaged 2026-11-14, decision ADR-9. Implementation: 78.1–78.4 (`datacraft-import`, Route B), released 2026-11-14.
+
+### [ ] M95 — The README roadmap table and ARCHITECTURE §13 stop at earlier phases — 🟢
+- **Location:** `README.md` "Roadmap" table (last row: phase 64), `docs/ARCHITECTURE.md` §13 phase mapping (last row: phase 47).
+- **Problem:** Both tables claim to map the delivered phases, but phases 65–78 are missing; `PROGRESS.md`, `CHANGELOG.md` and `docs/ROADMAP.md` are current. A reader of the entry point sees a stale picture.
+- **Approach:** add the missing rows from `CHANGELOG.md`/`PROGRESS.md` at the next documentation pass (one verified line per phase, grouping where the existing table already groups); no code change.
+- **Acceptance:** every delivered phase in `PROGRESS.md` appears with its one-line deliver in both tables; `docs_validate` clean.
+- **Steps:** none yet (docs-only sweep).
 
 ---
 

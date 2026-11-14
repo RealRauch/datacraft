@@ -22,7 +22,13 @@ the versions it compiles against exist on the registry:
    snapshots, JSON-RPC transport). It re-exports the query/expression/type
    paths; its `sql-engine` feature is **off by default** and forwards to
    `datacraft-query/sql-engine`, so a default-feature core is C-free.
-5. `datacraft-jet` — clean-room pure-Rust Jet/ACE backend. Declares
+5. `datacraft-import` — the Access form/report migration tool (binary +
+   library). It links `datacraft-core` and `jetdb` 0.4 (MIT OR Apache-2.0,
+   pure Rust, no FFI/COM) and is the only family member with a third-party
+   reverse-engineering dependency; the adapter is declared in
+   `THIRD-PARTY-NOTICES.md` and never linked into the engine. Publish after
+   core; `jetdb` 0.4 is already on the registry.
+6. `datacraft-jet` — clean-room pure-Rust Jet/ACE backend. Declares
    `datacraft-core` with `default-features = false`: the crate is C-free by
    construction (no rusqlite in its dependency graph) — the declaration pins
    that guarantee independently of core's default set. Two surfaces are
@@ -32,12 +38,12 @@ the versions it compiles against exist on the registry:
    exists for consumers that need format-level access and for the crate's
    integration tests. The raw layer follows the same semver rules; a
    refactor of its signatures is a minor bump pre-1.0.
-6. `datacraft-sqlite` — SQLite backend (rusqlite, statically bundled).
-7. `datacraft-csv` — CSV directory driver (ADR-7 out-of-tree proof).
-8. `datacraft-storage` — driver composite (format-detecting registry plus the
+7. `datacraft-sqlite` — SQLite backend (rusqlite, statically bundled).
+8. `datacraft-csv` — CSV directory driver (ADR-7 out-of-tree proof).
+9. `datacraft-storage` — driver composite (format-detecting registry plus the
    samples generator) for consumers that want the shipped backends bundled.
-9. `datacraft-mcp` — headless stdio JSON-RPC 2.0 endpoint
-   (`cargo install datacraft-mcp`).
+10. `datacraft-mcp` — headless stdio JSON-RPC 2.0 endpoint
+    (`cargo install datacraft-mcp`).
 
 **Testing surface:** `datacraft_core::port::MockPort` is public on purpose —
 it lets out-of-crate clients drive `Core` over the command bus in their own

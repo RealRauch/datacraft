@@ -33,6 +33,8 @@ datacraft-storage ──► datacraft-jet, datacraft-sqlite
 datacraft-jet ──► datacraft-core          (clean-room pure-Rust Jet/ACE backend)
 datacraft-sqlite ──► datacraft-core       (SQLite backend, rusqlite bundled)
 datacraft-csv ──► datacraft-core          (CSV directory driver, ADR-7)
+datacraft-import ──► datacraft-core       (optional Access migration tool;
+                                           the only jetdb consumer)
 datacraft-core ──► datacraft-query, datacraft-expr, datacraft-types
                                           (command bus; re-exports the
                                            query/expression/type paths)
@@ -47,6 +49,11 @@ datacraft-types ──► (nothing internal)    (value and schema vocabulary)
 `datacraft-query/sql-engine`; the three client roots (UI, CLI, MCP) enable it
 explicitly, so a default-feature core (and the pure-Rust Jet crate) never
 pulls rusqlite.
+
+`datacraft-import` is the declared third-party adapter (ADR-9): it links
+`jetdb` 0.4 (pure Rust, MIT/Apache, no COM/FFI) and writes sidecars only. It
+is not part of the UI/CLI/MCP composition and is the only crate allowed to
+depend on jetdb; the engine stays clean-room.
 
 Binary targets are the only composition roots allowed to name
 `datacraft-storage` and `datacraft-csv` (`crates/*/src/main.rs`,

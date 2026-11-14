@@ -155,10 +155,10 @@ fn strict_fails_when_the_defaults_form_is_unmapped() {
         "stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stdout.contains("strict: unsupported entries present"),
-        "{stdout}"
+        stderr.contains("strict: unsupported entries present"),
+        "{stderr}"
     );
     assert!(
         sidecar.exists(),

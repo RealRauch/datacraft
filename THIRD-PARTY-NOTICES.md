@@ -2,7 +2,8 @@
 
 This file lists the third-party components shipped inside the DataCraft
 release archives (the `datacraft`, `datacraft-cli` and `datacraft-mcp`
-binaries plus the `samples/` folder). DataCraft itself is licensed under the
+binaries plus the `samples/` folder) and inside the published
+`datacraft-import` migration tool. DataCraft itself is licensed under the
 MIT OR Apache-2.0 license; this file only covers what we bundle on top of our
 own code.
 
@@ -21,6 +22,12 @@ published package. The notable components:
 | `csv` | Unlicense OR MIT | CSV directory driver, bundled via the composite fallback (ADR-7) |
 | `rusqlite` / `libsqlite3-sys` | MIT | SQLite backend, statically linked (`bundled` feature) |
 | SQLite (amalgamation bundled by `libsqlite3-sys`) | Public domain | no attribution required; upstream: https://www.sqlite.org |
+
+## `datacraft-import` migration tool (published; not part of the server binaries)
+
+| Component | License | Notes |
+| --- | --- | --- |
+| `jetdb` 0.4 | MIT OR Apache-2.0 | pure-Rust reader for `.mdb`/`.accdb`, used only by `datacraft-import` (ADR-9); no FFI/COM; never linked into `datacraft`, `datacraft-cli`, `datacraft-mcp` or the engine crates |
 
 ## Fonts embedded in the `datacraft` binary
 
@@ -65,3 +72,4 @@ offline by CI. Licenses and modifications:
 | `attachmentsV2016.accdb` | `andipaetzold/mdb-reader@3dc637a` (`test/data/V2016/attachments.accdb`) | MIT | none |
 | `passwordV2000.mdb`, `passwordV2000-none.mdb`, `passwordV2010.accdb`, `officeAgile42.accdb` | `andipaetzold/mdb-reader@3dc637a` | MIT | none (password-protected test data, password `"password"`) |
 | `programmability.accdb` | self-created with Microsoft Access 16.0.20527.20112 by DataCraft contributors (recipe: `docs/FIXTURE-SOURCES.md`) | MIT OR Apache-2.0 (project's own) | is the original |
+| `formDesignsV2016.accdb` | self-created with Microsoft Access 16.0.20527.20112 by DataCraft contributors (`tools/fixture-build/design-fixture/`) | MIT OR Apache-2.0 (project's own) | is the original |

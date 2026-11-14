@@ -67,6 +67,7 @@ crates/
 ├── datacraft-query/     QBE, criteria parsing, native execution (Ph. 76, L37)
 ├── datacraft-expr/      expression engine — parse/evaluate/format (Ph. 76, L36)
 ├── datacraft-types/     value and schema vocabulary below core (Ph. 76, L36)
+├── datacraft-import/    optional Access form/report migration (Ph. 78, ADR-9)
 ├── datacraft-jet/       clean-room pure-Rust Jet/ACE backend (Ph. 2+, split 31.2)
 ├── datacraft-sqlite/    SQLite backend, rusqlite statically bundled (Ph. 13, split 31.2)
 ├── datacraft-storage/   driver composite: detection + samples (Ph. 30)
@@ -91,6 +92,7 @@ datacraft-storage ──► datacraft-jet, datacraft-sqlite, datacraft-core
 datacraft-jet     ──► datacraft-core   (clean-room Jet/ACE backend)
 datacraft-sqlite  ──► datacraft-core   (rusqlite backend)
 datacraft-csv     ──► datacraft-core   (out-of-tree driver, ADR-7)
+datacraft-import  ──► datacraft-core   (optional migration adapter; jetdb only here)
 datacraft-core    ──► datacraft-query, datacraft-expr, datacraft-types
                                        (command bus; re-exports the paths)
 datacraft-query   ──► datacraft-expr, datacraft-types
@@ -107,6 +109,11 @@ plus `port::NativeQuery*`). The shadow SQL engine is the only rusqlite
 consumer and lives in `datacraft-query` behind that crate's `sql-engine`
 feature; core's switch forwards to it and is **off by default**, so a
 default-feature core is C-free by construction.
+
+The optional `datacraft-import` tool is the one place that links the
+third-party `jetdb` crate (ADR-9, §18). It writes `.datacraft` sidecars only,
+never the database, and is not linked into the `datacraft`,
+`datacraft-cli` or `datacraft-mcp` binaries.
 
 Out-of-tree drivers depend only on `datacraft-core` and are composed at
 the binary composition roots via `DetectingPort::with_fallback` (ADR-7,
@@ -343,6 +350,7 @@ datacraft/
 │   ├── datacraft-query/        lib — QBE, criteria, native execution (L37)
 │   ├── datacraft-expr/         lib — expression engine (L36)
 │   ├── datacraft-types/        lib — value and schema vocabulary (L36)
+│   ├── datacraft-import/       lib+bin — Access migration tool (ADR-9)
 │   ├── datacraft-csv/          lib — CSV directory driver (ADR-7)
 │   ├── datacraft-jet/          lib — clean-room Jet/ACE backend (pure Rust)
 │   ├── datacraft-sqlite/       lib — SQLite backend (rusqlite bundled)

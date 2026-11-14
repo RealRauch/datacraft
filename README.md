@@ -196,6 +196,7 @@ cargo llvm-cov --workspace --exclude datacraft-ui \
 | ui | `datacraft-ui` | eframe/egui desktop shell — binary `datacraft` (Phase 5+) |
 | cli | `datacraft-cli` | the fourth command-bus client — binary `datacraft-cli` (Phase 9) |
 | mcp | `datacraft-mcp` | headless stdio JSON-RPC 2.0 endpoint — standalone binary crate (Phase 9, own crate since Phase 31) |
+| import | `datacraft-import` | optional Access migration tool: native Jet4/ACE form/report designs into the `.datacraft` sidecar without Microsoft Access (Phase 78, M88; links the third-party `jetdb` crate) |
 
 ```text
 datacraft-ui (egui) ───────► datacraft-core (command bus) ──► datacraft-storage (composite)
@@ -204,6 +205,7 @@ JSON-RPC / MCP (datacraft-mcp) ──────────┘                
                                                                   └─ datacraft-csv (CSV directories)
 
 datacraft-core ──► datacraft-query ──► datacraft-expr ──► datacraft-types
+datacraft-import ──► datacraft-core, jetdb 0.4
 ```
 
 Dependency direction is one-way and review- and CI-enforced (the
@@ -214,15 +216,40 @@ boundary guard fails the push on a violation): `jet → core`,
 `datacraft-mcp`) name `core + storage + csv` and are the composition
 roots that build the composite. `core`'s `sql-engine` feature is off by
 default and forwards to `datacraft-query/sql-engine`; the three client
-roots enable it, so a default-feature core never pulls rusqlite. Library
-and UI code never touches a
-driver directly — every client speaks the same command language, and a
-ribbon button dispatches the identical `Command` as an MCP tool call.
+roots enable it, so a default-feature core never pulls rusqlite.
+`datacraft-import` is the one declared third-party adapter (ADR-9): it
+depends on `datacraft-core` and `jetdb` 0.4 (pure Rust, no FFI/COM) and is
+not linked into the `datacraft`, `datacraft-cli` or `datacraft-mcp`
+binaries. Library and UI code never touches a driver directly — every
+client speaks the same command language, and a ribbon button dispatches the
+identical `Command` as an MCP tool call.
 The crates.io publishing order, the Semver/MSRV policy and the release
 checklist live in [docs/PUBLISHING.md](docs/PUBLISHING.md). The full
 blueprint — command API shape, test-ID conventions, storage decision
 record, rendering strategy — is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Migrating from Microsoft Access
+
+`datacraft-import` reads native Jet4/ACE `.mdb`/`.accdb` files **without
+Microsoft Access** and merges the supported form/report designs into the
+`.datacraft` sidecar next to the database:
+
+```bash
+cargo install datacraft-import
+datacraft-import "MyApp.accdb"             # writes MyApp.datacraft
+datacraft-import "MyApp.accdb" --strict    # exit 1 on any unsupported entry
+```
+
+Supported: label, text box, check box, combo box, command button and
+subform with their rects, captions and bound fields. The database is opened
+read-only and never modified; the sidecar is written atomically. Controls or
+properties outside the subset are reported per object, never guessed —
+combo row sources and controls whose geometry Access stored only as a
+default are first-cut limitations. Access 97 (Jet3) form/report designs are
+not supported; tables, queries and rows are opened by DataCraft itself.
+The binding mapping contract is
+[docs/M88-IMPORT.md](docs/M88-IMPORT.md).
 
 ## Roadmap
 

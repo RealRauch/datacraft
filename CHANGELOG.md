@@ -28,6 +28,15 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   SQL engine's rusqlite dependency moved behind `datacraft-query`'s
   `sql-engine` feature; core's switch forwards to it and is off by default,
   so a default-feature core is C-free. No behaviour change.
+- import: the Access migration tool (78, M88) — `datacraft-import` reads
+  native Jet4/ACE `.mdb`/`.accdb` form/report designs through the pinned
+  pure-Rust `jetdb` crate, without Microsoft Access, and merges the supported
+  subset (label, text box, check box, combo box, command button, subform)
+  into the `.datacraft` sidecar. The database is never written; unsupported
+  controls and properties are reported per object and `--strict` exits 1 on
+  them. Access 97 form/report designs stay unsupported; combo row sources
+  and controls whose geometry Access stored only as a default are first-cut
+  limitations (reported, never guessed).
 
 ## [0.1.3] — 2026-11-12
 

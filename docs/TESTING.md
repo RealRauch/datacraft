@@ -85,6 +85,7 @@ shrink, never hide, logic that wrongly migrated into the shell crate.
 | Subprocess E2E | `crates/datacraft-cli/tests/cli_process.rs` (T4), `crates/datacraft-mcp/tests/mcp_process.rs` (T7) | the real binaries over real stdio: exit-code matrix, stderr routing, driver inventory |
 | Headless UI | `crates/datacraft-ui/tests/ui_kittest*.rs` (T5; families per step 38–42) | real egui widgets driven by AccessKit labels/roles; committed `insta` snapshots and semantic-tree dumps are the layout gate — DPI/font-independent, never pixel compares |
 | Layout rects | `crates/datacraft-ui/tests/ui_layout.rs` over the `datacraft_ui::layout_probe` seam (step 44.1, H52/T10) | paint rects recorded by the widgets and asserted as geometry contracts (group widths, in-window bounds, panel non-overlap at two window sizes) — a semantic tree is blind to pixel geometry, which let H52 hide a whole ribbon group behind green tree pins |
+| Import contract | `crates/datacraft-import/tests/{contract,cli}.rs` over `fixtures/programmability.accdb` and `fixtures/formDesignsV2016.accdb` (Phase 78, M88) | exact expected-sidecar comparisons, the unsupported/ignored report, strict mode, the merge semantics and the database byte-identity; the generated fixture pins the six control kinds and the omitted-geometry limitation |
 
 **Fixture immutability rule (T3, 2026-11-01):** fixtures are immutable
 evidence — never open them in Microsoft Access or any other writer-capable
