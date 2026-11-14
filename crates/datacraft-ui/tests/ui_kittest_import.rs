@@ -103,10 +103,20 @@ fn the_import_file_window_imports_a_csv_over_the_bus() {
     assert_eq!(preview.table, "inventory", "the stem is the suggested name");
     assert_eq!(preview.fields.len(), 3);
     assert_eq!(preview.total_rows, 2);
+    let dialect = preview
+        .dialect
+        .clone()
+        .expect("the preview reports the detected dialect");
+    assert_eq!(dialect.encoding, datacraft_core::import::CsvEncoding::Utf8);
+    assert_eq!(dialect.delimiter, b',');
     let dump = tree_dump(&harness);
     assert!(
         dump.contains("rows detected"),
         "the preview names the row count:\n{dump}"
+    );
+    assert!(
+        dump.contains("UTF-8"),
+        "the preview names the detected encoding:\n{dump}"
     );
 
     // The ribbon group caption is also labelled "Import" — the role query
@@ -129,6 +139,48 @@ fn the_import_file_window_imports_a_csv_over_the_bus() {
         .find(|table| table.name == "inventory")
         .expect("the imported table is catalogued");
     assert_eq!(table.fields.len(), 3, "the header named the fields");
+}
+
+/// The dialect detection surfaces in the preview (step 80.2, item H59):
+/// a cp1252 semicolon export reports Windows-1252 and the semicolon —
+/// the same file that failed with "not valid UTF-8" before the shared
+/// decode path existed.
+#[test]
+fn the_preview_names_a_windows1252_semicolon_source() {
+    let dir = std::env::temp_dir().join(format!("datacraft-import-ui-cp-{}", id()));
+    std::fs::create_dir_all(&dir).expect("scratch dir");
+    let source = dir.join("vendor.csv");
+    std::fs::write(&source, b"name;city\nM\xfcller;K\xf6ln\n").expect("write the csv");
+    let mut harness = shell_harness(writable_app(&source));
+    harness.set_size(egui::vec2(1280.0, 800.0));
+    harness.run();
+
+    harness.get_by_label("External Data").click();
+    harness.run();
+    harness.get_by_label("Import File").click();
+    harness.run();
+    harness.get_by_label("Browse…").click();
+    harness.run();
+    let preview = harness
+        .state()
+        .snapshot()
+        .import_preview
+        .clone()
+        .expect("the cp1252 source parses through the shared decode path");
+    let dialect = preview
+        .dialect
+        .expect("the preview reports the detected dialect");
+    assert_eq!(
+        dialect.encoding,
+        datacraft_core::import::CsvEncoding::Windows1252
+    );
+    assert_eq!(dialect.delimiter, b';');
+    assert_eq!(preview.fields.len(), 2);
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("Windows-1252"),
+        "the preview names the detected encoding:\n{dump}"
+    );
 }
 
 /// The capability-disabled rendering (step 58.2, item M50): a source that
