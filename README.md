@@ -21,9 +21,8 @@ API.
 [![CI](https://img.shields.io/github/actions/workflow/status/RealRauch/datacraft/ci.yml?style=flat-square&label=CI)](https://github.com/RealRauch/datacraft/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/actions/workflow/status/RealRauch/datacraft/release.yml?style=flat-square&label=release&event=workflow_dispatch)](https://github.com/RealRauch/datacraft/actions/workflows/release.yml)
 
-**Why DataCraft** ·
-[What works today](#what-works-today) ·
 [Download and install](#download-and-install) ·
+[What works today](#what-works-today) ·
 [Architecture](#architecture) ·
 [Roadmap](#roadmap) ·
 [Contributing](#contributing) ·
@@ -43,6 +42,7 @@ macOS and Linux.*
 > current work lives in [PROGRESS.md](PROGRESS.md) and
 > [BACKLOG.md](BACKLOG.md). DataCraft is an independent clean-room
 > project, not affiliated with Microsoft.
+
 ## Download and install
 
 Prebuilt archives for Windows, macOS and Linux are on the
