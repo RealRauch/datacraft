@@ -10,6 +10,16 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Changed
+- ui: native file and message dialogs no longer block inside the event
+  loop (81, M97) — every picker and confirmation parks a request and its
+  follow-up, the native host answers on a helper thread through rfd's
+  non-modal async panels, and the flow resumes on a later frame. This
+  removes the documented macOS `runModal`-in-winit abort class; Cancel,
+  an unavailable dialog host and a picked path stay distinguishable, and
+  the queued model is pinned headlessly through the scripted test host.
+  One dialog runs at a time; the queued model is unverified on macOS
+  hardware (no Mac available) — `docs/COMPATIBILITY.md` names the
+  follow-up reproduction pass.
 - core: atomic file saves (databases, sidecars, settings) are durable and
   concurrency-safe (80, H60) — every replacement now stages into a unique
   per-writer file (process id + counter), flushes it to disk before the

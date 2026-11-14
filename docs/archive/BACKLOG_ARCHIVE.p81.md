@@ -1,0 +1,21 @@
+# BACKLOG_ARCHIVE.p81.md — Shard (Phase 81, append-only)
+
+> Created 2026-11-14T21:18 — home for item blocks archived in the context of Phase 81 (rotation: last active phase, H14/34.2).
+> Contains: items archived during Phase 81. Header is write-once — never edited.
+
+---
+
+### [x] M97 — Native dialogs block the event loop inside a frame (macOS abort risk) — 🟡
+- **Location:** `crates/datacraft-ui/src/dialogs.rs:36-56` (`NativeDialogs` calls `rfd` synchronously from the UI thread), reached from the backstage and every flow that opens, saves or confirms.
+- **Problem:** On macOS a blocking `rfd::FileDialog`/`MessageDialog` runs AppKit's modal loop (`runModal`) inside winit's event handler; events arriving during the loop (a Finder drag held over the window, a panel resize) re-enter the handler and abort the app. craft-libs' `craft-dialogs` documents this crash class and its queued fix (request → shown at the end of the frame → answer on a later frame). Our `DialogHost` trait is synchronous by design, so the exposure is structural, not one call site. Not yet reproduced on our build.
+- **Approach:** Re-scoped 2026-11-14 by the human (no macOS hardware available; step 80.3 was honestly blocked): the documented crash class (craft-libs' `craft-dialogs`, rfd's synchronous `runModal` inside winit's handler) plus the ten-site call-site inventory below stand in as the reproduction record, and the queued model is implemented without hardware confirmation. `DialogHost` becomes a request/answer queue: flows park an intent (the follow-up command and its parameters), the host answers on a later frame, the UI polls once per frame after the paint; `Unavailable` stays distinct from Cancel; the scripted test host answers through the same queue. rfd's async API (non-modal panels, callback answers) carries the native side; no new dependency (the answer future is driven by a minimal `std::task::Wake` executor on a helper thread). Keep M43's native-dialog language fence.
+- **Acceptance:** After the change no call site blocks inside a frame on any platform; a request parks and its answer dispatches the parked intent on a later frame; Cancel, Unavailable and a selected path remain distinguishable; the kittest flows stay green through the scripted host (answers may need one extra frame); the residual risk — the queued model itself is unverified on macOS hardware — is written into `docs/COMPATIBILITY.md`; no new dependency.
+- **Call-site inventory (step 80.3, 2026-11-14):** the synchronous trait is called from inside a frame at ten production sites — `backstage/pages.rs:119` (open file), `backstage/pages.rs:129` (open folder), `backstage/save.rs:41` (save), `backstage/new_database.rs:199` (save), `backstage/save.rs:87`, `datasheet.rs:223`, `flows.rs:137`, `views_window.rs:115`, `import_window.rs:50` (confirmations and picker) — the exposure is structural, so the queued model must replace the trait's shape, not patch sites.
+- **Steps:** Phase 81 (81.1–81.3).
+- **Done:** done in phases 81.1/81.2 (re-scoped 2026-11-14 by the human — no macOS hardware; the documented crash class plus the ten-site inventory replaced the reproduction gate): DialogQueue parks DialogRequests, App intents run on the per-frame poll, the native host answers on a helper thread through rfd's async panels and a std-only Wake executor, the legacy synchronous DialogHost is removed, Cancel/Unavailable stay distinguishable; the queued model is unverified on macOS hardware — the reproduction pass is named in docs/COMPATIBILITY.md as the follow-up
+
+## ✅ Done Index
+
+> One-liner per completed item (details above).
+
+- M97 — Native dialogs block the event loop inside a frame (macOS abort risk) — done (done in phases 81.1/81.2 (re-scoped 2026-11-14 by the human — no macOS hardware; the documented crash class plus the ten-site inventory replaced the reproduction gate): DialogQueue parks DialogRequests, App intents run on the per-frame poll, the native host answers on a helper thread through rfd's async panels and a std-only Wake executor, the legacy synchronous DialogHost is removed, Cancel/Unavailable stay distinguishable; the queued model is unverified on macOS hardware — the reproduction pass is named in docs/COMPATIBILITY.md as the follow-up)

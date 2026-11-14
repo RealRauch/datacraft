@@ -29,6 +29,22 @@ byte-identical output to Microsoft Access is **not** claimed.
 | **Samples & templates** | ✅ every shipped sample opens with its expected tables/rows | ✅ `CreateDatabase` (Jet4 + SQLite), `CreateDatabaseFromTemplate` (blank, contacts, inventory, bike_shop) | `create_database.rs`, `create_template.rs`, `create_from_template.rs`, `samples.rs`, `server_e2e_samples.rs` against the committed `samples/` set; `make_samples --check` + `sha256sum -c samples/manifest` | Jet3/ACE files are never created (`Unsupported`); the Jet engine accepts the shipped Jet4 samples and template-created databases (DAO oracle + the real-Access user walkthrough, 2026-11-07: opens, reads, writes and schema round-trips); template field properties persist through the `.datacraft` sidecar (H45) |
 | **Programmability** | ✅ macro names + coarse arguments; VBA modules, source, static analysis | ⬜ read-only | `macros.rs`, `port_macros.rs`, `vba.rs`, `vba_project.rs`, `vba_analysis.rs` | no macro/VBA execution (ADR-2), no p-code; Jet3 macro/VBA definitions are not decoded |
 
+**Native dialogs (M97).** Every file picker and destructive-action
+confirmation runs through the queued `DialogQueue` seam (phase 81): a flow
+parks its request, the native host answers on a helper thread through rfd's
+non-modal async panels, and the UI polls once per frame — no call site
+blocks inside the event loop, which removes the documented macOS
+`runModal`-in-winit abort class (the craft-libs `craft-dialogs` finding;
+the re-scoped gate of 2026-11-14 replaced the macOS hardware reproduction
+with this structural fix). **Known limit:** the queued model itself is
+unverified on macOS hardware — no Mac is available to this project; the
+contract is pinned headlessly through the scripted host
+(`dialogs.rs` queue tests, `dialog_flow_tests.rs`,
+`ui_kittest_dialogs.rs`, `ui_kittest_delete.rs`). A macOS reproduction
+pass (per the original M97 recipe: hold a Finder drag over an open dialog)
+remains the follow-up the moment hardware is reachable.
+
+
 **Sidecar vs native (ADR-1).** DataCraft's form, sidecar-query and report
 designs live in `<database>.datacraft`; they are never written into Jet/ACE.
 Native Access objects — saved queries, macros, VBA — are read-only. Opening a

@@ -91,6 +91,7 @@
 
 
 
+
 ---
 
 ## Progress
@@ -447,3 +448,6 @@
 | 80.1 | Atomic write: flush, unique staging, rename retry, symlink and mode handling (H60) | ✅ |
 | 80.2 | CSV import: encoding detection and delimiter sniffing through one shared core path (H59) | ✅ |
 | 80.3 | Native dialogs: macOS reproduction and, if confirmed, the queued request/answer model (M97) | ⛔ |
+| 81.1 | Dialog seam rework: DialogRequest/DialogAnswer queue, ScriptedDialogs through the same queue, native host on rfd's async API (M97, RED first) | ✅ |
+| 81.2 | Call-site migration: parked intents for the ten sites, one-pending guard, per-frame answer poll (M97) | ✅ |
+| 81.3 | Documentation and phase gate: COMPATIBILITY macOS-unverified note, kittest flows green, M97 archive | ✅ |

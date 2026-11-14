@@ -27,14 +27,6 @@
 
 ## 🟡 MEDIUM
 
-### [ ] M97 — Native dialogs block the event loop inside a frame (macOS abort risk) — 🟡
-- **Location:** `crates/datacraft-ui/src/dialogs.rs:36-56` (`NativeDialogs` calls `rfd` synchronously from the UI thread), reached from the backstage and every flow that opens, saves or confirms.
-- **Problem:** On macOS a blocking `rfd::FileDialog`/`MessageDialog` runs AppKit's modal loop (`runModal`) inside winit's event handler; events arriving during the loop (a Finder drag held over the window, a panel resize) re-enter the handler and abort the app. craft-libs' `craft-dialogs` documents this crash class and its queued fix (request → shown at the end of the frame → answer on a later frame). Our `DialogHost` trait is synchronous by design, so the exposure is structural, not one call site. Not yet reproduced on our build.
-- **Approach:** Reproduce first on macOS (open dialog up, drag a file from Finder over the window and hold it; repeat for save and confirmation). If it reproduces, move `DialogHost` to a request/answer queue: commands that need a path park a continuation, `show_pending` runs once per frame after the UI, answers dispatch on a later frame, `Unavailable` stays distinct from Cancel; the scripted test host answers through the same queue. Keep M43's native-dialog language fence.
-- **Acceptance:** A written macOS reproduction (or a written non-reproduction naming the exact build) precedes any change; afterwards no call site blocks inside a frame, the kittest flows stay green through the scripted host, and Cancel, Unavailable and a selected path remain distinguishable.
-- **Call-site inventory (step 80.3, 2026-11-14):** the synchronous trait is called from inside a frame at ten production sites — `backstage/pages.rs:119` (open file), `backstage/pages.rs:129` (open folder), `backstage/save.rs:41` (save), `backstage/new_database.rs:199` (save), `backstage/save.rs:87`, `datasheet.rs:223`, `flows.rs:137`, `views_window.rs:115`, `import_window.rs:50` (confirmations and picker) — the exposure is structural, so the queued model must replace the trait's shape, not patch sites.
-- **Steps:** none yet (blocked on macOS hardware for the reproduction gate — step 80.3 marked ⛔ on this Windows machine).
-
 ### [ ] M98 — Ribbon has no group overflow at narrow widths — 🟡
 - **Location:** `crates/datacraft-ui/src/ribbon.rs` (group row) and the spec in `crates/datacraft-core/src/ribbon.rs`; H52 sized the groups to content and T10 pins them in-window at 1280x800 and 960x600.
 - **Problem:** There is no overflow rule below those widths: groups keep their natural widths, so with a narrower window (or a longer localized label) trailing groups leave the window and their actions become unreachable. Access collapses groups into dropdown buttons; craft-libs' `layout::fit_toolbar` documents the policy (keep whole groups, reserve the overflow control's width, never let a command disappear silently).
