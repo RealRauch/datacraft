@@ -90,6 +90,7 @@
 
 
 
+
 ---
 
 ## Progress
@@ -443,3 +444,6 @@
 | 79.5 | CONTRIBUTING.md — quality gates and workflow; README keeps a one-line gate statement | ✅ |
 | 79.6 | Retire the README roadmap table; carry M95 into the ARCHITECTURE §13 mapping | ✅ |
 | 79.7 | Final pass — links, word budget, policy pointers, docs_validate and the phase gate | ✅ |
+| 80.1 | Atomic write: flush, unique staging, rename retry, symlink and mode handling (H60) | ✅ |
+| 80.2 | CSV import: encoding detection and delimiter sniffing through one shared core path (H59) | ✅ |
+| 80.3 | Native dialogs: macOS reproduction and, if confirmed, the queued request/answer model (M97) | ⛔ |

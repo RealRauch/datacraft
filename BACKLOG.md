@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-14T16:44
+# BACKLOG.md — Open items (As of: 2026-11-14T19:41
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -16,13 +16,73 @@
 
 ## 🟠 HIGH
 
-> No open items.
+### [ ] H61 — Datasheet edits are immediate — no pending batch with preview and atomic submit — 🟠
+- **Location:** the datasheet edit path (`crates/datacraft-ui/src/datasheet.rs`, `crates/datacraft-ui/src/app/grid_state.rs`) dispatches `UpdateRow`/`InsertRow`/`DeleteRow` immediately; the core already has `preview_write`/`apply_write` and the `atomic_batch` capability (M20), which no grid uses.
+- **Problem:** Every cell edit is its own committed row write. There is no pending state, no multi-row transaction and no SQL preview in the GUI, while Access and the reference client collect updates, inserts and deletions, preview the generated statements, submit them together, keep them on failure and lock the grid during submission. The headless batch exists — the datasheet is the missing client.
+- **Approach:** A per-tab edit buffer (updates/inserts/deletes) in UI state mapped onto the existing journal batch commands; amber pending markers (selected changed cells keep the marker plus an outline); Preview renders the journal's own statements — no second SQL generator; Ctrl+S applies, Escape discards the active record, a failed apply keeps the buffer, the grid refuses input while applying. Capability-gated on `atomic_batch`; single-cell behaviour on drivers without it stays as today.
+- **Acceptance:** Pending updates, inserts and deletes submit as one atomic batch on Jet4 and SQLite; a failed batch leaves every edit pending and the database unchanged; Preview matches the applied statements exactly; the grid is unavailable during submission; no second SQL generator exists; the behaviour and its edge cases (cursor moves inside a batch, save-on-row-change if adopted, read-only sources) are documented.
+- **Steps:** none yet.
 
 ---
 
 ## 🟡 MEDIUM
 
-> No open items.
+### [ ] M97 — Native dialogs block the event loop inside a frame (macOS abort risk) — 🟡
+- **Location:** `crates/datacraft-ui/src/dialogs.rs:36-56` (`NativeDialogs` calls `rfd` synchronously from the UI thread), reached from the backstage and every flow that opens, saves or confirms.
+- **Problem:** On macOS a blocking `rfd::FileDialog`/`MessageDialog` runs AppKit's modal loop (`runModal`) inside winit's event handler; events arriving during the loop (a Finder drag held over the window, a panel resize) re-enter the handler and abort the app. craft-libs' `craft-dialogs` documents this crash class and its queued fix (request → shown at the end of the frame → answer on a later frame). Our `DialogHost` trait is synchronous by design, so the exposure is structural, not one call site. Not yet reproduced on our build.
+- **Approach:** Reproduce first on macOS (open dialog up, drag a file from Finder over the window and hold it; repeat for save and confirmation). If it reproduces, move `DialogHost` to a request/answer queue: commands that need a path park a continuation, `show_pending` runs once per frame after the UI, answers dispatch on a later frame, `Unavailable` stays distinct from Cancel; the scripted test host answers through the same queue. Keep M43's native-dialog language fence.
+- **Acceptance:** A written macOS reproduction (or a written non-reproduction naming the exact build) precedes any change; afterwards no call site blocks inside a frame, the kittest flows stay green through the scripted host, and Cancel, Unavailable and a selected path remain distinguishable.
+- **Call-site inventory (step 80.3, 2026-11-14):** the synchronous trait is called from inside a frame at ten production sites — `backstage/pages.rs:119` (open file), `backstage/pages.rs:129` (open folder), `backstage/save.rs:41` (save), `backstage/new_database.rs:199` (save), `backstage/save.rs:87`, `datasheet.rs:223`, `flows.rs:137`, `views_window.rs:115`, `import_window.rs:50` (confirmations and picker) — the exposure is structural, so the queued model must replace the trait's shape, not patch sites.
+- **Steps:** none yet (blocked on macOS hardware for the reproduction gate — step 80.3 marked ⛔ on this Windows machine).
+
+### [ ] M98 — Ribbon has no group overflow at narrow widths — 🟡
+- **Location:** `crates/datacraft-ui/src/ribbon.rs` (group row) and the spec in `crates/datacraft-core/src/ribbon.rs`; H52 sized the groups to content and T10 pins them in-window at 1280x800 and 960x600.
+- **Problem:** There is no overflow rule below those widths: groups keep their natural widths, so with a narrower window (or a longer localized label) trailing groups leave the window and their actions become unreachable. Access collapses groups into dropdown buttons; craft-libs' `layout::fit_toolbar` documents the policy (keep whole groups, reserve the overflow control's width, never let a command disappear silently).
+- **Approach:** Keep the layout math in core (the H52 precedent): compute visible groups plus overflow indices from natural widths, available width, spacing and the overflow control's width. The UI paints one overflow control whose menu dispatches the same `command_for` actions, so disabled states and tooltips stay identical. Decide per group whether to collapse or to list the actions in the overflow menu.
+- **Acceptance:** At 800x600 every ribbon action stays reachable (visible or in the overflow list); layout_probe/kittest pins the group widths and the overflow boundary at 800x600, 960x600 and 1280x800 in both languages; no command disappears without a visible entry point.
+- **Steps:** none yet.
+
+### [ ] M99 — Keyboard shortcuts are Ctrl-only and mislabeled on macOS — 🟡
+- **Location:** `crates/datacraft-ui/src/keys.rs:77` (`shortcut(ctrl, key)`), `:106` (reads `input.modifiers.ctrl`), and the `SHORTCUT_ROWS` labels at `:52-62`; the help page renders those labels verbatim in `crates/datacraft-ui/src/shortcuts_help.rs`.
+- **Problem:** egui reports Cmd as `modifiers.command` (the platform command key: Cmd on macOS, Ctrl elsewhere) while `modifiers.ctrl` is the Control key. On macOS Cmd+S, Cmd+W, Cmd+Z and Cmd+Y therefore do nothing, and the help page plus every tooltip say "Ctrl+..." although macOS uses ⌘. Redo on macOS is conventionally ⌘⇧Z. The README claims macOS support, so this is a shipped-platform gap.
+- **Approach:** Match `modifiers.command` in the handler and keep the pure `shortcut()` function platform-neutral (it takes the command flag). Render key labels through one platform-aware formatter (⌘S on macOS, Ctrl+S elsewhere) used by the help page and the QAT/ribbon tooltips. Add ⌘⇧Z as the macOS redo chord, keep Ctrl+Y elsewhere.
+- **Acceptance:** Unit tests cover the matcher and both label forms; a kittest with `modifiers.command` proves Cmd+S dispatches SaveDesign; the help page and tooltips show ⌘ on macOS and Ctrl elsewhere; redo works with ⌘⇧Z on macOS and Ctrl+Y elsewhere.
+- **Steps:** none yet.
+
+### [ ] M100 — Tool windows as task panes — decision and scope — 🟡
+- **Location:** `crates/datacraft-ui/src/tool_window.rs` plus the floating windows it centres (SQL, Expression, Relationships, VBA analysis, Notices).
+- **Problem:** Tool windows are free-floating `egui::Window`s with no remembered placement. Access and modern database clients use docked task panes; craft-libs' `panes`/`docking` show the mature model (side/bottom/floating panes, title bar, resize, remembered geometry, transactional dock moves). A migration is a UX decision with a potentially large dependency, not a quick change.
+- **Approach:** Write a decision record in `docs/ROADMAP.md` with three options: keep floating windows, build a minimal docked task-pane host in the UI (no new dependency), or adopt craft-ui's panes (git-pinned, unpublished). Compare effort, geometry persistence, multi-window behaviour, testability and the impact on the desktop shell's identity.
+- **Acceptance:** A written decision with a go/no-go and, if yes, a scoped follow-up item with acceptance; no implementation before the decision.
+- **Steps:** none yet.
+
+### [ ] M101 — Datasheet lacks multi-cell selection, clipboard and fill — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` and `crates/datacraft-ui/src/datasheet/grid.rs` (single record cursor; M38 added arrow/Home/End/PgUp/PgDn).
+- **Problem:** There is no rectangle selection, Ctrl+A, copy/paste, fill or Delete-to-NULL. Access users expect all of them: a clipboard matrix from Excel, a column fill with one value, and clearing cells to NULL. Today every edit addresses one cell.
+- **Approach:** A selection model in core (anchor, rectangle over the loaded filtered rows, column selection by header); clipboard as TSV; paste validates arity and size before any write; a fill of a selected range is one undo step; Delete sets NULL where the field allows (Jet's tri-state boundary from M24 answers a precise failure). Reuse the existing hit-test and view-order math. Pending semantics coordinate with H61.
+- **Acceptance:** A pasted matrix fills the selection or is rejected before any cell changes; copy round-trips through a spreadsheet; Delete-to-NULL respects each driver's NULL support with a precise failure where it cannot; selection survives scroll, sort and filter per a documented rule; kittest pins selection, paste and fill; no unwrap/expect on the clipboard path.
+- **Steps:** none yet.
+
+### [ ] M102 — No cell value viewer for long text, JSON and binary values — 🟡
+- **Location:** the datasheet cell paint and edit path (`crates/datacraft-ui/src/datasheet.rs`, `datasheet/grid.rs`); no value viewer exists.
+- **Problem:** Memo, binary and JSON values are only reachable through the inline editor (or not at all for read-only cells), so a long text is shown truncated and a binary value is opaque. Access offers Zoom (Shift+F2) for exactly this; the reference client shows the whole value in a popup below the cell.
+- **Approach:** A read-only value viewer opened by Alt+click, a double-click on a non-editable cell, the context menu and Shift+F2: JSON indented only when it parses, a bounded hex view for binary, Esc or a click outside closes it. For editable long text the viewer becomes a multiline editor that writes through the normal edit path (and H61's buffer). Bounded rendering for large values; no modification on open.
+- **Acceptance:** A long memo, a JSON value and a binary value each open the viewer with the right form; invalid JSON stays raw; the hex view is bounded and names the truncation; the editor writes through the normal path; opening never modifies the database; kittest pins all three kinds.
+- **Steps:** none yet.
+
+### [ ] M103 — No foreign-key navigation from a datasheet row — 🟡
+- **Location:** relationships are modelled and written (M16: `MSysRelationships`, SQLite foreign keys); the datasheet has no navigation from a key value to its target.
+- **Problem:** Users cannot follow a foreign key from a row to the referenced record, return to where they came from, or see which rows reference the current one. Access's subdatasheet/relationship navigation and the reference client's F4-follow both exist; ours stops at showing the relationship canvas.
+- **Approach:** An F4/follow affordance on key cells: declared foreign keys first, then reverse keys, then inferred `<table>_id` references derived from loaded schema metadata (never from a network call). Targets open filtered to the matching values. Composite keys stay paired per source row (no cross product); NULL keys answer a precise message. A per-tab back/forward history returns to the previous table and filter; a tab with pending edits is activated, not replaced. "Referenced by" counts run on a separate read with a cap and a per-table timeout, cancellable.
+- **Acceptance:** Following a single and a composite key filters the target correctly; a NULL key answers the documented message; back/forward restores table and filter, including a closed tab; an all-NULL or partially selected composite selection never matches a wrong pairing; counts are capped and time-boxed and their truncation is visible; the feature is hidden where the driver declares no relationship support; behaviour doc with edge cases.
+- **Steps:** none yet.
+
+### [ ] M104 — Datasheet filtering is a criteria string — no structured AND/OR builder — 🟡
+- **Location:** the datasheet filter dialog and criteria string (M55/M62, wildcard rule H58); the QBE grid already models AND/OR rows for queries.
+- **Problem:** A table filter is one criteria string per column (or the documented syntax), with no grouped AND/OR precedence, no ordered sort list and no draft/apply distinction. Access's Filter by Form and the reference client's builder both offer structured conditions with visible grouping.
+- **Approach:** A builder model in core (conditions with AND/OR, nested groups with visible parentheses, ordered sort columns, a text mode as escape hatch) that serializes to the existing criteria input, so the execution path and the wildcard rule stay unchanged. Editing a draft never runs a query; Apply reloads, Clear resets. Reuse the QBE row vocabulary where it fits.
+- **Acceptance:** Builder to criteria round-trips for every supported condition; grouped precedence is visibly parenthesized and behaves accordingly; invalid drafts cannot run; a filter survives sort/filter commits and the FK navigation of M103; the text mode still accepts the documented syntax; behaviour doc with the dialect fence.
+- **Steps:** none yet.
 
 
 ---
@@ -30,10 +90,10 @@
 ## 🟢 LOW
 
 ### [ ] L30 — ~15 .rs files sit in the 480-499-line band just under the file-size gate — 🟢
-- **Location:** the 455-499 band, refreshed 2026-11-14 after phase 76 (24 files ≥ 455; 13 in the 480-499 band). At the gate: `crates/datacraft-core/src/command.rs` + `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-expr/src/funcs.rs` (497), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-ui/src/flows.rs` (492), `crates/datacraft-jet/src/port_adapter.rs` + `crates/datacraft-csv/src/lib.rs` (488), `crates/datacraft-core/src/core.rs` (485), `crates/datacraft-jet/tests/jet_indexes.rs` (484), `crates/datacraft-ui/src/app/form_edit.rs` (481); further 11 files in 455-479 (`journal.rs` 478, `form_runtime.rs` 475, `sqlite_writes.rs` 472, `theme.rs` + `app.rs` 470, `sqlite_relationships.rs` 469, `tests/rename_object.rs` 467, `settings.rs` + `crates/datacraft-expr/src/format.rs` 462, `sqlite_port.rs` 458, `crates/datacraft-types/src/field.rs` 457).
+- **Location:** the 455-499 band, refreshed 2026-11-14 after phase 80 (phase 80 removed `datacraft-csv/src/lib.rs`, 488 → 366 via the `table_io.rs` split). At the gate: `crates/datacraft-core/src/command.rs` + `crates/datacraft-jet/tests/ace_writer.rs` (499), `crates/datacraft-expr/src/funcs.rs` (497), `crates/datacraft-jet/tests/jet_table.rs`/`crates/datacraft-jet/src/jet/row.rs`/`crates/datacraft-core/src/reports.rs`/`crates/datacraft-core/src/forms/controls.rs` (495), `crates/datacraft-ui/src/flows.rs` (492), `crates/datacraft-jet/src/port_adapter.rs` (488), `crates/datacraft-core/src/core.rs` (485), `crates/datacraft-jet/tests/jet_indexes.rs` (484), `crates/datacraft-ui/src/app/form_edit.rs` (481); further 11 files in 455-479 (`journal.rs` 478, `form_runtime.rs` 475, `sqlite_writes.rs` 472, `theme.rs` + `app.rs` 470, `sqlite_relationships.rs` 469, `tests/rename_object.rs` 467, `settings.rs` + `crates/datacraft-expr/src/format.rs` 462, `sqlite_port.rs` 458, `crates/datacraft-types/src/field.rs` 457).
 - **Problem:** The <500-line file-size gate holds with zero violations, but the band keeps growing (phases 63/64 filled it further) and files ride the limit with a razor-thin margin; the next feature touch on any of them forces a mandatory module split mid-step. Soft smell per PLAYBOOK §5 — a finding, not a gate (2026-11-07 repo review, list refreshed 2026-11-12).
 - **Approach:** Keep the band list in this item; split a file proactively when a released step would otherwise push it across 500 lines, or opportunistically when already inside the file.
-- **Steps:** rides released steps that touch band files; Phase 65 carried five forced splits (65.1 `command.rs` → `command/source.rs` and `tests/command_bus.rs`/`tests/journal.rs` → module files; 65.3 `backstage/pages.rs` → `backstage/info.rs`; 65.4 `tests/server_e2e.rs` → `server_e2e/vba.rs`). Phase 68 carried four more: 68.2 `ribbon.rs` → `ribbon/actions.rs`; 68.3 `app.rs` → `app/notices.rs` + `app/editors.rs` and `flows.rs` → `app/notices.rs`; 68.5 `ui_kittest.rs` → `tests/ui_kittest_backstage_flows.rs`. Phase 69 carried two: 69.5 `ui_layout.rs` → `tests/ui_layout_status.rs`; 69.8 `datasheet/grid.rs` → `datasheet/grid_model.rs` (split in the gate step after the 69.6 filter map). Phase 71 carried two: the `Command::View` sub-enum keeps `command.rs` at 499; 71.3 `port.rs` → `port/write_op.rs` (514 → 479). Phase 72 carried one: 72.5 `datacraft-sqlite/src/lib.rs` → `rows.rs` (528 → 454, forced by the rename path); `command.rs` stays at 499 via doc compaction (the enum cannot split without a wire-shape decision). Phase 73 carried four: 73.1 `port.rs` → `port/tests.rs` and `port_mock.rs` → `port_mock/builders.rs`; 73.2 `sqlite/lib.rs` → `lifecycle.rs`; 73.3 `i18n/de/ui_chrome.rs` → `de/dialogs.rs`; 73.4 `mapping.rs` → `values.rs` and `sqlite/lib.rs` → `rows_io.rs`. Phase 74 carried none: `jet/port_adapter.rs` entered the band at 488 (native-object cache) and stays under the gate. Phase 75 carried three: 75.1 `app.rs` (491 → 473) → `app/lifecycle.rs`; 75.2 `backstage/pages.rs` (455 → 376) → `backstage/new_database.rs`; the 75.4 gate split `i18n/de/ui_chrome.rs` (495) → `de/tooltips.rs` (386). Phase 76 carried none: the crate split moved `expr/funcs.rs` (497), `expr/format.rs` (462) and `schema/field.rs` (457) into datacraft-expr/-types unchanged, so the band list only changed paths.
+- **Steps:** rides released steps that touch band files; Phase 65 carried five forced splits (65.1 `command.rs` → `command/source.rs` and `tests/command_bus.rs`/`tests/journal.rs` → module files; 65.3 `backstage/pages.rs` → `backstage/info.rs`; 65.4 `tests/server_e2e.rs` → `server_e2e/vba.rs`). Phase 68 carried four more: 68.2 `ribbon.rs` → `ribbon/actions.rs`; 68.3 `app.rs` → `app/notices.rs` + `app/editors.rs` and `flows.rs` → `app/notices.rs`; 68.5 `ui_kittest.rs` → `tests/ui_kittest_backstage_flows.rs`. Phase 69 carried two: 69.5 `ui_layout.rs` → `tests/ui_layout_status.rs`; 69.8 `datasheet/grid.rs` → `datasheet/grid_model.rs` (split in the gate step after the 69.6 filter map). Phase 71 carried two: the `Command::View` sub-enum keeps `command.rs` at 499; 71.3 `port.rs` → `port/write_op.rs` (514 → 479). Phase 72 carried one: 72.5 `datacraft-sqlite/src/lib.rs` → `rows.rs` (528 → 454, forced by the rename path); `command.rs` stays at 499 via doc compaction (the enum cannot split without a wire-shape decision). Phase 73 carried four: 73.1 `port.rs` → `port/tests.rs` and `port_mock.rs` → `port_mock/builders.rs`; 73.2 `sqlite/lib.rs` → `lifecycle.rs`; 73.3 `i18n/de/ui_chrome.rs` → `de/dialogs.rs`; 73.4 `mapping.rs` → `values.rs` and `sqlite/lib.rs` → `rows_io.rs`. Phase 74 carried none: `jet/port_adapter.rs` entered the band at 488 (native-object cache) and stays under the gate. Phase 75 carried three: 75.1 `app.rs` (491 → 473) → `app/lifecycle.rs`; 75.2 `backstage/pages.rs` (455 → 376) → `backstage/new_database.rs`; the 75.4 gate split `i18n/de/ui_chrome.rs` (495) → `de/tooltips.rs` (386). Phase 76 carried none: the crate split moved `expr/funcs.rs` (497), `expr/format.rs` (462) and `schema/field.rs` (457) into datacraft-expr/-types unchanged, so the band list only changed paths. Phase 80 carried one: 80.2 `datacraft-csv/src/lib.rs` (488 → 366) → `table_io.rs` (proactive, the step touched the file for the shared decode path).
 - **Rule:** codified 2026-11-10 as binding method — PLAYBOOK §5 ("split below the gate, not at it") and LESSONS #15; this item stays open as the live band list only.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
 
@@ -51,11 +111,58 @@
 - **Steps:** none yet (Medium gate; candidate for a later phase after M96/Phase 79 fixes the root README structure).
 - **Acceptance:** Every published crate packages its own README (visible in `cargo package --list`); the crates.io page states what the crate is, its feature flags and MSRV, and links the product page; PUBLISHING's checklist names the per-crate README verification; no publish metadata drift.
 
+### [ ] L45 — Tab strip: the selected tab can scroll out of view — 🟢
+- **Location:** `crates/datacraft-ui/src/workspace.rs:46` (the horizontal `ScrollArea` around the tab row).
+- **Problem:** The tab strip has no fitting or scroll-to-selected rule: with many open objects the active tab can sit outside the visible strip, and activation from the nav pane, a command or a lifecycle action does not scroll it back into view. craft-libs' `tabs::fit`/`fit_whole` document the policy (shrink wide tabs before hiding them, always keep the selected tab visible, overflow the rest).
+- **Approach:** Keep the current strip and add a scroll-to-selected rule on activation; only if that proves insufficient, add a width policy (shrink wide tabs, overflow list) with the math in core. No dependency.
+- **Acceptance:** Activating an off-screen tab scrolls the strip to it (kittest/layout_probe pin); every tab stays reachable by pointer and keyboard; the selected tab is always visible after nav-pane activation and lifecycle-driven activation.
+- **Steps:** none yet.
+
+### [ ] L46 — Native menu bar on macOS — decision — 🟢
+- **Location:** the shell roots (`crates/datacraft-ui/src/app.rs`, `shell.rs`) and the macOS target gate; no menu-bar module exists.
+- **Problem:** macOS apps are expected to provide a menu bar (App/File/Edit/View/Window/Help) with the standard About, Settings, Services, Hide and Quit items, and a Window menu listing open documents. DataCraft ships a ribbon-only shell, so those platform affordances are absent and standard chords such as Cmd+Q are not routed through the app's policies. craft-libs' `craft-menu` documents the role-based layout (items found by role, not title) and a native macOS backend.
+- **Approach:** A time-boxed decision: whether to add a macOS-only menu bar that dispatches the existing command vocabulary (no new commands), built either with a small own module or an adopted menu crate. The ribbon stays the primary surface on every platform.
+- **Acceptance:** A written decision record; if yes, the menu items dispatch existing commands only, their key equivalents route through the same shortcut model as M99, and Windows/Linux stay visually and behaviourally unchanged.
+- **Steps:** none yet.
+
+### [ ] L47 — Design pass: density, typography, spacing on the current build — 🟢
+- **Location:** the shell surfaces (ribbon, QAT, nav pane, datasheet, backstage, tool windows, form/report designers).
+- **Problem:** M42/M78 closed concrete chrome findings, but no subjective density/typography/spacing pass has run against the current build. Without a protocol such a pass becomes an unbounded task and slips into unmeasured changes.
+- **Approach:** The human reviews the running build against Access's density conventions (information per screen, row height, label hierarchy, alignment) and writes the findings down; each accepted finding becomes its own item with location and acceptance. The review itself changes no code. Keep the existing token system; no framework or shell rewrite rides this pass.
+- **Acceptance:** A review log (screenshots before/after where applicable); every accepted finding exists as its own item; no change lands without a pin or a stated visual acceptance.
+- **Steps:** none yet (starts with the human's live review).
+
+### [ ] L48 — Nav pane: no object search, multi-select or local groups and colours — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` and the nav model in core (U9 added the category dropdown, context menu and sort).
+- **Problem:** The nav pane lists objects in one compact tree per category. For a database with hundreds of objects there is no list/grid overview, no local folders or colours, no multi-select/drag grouping, and no search across objects. The reference client's object explorer offers all four as local preferences (nothing that changes the database).
+- **Approach:** Add a search/filter field and multi-select first (small, no schema change); list/grid and local groups/colours are UI-owned preferences stored in `ui.json` keyed by database identity, never in the sidecar. Reuse the nav sort and the existing object-kind vocabulary.
+- **Acceptance:** Typing in the search narrows the visible objects across categories with a case-insensitive match and a clear empty state; multi-select works with Shift/Ctrl and the context menu acts on the selection; groups and colours persist per database path and never touch the sidecar or the database file; behaviour doc.
+- **Steps:** none yet.
+
+### [ ] L49 — Tabs: no close-to-side and no reuse of an idle tab — 🟢
+- **Location:** the tab context menu and `CloseOtherTabs`/`CloseAllTabs` (U10), and the open-object paths that always create a new tab.
+- **Problem:** The context menu closes a tab, the others or all, but not the tabs to the left/right; and every activation opens another tab even when the same object is already open and idle. The reference client reuses an idle tab (no pending changes) for navigation targets and closes to either side.
+- **Approach:** Two small additions: Close to the Left/Right as bus commands (additive wire vocabulary, same shape as U10) and a reuse policy in the open-object path (activate the existing tab when the object is already open in the requested mode and has no pending edits; H61 introduces that state). No new UI surface beyond two context-menu entries.
+- **Acceptance:** Close to the Left/Right closes exactly the expected tabs and keeps the active one; activating an already-open idle object activates its tab instead of opening a second one; an object with pending edits is never replaced; JSON-RPC pins for the two new commands.
+- **Steps:** none yet.
+
+### [ ] L50 — No low-power/RDP rendering mode — 🟢
+- **Location:** the eframe/wgpu composition (`crates/datacraft-ui/src/main.rs`, `app.rs`); no rendering-mode policy exists.
+- **Problem:** Enterprise Access users often run over Remote Desktop or on software adapters, where every drawn frame is rasterized and re-encoded. The reference client detects a software adapter or RDP session and switches to a low-power mode (30 fps cap, one-frame wheel steps, no animations or blurred shadows, frame-statistics overlay), while still repainting only on input or when a result arrives.
+- **Approach:** Decide first whether the automatic detection is worth a platform probe (wgpu adapter info, `SM_REMOTESESSION` on Windows); then a small mode switch that only changes repaint/animation policy, with a settings entry and an env override. No renderer change, no new drawing path.
+- **Acceptance:** A decision record names the detection mechanism and the mode's measurable effects; if implemented, frame-statistics show the cap only while interacting, idle repaint stays zero, the setting persists, and the mode can be forced for a review; behaviour doc.
+- **Steps:** none yet.
+
 ---
 
 ## 🔵 TEST GAPS
 
-> No open items.
+### [ ] T11 — Glyph coverage of the shipped UI fonts is untested — 🔵
+- **Location:** `crates/datacraft-ui/src/theme/fonts.rs` (Inter and its named cuts in front of egui's defaults), the de/en catalogs under `crates/datacraft-ui/src/i18n/`, and every painter that draws a glyph instead of typing it.
+- **Problem:** egui draws a character no installed face covers as tofu; the project already hit two cases (F12 combo caret, H53 ✕ U+2715) and fixed them by painting instead of typing. Nothing mechanically checks that every character the UI can render — catalog strings, database/object/file names, formatted values — has a glyph in the shipped stack, so the next missing character reaches users unnoticed.
+- **Approach:** A test that walks both catalogs plus a sample of hostile names (CJK, emoji, accents, symbols) and asks the installed `FontDefinitions` (or a small cmap reader over the embedded faces) whether a glyph exists; it fails naming the language, key and code point. Intentionally painted glyphs get an explicit allowlist so the check does not flag them. craft-libs' `fonts::assert_covers` is the reference.
+- **Acceptance:** The test fails on an injected missing character (RED evidenced before the GREEN), passes on the shipped stack, names language/key/code point, and runs headless without a GPU.
+- **Steps:** none yet.
 
 ---
 

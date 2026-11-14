@@ -9,6 +9,24 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+### Changed
+- core: atomic file saves (databases, sidecars, settings) are durable and
+  concurrency-safe (80, H60) — every replacement now stages into a unique
+  per-writer file (process id + counter), flushes it to disk before the
+  rename, syncs the parent directory best-effort on Unix, restores the
+  replaced file's permissions, resolves symlinked targets through the link,
+  and retries the Windows sharing/lock errors (antivirus scanners, search
+  indexer) with a bounded backoff. A crash between staging and the rename
+  leaves the live file byte-identical with at most one orphan staging file.
+- core/csv: CSV sources open beyond UTF-8-comma (80, H59) — one shared decode
+  path behind the Import File flow and the CSV driver accepts valid UTF-8
+  (with or without BOM), UTF-16LE/BE byte-order-mark streams and
+  Windows-1252, and sniffs the delimiter (comma, semicolon, tab) outside
+  quotes; undecodable bytes still refuse precisely instead of decoding
+  lossily, and the Import File preview names the detected encoding and
+  delimiter (German and English). Existing UTF-8 comma files keep their
+  byte-identical results.
+
 ## [0.2.0] — 2026-11-14
 
 ### Added
