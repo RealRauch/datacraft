@@ -48,13 +48,6 @@
 - **Acceptance:** A transient DNS failure no longer reddens the ubuntu oracle job; a persistent failure still fails after the bounded retries, and the retry attempts are visible in the log.
 - **Steps:** none yet (High gate).
 
-### [ ] M95 — ARCHITECTURE §13 phase mapping stops at phase 47 — 🟢
-- **Location:** `docs/ARCHITECTURE.md` §13 phase mapping (last row: phase 47).
-- **Problem:** The table claims to map the delivered phases, but phases 48–78 are missing; `PROGRESS.md`, `CHANGELOG.md` and `docs/ROADMAP.md` are current. A reader of the architecture blueprint sees a stale picture. The README half of the original finding (a 64-row roadmap table ending at phase 64) is retired with the README restructure — no table is carried forward there.
-- **Approach:** add the missing rows from `CHANGELOG.md`/`PROGRESS.md` at the next documentation pass (one verified line per phase, grouping where the existing table already groups); no code change. Rides Phase 79 step 79.6 with the README roadmap retirement.
-- **Acceptance:** every delivered phase in `PROGRESS.md` appears with its one-line deliver in ARCHITECTURE §13; `docs_validate` clean.
-- **Steps:** Phase 79 step 79.6.
-
 ### [ ] L44 — Every published crate inherits the root product README as its crates.io page — 🟢
 - **Location:** `Cargo.toml` `[workspace.package] readme = "README.md"` and `readme.workspace = true` in all ten crate manifests; the packaged root README is the crates.io landing text for `datacraft-types`, `-expr`, `-query`, `-core`, `-jet`, `-sqlite`, `-csv`, `-storage`, `-mcp` and `-import`.
 - **Problem:** A consumer of `datacraft-types` or `datacraft-jet` lands on a desktop-app product page that describes the Access UI and cannot be acted on from a library context; the crate's own purpose, public surface, feature flags and test seam are absent. The mismatch grows with every README shortening (M96) because less of the page will be relevant to the published crates.
