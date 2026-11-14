@@ -145,10 +145,10 @@ fn retry_with<T>(
 /// Best-effort parent-directory sync so the rename itself is durable.
 #[cfg(unix)]
 fn sync_parent(target: &Path) {
-    if let Some(parent) = target.parent() {
-        if let Ok(directory) = std::fs::File::open(parent) {
-            let _ = directory.sync_all();
-        }
+    if let Some(parent) = target.parent()
+        && let Ok(directory) = std::fs::File::open(parent)
+    {
+        let _ = directory.sync_all();
     }
 }
 

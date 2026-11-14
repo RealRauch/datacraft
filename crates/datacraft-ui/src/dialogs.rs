@@ -2,19 +2,14 @@
 //! model is step 81.1, item M97).
 //!
 //! `rfd` drives the platform dialogs (Windows common dialogs, NSOpenPanel,
-//! GTK portals). Two models live here:
-//!
-//! - The **legacy synchronous** [`DialogHost`] (M43) answers inside the
-//!   call — it is being retired by M97 and stays only until the last
-//!   call site migrated (step 81.2).
-//! - The **queued** [`DialogQueue`] (M97): a flow parks a
-//!   [`DialogRequest`] and receives the [`DialogAnswer`] through
-//!   `poll_answer` on a later frame, so no call site ever blocks inside
-//!   a frame. The native host runs rfd's async dialogs (non-modal
-//!   panels) on a helper thread through the minimal `std::task::Wake`
-//!   executor in [`block_on`] — no async runtime, no new dependency —
-//!   because a synchronous `runModal` inside winit's event handler is
-//!   the documented macOS abort class (craft-libs' `craft-dialogs`).
+//! GTK portals). The seam is the **queued** [`DialogQueue`] (M97): a flow
+//! parks a [`DialogRequest`] and receives the [`DialogAnswer`] through
+//! `poll_answer` on a later frame, so no call site ever blocks inside
+//! a frame. The native host runs rfd's async dialogs (non-modal
+//! panels) on a helper thread through the minimal `std::task::Wake`
+//! executor in `block_on` — no async runtime, no new dependency —
+//! because a synchronous `runModal` inside winit's event handler is
+//! the documented macOS abort class (craft-libs' `craft-dialogs`).
 //!
 //! Two fences, decided in M43: native dialogs speak the OS language (outside
 //! the i18n catalog by design — Excel behaves the same), while the prompt
@@ -70,7 +65,7 @@ pub trait DialogQueue {
 /// on a helper thread so the frame never blocks (step 81.1, item M97).
 ///
 /// Every request spawns one short-lived thread that drives the dialog's
-/// future through [`block_on`] and mails the answer back; the UI polls
+/// future through `block_on` and mails the answer back; the UI polls
 /// the channel once per frame. The dialog itself is presented by rfd's
 /// per-platform async backend (a non-modal panel), so no modal loop is
 /// ever nested inside winit's event handler — the documented macOS
