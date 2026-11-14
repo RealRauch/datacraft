@@ -1272,6 +1272,54 @@ own observation — but it does mean a no-Access migration route exists and
 is tracked in M88. The free Access Runtime is not an export substitute:
 runtime mode disables the design surfaces and the VBA editor.
 
+## M88 feasibility — jetdb against the committed exports (77.1, 2026-11-14)
+
+**Method.** `jetdb-cli` 0.4.0 (MIT OR Apache-2.0, pure Rust; installed with
+`cargo install jetdb-cli --version 0.4.0`) was run read-only against
+`fixtures/programmability.accdb` (manifest sha256
+`6735f409…3417989`, re-checked unchanged after the run) with `jetdb form
+list`, `jetdb form props` and `jetdb form controls`. Ground truth: the
+committed SaveAsText exports under
+`tools/fixture-build/objects/{forms,reports}/`.
+
+**Inventory.** `form list` returns exactly the four committed objects —
+Items Browser, Movement Editor, Category Picker (forms) and Stock Summary
+(report). `form controls` returns the same control sequence and types as
+the exports: the Detail section plus TextBox/Label/CommandButton controls
+in tab order.
+
+**Properties.** 75 compared control properties (Left/Top/Width/Height,
+ControlSource, Caption over 15 controls): **61 exact, 14 omitted with the
+value equal to the Access default (Left/Top = 0, TextBox Width = 1440),
+0 other discrepancies**. Form/report level: Width 8884, Caption,
+RecordSource and the Detail height (1500/1200/1500) match; text values
+match after quote normalization. A small default table therefore
+reconstructs every rect of this fixture exactly.
+
+**Known quirks.**
+
+1. Default-valued properties are omitted (the export writes them
+   explicitly): Label Left/Top = 0, TextBox Width = 1440. Reconstruction
+   needs Access's per-control default table; a generated fixture with
+   distinctive values must pin it (77.3).
+2. Two-byte numeric properties above 32767 render signed: Right/Bottom are
+   50000 in SaveAsText and -15536 in jetdb (50000 − 65536). Outside the M88
+   subset (Left/Top/Width/Height are unaffected), but a conversion must
+   reinterpret 2-byte values as unsigned and range-check them, never trust
+   jetdb's sign.
+
+**Coverage gap.** The fixture exercises TextBox, Label, CommandButton and
+the Detail section only. CheckBox, ComboBox and SubForm — three of the six
+M88 control kinds — are documented by jetdb but not yet verified against
+our own ground truth; 77.3 must generate a fixture with all six kinds and
+distinctive property values.
+
+**Verdict: feasible.** jetdb 0.4.0 reproduces the layout-critical
+properties of the committed fixture exactly (apart from reconstructible
+defaults), without Access, without COM and without modifying the file. The
+route decision (77.2) can proceed; the remaining risks are the unverified
+control kinds, the default table, and the signed 2-byte rendering.
+
 ## VBA project extraction (step 17.2, item L5)
 
 The ACE VBA project lives under `MSysAccessStorage`:

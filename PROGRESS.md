@@ -493,7 +493,7 @@ still run and reported, with "no code changed" as the evidence.
 | 76.3 | datacraft-query: extract the QBE model, evaluation and native execution (L37) | ✅ |
 | 76.4 | sql-engine: move the shadow SQL dialect behind the query crate's feature (L37) | ✅ |
 | 76.5 | Documentation and phase gate (L36, L37) | ✅ |
-| 77.1 | Feasibility: jetdb against the committed fixture and the SaveAsText exports | ⬜ |
+| 77.1 | Feasibility: jetdb against the committed fixture and the SaveAsText exports | ✅ |
 | 77.2 | Route decision: own decoder with jetdb as oracle, or a jetdb-linked migration tool | ⬜ |
 | 77.3 | Freeze the supported control/property subset and the fixture pair | ⬜ |
 | 77.4 | Documentation and phase gate | ⬜ |
