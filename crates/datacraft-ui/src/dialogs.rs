@@ -130,3 +130,103 @@ impl DialogHost for ScriptedDialogs {
         }
     }
 }
+
+#[cfg(test)]
+mod queue_contract {
+    //! The request/answer queue contract (step 81.1, item M97): the seam
+    //! parks requests, answers arrive on a later poll, and the scripted
+    //! host answers through the same queue the native host will.
+
+    use std::task::{Context, Poll};
+
+    use super::*;
+
+    #[test]
+    fn the_scripted_host_answers_requests_through_the_same_queue() {
+        let mut host =
+            ScriptedDialogs::new().file(Some("/tmp/a.csv")).confirm(true);
+        host.request(DialogRequest::OpenFile);
+        host.request(DialogRequest::Confirm {
+            title: "Delete Object".into(),
+            message: "Delete Card? This cannot be undone.".into(),
+        });
+        assert_eq!(
+            host.poll_answer(),
+            Some(DialogAnswer::Path(Some(PathBuf::from("/tmp/a.csv"))))
+        );
+        assert_eq!(host.poll_answer(), Some(DialogAnswer::Confirmed(true)));
+        assert_eq!(host.poll_answer(), None, "the queue is drained");
+    }
+
+    #[test]
+    fn an_unscripted_request_answers_cancel_like_the_old_seam() {
+        let mut host = ScriptedDialogs::new();
+        host.request(DialogRequest::SaveFile {
+            suggested: "database.mdb".into(),
+        });
+        assert_eq!(host.poll_answer(), Some(DialogAnswer::Path(None)));
+        host.request(DialogRequest::Confirm {
+            title: "t".into(),
+            message: "m".into(),
+        });
+        assert_eq!(host.poll_answer(), Some(DialogAnswer::Confirmed(false)));
+        assert_eq!(host.poll_answer(), None, "no request, no answer");
+    }
+
+    #[test]
+    fn the_requests_are_recorded_for_test_pins() {
+        let mut host = ScriptedDialogs::new();
+        host.request(DialogRequest::SaveFile {
+            suggested: "database.mdb".into(),
+        });
+        host.request(DialogRequest::OpenFolder);
+        assert_eq!(
+            host.requests(),
+            &[
+                DialogRequest::SaveFile {
+                    suggested: "database.mdb".into()
+                },
+                DialogRequest::OpenFolder,
+            ]
+        );
+    }
+
+    #[test]
+    fn the_answer_kinds_stay_distinguishable() {
+        assert_ne!(DialogAnswer::Path(Some(PathBuf::from("x"))), DialogAnswer::Path(None));
+        assert_ne!(DialogAnswer::Path(None), DialogAnswer::Unavailable);
+        assert_ne!(DialogAnswer::Confirmed(true), DialogAnswer::Unavailable);
+    }
+
+    #[test]
+    fn the_mini_executor_drives_ready_and_woken_futures() {
+        assert_eq!(super::block_on(async { 41 + 1 }), 42);
+
+        /// Goes pending on the first poll, schedules a wake on another
+        /// thread, and completes on the second — the condvar executor
+        /// must park and re-poll, not spin.
+        struct WakeLater(Option<std::task::Waker>);
+        impl Future for WakeLater {
+            type Output = u8;
+            fn poll(
+                mut self: std::pin::Pin<&mut Self>,
+                cx: &mut Context<'_>,
+            ) -> Poll<u8> {
+                match self.0.take() {
+                    None => {
+                        let waker = cx.waker().clone();
+                        let wake = waker.clone();
+                        std::thread::spawn(move || {
+                            std::thread::sleep(std::time::Duration::from_millis(10));
+                            wake.wake();
+                        });
+                        self.0 = Some(waker);
+                        Poll::Pending
+                    }
+                    Some(_) => Poll::Ready(9),
+                }
+            }
+        }
+        assert_eq!(super::block_on(WakeLater(None)), 9);
+    }
+}
