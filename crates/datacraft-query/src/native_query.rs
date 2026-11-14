@@ -1,7 +1,8 @@
 //! The native saved-query vocabulary (M3) — split from the port root
-//! (step 36.7) to keep every file under the 500-line size gate. The
-//! decodable MSysQueries subset and its QBE projection live here; the
-//! port root owns the trait.
+//! (step 36.7) to keep every file under the 500-line size gate, then
+//! moved with the query layer (step 76.3, item L37). The decodable
+//! MSysQueries subset and its QBE projection live here; the command
+//! layer's port root re-exports the vocabulary and owns the trait.
 
 use serde::{Deserialize, Serialize};
 

@@ -4,9 +4,9 @@
 //! a slot that is not bound yet reads as `Null`, which gives outer joins
 //! their null extension without a second materialization.
 
-use crate::expr::Expression;
-use crate::port::{NativeJoin, NativeJoinKind};
-use crate::schema::{FieldValue, TableDef};
+use crate::native_query::{NativeJoin, NativeJoinKind};
+use datacraft_expr::Expression;
+use datacraft_types::{FieldValue, TableDef};
 
 use super::{NativeExecError, unsupported};
 
@@ -43,12 +43,13 @@ pub(crate) fn parse(
     join: &NativeJoin,
     from_tables: &[&TableDef],
 ) -> Result<JoinPlan, NativeExecError> {
-    let expression =
-        crate::expr::parse(&join.expression).map_err(|error| NativeExecError::BadExpression {
+    let expression = datacraft_expr::parse(&join.expression).map_err(|error| {
+        NativeExecError::BadExpression {
             source: join.expression.clone(),
             detail: error.to_string(),
-        })?;
-    let Expression::Compare(crate::expr::CompareOp::Equal, left, right) = expression else {
+        }
+    })?;
+    let Expression::Compare(datacraft_expr::CompareOp::Equal, left, right) = expression else {
         return unsupported(format!(
             "join {:?} is outside the executable subset — only equality joins execute",
             join.expression

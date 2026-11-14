@@ -8,10 +8,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::expr::{Expression, Scope};
-use crate::port::NativeQueryColumn;
+use crate::native_query::NativeQueryColumn;
 use crate::query_engine::QueryResult;
-use crate::schema::{FieldValue, TableDef};
+use datacraft_expr::{Expression, Scope};
+use datacraft_types::{FieldValue, TableDef};
 
 use super::NativeExecError;
 use super::join::PartialRow;
@@ -90,7 +90,7 @@ pub(crate) fn parse_expression(
     from_tables: &[&TableDef],
 ) -> Result<Expression, NativeExecError> {
     let expression =
-        crate::expr::parse(source).map_err(|error| NativeExecError::BadExpression {
+        datacraft_expr::parse(source).map_err(|error| NativeExecError::BadExpression {
             source: source.to_owned(),
             detail: error.to_string(),
         })?;

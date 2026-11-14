@@ -10,7 +10,7 @@ use datacraft_types::{FieldDef, FieldKind, FieldValue, NumericKind, compare, par
 use crate::query_engine::EngineError;
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum Predicate {
+pub enum Predicate {
     Equal(FieldValue),
     NotEqual(FieldValue),
     Less(FieldValue),
@@ -27,7 +27,7 @@ impl Predicate {
     /// Evaluates against a row value (NULL never satisfies). Complex values
     /// use EXISTS semantics: the predicate holds when at least one
     /// sub-record's scalar satisfies it (step 16.1, M4).
-    pub(crate) fn matches(&self, value: &FieldValue) -> bool {
+    pub fn matches(&self, value: &FieldValue) -> bool {
         if let FieldValue::Complex(records) = value {
             return records
                 .iter()
@@ -43,7 +43,7 @@ impl Predicate {
             return false;
         }
         if let Predicate::Like(pattern) = self {
-            return crate::expr::like::matches(&crate::present::display_value(value), pattern);
+            return datacraft_expr::like::matches(&datacraft_types::display_value(value), pattern);
         }
         let literal = match self {
             Predicate::Equal(v)
@@ -72,7 +72,7 @@ impl Predicate {
 /// literal per the column kind. A plain value means equality. The Access
 /// forms outside the typed subset are recognized and answered precisely —
 /// they never degrade to an equality fallback (step 39.3, item M37).
-pub(crate) fn parse_predicate(
+pub fn parse_predicate(
     text: &str,
     field: &str,
     column: &FieldDef,
@@ -171,7 +171,7 @@ fn like_predicate(pattern: &str, field: &str, column: &FieldDef) -> Result<Predi
             criteria: format!("Like \"{pattern}\""),
             detail: format!(
                 "Like is only supported on text columns, not on {}",
-                crate::present::field_kind_display(&column.kind)
+                datacraft_types::field_kind_display(&column.kind)
             ),
         });
     }
@@ -188,7 +188,7 @@ fn coerce(literal: &str, kind: &FieldKind) -> Result<FieldValue, String> {
         FieldKind::Number(NumericKind::Byte)
         | FieldKind::Number(NumericKind::Integer)
         | FieldKind::Number(NumericKind::LongInteger)
-        | FieldKind::AutoNumber(crate::schema::AutoKind::LongInteger) => unquoted
+        | FieldKind::AutoNumber(datacraft_types::AutoKind::LongInteger) => unquoted
             .parse::<i64>()
             .map(FieldValue::Integer)
             .map_err(|e| format!("{unquoted:?} is not an integer ({e})")),
@@ -223,12 +223,12 @@ fn coerce(literal: &str, kind: &FieldKind) -> Result<FieldValue, String> {
         // Multi-value criteria coerce to the element family; the predicate
         // then applies with EXISTS semantics over the sub-records.
         FieldKind::MultiValue(multi) => coerce(literal, &multi.element_kind()),
-        FieldKind::AutoNumber(crate::schema::AutoKind::ReplicationId)
+        FieldKind::AutoNumber(datacraft_types::AutoKind::ReplicationId)
         | FieldKind::Guid
         | FieldKind::Binary(_)
         | FieldKind::Complex => Err(format!(
             "criteria are not supported on {:?} columns",
-            crate::present::field_kind_display(kind)
+            datacraft_types::field_kind_display(kind)
         )),
     }
 }

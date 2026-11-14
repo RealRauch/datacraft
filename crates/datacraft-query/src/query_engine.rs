@@ -10,8 +10,8 @@ use crate::qbe::{QueryDef, SortOrder};
 use datacraft_types::compare;
 
 use crate::query_criteria::{Predicate, parse_predicate};
-use crate::schema::FieldValue;
-use crate::schema::TableDef;
+use datacraft_types::FieldValue;
+use datacraft_types::TableDef;
 
 /// Result of a query execution.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -224,9 +224,9 @@ fn sort_rows(
 mod tests {
     use super::*;
     use crate::qbe::QbeField;
-    use crate::schema::FieldValue;
-    use crate::schema::TableDef;
-    use crate::schema::{FieldDef, FieldKind, NumericKind};
+    use datacraft_types::FieldValue;
+    use datacraft_types::TableDef;
+    use datacraft_types::{FieldDef, FieldKind, NumericKind};
 
     fn one_row(value: FieldValue) -> Vec<Vec<FieldValue>> {
         vec![vec![value]]

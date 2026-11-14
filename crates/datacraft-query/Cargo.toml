@@ -1,0 +1,18 @@
+[package]
+name = "datacraft-query"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "QBE model, criteria parsing and query evaluation of DataCraft"
+
+[dependencies]
+datacraft-expr = { workspace = true }
+datacraft-types = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true

@@ -7,6 +7,7 @@ members = [
     "crates/datacraft-expr",
     "crates/datacraft-jet",
     "crates/datacraft-mcp",
+    "crates/datacraft-query",
     "crates/datacraft-sqlite",
     "crates/datacraft-storage",
     "crates/datacraft-types",
@@ -35,6 +36,7 @@ datacraft-csv = { path = "crates/datacraft-csv", version = "0.1.3" }
 datacraft-expr = { path = "crates/datacraft-expr", version = "0.1.3" }
 datacraft-jet = { path = "crates/datacraft-jet", version = "0.1.3" }
 datacraft-mcp = { path = "crates/datacraft-mcp", version = "0.1.3" }
+datacraft-query = { path = "crates/datacraft-query", version = "0.1.3" }
 datacraft-sqlite = { path = "crates/datacraft-sqlite", version = "0.1.3" }
 datacraft-storage = { path = "crates/datacraft-storage", version = "0.1.3" }
 datacraft-types = { path = "crates/datacraft-types", version = "0.1.3" }

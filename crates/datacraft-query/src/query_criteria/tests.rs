@@ -1,7 +1,7 @@
 //! Predicate parsing/matching pins (step 43.1, item T9): family-safe
 //! comparison arms, Like gating and the numeric-literal coercions.
 
-use crate::schema::{AutoKind, BinaryKind, NumericKind, TableDef};
+use datacraft_types::{AutoKind, BinaryKind, NumericKind, TableDef};
 
 use super::*;
 
@@ -171,7 +171,7 @@ fn text_criteria_case_fence_is_pinned() {
 fn predicates_pin_their_ordering_arms_and_like_refuses_non_text() {
     let table = kind_of(
         "t",
-        crate::schema::FieldKind::Number(crate::schema::NumericKind::LongInteger),
+        datacraft_types::FieldKind::Number(datacraft_types::NumericKind::LongInteger),
     );
     let column = &table.fields[0];
     // Every predicate is evaluated against the literal's own value 2:

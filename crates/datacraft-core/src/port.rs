@@ -10,13 +10,12 @@ use serde::{Deserialize, Serialize};
 use crate::schema::{FieldValue, TableDef};
 
 mod capabilities;
-mod native_query;
 mod native_view;
 mod source_objects;
 mod write_op;
 
 pub use capabilities::{DriverCapabilities, DriverId, DriverInfo, Support};
-pub use native_query::{
+pub use datacraft_query::native_query::{
     NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
 };
 pub use native_view::NativeView;

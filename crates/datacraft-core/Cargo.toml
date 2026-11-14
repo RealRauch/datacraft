@@ -11,6 +11,7 @@ description = "Headless domain model, command bus and application state for Data
 
 [dependencies]
 datacraft-expr = { workspace = true }
+datacraft-query = { workspace = true }
 datacraft-types = { workspace = true }
 csv = { workspace = true }
 rusqlite = { workspace = true, optional = true }

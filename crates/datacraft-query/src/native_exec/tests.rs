@@ -2,8 +2,10 @@
 //! the row cap, unbound-table handling, the wildcard parser and every
 //! error display arm.
 
-use crate::port::{NativeJoin, NativeJoinKind, NativeQuery, NativeQueryColumn, NativeQueryKind};
-use crate::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
+use crate::native_query::{
+    NativeJoin, NativeJoinKind, NativeQuery, NativeQueryColumn, NativeQueryKind,
+};
+use datacraft_types::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 
 use super::{NativeExecError, run_with_limit};
 
@@ -385,7 +387,7 @@ fn order_by_must_be_a_plain_field() {
     let (a, _) = two_tables();
     let sources = vec![(&a, rows(&[1]))];
     let mut native = query(&["A"], vec![column("A.id")]);
-    native.order_by.push(crate::port::NativeOrder {
+    native.order_by.push(crate::native_query::NativeOrder {
         field: "A.id + 1".to_owned(),
         descending: false,
     });

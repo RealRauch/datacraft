@@ -18,9 +18,9 @@
 
 use std::collections::BTreeSet;
 
-use crate::port::{NativeQuery, NativeQueryKind};
+use crate::native_query::{NativeQuery, NativeQueryKind};
 use crate::query_engine::QueryResult;
-use crate::schema::{FieldValue, TableDef};
+use datacraft_types::{FieldValue, TableDef};
 
 mod join;
 mod project;
@@ -170,7 +170,7 @@ fn run_with_limit(
             let b_bound = bound[plan.b.0];
             match (a_bound, b_bound) {
                 (true, true) => {
-                    if plan.kind != crate::port::NativeJoinKind::Inner {
+                    if plan.kind != crate::native_query::NativeJoinKind::Inner {
                         return unsupported(format!(
                             "outer join {:?} is outside the subset — it must connect a new table",
                             plan.source
