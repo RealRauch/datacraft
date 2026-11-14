@@ -71,6 +71,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Detected encoding: {encoding} — delimiter: {delimiter}",
         "Erkannte Kodierung: {encoding} — Trennzeichen: {delimiter}",
     ),
+    (
+        "The dialog could not be shown — the action was not carried out.",
+        "Der Dialog konnte nicht geöffnet werden — die Aktion wurde nicht ausgeführt.",
+    ),
     ("Import File", "Datei importieren"),
     ("Info", "Info"),
     ("Label", "Bezeichnungsfeld"),

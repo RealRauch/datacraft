@@ -46,11 +46,12 @@ fn import_window_body(app: &mut App, ui: &mut egui::Ui) {
         if field.labelled_by(label.id).changed() {
             app.set_import_source(source.clone());
         }
-        if ui.button(t("Browse…")).clicked()
-            && let Some(picked) = app.dialogs.pick_open_file()
-        {
-            app.set_import_source(picked.to_string_lossy().into_owned());
-            app.dispatch(Command::PreviewImportFile { source: picked });
+        if ui.button(t("Browse…")).clicked() {
+            // The picked source lands on a later frame (step 81.2, M97).
+            app.request_dialog(
+                crate::dialogs::DialogRequest::OpenFile,
+                crate::app::dialog_flow::DialogIntent::ImportSource,
+            );
         }
     });
     ui.horizontal(|ui| {

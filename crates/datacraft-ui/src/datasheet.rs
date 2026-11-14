@@ -219,16 +219,19 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     if let Some(row) = delete_intent {
         let cache_row = cache_of_display.get(row).copied().unwrap_or(row);
         // Destructive-action confirmation through the dialog seam (step
-        // 38.3, item M43); native dialogs speak the OS language.
-        if app.dialogs.confirm(
-            "Delete Record",
-            "This permanently deletes the selected record from the database. Delete it?",
-        ) {
-            app.dispatch(Command::DeleteRow {
+        // 38.3, item M43; parked on a later frame, step 81.2, M97);
+        // native dialogs speak the OS language.
+        app.request_dialog(
+            crate::dialogs::DialogRequest::Confirm {
+                title: "Delete Record".to_owned(),
+                message: "This permanently deletes the selected record from the database.                           Delete it?"
+                    .to_owned(),
+            },
+            crate::app::dialog_flow::DialogIntent::DeleteRow {
                 table: tab.object_name.clone(),
                 row: cache_row,
-            });
-        }
+            },
+        );
     }
     app.set_column_widths(tab.id, widths.clone());
     if let Some(row) = selected {

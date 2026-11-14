@@ -19,6 +19,7 @@ use datacraft_core::schema::FieldValue;
 use datacraft_core::snapshot::UiStateSnapshot;
 
 mod caches;
+pub(crate) mod dialog_flow;
 mod editors;
 mod form_edit;
 mod grid_state;
@@ -166,8 +167,12 @@ pub struct App {
     /// load pass.
     pub(crate) load_errors: HashMap<TabId, String>,
     /// The dialog seam: platform dialogs in the binary, scripted in the
-    /// headless suite (step 38.3, item M43).
-    pub(crate) dialogs: Box<dyn crate::dialogs::DialogHost>,
+    /// headless suite (step 38.3, item M43); the queued model answers on
+    /// a later frame (step 81.1, item M97).
+    pub(crate) dialogs: Box<dyn crate::dialogs::DialogQueue>,
+    /// The parked follow-up of the outstanding dialog request (step
+    /// 81.2, item M97); `None` while no dialog is open.
+    pending_dialog: Option<dialog_flow::DialogIntent>,
 }
 
 impl App {
@@ -181,6 +186,7 @@ impl App {
             core,
             snapshot,
             dialogs: Box::new(crate::dialogs::NativeDialogs::default()),
+            pending_dialog: None,
             open_path: String::new(),
             active_object_kind: None,
             active_ribbon_tab,

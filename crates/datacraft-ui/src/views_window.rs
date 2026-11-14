@@ -109,15 +109,21 @@ impl App {
         self.view_results.get(&tab_id)
     }
 
-    /// Deletes a view after the native confirmation.
+    /// Deletes a view after the native confirmation, which parks and
+    /// dispatches on a later frame (step 81.2, item M97).
     pub fn delete_view(&mut self, name: &str) {
         let message = tr("Delete {name}? This cannot be undone.", &[("name", name)]);
-        if !self.dialogs.confirm(t("Delete Object"), &message) {
-            return;
-        }
-        self.dispatch(Command::View(ViewCommand::Delete {
-            name: name.to_owned(),
-        }));
+        self.request_dialog(
+            crate::dialogs::DialogRequest::Confirm {
+                title: t("Delete Object").to_owned(),
+                message,
+            },
+            crate::app::dialog_flow::DialogIntent::DeleteObject {
+                command: Command::View(ViewCommand::Delete {
+                    name: name.to_owned(),
+                }),
+            },
+        );
     }
 }
 

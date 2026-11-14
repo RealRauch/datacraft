@@ -21,6 +21,10 @@ pub(crate) const STATUS_TABLES: &str = "{database} ({format}) — {count} tables
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // The dialog poll leads the frame (step 81.2, item M97): an
+        // answer from a previous frame runs its parked intent before
+        // anything paints — including the backstage early-return below.
+        self.poll_dialogs();
         self.rescue_window_position(ui.ctx());
         self.capture_window_geometry(ui.ctx());
         self.sync_window_title(ui.ctx());

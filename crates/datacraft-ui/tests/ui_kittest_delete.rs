@@ -59,6 +59,9 @@ fn delete_harness(app: App) -> Harness<'static, App> {
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
+            // The focused harness stands in for the shell: the dialog
+            // poll leads the frame (step 81.2, item M97).
+            app.poll_dialogs();
             let Some(tab) = app.snapshot().tabs.first().cloned() else {
                 return;
             };
@@ -101,6 +104,10 @@ fn delete_record_menu_removes_the_row_after_confirmation() {
 
     right_click_selector(&mut harness);
     harness.get_by_label("Delete Record").click();
+    // The confirmation parks in the click's frame and dispatches on the
+    // one after (step 81.2, item M97) — one more frame than the old
+    // synchronous seam.
+    harness.run();
     harness.run();
     harness.run();
 
@@ -215,6 +222,7 @@ fn delete_key_removes_the_selected_record_after_confirmation() {
     harness.get_by_label("     2").click();
     harness.run();
     harness.key_press(egui::Key::Delete);
+    harness.run();
     harness.run();
     harness.run();
 

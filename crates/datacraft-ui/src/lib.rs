@@ -60,6 +60,8 @@ pub mod workspace;
 #[cfg(test)]
 mod app_tests;
 #[cfg(test)]
+mod dialog_flow_tests;
+#[cfg(test)]
 mod keys_tests;
 #[cfg(test)]
 mod settings_tests;

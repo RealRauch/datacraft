@@ -132,13 +132,15 @@ impl App {
             datacraft_core::ObjectKind::Macro | ObjectKind::Module => return,
         };
         let message = crate::i18n::tr("Delete {name}? This cannot be undone.", &[("name", name)]);
-        if !self
-            .dialogs
-            .confirm(crate::i18n::t("Delete Object"), &message)
-        {
-            return;
-        }
-        self.dispatch(command);
+        // The confirmation parks and dispatches on a later frame (step
+        // 81.2, item M97); a declined dialog deletes nothing.
+        self.request_dialog(
+            crate::dialogs::DialogRequest::Confirm {
+                title: crate::i18n::t("Delete Object").to_owned(),
+                message,
+            },
+            crate::app::dialog_flow::DialogIntent::DeleteObject { command },
+        );
     }
 
     /// Assigns a form's or report's record source (step 11.6) — the

@@ -37,10 +37,11 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         let browse = ui
             .push_id("backstage.save.browse", |ui| ui.button(t("Browse…")))
             .inner;
-        if tooltips::backstage_response(browse, "backstage.save.browse").clicked()
-            && let Some(path) = app.dialogs.pick_save_file(&suggested)
-        {
-            app.save_as_path = path.display().to_string();
+        if tooltips::backstage_response(browse, "backstage.save.browse").clicked() {
+            app.request_dialog(
+                crate::dialogs::DialogRequest::SaveFile { suggested },
+                crate::app::dialog_flow::DialogIntent::FillSaveCopyPath,
+            );
         }
         ui.checkbox(&mut app.save_as_encrypted, t("Protect with a password"));
         if app.save_as_encrypted {
@@ -60,31 +61,41 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
                 ui.add_enabled(enabled, egui::Button::new(t("Save Copy")))
             })
             .inner;
-        if tooltips::backstage_response(save_copy, "backstage.save.save_copy").clicked()
-            && overwrite_confirmed(app)
-        {
-            intents.push(Command::SaveDatabaseAs {
-                path: app.save_as_path.trim().into(),
-                password: app.save_as_encrypted.then(|| app.save_as_password.clone()),
-            });
+        if tooltips::backstage_response(save_copy, "backstage.save.save_copy").clicked() {
+            save_copy_confirmed(app, intents);
         }
     });
 }
 
-/// The save-copy overwrite gate (step 38.3, item M43): when the target file
-/// already exists, a native confirmation decides — a declined dialog keeps
-/// the existing file untouched.
-fn overwrite_confirmed(app: &mut App) -> bool {
+/// The save-copy confirm path (step 38.3, item M43; parked, step 81.2,
+/// item M97): a fresh target saves immediately; an existing one parks the
+/// native overwrite confirmation — a declined dialog keeps the existing
+/// file untouched, and everything the confirmation needs is captured at
+/// park time so the late answer runs exactly this click's save.
+fn save_copy_confirmed(app: &mut App, intents: &mut Vec<Command>) {
     let target = app.save_as_path.trim().to_owned();
+    let password = app.save_as_encrypted.then(|| app.save_as_password.clone());
     if !std::path::Path::new(&target).exists() {
-        return true;
+        intents.push(Command::SaveDatabaseAs {
+            path: target.into(),
+            password,
+        });
+        return;
     }
     let message = crate::i18n::tr(
         "The file {path} already exists. Overwrite?",
         &[("path", &target)],
     );
-    app.dialogs
-        .confirm(crate::i18n::t("Overwrite File"), &message)
+    app.request_dialog(
+        crate::dialogs::DialogRequest::Confirm {
+            title: crate::i18n::t("Overwrite File").to_owned(),
+            message,
+        },
+        crate::app::dialog_flow::DialogIntent::SaveCopy {
+            path: target,
+            password,
+        },
+    );
 }
 
 /// Change/remove-password flow (step 27.2, item M14).

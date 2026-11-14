@@ -195,10 +195,11 @@ fn location_step(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>, r
     let browse = ui
         .push_id("backstage.new.browse", |ui| ui.button(t("Browse…")))
         .inner;
-    if tooltips::backstage_response(browse, "backstage.new.browse").clicked()
-        && let Some(path) = app.dialogs.pick_save_file(&suggested)
-    {
-        app.new_database.path = path.display().to_string();
+    if tooltips::backstage_response(browse, "backstage.new.browse").clicked() {
+        app.request_dialog(
+            crate::dialogs::DialogRequest::SaveFile { suggested },
+            crate::app::dialog_flow::DialogIntent::FillNewDatabasePath,
+        );
     }
     ui.add_space(8.0);
     let enabled = !restricted && !app.new_database.path.trim().is_empty() && conflict.is_none();

@@ -36,6 +36,9 @@ fn backstage_harness(app: App) -> Harness<'static, App> {
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
+            // The focused harness stands in for the shell: the dialog
+            // poll leads the frame (step 81.2, item M97).
+            app.poll_dialogs();
             datacraft_ui::busy::busy_frame(app, ui);
             datacraft_ui::backstage::backstage_ui(app, ui);
         },
@@ -73,7 +76,8 @@ fn open_browse_fills_the_path_from_the_dialog() {
 }
 
 /// Deleting an object confirms natively first: a declined confirmation
-/// dispatches nothing, an accepted one drops the table.
+/// dispatches nothing, an accepted one drops the table. The confirmation
+/// parks and answers on the poll (step 81.2, item M97).
 #[test]
 fn delete_object_confirms_before_dropping() {
     let mut app = app_with_database();
@@ -81,6 +85,7 @@ fn delete_object_confirms_before_dropping() {
         ScriptedDialogs::new().confirm(false).confirm(true),
     ));
     app.delete_object(datacraft_core::ObjectKind::Table, "Customers");
+    app.poll_dialogs();
     let snapshot = app.snapshot();
     let tables = snapshot.database.as_ref().expect("open").tables.clone();
     assert!(
@@ -88,6 +93,7 @@ fn delete_object_confirms_before_dropping() {
         "a declined confirmation must not dispatch the drop"
     );
     app.delete_object(datacraft_core::ObjectKind::Table, "Customers");
+    app.poll_dialogs();
     let snapshot = app.snapshot();
     let tables = snapshot.database.as_ref().expect("open").tables.clone();
     assert!(
@@ -131,6 +137,9 @@ fn save_copy_gates_the_overwrite_on_confirmation() {
         "a declined overwrite must not dispatch the copy"
     );
     harness.get_by_label("Save Copy").click();
+    // The accepted answer runs on the frame after the park (step 81.2,
+    // item M97).
+    harness.run();
     harness.run();
     let dump = tree_dump(&harness);
     assert!(

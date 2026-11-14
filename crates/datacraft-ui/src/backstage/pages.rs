@@ -115,20 +115,23 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         let browse = ui
             .push_id("backstage.open.browse", |ui| ui.button(t("Browse…")))
             .inner;
-        if tooltips::backstage_response(browse, "backstage.open.browse").clicked()
-            && let Some(path) = app.dialogs.pick_open_file()
-        {
-            app.open_path = path.display().to_string();
+        if tooltips::backstage_response(browse, "backstage.open.browse").clicked() {
+            // The picked path lands on a later frame (step 81.2, M97).
+            app.request_dialog(
+                crate::dialogs::DialogRequest::OpenFile,
+                crate::app::dialog_flow::DialogIntent::FillOpenPath,
+            );
         }
         let browse_folder = ui
             .push_id("backstage.open.browse_folder", |ui| {
                 ui.button(t("Browse Folder…"))
             })
             .inner;
-        if tooltips::backstage_response(browse_folder, "backstage.open.browse_folder").clicked()
-            && let Some(path) = app.dialogs.pick_open_folder()
-        {
-            app.open_path = path.display().to_string();
+        if tooltips::backstage_response(browse_folder, "backstage.open.browse_folder").clicked() {
+            app.request_dialog(
+                crate::dialogs::DialogRequest::OpenFolder,
+                crate::app::dialog_flow::DialogIntent::FillOpenPath,
+            );
         }
     });
     ui.add_space(8.0);

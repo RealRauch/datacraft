@@ -348,7 +348,7 @@ impl crate::app::App {
 
     /// Attaches the dialog host: the binary uses the native dialogs, the
     /// headless suite injects scripted answers (step 38.3, item M43).
-    pub fn set_dialogs(&mut self, host: Box<dyn crate::dialogs::DialogHost>) {
+    pub fn set_dialogs(&mut self, host: Box<dyn crate::dialogs::DialogQueue>) {
         self.dialogs = host;
     }
 

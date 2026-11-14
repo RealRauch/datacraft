@@ -67,6 +67,9 @@ fn backstage_flow_harness(app: App) -> Harness<'static, App> {
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
+            // The focused harness stands in for the shell: the dialog
+            // poll leads the frame (step 81.2, item M97).
+            app.poll_dialogs();
             datacraft_ui::busy::busy_frame(app, ui);
             datacraft_ui::backstage::backstage_ui(app, ui);
         },
