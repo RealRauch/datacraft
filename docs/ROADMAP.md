@@ -387,11 +387,49 @@ same capability-honesty style.
 | CSV | first | the `csv` crate already writes (the datacraft-csv driver uses it for its atomic rewrite); the export command is a new core command, distinct from the CSV *driver* (a directory of tables) |
 | JSON (tables + schema) | early | agent-first surface for MCP consumers; pure data, no styling |
 | xlsx / .ods | after the §7/§8 read drivers | writer candidates are already named there (rust_xlsxwriter, spreadsheet-ods); same deterministic-write rule |
-| PDF from report preview | later | the print preview already paginates in core; PDF is a renderer question, not a core one |
+| PDF from report preview | later (scope below) | the print preview already paginates in core; PDF is a renderer question, not a core one |
 | Print | later | OS print dialog is UI-owned; core stays headless |
 
 Exports are explicit user actions producing new files; the source database
 is never modified. Multi-table (whole-database) export follows single-table.
+
+### PDF report export — scope (2026-11-14, human-approved)
+
+The report print preview is the PDF source: pagination, group bands and
+per-record detail pages already live in core (`ReportDef` plus the preview
+runtime), so PDF is a second render target of the same page model — never a
+second layout implementation. It makes report output shareable with people
+who do not run DataCraft or Access.
+
+Frozen scope for the first step:
+
+- **Surface:** one core export command naming the report and the output
+  path, writing a new file; the source database and its sidecar stay
+  untouched.
+- **Content:** exactly the preview's page sequence — group header → detail
+  pages per record → group footer, including the `Sum/Count/Min/Max/Avg`
+  aggregates; a record-less source exports its empty pages.
+- **Text stays text:** selectable glyphs, not a raster of the preview; the
+  typeface matches the preview (the owning step decides how the font bytes
+  reach the writer — the writer never depends on `datacraft-ui`).
+- **Determinism:** same input state → byte-identical file. Fixed metadata
+  (no wall-clock dates), stable object order, no random IDs — the
+  deterministic-write rule applies to exports too.
+- **Renderer boundary:** core produces the paginated page model, the writer
+  renders it; no layout math in the writer.
+- **Dependency:** a pure-Rust PDF writer behind an optional core feature
+  (the `sql-engine` precedent), so the default-feature core stays
+  dependency-free. New dependency = Medium gate per occurrence. No headless
+  browser, no system print stack, no external service.
+- **Not in the first step:** interactive or scripted PDFs, PDF/A or PDF/UA
+  conformance claims, image embedding, and printing itself (OS-owned, as the
+  matrix row states).
+
+Acceptance for the owning step: an exported fixture report shows the
+preview's page count and page breaks in a standard viewer, its text extracts
+as text, and re-exporting unchanged input is byte-identical; the page model
+is pinned against the preview (state, not pixels) and an unwritable target
+answers a precise error.
 
 ## 12. Text semantics & collation — decision record
 
