@@ -180,7 +180,7 @@ impl App {
         Self {
             core,
             snapshot,
-            dialogs: Box::new(crate::dialogs::NativeDialogs),
+            dialogs: Box::new(crate::dialogs::NativeDialogs::default()),
             open_path: String::new(),
             active_object_kind: None,
             active_ribbon_tab,
