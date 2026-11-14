@@ -179,9 +179,12 @@ Hard rules (CI-enforced):
 ## 7. Documentation and commit discipline
 
 - `README.md`, `PROGRESS.md`, `BACKLOG.md` are living documents. Update the
-  step status (🔄 before, ✅ after verification), README on every behaviour
-  change, and BACKLOG on every found bug/risk/gap. `CHANGELOG.md` is updated
-  at every completed phase — coarse entries per the policy in
+  step status (🔄 before, ✅ after verification), the README only on
+  user-visible surface changes (format path, client, platform, compatibility
+  claim, shipped workflow) — feature detail goes to `docs/FEATURES.md`,
+  evidence to `docs/COMPATIBILITY.md`, gates to `CONTRIBUTING.md` — and
+  BACKLOG on every found bug/risk/gap. `CHANGELOG.md` is updated at every
+  completed phase — coarse entries per the policy in
   `docs/PUBLISHING.md` (§Changelog policy).
 - **No code without a step in `PROGRESS.md`; no known problem without an item
   in `BACKLOG.md`.**
@@ -216,8 +219,11 @@ Hard rules (CI-enforced):
 
 | Question | Document |
 | --- | --- |
+| Contributing, verification set, gates | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Working method, gates, archive rules | [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) |
 | Review checklist and recurring traps | [`docs/LESSONS.md`](docs/LESSONS.md) |
+| Feature inventory | [`docs/FEATURES.md`](docs/FEATURES.md) |
+| Compatibility claims and their evidence | [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) |
 | System design, crate graph, ADRs | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Test strategy, coverage exceptions | [`docs/TESTING.md`](docs/TESTING.md) |
 | Jet/ACE binary-format knowledge | [`docs/FORMAT-JET.md`](docs/FORMAT-JET.md) |

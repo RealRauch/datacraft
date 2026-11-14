@@ -38,31 +38,11 @@ API.
 macOS and Linux.*
 
 > [!NOTE]
-> **DataCraft is in early development.** Phases 1–29 are complete: the
-> UI shell wears the rebased look (neutral tokens, teal accent,
-> Inter/JetBrains Mono typography, original vector iconography and
-> Light/Dark/System appearance), the UI-owned `ui.json` saves atomically
-> and restores the full window geometry, and the Access UI alignment landed
-> (contextual ribbon tabs with the Views split-button, quick access toolbar,
-> File backstage, datasheet/nav-pane/tab UX, window title and keyboard
-> shortcuts/key tips). Phase 30 added the driver model (ADR-7): every
-> data source docks behind the core-owned `StoragePort` and reports its
-> per-session capabilities — the UI greys out what a source cannot do,
-> and a CSV directory driver proves out-of-tree docking.
-> The pure-Rust storage engine reads Jet3/Jet4 `.mdb` and ACE
-> `.accdb` files (Jet4/ACE cross-checked against the libmdb oracle in CI) and
-> writes verified Jet4 table/row paths; the headless command bus drives a
-> serializable snapshot with JSON-RPC/MCP and CLI clients; the egui shell has
-> the Access layout with datasheets, the QBE grid, the form/report canvas, the
-> relationship mapper, a German UI (system-detected, English fallback; ADR-4)
-> with the backstage Options page owning the language and appearance switchers,
-> and a UI-owned `ui.json`
-> for language, appearance and the full window geometry (position, size,
-> maximized; ADR-5). Expect breaking changes. The honest, step-by-step
-> picture lives in [BACKLOG.md](BACKLOG.md) and [PROGRESS.md](PROGRESS.md);
-> the verified compatibility claims are in
-> [Compatibility matrix](#compatibility-matrix-verified-2026-11-12).
-
+> **DataCraft is pre-1.0; expect breaking changes.** The verified
+> compatibility claims are in the [matrix below](#compatibility-matrix-verified-2026-11-12);
+> current work lives in [PROGRESS.md](PROGRESS.md) and
+> [BACKLOG.md](BACKLOG.md). DataCraft is an independent clean-room
+> project, not affiliated with Microsoft.
 ## Download and install
 
 Prebuilt archives for Windows, macOS and Linux are on the
@@ -96,25 +76,22 @@ The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
 
 - **Familiar.** The Access workflow reimagined: ribbon, navigation pane,
   tabbed documents, datasheet and design views, the QBE grid, form and report
-  canvas — rendered in an original, minimal visual language of its own.
-- **Your files.** Verified read paths for `.mdb` (Jet3/Jet4) and `.accdb`
-  (ACE), plus verified Jet4 and ACE write paths, in pure Rust. The
-  [compatibility matrix](#compatibility-matrix-verified-2026-11-12) names
-  every covered and unsupported path — no blanket "bit-for-bit" claim. No
-  COM, OLE DB, ADO or winapi anywhere.
-- **Clean-room.** Format knowledge comes only from public specifications and
-  our own black-box observation. MDB Tools (`libmdb`) serves as a test-time
-  oracle in CI and is never linked into release builds.
+  canvas — in an original visual language of its own.
+- **Your files.** Verified read paths for Jet3/Jet4 `.mdb`, ACE `.accdb`,
+  SQLite and CSV, verified Jet4/ACE and SQLite writes, pure Rust. The
+  [matrix](#compatibility-matrix-verified-2026-11-12) names every covered and
+  unsupported path — no blanket "bit-for-bit" claim.
+- **Clean-room.** Format knowledge comes from public specifications and our
+  own black-box observation; MDB Tools is a test-time oracle, never linked
+  into release builds.
 - **Built for agents.** Every GUI action is exactly one command on a decoupled
-  command bus; the UI is never privileged. An MCP/JSON-RPC endpoint lets LLM
-  agents drive the same tool headlessly (Phase 9).
-- **Fast.** egui on the GPU, virtualized painting of visible grid cells only,
-  no per-frame allocations on the hot path — 60 FPS with million-row
-  scrolling as the design target.
-- **Verifiable.** Deterministic test IDs on every UI element, serializable
-  state snapshots, property-based round-trips and golden files — headless
-  tests assert on data, never on pixels.
-
+  bus; the MCP/JSON-RPC endpoint and the CLI drive the same tool headlessly.
+- **Fast.** egui on the GPU, virtualized painting of visible cells only, no
+  per-frame allocations on the hot path — 60 FPS with million-row scrolling
+  as the design target.
+- **Verifiable.** Deterministic test IDs, serializable snapshots,
+  property-based round-trips and golden files — tests assert on data, never
+  on pixels.
 ## What works today
 
 DataCraft reads Jet3/Jet4 `.mdb`, ACE `.accdb`, SQLite files and CSV
@@ -159,15 +136,15 @@ lanes and CI runs — is in
 | Format / path | Read | Write | Known limits |
 | --- | --- | --- | --- |
 | **Jet3 `.mdb`** | ✅ tables, TDEF chains, jump-table rows, overflow/LVAL, embedded OLE, RC4 password | ⬜ | fixture-tested only (no libmdb oracle); no write path; Jet3 VBA/macro definitions stay name-only |
-| **Jet4 `.mdb`** | ✅ tables, catalog, rows, OLE/memo, relationships, native queries, index metadata, RC4 password | ✅ create table, insert, update, delete, drop table, table rename (catalog + relationship rows), design-time alter (add/drop/rename a field/required), field indexes (metadata + uniqueness), relationship create/delete, journaled batches, LongInteger AutoNumber counter; created files and their tables are **engine-accepted** (2026-11-07 DAO oracle: `TableDefs` enumerates them, rows read and written through the engine, engine-side CREATE/INSERT/DROP round-trip on the same file) and **user-verified in real Access** (2026-11-07 walkthrough: opens without repair, template rows read, Access and DataCraft writes interleave with the autonumber continuing across engines, schema create/drop round-trips both ways) | writer verified on Jet4 `.mdb` only; created tables carry the engine's default ACL and the observed index-leaf maintenance, so catalog resolution works; Memo/OLE/Binary index keys on existing physical indexes answer `Unsupported` and leaves are rebuilt, never split (multi-page indexes stay roadmap M15); table drops free the dropped table's index pages (M66 contract test); engine-refused databases (e.g. pre-49.2 create-path output) are recovered by re-encoding through the create path (`examples/recover_mdb.rs`, 49.4 — `SaveDatabaseAs` copies pages and cannot repair, M67); MSysQueries attribute 12 and unmapped constructs answer `Unsupported` (the open carries `native_queries_error`, surfaced at the Queries group) |
-| **ACE `.accdb`** | ✅ 2007/2010/2016 tables, complex values, named macros, VBA project | ✅ create table, insert, update, delete, drop table, table rename, design-time alter (add/drop/rename a field/required), field indexes (metadata + uniqueness), relationship create/delete on ACE 2007/2010 | no external ACE oracle (mdb-tools reads no `.accdb`) — the write reference is decode∘op∘decode against the pristine pinned bytes; office-encrypted files answer `Unsupported` at the reader and writer boundary |
-| **Access co-existence** | ✅ a sibling Access lock file (`.ldb` / `.laccdb`) is detected at open — the session opens **read-only** with the lock file named in the snapshot (CLI/MCP data), the status bar and the Info page | ⬜ read-only while the lock file exists | DataCraft never creates or deletes lock files; detection is existence-only — the lock protocol's contents are clean-room-unclear (M59); close Access and remove the lock file to edit here |
-| **SQLite** | ✅ catalog, rows, foreign keys; the file's own views (read-only), index/trigger inventory, file facts + bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX` from `IndexMode`, foreign-key create/delete (transactional table rebuild, enforced) | separate backend behind the same command vocabulary; schema alteration (and therefore index changes after create) remains unsupported; `WITHOUT ROWID` tables read in key order and refuse rowid-based updates/deletes; native view/trigger definitions are never created or executed |
-| **CSV directories** | ✅ catalog, rows | ✅ create directory, create/drop table, insert/update/delete (one atomic rewrite per call) | column kinds inferred at open (all-integer → Long Integer, all-float → Double, all-ISO-date → Date/Time; one quoted cell or any ambiguity keeps Short Text; values read as text); no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
-| **Form runtime (ADR-8)** | ✅ bound text/checkbox/combo editing with per-record commit, button actions, form-scoped filters | ✅ row writes through the source driver (capability-gated) | no macro/VBA actions (ADR-2); the runtime's design data lives in the sidecar, filters are session state — never written into Jet/ACE; no Access SaveAsText/COM round trip |
-| **Design layer (ADR-1)** | sidecar `.datacraft` forms, queries, reports, views (named SELECTs — SQLite applies them natively, Jet/ACE/CSV execute them through the shadow engine); native saved queries read-only; the navigation pane lists the catalog's native Access forms/reports read-only (names and counts, no definition decoding — M87; the M89 feasibility verdict is a documented stop in `docs/FORMAT-JET.md`) | ✅ sidecar save/load; sibling sidecar auto-loads on open (errors surface as `sidecar_error`); ⬜ native form/report writes | native Access form/report definitions are neither decoded nor written; the sidecar is versioned and database-name checked |
-| **Samples & templates** | ✅ every shipped sample opens with its expected tables/rows | ✅ `CreateDatabase` (Jet4 + SQLite), `CreateDatabaseFromTemplate` (blank, contacts, inventory, bike_shop) | Jet3/ACE files are never created (`Unsupported`); the Jet engine accepts the shipped Jet4 samples and template-created databases (DAO oracle + the real-Access user walkthrough, 2026-11-07: opens, reads, writes and schema round-trips); template field properties persist through the `.datacraft` sidecar (H45) |
-| **Programmability** | ✅ macro names + coarse arguments; VBA modules, source, static analysis | ⬜ read-only | no macro/VBA execution (ADR-2), no p-code; Jet3 macro/VBA definitions are not decoded |
+| **Jet4 `.mdb`** | ✅ tables, catalog, rows, OLE/memo, relationships, native queries, index metadata, RC4 passwords | ✅ create/alter/drop table, insert/update/delete, indexes, relationships, journaled batches, AutoNumber; engine-accepted and user-verified in real Access (2026-11-07) | writer verified on Jet4 only; index leaves are maintained but never split (M15); engine-refused files recover through the create-path re-encode (49.4, M67); unsupported `MSysQueries` constructs surface as `native_queries_error` |
+| **ACE `.accdb`** | ✅ 2007/2010/2016 tables, complex values, named macros, VBA project | ✅ create/alter/drop table, insert/update/delete, indexes, relationships on 2007/2010 | no external ACE oracle; the write reference is decode∘op∘decode against the pinned bytes; Office-encrypted files answer `Unsupported` |
+| **Access co-existence** | ✅ a sibling lock file (`.ldb`/`.laccdb`) opens the session read-only and is named in the snapshot, the status bar and the Info page | ⬜ read-only while the lock file exists | DataCraft never creates or deletes lock files; detection is existence-only (M59) |
+| **SQLite** | ✅ catalog, rows, foreign keys; native views read-only; index/trigger inventory; file facts and bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX`, foreign-key create/delete | schema alteration after create remains unsupported; `WITHOUT ROWID` rowid writes answer `Unsupported`; native view/trigger definitions are never created or executed |
+| **CSV directories** | ✅ catalog, rows | ✅ create/drop table, insert/update/delete (one atomic rewrite per call) | column kinds inferred at open; values read as text; no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
+| **Form runtime (ADR-8)** | ✅ bound text/checkbox/combo editing with per-record commit, button actions, form-scoped filters | ✅ row writes through the driver (capability-gated) | no macro/VBA actions (ADR-2); design data lives in the sidecar; filters are session state, never written into Jet/ACE |
+| **Design layer (ADR-1)** | sidecar forms, queries, reports and views; native saved queries read-only; native Access forms/reports listed read-only | ✅ sidecar save/load; sibling auto-load; ⬜ native form/report writes | native form/report definitions are neither decoded nor written; the sidecar is versioned and database-name checked |
+| **Samples & templates** | ✅ every shipped sample opens with its expected tables/rows | ✅ `CreateDatabase` (Jet4 + SQLite), `CreateDatabaseFromTemplate` | Jet3/ACE files are never created; the Jet engine accepts the shipped and template-created databases (DAO oracle + real-Access walkthrough); field properties persist in the sidecar |
+| **Programmability** | ✅ macro names with coarse arguments; VBA modules, source and static analysis | ⬜ read-only | no macro/VBA execution (ADR-2), no p-code; Jet3 macro/VBA definitions are not decoded |
 
 **Sidecar vs native (ADR-1).** DataCraft's form, sidecar-query and report
 designs live in `<database>.datacraft`; they are never written into Jet/ACE.
@@ -178,50 +155,26 @@ database does not modify it.
 
 | Layer | Crate | Job |
 | --- | --- | --- |
-| core | `datacraft-core` | domain model, command bus, application state, snapshots, JSON-RPC transport (Phases 3–4; the query/expression/type paths are re-exports since Phase 76) |
-| query | `datacraft-query` | QBE model, criteria parsing, query evaluation, native saved-query execution and the shadow SQL engine behind the optional `sql-engine` feature (Phase 76, L37) |
-| expr | `datacraft-expr` | Access-style expression engine — lexer, parser, evaluator, function library, format and `Like` matching (Phase 76, L36) |
-| types | `datacraft-types` | the value and schema vocabulary below core: `FieldValue`, field kinds, table/field definitions, properties and the shared pure helpers (Phase 76, L36) |
-| jet | `datacraft-jet` | clean-room pure-Rust Jet3/Jet4 read + Jet4/ACE write backends behind the core-owned `StoragePort` seam, libmdb oracle (`cfg(test)` only) (Phase 2, 10; split in Phase 31) |
-| sqlite | `datacraft-sqlite` | SQLite backend behind the same seam (rusqlite, statically bundled) (Phase 13; split in Phase 31) |
-| csv | `datacraft-csv` | CSV directory driver behind the same seam — a directory of `*.csv` files is one database (ADR-7, Phase 30) |
-| storage | `datacraft-storage` | driver composite: format-detecting registry over the shipped backends plus the deterministic samples generator (Phase 29–30) |
-| ui | `datacraft-ui` | eframe/egui desktop shell — binary `datacraft` (Phase 5+) |
-| cli | `datacraft-cli` | the fourth command-bus client — binary `datacraft-cli` (Phase 9) |
-| mcp | `datacraft-mcp` | headless stdio JSON-RPC 2.0 endpoint — standalone binary crate (Phase 9, own crate since Phase 31) |
-| import | `datacraft-import` | optional Access migration tool: native Jet4/ACE form/report designs into the `.datacraft` sidecar without Microsoft Access (Phase 78, M88; links the third-party `jetdb` crate) |
+| core | `datacraft-core` | domain model, command bus, state, snapshots, JSON-RPC transport |
+| query | `datacraft-query` | QBE model, criteria, evaluation, native saved queries, shadow SQL engine |
+| expr | `datacraft-expr` | Access-style expression engine |
+| types | `datacraft-types` | value and schema vocabulary |
+| jet | `datacraft-jet` | clean-room Jet3/Jet4 read, Jet4/ACE write |
+| sqlite | `datacraft-sqlite` | SQLite backend (bundled rusqlite) |
+| csv | `datacraft-csv` | CSV directory driver (ADR-7) |
+| storage | `datacraft-storage` | driver composite and sample generator |
+| ui | `datacraft-ui` | eframe/egui desktop shell |
+| cli | `datacraft-cli` | headless command-bus CLI |
+| mcp | `datacraft-mcp` | stdio JSON-RPC 2.0 endpoint |
+| import | `datacraft-import` | Access form/report migration (third-party `jetdb`) |
 
-```text
-datacraft-ui (egui) ───────► datacraft-core (command bus) ──► datacraft-storage (composite)
-datacraft-cli (shell) ──────┘            ▲                        ├─ datacraft-jet (Jet/ACE)
-JSON-RPC / MCP (datacraft-mcp) ──────────┘                        ├─ datacraft-sqlite (SQLite)
-                                                                  └─ datacraft-csv (CSV directories)
-
-datacraft-core ──► datacraft-query ──► datacraft-expr ──► datacraft-types
-datacraft-import ──► datacraft-core, jetdb 0.4
-```
-
-Dependency direction is one-way and review- and CI-enforced (the
-boundary guard fails the push on a violation): `jet → core`,
-`sqlite → core`, `csv → core`, `storage → jet, sqlite`,
-`core → query → expr → types`; the three client binaries
-(`datacraft-ui`, `datacraft-cli`,
-`datacraft-mcp`) name `core + storage + csv` and are the composition
-roots that build the composite. `core`'s `sql-engine` feature is off by
-default and forwards to `datacraft-query/sql-engine`; the three client
-roots enable it, so a default-feature core never pulls rusqlite.
-`datacraft-import` is the one declared third-party adapter (ADR-9): it
-depends on `datacraft-core` and `jetdb` 0.4 (pure Rust, no FFI/COM) and is
-not linked into the `datacraft`, `datacraft-cli` or `datacraft-mcp`
-binaries. Library and UI code never touches a driver directly — every
-client speaks the same command language, and a ribbon button dispatches the
-identical `Command` as an MCP tool call.
-The crates.io publishing order, the Semver/MSRV policy and the release
-checklist live in [docs/PUBLISHING.md](docs/PUBLISHING.md). The full
-blueprint — command API shape, test-ID conventions, storage decision
-record, rendering strategy — is in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
+Dependency direction is one-way and CI-enforced; the three client binaries
+(`datacraft-ui`, `datacraft-cli`, `datacraft-mcp`) are the only composition
+roots that name storage and the drivers. Every client speaks the same
+`Command` vocabulary — a ribbon click and an MCP call produce identical
+state transitions. The full blueprint, command API and ADRs are in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the crates.io order and the
+Semver/MSRV policy are in [docs/PUBLISHING.md](docs/PUBLISHING.md).
 ## Migrating from Microsoft Access
 
 `datacraft-import` reads native Jet4/ACE `.mdb`/`.accdb` files **without
@@ -265,32 +218,28 @@ cross-checks the Jet/ACE decoders against libmdb.
 
 ## Design & branding
 
-The app icon follows the **office-symbol** visual grammar of the sibling
-Crafting Apps (WordCraft, GridCraft, DeckCraft): a 512-unit rounded tile in **exactly
-three colours** — ink `#0B0B0C`, paper `#EFE9DC` and DataCraft teal `#0F8B7E`
-— with a flat paper-and-ink object rotated −6°. DataCraft's object is a
-database cylinder whose front is a datasheet. Construction, palette and
-acceptance checklist: [docs/brand/DATACRAFT-ICON.md](docs/brand/DATACRAFT-ICON.md);
-renders and the Windows `.ico` live in [`assets/app-icon/`](assets/app-icon/). The app's UI rebases on a neutral token system (chrome, ribbon, canvas and panel surfaces in neutral greys; text and border ramps; ADR-6) while the accent family derives from the icon's teal tile field — the datasheet keeps the icon's header-row grammar (teal header, paper text), and hover/pressed states stay neutral. The backstage follows the Excel reference: a full-height deep-teal sidebar with icon+label navigation and the bottom-pinned Options entry, template/sample cards with painted mini-previews, and localized Modified stamps on the recent list (step 38.2); native file pickers and destructive-action confirmations run through `rfd` behind a scripted dialog seam, so the headless suite drives every flow with injected answers (step 38.3). Typography is Inter (Regular/Medium/SemiBold) with JetBrains Mono for the SQL editor; both families are SIL OFL 1.1, embedded unmodified and attributed in [`assets/fonts/`](assets/fonts/). Ribbon commands, navigation-pane objects and document tabs carry vector icons painted at paint time (no image assets beyond the app icon and the fonts); the backstage/chrome nav glyphs adapt the sibling Crafting Apps' in-code set (GridCraft/WordCraft, MIT OR Apache-2.0, attributed in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)). Appearance is Light/Dark/System (default System, persisted in `ui.json`); both palettes are installed into egui and the token set is picked per frame, with the accent family always rendered in a contrast-checked teal variant. Phase 20 gate screenshots: [before (light)](docs/phase-20/before-light.png) · [after (light)](docs/phase-20/after-light.png) · [after (dark)](docs/phase-20/after-dark.png).
-
+The icon follows the office-symbol grammar of the sibling Crafting Apps: a
+rounded tile in exactly three colours — ink `#0B0B0C`, paper `#EFE9DC` and
+DataCraft teal `#0F8B7E` — with a flat database cylinder whose front is a
+datasheet. Construction and palette:
+[docs/brand/DATACRAFT-ICON.md](docs/brand/DATACRAFT-ICON.md). The UI uses a
+neutral token system with a teal accent family (ADR-6), Inter and
+JetBrains Mono (SIL OFL 1.1, attributed in [`assets/fonts/`](assets/fonts/)),
+and original vector iconography; the chrome glyphs adapt the in-code set of
+GridCraft/WordCraft (MIT OR Apache-2.0, attributed in
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)). Appearance is
+Light/Dark/System, persisted in `ui.json`.
 ## License and credits
 
-- **DataCraft code:** MIT OR Apache-2.0, dual-licensed — canonical texts in
-  [`LICENSE-MIT`](LICENSE-MIT) and [`LICENSE-APACHE`](LICENSE-APACHE), the
-  Apache-side notice in [`NOTICE`](NOTICE).
-- **Shipped third-party components** (egui stack, csv, bundled SQLite, the two
-  SIL-OFL fonts): named in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md);
-  the notices ship in every release archive.
-- **Committed test fixtures** carry their provenance in
-  [`fixtures/manifest`](fixtures/manifest) and their license/attribution rows
-  in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) — every fixture is
-  either generated by the Apache-2.0-licensed jackcess test suite, taken from
-  the MIT-licensed mdb-reader test data, or self-created with real Access by
-  DataCraft contributors.
-- **MDB Tools (`libmdb`):** LGPL-2.1 — used exclusively as a test-time oracle,
-  never linked into release builds.
+DataCraft code is dual-licensed **MIT OR Apache-2.0** — canonical texts in
+[`LICENSE-MIT`](LICENSE-MIT) and [`LICENSE-APACHE`](LICENSE-APACHE), the
+Apache-side notice in [`NOTICE`](NOTICE). The shipped third-party components
+(egui stack, csv, bundled SQLite, the two SIL-OFL fonts) and the committed
+fixtures are attributed in
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md); fixture provenance is
+pinned in [`fixtures/manifest`](fixtures/manifest). MDB Tools (`libmdb`,
+LGPL-2.1) is a test-time oracle only and never linked into release builds.
 
-Clean-room rules are binding: sources of format knowledge are public
-specifications (e.g. Microsoft Open Specifications) and community format
-documentation — never MDB Tools source code, never decompiled Microsoft
-binaries. See `docs/ARCHITECTURE.md` §12 for the full policy.
+Clean-room is binding: format knowledge comes from public specifications and
+community documentation — never MDB Tools source code, never decompiled
+Microsoft binaries (see `docs/ARCHITECTURE.md` §12).

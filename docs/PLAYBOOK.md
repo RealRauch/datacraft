@@ -68,7 +68,16 @@ pull (trunk → branch) → implement → code commit (agent)
 `README.md`, `PROGRESS.md` and `BACKLOG.md` are **living documents and must always be up to date:**
 
 - **After every step:** maintain the status in `PROGRESS.md` (🔄 before starting, ✅ after verified completion — detail list AND progress table).
-- **After every behaviour/feature/environment change:** update `README.md` (features, commands, env variables, deploy).
+- **README changes only on user-visible surface changes** — a new or changed
+  read/write format path, client (GUI/CLI/MCP), platform, compatibility claim
+  or shipped workflow. The README is the product entry for three readers: the
+  end user (install, open a file, what works), the crate consumer (where the
+  libraries live) and the contributor (where the method lives). Detail lives
+  elsewhere: feature inventory in `docs/FEATURES.md`, compatibility evidence
+  in `docs/COMPATIBILITY.md`, quality gates in `CONTRIBUTING.md`, phase
+  history in `PROGRESS.md`/`CHANGELOG.md`, roadmap prose in
+  `docs/ROADMAP.md`. Internal commands, tests, refactors and step completions
+  update those documents, never the README (M96).
 - **For every found bug/risk/checklist gap:** an entry in `BACKLOG.md` (with location + acceptance criterion).
 - **Assignment:** the committed phase sequence lives in `PROGRESS.md` ("Active Phases") — also roughly packaged (fine-packaging at phase start). Everything open **outside** this sequence (ideas, feature requests, risks, findings) belongs as an item in `BACKLOG.md` — with location + acceptance criterion. Decision aid: "Does it belong to the committed phase sequence?" → PROGRESS; otherwise → BACKLOG.
 - The rule holds: **no code without a step in `PROGRESS.md`, no known problem without an entry in `BACKLOG.md`.**
