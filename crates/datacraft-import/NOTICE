@@ -1,0 +1,11 @@
+DataCraft
+Copyright 2026 DataCraft contributors
+
+This product is licensed under the MIT OR Apache-2.0 dual license (see
+LICENSE-MIT and LICENSE-APACHE). This NOTICE file is provided for uses
+covered by the Apache License, Version 2.0.
+
+Bundled third-party components and the provenance of the test fixtures are
+attributed in THIRD-PARTY-NOTICES.md. The fonts embedded in the desktop
+binary (Inter, JetBrains Mono) are licensed under the SIL Open Font License
+1.1 and remain under their original licenses.

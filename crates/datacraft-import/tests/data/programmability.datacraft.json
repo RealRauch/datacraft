@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "database_name": "programmability",
+  "tables": [],
+  "queries": [],
+  "forms": [
+    {
+      "name": "Category Picker",
+      "source": "Categories",
+      "grid": 8.0,
+      "size": {
+        "width": 444.2,
+        "height": 60.0
+      },
+      "controls": [
+        {
+          "name": "txtCategoryName",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "CategoryName"
+            }
+          },
+          "rect": {
+            "x": 75.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "Label1",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Category"
+            }
+          },
+          "rect": {
+            "x": 0.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items Browser",
+      "source": "Warehouse Items",
+      "grid": 8.0,
+      "size": {
+        "width": 444.2,
+        "height": 75.0
+      },
+      "controls": [
+        {
+          "name": "txtItemName",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "ItemName"
+            }
+          },
+          "rect": {
+            "x": 75.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "Label1",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Item Name"
+            }
+          },
+          "rect": {
+            "x": 0.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "txtStockLevel",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "StockLevel"
+            }
+          },
+          "rect": {
+            "x": 75.0,
+            "y": 40.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "Label2",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Stock Level"
+            }
+          },
+          "rect": {
+            "x": 0.0,
+            "y": 40.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "cmdFilter",
+          "kind": {
+            "type": "button",
+            "value": {
+              "caption": "Filter in stock",
+              "action": null
+            }
+          },
+          "rect": {
+            "x": 160.0,
+            "y": 15.0,
+            "width": 90.0,
+            "height": 20.0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Movement Editor",
+      "source": "Stock Movements",
+      "grid": 8.0,
+      "size": {
+        "width": 444.2,
+        "height": 75.0
+      },
+      "controls": [
+        {
+          "name": "txtQuantity",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "Quantity"
+            }
+          },
+          "rect": {
+            "x": 75.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "Label1",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Quantity"
+            }
+          },
+          "rect": {
+            "x": 0.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "txtMovedOn",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "MovedOn"
+            }
+          },
+          "rect": {
+            "x": 75.0,
+            "y": 40.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "Label2",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Moved On"
+            }
+          },
+          "rect": {
+            "x": 0.0,
+            "y": 40.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        }
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "name": "Stock Summary",
+      "source": "Items In Stock",
+      "group_by": null,
+      "grid": 8.0,
+      "page": {
+        "width": 595.0,
+        "height": 842.0,
+        "margin_left": 36.0,
+        "margin_top": 36.0,
+        "margin_right": 36.0,
+        "margin_bottom": 36.0
+      },
+      "controls": [
+        {
+          "name": "txtItemName",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "ItemName"
+            }
+          },
+          "rect": {
+            "x": 75.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "Label1",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Item Name"
+            }
+          },
+          "rect": {
+            "x": 0.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "txtStockLevel",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "StockLevel"
+            }
+          },
+          "rect": {
+            "x": 160.0,
+            "y": 15.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        },
+        {
+          "name": "Label2",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Stock Level"
+            }
+          },
+          "rect": {
+            "x": 160.0,
+            "y": 0.0,
+            "width": 72.0,
+            "height": 15.75
+          }
+        }
+      ]
+    }
+  ],
+  "views": []
+}

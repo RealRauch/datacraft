@@ -49,7 +49,9 @@ Twips → points: `value / 20.0` (1440 twips = 72 pt = 1 inch). `Rect` is
 | anything else (`ListBox`, `TabControl`, `Image`, `OptionGroup`, `ToggleButton`, …) | — | unsupported control: reported with name and type, never guessed |
 
 Control order is the order `jetdb` returns (sections excluded); it is the
-paint order for the simple, non-overlapping designs in scope.
+paint order for the simple, non-overlapping designs in scope. Forms and
+reports are sorted by name (case-insensitive) in the sidecar document so
+the output is deterministic regardless of the catalog order.
 
 ## 4. Defaults and numeric edge cases
 
