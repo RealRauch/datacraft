@@ -11,10 +11,6 @@ use crate::snapshot::UiStateSnapshot;
 
 pub use datacraft_types::{display_value, field_kind_display};
 
-// The expression service still reaches the date renderers through this
-// module; it moves to `datacraft-expr` in step 76.2.
-pub(crate) use datacraft_types::{civil_from_days, display_ole_datetime};
-
 /// Status bar line for the given snapshot (step 12.4): the database
 /// context, replaced by the active document's object when one is open —
 /// the Access status-bar convention. `active` carries the tab snapshot's

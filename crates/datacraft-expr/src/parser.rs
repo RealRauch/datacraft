@@ -237,17 +237,19 @@ impl Parser {
         match spanned.token {
             Token::Integer(value) => {
                 self.pos += 1;
-                Ok(Expression::Literal(crate::schema::FieldValue::Integer(
+                Ok(Expression::Literal(datacraft_types::FieldValue::Integer(
                     value,
                 )))
             }
             Token::Float(value) => {
                 self.pos += 1;
-                Ok(Expression::Literal(crate::schema::FieldValue::Float(value)))
+                Ok(Expression::Literal(datacraft_types::FieldValue::Float(
+                    value,
+                )))
             }
             Token::Text(text) => {
                 self.pos += 1;
-                Ok(Expression::Literal(crate::schema::FieldValue::Text(text)))
+                Ok(Expression::Literal(datacraft_types::FieldValue::Text(text)))
             }
             Token::Date(text) => {
                 self.pos += 1;
@@ -261,19 +263,19 @@ impl Parser {
             }
             Token::True => {
                 self.pos += 1;
-                Ok(Expression::Literal(crate::schema::FieldValue::Boolean(
+                Ok(Expression::Literal(datacraft_types::FieldValue::Boolean(
                     true,
                 )))
             }
             Token::False => {
                 self.pos += 1;
-                Ok(Expression::Literal(crate::schema::FieldValue::Boolean(
+                Ok(Expression::Literal(datacraft_types::FieldValue::Boolean(
                     false,
                 )))
             }
             Token::NullKw => {
                 self.pos += 1;
-                Ok(Expression::Literal(crate::schema::FieldValue::Null))
+                Ok(Expression::Literal(datacraft_types::FieldValue::Null))
             }
             Token::Ident(name) => {
                 self.pos += 1;
@@ -416,7 +418,7 @@ mod tests {
     fn date_literals_validate_their_content() {
         assert!(matches!(
             parse_ok("#2025-01-05#"),
-            Expression::Literal(crate::schema::FieldValue::DateTime(_))
+            Expression::Literal(datacraft_types::FieldValue::DateTime(_))
         ));
         let error = parse("#2025-13-40#").expect_err("invalid date must fail");
         assert!(error.to_string().contains("date literal"));

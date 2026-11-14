@@ -7,7 +7,7 @@
 //! Database`).
 
 /// Case-insensitive Access-wildcard match.
-pub(crate) fn matches(text: &str, pattern: &str) -> bool {
+pub fn matches(text: &str, pattern: &str) -> bool {
     let text: Vec<char> = text.chars().map(fold).collect();
     let pattern: Vec<char> = pattern.chars().map(fold).collect();
     match_here(&text, &pattern)

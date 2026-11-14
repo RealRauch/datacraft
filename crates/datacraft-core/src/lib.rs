@@ -12,7 +12,7 @@ pub mod command;
 pub mod core;
 mod database;
 pub mod event;
-pub mod expr;
+pub use datacraft_expr as expr;
 pub mod failure;
 pub mod field_expressions;
 pub mod form;

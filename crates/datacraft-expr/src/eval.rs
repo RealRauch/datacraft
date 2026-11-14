@@ -11,7 +11,7 @@ use super::coerce::{
 use super::funcs;
 use super::like;
 use super::{BinaryOp, CompareOp, ExprError, Expression, Scope, UnaryOp};
-use crate::schema::FieldValue;
+use datacraft_types::FieldValue;
 
 pub(crate) fn evaluate(expression: &Expression, scope: &Scope) -> Result<FieldValue, ExprError> {
     match expression {

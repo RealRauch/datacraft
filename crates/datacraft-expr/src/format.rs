@@ -16,7 +16,7 @@
 
 use super::ExprError;
 use super::coerce::{display, parse_num_text, runtime};
-use crate::schema::FieldValue;
+use datacraft_types::FieldValue;
 
 /// The named pictures of the documented subset, matched case-insensitively
 /// and resolved for every value family (step 39.1, item M35).
@@ -60,7 +60,7 @@ pub(crate) fn format_value(
     if NAMED_PICTURES.contains(&picture.as_str()) {
         return Ok(FieldValue::Text(match picture.as_str() {
             "general number" => display(value),
-            "general date" => crate::present::display_ole_datetime(numeric_f64(value, name)?),
+            "general date" => datacraft_types::display_ole_datetime(numeric_f64(value, name)?),
             "fixed" => format_number(numeric_f64(value, name)?, 2, false, false),
             "standard" => format_number(numeric_f64(value, name)?, 2, true, false),
             "percent" => format_number(numeric_f64(value, name)? * 100.0, 2, false, true),
@@ -227,7 +227,7 @@ pub(crate) fn ole_components(days: f64) -> (u32, u32, u32, u32, u32) {
         minutes -= 1440;
         date += 1;
     }
-    let (year, month, day) = crate::present::civil_from_days(date - 25_569);
+    let (year, month, day) = datacraft_types::civil_from_days(date - 25_569);
     (
         year as u32,
         month as u32,
@@ -355,7 +355,7 @@ mod tests {
             .expect("general date must format");
         assert_eq!(
             general,
-            FieldValue::Text(crate::present::display_ole_datetime(days)),
+            FieldValue::Text(datacraft_types::display_ole_datetime(days)),
             "General Date matches the shared datetime renderer"
         );
         for (picture, expected) in [

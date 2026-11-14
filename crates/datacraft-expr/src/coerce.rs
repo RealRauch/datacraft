@@ -6,7 +6,7 @@
 //! display coercion (`Null` as empty string) and family-safe ordering.
 
 use super::ExprError;
-use crate::schema::FieldValue;
+use datacraft_types::FieldValue;
 use datacraft_types::compare;
 
 /// Numeric coercion tower: Boolean as VBA (-1/0), text that parses, dates
@@ -155,7 +155,7 @@ pub(crate) fn display(value: &FieldValue) -> String {
     match value {
         FieldValue::Null => String::new(),
         FieldValue::Text(text) => text.clone(),
-        other => crate::present::display_value(other),
+        other => datacraft_types::display_value(other),
     }
 }
 

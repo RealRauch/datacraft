@@ -10,6 +10,7 @@ readme.workspace = true
 description = "Headless domain model, command bus and application state for DataCraft"
 
 [dependencies]
+datacraft-expr = { workspace = true }
 datacraft-types = { workspace = true }
 csv = { workspace = true }
 rusqlite = { workspace = true, optional = true }

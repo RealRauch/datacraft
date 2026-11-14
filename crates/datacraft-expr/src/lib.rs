@@ -30,10 +30,10 @@ mod eval;
 mod format;
 mod funcs;
 mod lexer;
-pub(crate) mod like;
+pub mod like;
 mod parser;
 
-use crate::schema::FieldValue;
+use datacraft_types::FieldValue;
 
 /// A parsed expression (AST of the documented subset).
 #[derive(Debug, Clone, PartialEq)]
