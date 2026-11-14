@@ -901,6 +901,7 @@ name = "datacraft-core"
 version = "0.1.3"
 dependencies = [
  "csv",
+ "datacraft-types",
  "proptest",
  "rusqlite",
  "serde",
@@ -952,6 +953,13 @@ dependencies = [
  "datacraft-jet",
  "datacraft-sqlite",
  "rusqlite",
+]
+
+[[package]]
+name = "datacraft-types"
+version = "0.1.3"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

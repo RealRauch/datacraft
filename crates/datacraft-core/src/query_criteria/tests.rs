@@ -9,34 +9,6 @@ fn kind_of(name: &str, kind: FieldKind) -> TableDef {
     TableDef::new(name, vec![FieldDef::new("v", kind)])
 }
 
-/// non-finite floats.
-#[test]
-fn compare_is_family_safe() {
-    use FieldValue as V;
-    assert_eq!(
-        compare(&V::Boolean(false), &V::Boolean(true)),
-        Some(std::cmp::Ordering::Less)
-    );
-    assert_eq!(
-        compare(&V::Currency(1), &V::Currency(2)),
-        Some(std::cmp::Ordering::Less)
-    );
-    assert_eq!(
-        compare(&V::DateTime(1.0), &V::DateTime(2.0)),
-        Some(std::cmp::Ordering::Less)
-    );
-    assert_eq!(
-        compare(&V::Decimal(1), &V::Decimal(2)),
-        Some(std::cmp::Ordering::Less)
-    );
-    assert_eq!(
-        compare(&V::Binary(vec![1]), &V::Binary(vec![2])),
-        Some(std::cmp::Ordering::Less)
-    );
-    assert_eq!(compare(&V::Integer(1), &V::Text("1".into())), None);
-    assert_eq!(compare(&V::Float(f64::NAN), &V::Float(1.0)), None);
-}
-
 /// mismatches never satisfy.
 #[test]
 fn predicates_match_their_band() {

@@ -10,10 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use super::def::TableDef;
-use super::def::validate_object_name;
-use super::error::SchemaError;
-use super::properties::IndexMode;
+use super::{IndexMode, SchemaError, TableDef, validate_object_name};
 use crate::qbe::QueryDef;
 
 /// Version this DataCraft writes. Bump when the document format changes and

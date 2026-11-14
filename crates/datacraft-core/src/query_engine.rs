@@ -7,7 +7,9 @@
 //! leftmost-first).
 
 use crate::qbe::{QueryDef, SortOrder};
-use crate::query_criteria::{Predicate, compare, parse_predicate};
+use datacraft_types::compare;
+
+use crate::query_criteria::{Predicate, parse_predicate};
 use crate::schema::FieldValue;
 use crate::schema::TableDef;
 

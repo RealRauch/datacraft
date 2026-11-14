@@ -505,7 +505,7 @@ rusqlite).
 | 75.2 | New database: choose what, then choose where (L42) | ✅ |
 | 75.3 | Blank database format choice: .mdb (Jet4) or SQLite (L43) | ✅ |
 | 75.4 | Documentation and phase gate (L41–L43) | ✅ |
-| 76.1 | datacraft-types: move the value vocabulary and its pure helpers below core (L36) | ⬜ |
+| 76.1 | datacraft-types: move the value vocabulary and its pure helpers below core (L36) | ✅ |
 | 76.2 | datacraft-expr: extract the expression engine onto the types crate (L36) | ⬜ |
 | 76.3 | datacraft-query: extract the QBE model, evaluation and native execution (L37) | ⬜ |
 | 76.4 | sql-engine: move the shadow SQL dialect behind the query crate's feature (L37) | ⬜ |

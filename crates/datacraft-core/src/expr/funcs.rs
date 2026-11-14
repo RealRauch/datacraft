@@ -10,8 +10,8 @@
 use super::coerce::{bool_state, display, parse_num_text, runtime, to_i64};
 use super::format::{format_value, ole_components};
 use super::{ExprError, Expression, Scope};
-use crate::query_criteria::days_from_civil;
 use crate::schema::FieldValue;
+use datacraft_types::days_from_civil;
 
 /// Evaluates the arguments and dispatches to the built-in.
 pub(crate) fn call(

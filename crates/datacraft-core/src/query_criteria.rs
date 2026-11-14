@@ -5,9 +5,9 @@
 //! comparisons and OLE date math live here; execution is
 //! [crate::query_engine].
 
+use datacraft_types::{FieldDef, FieldKind, FieldValue, NumericKind, compare, parse_date};
+
 use crate::query_engine::EngineError;
-use crate::schema::FieldValue;
-use crate::schema::{FieldDef, FieldKind, NumericKind};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Predicate {
@@ -66,22 +66,6 @@ impl Predicate {
             Predicate::GreaterEqual(_) => ordering != std::cmp::Ordering::Less,
             Predicate::Like(_) => unreachable!("handled above"),
         }
-    }
-}
-
-/// Family-safe comparison; `None` on kind mismatch or non-finite floats.
-pub(crate) fn compare(a: &FieldValue, b: &FieldValue) -> Option<std::cmp::Ordering> {
-    use FieldValue as V;
-    match (a, b) {
-        (V::Boolean(x), V::Boolean(y)) => Some(x.cmp(y)),
-        (V::Integer(x), V::Integer(y)) => Some(x.cmp(y)),
-        (V::Float(x), V::Float(y)) if x.is_finite() && y.is_finite() => x.partial_cmp(y),
-        (V::Currency(x), V::Currency(y)) => Some(x.cmp(y)),
-        (V::DateTime(x), V::DateTime(y)) if x.is_finite() && y.is_finite() => x.partial_cmp(y),
-        (V::Decimal(x), V::Decimal(y)) => Some(x.cmp(y)),
-        (V::Text(x), V::Text(y)) => Some(x.cmp(y)),
-        (V::Binary(x), V::Binary(y)) => Some(x.cmp(y)),
-        _ => None,
     }
 }
 
@@ -247,45 +231,6 @@ fn coerce(literal: &str, kind: &FieldKind) -> Result<FieldValue, String> {
             crate::present::field_kind_display(kind)
         )),
     }
-}
-
-/// Parses `YYYY-MM-DD` (optionally ` HH:MM`) into OLE Automation days;
-/// shared with the expression service's date literals.
-pub(crate) fn parse_date(text: &str) -> Option<FieldValue> {
-    let (date, time) = match text.split_once(' ') {
-        Some((d, t)) => (d, Some(t)),
-        None => (text, None),
-    };
-    let mut parts = date.split('-');
-    let year: i64 = parts.next()?.parse().ok()?;
-    let month: i64 = parts.next()?.parse().ok()?;
-    let day: i64 = parts.next()?.parse().ok()?;
-    if parts.next().is_some() || !(1..=12).contains(&month) || !(1..=31).contains(&day) {
-        return None;
-    }
-    let mut days = (days_from_civil(year, month, day) + 25_569) as f64;
-    if let Some(time) = time {
-        let mut parts = time.split(':');
-        let hour: i64 = parts.next()?.parse().ok()?;
-        let minute: i64 = parts.next()?.parse().ok()?;
-        if parts.next().is_some() || !(0..24).contains(&hour) || !(0..60).contains(&minute) {
-            return None;
-        }
-        days += (hour * 60 + minute) as f64 / 1440.0;
-    }
-    Some(FieldValue::DateTime(days))
-}
-
-/// Days since 1970-01-01 for a civil date (inverse of civil_from_days);
-/// shared with the expression service's `DateSerial`.
-pub(crate) fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = if m > 2 { m - 3 } else { m + 9 };
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
 }
 
 #[cfg(test)]

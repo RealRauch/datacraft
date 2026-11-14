@@ -219,7 +219,7 @@ pub(crate) fn sort_rows(rows: &mut [PartialRow], orders: &[OrderKey]) {
     }
     rows.sort_by(|left, right| {
         for order in orders {
-            let ordering = crate::query_criteria::compare(
+            let ordering = datacraft_types::compare(
                 &left.value(order.position, order.column),
                 &right.value(order.position, order.column),
             )

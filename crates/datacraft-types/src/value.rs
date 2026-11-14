@@ -82,7 +82,7 @@ pub enum FieldValue {
 
 impl FieldValue {
     /// Value family name used in kind-mismatch diagnostics (mirrors
-    /// [`FieldKind::family`](super::field::FieldKind::family)).
+    /// [`FieldKind::family`](crate::FieldKind::family)).
     pub fn family(&self) -> &'static str {
         match self {
             Self::Null => "null",

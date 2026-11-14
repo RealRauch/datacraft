@@ -188,7 +188,7 @@ pub(crate) fn cross(
 pub(crate) fn equal(left: &FieldValue, right: &FieldValue) -> bool {
     !matches!(left, FieldValue::Null)
         && !matches!(right, FieldValue::Null)
-        && crate::query_criteria::compare(left, right) == Some(std::cmp::Ordering::Equal)
+        && datacraft_types::compare(left, right) == Some(std::cmp::Ordering::Equal)
 }
 
 pub(crate) fn check_limit(rows: usize, limit: usize) -> Result<(), NativeExecError> {

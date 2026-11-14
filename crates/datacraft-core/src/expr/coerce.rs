@@ -6,8 +6,8 @@
 //! display coercion (`Null` as empty string) and family-safe ordering.
 
 use super::ExprError;
-use crate::query_criteria::compare;
 use crate::schema::FieldValue;
+use datacraft_types::compare;
 
 /// Numeric coercion tower: Boolean as VBA (-1/0), text that parses, dates
 /// as float OLE days, decimals as raw scaled integers.

@@ -5,8 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::error::SchemaError;
-use super::field::FieldKind;
+use crate::error::SchemaError;
+use crate::field::FieldKind;
 
 /// Indexing state of a field.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -126,7 +126,7 @@ mod tests {
             ..FieldProperties::default()
         };
         let reason = calculated
-            .validate_for(&FieldKind::AutoNumber(crate::schema::AutoKind::LongInteger))
+            .validate_for(&FieldKind::AutoNumber(crate::AutoKind::LongInteger))
             .expect_err("calculated refuses AutoNumber");
         assert!(
             reason

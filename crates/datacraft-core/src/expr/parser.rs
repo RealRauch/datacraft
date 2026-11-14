@@ -7,7 +7,7 @@
 
 use super::lexer::{Spanned, Token, lex};
 use super::{BinaryOp, CompareOp, ExprError, Expression, UnaryOp};
-use crate::query_criteria::parse_date;
+use datacraft_types::parse_date;
 
 /// Parses the source into an AST; the whole token stream must be consumed.
 pub(crate) fn parse(source: &str) -> Result<Expression, ExprError> {

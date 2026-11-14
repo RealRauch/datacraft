@@ -1,5 +1,5 @@
 use super::*;
-use crate::schema::{ComplexField, ComplexRecord};
+use crate::{ComplexField, ComplexRecord};
 
 /// Table-driven: every kind rejects a value of the wrong family with a
 /// mismatch naming both sides (covers all mismatch arms and family

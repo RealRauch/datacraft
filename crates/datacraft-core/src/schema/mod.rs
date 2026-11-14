@@ -4,18 +4,16 @@
 //! semantics. This is the vocabulary the command bus (Phase 4), the UI and
 //! the sidecar document (step 3.2, ADR-1) share; the storage backends map
 //! their physical types onto it.
+//!
+//! The vocabulary itself lives in [`datacraft_types`] (phase 76, item L36);
+//! this module re-exports every public path and keeps the sidecar document,
+//! which needs the command-layer object models.
 
-mod def;
 mod document;
-mod error;
-mod field;
-mod properties;
-mod value;
 
-pub(crate) use def::validate_object_name;
-pub use def::{FieldDef, TableDef};
+pub(crate) use datacraft_types::validate_object_name;
+pub use datacraft_types::{
+    AutoKind, BinaryKind, ComplexField, ComplexRecord, FieldDef, FieldKind, FieldProperties,
+    FieldValue, IndexMode, MultiValueKind, NumericKind, SchemaError, TableDef,
+};
 pub use document::{SCHEMA_VERSION, SchemaDocument};
-pub use error::SchemaError;
-pub use field::{AutoKind, BinaryKind, FieldKind, MultiValueKind, NumericKind};
-pub use properties::{FieldProperties, IndexMode};
-pub use value::{ComplexField, ComplexRecord, FieldValue};

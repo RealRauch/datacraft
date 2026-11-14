@@ -9,8 +9,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::error::SchemaError;
-use super::value::FieldValue;
+use crate::error::SchemaError;
+use crate::value::FieldValue;
 
 /// Smallest/largest OLE Automation day Access accepts (years 100–9999).
 const OLE_DATE_MIN: f64 = -657_434.0;
@@ -269,7 +269,7 @@ impl FieldKind {
 
     /// Validates a domain value against this kind. `Null` passes here —
     /// required-ness is a property concern checked on
-    /// [`FieldDef::validate_value`](super::def::FieldDef::validate_value).
+    /// [`FieldDef::validate_value`](crate::FieldDef::validate_value).
     pub fn validate_value(&self, value: &FieldValue) -> Result<(), SchemaError> {
         if matches!(value, FieldValue::Null) {
             return Ok(());

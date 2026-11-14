@@ -6,10 +6,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::error::SchemaError;
-use super::field::FieldKind;
-use super::properties::FieldProperties;
-use super::value::FieldValue;
+use crate::error::SchemaError;
+use crate::field::FieldKind;
+use crate::properties::FieldProperties;
+use crate::value::FieldValue;
 
 /// One field of a table: name, kind and properties.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,7 +89,7 @@ impl TableDef {
         Self::new(
             name,
             vec![
-                FieldDef::new("ID", FieldKind::Number(super::NumericKind::LongInteger)),
+                FieldDef::new("ID", FieldKind::Number(crate::NumericKind::LongInteger)),
                 FieldDef::new("Field1", FieldKind::Text { max_len: 255 }),
             ],
         )
@@ -124,7 +124,7 @@ impl TableDef {
 
 /// Object names must not be empty or whitespace-only (Access enforces this
 /// in the UI; we enforce it at the model boundary).
-pub(crate) fn validate_object_name(name: &str) -> Result<(), SchemaError> {
+pub fn validate_object_name(name: &str) -> Result<(), SchemaError> {
     if name.trim().is_empty() {
         Err(SchemaError::InvalidName {
             detail: "names must not be empty or whitespace-only".to_owned(),
@@ -136,7 +136,7 @@ pub(crate) fn validate_object_name(name: &str) -> Result<(), SchemaError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::schema::NumericKind;
+    use crate::NumericKind;
 
     use super::{FieldKind, TableDef};
 

@@ -9,7 +9,9 @@
 use std::collections::BTreeMap;
 
 use crate::qbe::SortOrder;
-use crate::query_criteria::{compare, parse_predicate};
+use datacraft_types::compare;
+
+use crate::query_criteria::parse_predicate;
 use crate::query_engine::EngineError;
 use crate::schema::{FieldValue, TableDef};
 
