@@ -9,6 +9,8 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+## [0.2.0] — 2026-11-14
+
 ### Added
 - ui/core: the empty-shell landing and the two-step New-database flow (75,
   L41–L43) — a cold start and the close of the last database land on the File
@@ -26,8 +28,7 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   (`datacraft_core::{schema, expr, qbe, query_engine, native_exec,
   sql_types}` and the native-query port vocabulary) unchanged. The shadow
   SQL engine's rusqlite dependency moved behind `datacraft-query`'s
-  `sql-engine` feature; core's switch forwards to it and is off by default,
-  so a default-feature core is C-free. No behaviour change.
+  `sql-engine` feature.
 - import: the Access migration tool (78, M88) — `datacraft-import` reads
   native Jet4/ACE `.mdb`/`.accdb` form/report designs through the pinned
   pure-Rust `jetdb` crate, without Microsoft Access, and merges the supported
@@ -37,6 +38,13 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   them. Access 97 form/report designs stay unsupported; combo row sources
   and controls whose geometry Access stored only as a default are first-cut
   limitations (reported, never guessed).
+
+### Changed
+- core: the `sql-engine` feature is **off by default** and forwards to
+  `datacraft-query/sql-engine` (76, L37). Consumers that relied on the
+  default build for `RunSql` must enable the feature explicitly; a
+  default-feature core is now C-free (no rusqlite in its graph). This is a
+  breaking change, hence the minor version.
 
 ## [0.1.3] — 2026-11-12
 

@@ -63,7 +63,7 @@ is a decision, not an oversight; revisit only if a library consumer appears.
 
 - **Pre-1.0 the family versions in lockstep:** the workspace
   `[workspace.package] version` is the single source of truth (currently
-  `0.1.3`). A breaking change bumps the minor (`0.y` → `0.y+1.0`), additions
+  `0.2.0`). A breaking change bumps the minor (`0.y` → `0.y+1.0`), additions
   and fixes bump the patch. From 1.0 on, standard Semver applies (breaking =
   major). Independent per-crate versions are deliberately postponed until
   after 1.0 — the family is small and releases are coordinated anyway.
