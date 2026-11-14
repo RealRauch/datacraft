@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-14T15:28
+# BACKLOG.md — Open items (As of: 2026-11-14T16:44
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -22,6 +22,13 @@
 
 ## 🟡 MEDIUM
 
+### [ ] M96 — README is 371 lines and development-focused — split it into a user entry plus feature, evidence and contributor docs — 🟡
+- **Location:** `README.md` (371 lines, ~7,330 words; measured 2026-11-14). Weight: "What works today" 2,936 words, "Roadmap" 1,372 (64-row table, ends at phase 64), "Compatibility matrix" 1,092, "Architecture" 510, "Design & branding" 286, "Quality gates" 149 — against ~450 words of genuine user entry (pitch, quick start, license).
+- **Problem:** One file serves four audiences at once. A desktop-app user finds no screenshot and no download/install path (the only entry is `cargo run -p datacraft-ui`), while the feature table, the 64-row roadmap and the quality-gate table duplicate `PROGRESS.md`, `docs/ROADMAP.md` and CI at step granularity and drift at every phase gate. All nine published crates inherit this product page through `readme.workspace = true`. Root cause is the "update README after every behaviour change" rule (PLAYBOOK §2, AGENTS §7): trimming the text alone regrows at the next gate.
+- **Approach:** Phase 79 separates the readers and moves each body of detail to its own home: feature inventory → `docs/FEATURES.md`, full evidence matrix → `docs/COMPATIBILITY.md` (README keeps a date-stamped short matrix), gate detail → `CONTRIBUTING.md`, roadmap prose → existing `docs/ROADMAP.md`/`PROGRESS.md`; README gains a current screenshot, a release-download path and a short gate statement. AGENTS §7/§10, PLAYBOOK §2 and PUBLISHING §7 name the new homes so the growth rule stops. The README roadmap table is retired — M95's README half is absorbed here, its ARCHITECTURE §13 half stays open.
+- **Steps:** Phase 79 (79.1 audience contract and outline; 79.2 `docs/FEATURES.md`; 79.3 `docs/COMPATIBILITY.md`; 79.4 screenshot + download/install entry; 79.5 `CONTRIBUTING.md`; 79.6 retire the roadmap table and reconcile M95/ARCHITECTURE §13; 79.7 final pass, policy alignment and gate).
+- **Acceptance:** README ≤ ~180 lines and ≤ ~1,200 words; it opens with the pitch, a current screenshot and both install paths (release archive and cargo); dev-only content lives in `docs/FEATURES.md`, `docs/COMPATIBILITY.md`, `CONTRIBUTING.md` and `docs/ROADMAP.md`; the README matrix remains the only compatibility claim and no claim is lost or weakened; all internal links resolve; `docs_validate` clean.
+
 ---
 
 ## 🟢 LOW
@@ -41,12 +48,19 @@
 - **Acceptance:** A transient DNS failure no longer reddens the ubuntu oracle job; a persistent failure still fails after the bounded retries, and the retry attempts are visible in the log.
 - **Steps:** none yet (High gate).
 
-### [ ] M95 — The README roadmap table and ARCHITECTURE §13 stop at earlier phases — 🟢
-- **Location:** `README.md` "Roadmap" table (last row: phase 64), `docs/ARCHITECTURE.md` §13 phase mapping (last row: phase 47).
-- **Problem:** Both tables claim to map the delivered phases, but phases 65–78 are missing; `PROGRESS.md`, `CHANGELOG.md` and `docs/ROADMAP.md` are current. A reader of the entry point sees a stale picture.
-- **Approach:** add the missing rows from `CHANGELOG.md`/`PROGRESS.md` at the next documentation pass (one verified line per phase, grouping where the existing table already groups); no code change.
-- **Acceptance:** every delivered phase in `PROGRESS.md` appears with its one-line deliver in both tables; `docs_validate` clean.
-- **Steps:** none yet (docs-only sweep).
+### [ ] M95 — ARCHITECTURE §13 phase mapping stops at phase 47 — 🟢
+- **Location:** `docs/ARCHITECTURE.md` §13 phase mapping (last row: phase 47).
+- **Problem:** The table claims to map the delivered phases, but phases 48–78 are missing; `PROGRESS.md`, `CHANGELOG.md` and `docs/ROADMAP.md` are current. A reader of the architecture blueprint sees a stale picture. The README half of the original finding (a 64-row roadmap table ending at phase 64) is retired with the README restructure — no table is carried forward there.
+- **Approach:** add the missing rows from `CHANGELOG.md`/`PROGRESS.md` at the next documentation pass (one verified line per phase, grouping where the existing table already groups); no code change. Rides Phase 79 step 79.6 with the README roadmap retirement.
+- **Acceptance:** every delivered phase in `PROGRESS.md` appears with its one-line deliver in ARCHITECTURE §13; `docs_validate` clean.
+- **Steps:** Phase 79 step 79.6.
+
+### [ ] L44 — Every published crate inherits the root product README as its crates.io page — 🟢
+- **Location:** `Cargo.toml` `[workspace.package] readme = "README.md"` and `readme.workspace = true` in all ten crate manifests; the packaged root README is the crates.io landing text for `datacraft-types`, `-expr`, `-query`, `-core`, `-jet`, `-sqlite`, `-csv`, `-storage`, `-mcp` and `-import`.
+- **Problem:** A consumer of `datacraft-types` or `datacraft-jet` lands on a desktop-app product page that describes the Access UI and cannot be acted on from a library context; the crate's own purpose, public surface, feature flags and test seam are absent. The mismatch grows with every README shortening (M96) because less of the page will be relevant to the published crates.
+- **Approach:** A short per-crate README (crate purpose, public surface, feature flags, MSRV, license, link to the product page and the docs) and `readme = "README.md"` beside each crate; the root README stays the product entry. Creating or changing these files touches `Cargo.toml` — Medium class, release per occurrence; verify with `cargo package --list` per crate and update the PUBLISHING checklist.
+- **Steps:** none yet (Medium gate; candidate for a later phase after M96/Phase 79 fixes the root README structure).
+- **Acceptance:** Every published crate packages its own README (visible in `cargo package --list`); the crates.io page states what the crate is, its feature flags and MSRV, and links the product page; PUBLISHING's checklist names the per-crate README verification; no publish metadata drift.
 
 ---
 
