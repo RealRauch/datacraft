@@ -22,12 +22,8 @@
 
 ## 🟡 MEDIUM
 
-### [ ] M96 — README is 371 lines and development-focused — split it into a user entry plus feature, evidence and contributor docs — 🟡
-- **Location:** `README.md` (371 lines, ~7,330 words; measured 2026-11-14). Weight: "What works today" 2,936 words, "Roadmap" 1,372 (64-row table, ends at phase 64), "Compatibility matrix" 1,092, "Architecture" 510, "Design & branding" 286, "Quality gates" 149 — against ~450 words of genuine user entry (pitch, quick start, license).
-- **Problem:** One file serves four audiences at once. A desktop-app user finds no screenshot and no download/install path (the only entry is `cargo run -p datacraft-ui`), while the feature table, the 64-row roadmap and the quality-gate table duplicate `PROGRESS.md`, `docs/ROADMAP.md` and CI at step granularity and drift at every phase gate. All nine published crates inherit this product page through `readme.workspace = true`. Root cause is the "update README after every behaviour change" rule (PLAYBOOK §2, AGENTS §7): trimming the text alone regrows at the next gate.
-- **Approach:** Phase 79 separates the readers and moves each body of detail to its own home: feature inventory → `docs/FEATURES.md`, full evidence matrix → `docs/COMPATIBILITY.md` (README keeps a date-stamped short matrix), gate detail → `CONTRIBUTING.md`, roadmap prose → existing `docs/ROADMAP.md`/`PROGRESS.md`; README gains a current screenshot, a release-download path and a short gate statement. AGENTS §7/§10, PLAYBOOK §2 and PUBLISHING §7 name the new homes so the growth rule stops. The README roadmap table is retired — M95's README half is absorbed here, its ARCHITECTURE §13 half stays open.
-- **Steps:** Phase 79 (79.1 audience contract and outline; 79.2 `docs/FEATURES.md`; 79.3 `docs/COMPATIBILITY.md`; 79.4 screenshot + download/install entry; 79.5 `CONTRIBUTING.md`; 79.6 retire the roadmap table and reconcile M95/ARCHITECTURE §13; 79.7 final pass, policy alignment and gate).
-- **Acceptance:** README ≤ ~180 lines and ≤ ~1,200 words; it opens with the pitch, a current screenshot and both install paths (release archive and cargo); dev-only content lives in `docs/FEATURES.md`, `docs/COMPATIBILITY.md`, `CONTRIBUTING.md` and `docs/ROADMAP.md`; the README matrix remains the only compatibility claim and no claim is lost or weakened; all internal links resolve; `docs_validate` clean.
+> No open items.
+
 
 ---
 
