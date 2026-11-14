@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-14T14:08
+# BACKLOG.md — Open items (As of: 2026-11-14T14:15
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -49,7 +49,7 @@
 - **Caveat:** The Access path still assumes the user can export via `SaveAsText`; the finding above removes that prerequisite for the no-Access route. The committed fixture exports make the text format a usable ground truth for the binary decoder (M89).
 - **Approach:** a clean-room parser for the SaveAsText text format (Begin/End blocks, property lines) mapping the supported control subset (label, text box, check box, combo, command button, subform) with rect/caption/source properties into `FormDef`/`ReportDef` sidecar documents. Unsupported properties/controls are collected per object into a precise list, never silently dropped. The export step runs in Access/COM only at migration time (never in the product, AGENTS §6); the parser and import are pure Rust commands/tools. Events/VBA stay unbound (ADR-2). Depending on the decision above, the binary route reads the same subset through jetdb (as an oracle or as a linked adapter).
 - **Acceptance:** an exported (or `jetdb`-read) sample form imports into a sidecar design whose runtime renders the supported controls at their rects; the unsupported list is precise; a fixture pair (source + expected sidecar) pins the mapping; no COM/unsafe path in the shipped code; the no-Access route is exercised once on the committed fixture.
-- **Steps:** none yet. Feasibility first: (a) run `jetdb` against the committed `programmability.accdb` and compare its form/report properties with the committed SaveAsText exports; (b) decide route (a) or (b) — clean-room gate; (c) fix the supported control/property subset and the fixture pair.
+- **Steps:** 77.1 (jetdb feasibility against the committed fixture) + 77.2 (route decision, High gate) + 77.3 (subset and fixture pair) — phase 77, packaged 2026-11-14. Implementation (decoder or jetdb-linked migration tool) is packaged as the next phase from the 77.2 decision record.
 
 ---
 
