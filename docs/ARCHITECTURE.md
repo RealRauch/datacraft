@@ -727,3 +727,51 @@ records](https://support.microsoft.com/en-us/access/ways-to-add-edit-and-delete-
 [Form.Filter](https://support.microsoft.com/en-us/access/filter-property) ·
 [CommandButton.OnClick](https://learn.microsoft.com/en-us/office/vba/api/access.commandbutton.onclick) ·
 [Name AutoCorrect](https://support.microsoft.com/en-us/access/set-name-autocorrect-options).
+
+## 18. Access form/report migration — decision record
+
+**Decision record (ADR-9, 2026-11-14, human-approved): Route B — an
+optional, separate migration tool links `jetdb` 0.4 to read native
+form/report designs and maps the supported subset into sidecar designs.**
+
+**Context.** Native Access form/report definitions have no official
+Microsoft specification. The M89 feasibility study (2026-11-12) stopped at
+the property-id table; the 2026-11-14 research found `jetdb` (pure Rust,
+MIT OR Apache-2.0), which reads Jet4/ACE designs without Access and
+publishes the id/control tables it derived against SaveAsText. Step 77.1
+verified it against our committed fixture: the object/control inventory
+matches exactly, 61 of 75 compared control properties match exactly, the
+14 omissions are all reconstructible Access defaults (Left/Top 0, TextBox
+Width 1440), and the form-level Width/Caption/RecordSource and section
+heights match (`docs/FORMAT-JET.md`, "M88 feasibility").
+
+**Decision.** The migration path is a separate tool crate
+(`datacraft-import`) that depends on `jetdb` 0.4 (pinned) and on the core
+sidecar vocabulary. It is not part of the UI/CLI/MCP composition; its
+third-party knowledge is declared in `THIRD-PARTY-NOTICES.md` and the
+README. The engine stays clean-room: no jetdb code or format knowledge
+enters `datacraft-jet`, `datacraft-query`, `datacraft-expr` or
+`datacraft-core`.
+
+**Boundaries.**
+
+- Source formats: Jet4/ACE `.mdb`/`.accdb`; Access 97 (Jet3) form/report
+  designs are out of scope (jetdb does not read them).
+- Supported controls: label, text box, check box, combo box, command
+  button, subform. Unsupported controls and properties are reported per
+  object, never silently dropped. Events and VBA stay unbound (ADR-2).
+- The tool writes or merges the `.datacraft` sidecar only; it never writes
+  the database (ADR-1). Rect conversion is twips → points (÷20), the
+  Access default table fills omitted properties, and 2-byte values are
+  read unsigned.
+- Combo row-source/display-field mapping and calculated controls are
+  documented limitations of the first cut unless the mapping proves
+  simple; they degrade to an explicit unsupported entry, not to a guess.
+- The decision does not weaken the engine's clean-room claims; the tool is
+  an explicitly declared adapter with its own dependency story.
+
+**Fallback.** Route A — our own decoder from own black-box observation,
+with jetdb only as a test-time oracle — is fully specified in
+`docs/ROADMAP.md` §20. It becomes the replacement path if the dependency
+becomes unacceptable (maintenance, license, security) or if the
+clean-room claim must extend to the migration path itself.

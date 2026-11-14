@@ -750,3 +750,64 @@ SQLite compiles the subset to native `CREATE TRIGGER`; Jet/ACE/CSV are
 interpreted by DataCraft — with the documented island caveat that sidecar
 triggers fire only on DataCraft writes. Not started; its own phase once the
 view work has landed.
+
+## 20. Access form/report migration — Route B and the Route A fallback
+
+**Route B (decided 2026-11-14, ADR-9 in `docs/ARCHITECTURE.md` §18):** a
+separate, optional tool crate (`datacraft-import`) links `jetdb` 0.4 (MIT OR
+Apache-2.0, pure Rust, no COM/FFI) and maps native Jet4/ACE form/report
+designs into `.datacraft` sidecar designs. It is not part of the UI/CLI/MCP
+composition, never writes the database, and carries the third-party
+knowledge openly (`THIRD-PARTY-NOTICES.md`, README). The engine stays
+clean-room. Feasibility evidence: 77.1 — jetdb 0.4.0 reproduced the committed
+fixture's object/control inventory exactly, with 61/75 control properties
+exact and the 14 omissions all reconstructible Access defaults. Access 97
+(Jet3) designs stay out of scope.
+
+**Route A — own decoder (fallback, fully specified).** Replace the jetdb
+adapter with a DataCraft-owned decoder so the migration path itself carries
+no third-party reverse-engineering knowledge. This is the fallback if jetdb
+is abandoned, changes license, produces a security finding, or if the
+clean-room claim must extend to the migration path.
+
+- **Evidence base.** The M89 container/blob findings (MSysAccessStorage
+  directory, `Blob`/`TypeInfo`/`PropData` streams, UTF-16 name framing, the
+  Access 2000 `0x13` and 2002+ `0x14/0x15` blob versions) plus the step-77.1
+  comparison; the committed SaveAsText exports remain the ground truth.
+- **Fixture generation.** Extend `tools/fixture-build` with a VBA generator
+  (the Access COM recipe of step 37.3) that creates a fresh database with one
+  form/report per supported control kind, every supported property set to a
+  distinctive value, and a "defaults" object whose controls are freshly
+  placed and untouched. Pin the new fixture (`fixtures/formDesignsV2016.accdb`
+  or the version the human Access writes) with a manifest hash and provenance
+  in `docs/FIXTURE-SOURCES.md`; the committed programmability fixture stays
+  untouched.
+- **Table derivation.** Match every property ID to the SaveAsText key that
+  holds its value (the jetdb technique, but applied to our own generated
+  fixtures), derive the control-type codes and the per-control-type default
+  table from the defaults object, and record the tables in `docs/FORMAT-JET.md`.
+  Unknown IDs become precise unsupported entries, never guesses.
+- **Decoder.** A strict reader for the blob tree (trailer 253/254/255,
+  sections and controls, property records with type tags and lengths) and for
+  the Access 2000 tree, with checked ranges and precise errors on hostile
+  input (the H46 pattern). Reuse `datacraft-types` only for value
+  vocabulary if needed; no new dependencies.
+- **Parity.** Put both backends behind one mapping trait so Route A and
+  Route B produce identical sidecars and unsupported reports; the expected
+  sidecar pair from 77.3 and the generated fixtures are the contract tests.
+  jetdb stays a test-time CLI oracle only (`DATACRAFT_ORACLE_JETDB`, the
+  libmdb/L31 pattern) — never linked into the product.
+- **Effort and prerequisites.** Realistically one phase of 5–6 steps; needs
+  Access on the fixture-generation machine (the existing COM builder
+  precedent), no new dependencies. The property surface for the six supported
+  controls is small (Name, Left/Top/Width/Height, Caption, ControlSource,
+  RowSource, SourceObject, section heights), so the derivation is bounded.
+- **Trigger.** Do not start Route A speculatively. Start it when the fallback
+  trigger fires or when a phase is explicitly released for it.
+- **Out of scope in both routes.** Access 97 form/report designs, event/VBA
+  binding, combo row-source/display-field fidelity beyond the documented
+  first-cut limitation, and byte-identical Access round-trips (the sidecar is
+  an approximate redesign, ADR-1).
+
+Cross-reference: the backlog item is M88; the feasibility evidence is
+`docs/FORMAT-JET.md` "M88 feasibility — jetdb against the committed exports".
