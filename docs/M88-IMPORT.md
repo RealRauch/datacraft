@@ -66,9 +66,16 @@ the fixtures — never guesses:
 | `Width` (TextBox) | `1440` twips | 77.1 fixture (all text boxes) |
 
 Any other missing `Left`/`Top`/`Width`/`Height` (or a missing `Name`) is
-reported as unsupported for that control and the control is skipped — the
-generated six-kind fixture (Phase 78) must confirm the remaining defaults
-before they are added to this table.
+reported as unsupported for that control and the control is skipped. The
+generated `Defaults` object (78.3) confirmed that controls created with
+default geometry carry **no** `Left`/`Top`/`Width`/`Height` in the Blob —
+only `LayoutCachedWidth`/`LayoutCachedHeight`, whose ids shift above
+`0x01C4` and are left unnamed by jetdb. The table therefore stays
+deliberately minimal: the 1440 TextBox width is the committed fixture's
+inherited value, not a universal Access default (the generated Defaults
+object shows 1701 for a fresh Access 365 form). Route A's tree reader can
+consume the form's default-control nodes and close this gap
+(`docs/ROADMAP.md` §20).
 
 Two-byte numeric properties are read as **unsigned** (`u16`): `jetdb`'s
 `BlobValue::Short` renders values above 32767 signed (Right/Bottom 50000 →
@@ -121,11 +128,12 @@ Text boxes bind `ItemName`, `StockLevel`, `Quantity`, `MovedOn`,
 committed SaveAsText exports (`tools/fixture-build/objects/`), which remain
 the ground truth.
 
-**Coverage gap (Phase 78 must close it):** the committed fixture contains
-only TextBox, Label, CommandButton and Detail. A generated fixture with all
-six control kinds and a defaults object (Access COM, `tools/fixture-build`
-recipe) pins CheckBox, ComboBox, SubForm and the remaining default values
-before the importer claims them.
+**Coverage (78.3):** `fixtures/formDesignsV2016.accdb` pins the six kinds on
+`All Controls` (explicit rects, captions and sources; the combo's row source
+is the one expected unsupported entry) and the omitted-geometry behaviour on
+`Defaults` (six controls, all reported unsupported, none guessed). Its
+expected sidecar is
+`crates/datacraft-import/tests/data/form-designs.datacraft.json`.
 
 ## 7. CLI contract (Phase 78)
 

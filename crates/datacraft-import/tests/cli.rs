@@ -134,3 +134,34 @@ fn merge_keeps_tables_and_unrelated_designs() {
         .expect("the imported form");
     assert_eq!(replaced, &imported, "the same-named form is replaced");
 }
+
+#[test]
+fn strict_fails_when_the_defaults_form_is_unmapped() {
+    let scratch = scratch("strict-fail");
+    let sidecar = scratch.join("formDesignsV2016.datacraft");
+    let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/formDesignsV2016.accdb")
+        .canonicalize()
+        .expect("the generated fixture is present");
+    let output = run(&[
+        &fixture,
+        Path::new("--sidecar"),
+        &sidecar,
+        Path::new("--strict"),
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("strict: unsupported entries present"),
+        "{stdout}"
+    );
+    assert!(
+        sidecar.exists(),
+        "the partial sidecar is written before the strict exit"
+    );
+}

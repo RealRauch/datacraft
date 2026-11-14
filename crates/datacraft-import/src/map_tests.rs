@@ -246,7 +246,7 @@ fn subform_sources_are_mapped_or_reported() {
         Vec::new(),
         vec![
             control(
-                "SubReport",
+                "SubForm",
                 "subDetails",
                 vec![
                     prop("Name", RawValue::Text("subDetails".into())),
@@ -258,7 +258,7 @@ fn subform_sources_are_mapped_or_reported() {
                 ],
             ),
             control(
-                "SubReport",
+                "SubForm",
                 "subBroken",
                 vec![
                     prop("Name", RawValue::Text("subBroken".into())),
@@ -420,4 +420,23 @@ fn reports_get_the_default_page_and_grid() {
         }
         other => panic!("expected a report, got {other:?}"),
     }
+}
+
+#[test]
+fn all_missing_layout_properties_are_reported() {
+    let object = form_object(
+        Vec::new(),
+        vec![control(
+            "Label",
+            "lbl",
+            vec![prop("Name", RawValue::Text("lbl".into()))],
+        )],
+    );
+    let (_, report) = map_object(&object, &[], &[]);
+    let missing: Vec<&str> = report
+        .unsupported_properties
+        .iter()
+        .map(|entry| entry.property.as_str())
+        .collect();
+    assert_eq!(missing, ["Width", "Height"]);
 }

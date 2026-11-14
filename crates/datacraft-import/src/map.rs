@@ -256,7 +256,7 @@ fn map_control(control: &RawControl, report: &mut ObjectReport) -> Option<Contro
             caption: text_prop(&control.props, "Caption").unwrap_or_default(),
             action: None,
         },
-        "SubReport" => match subform_name(control) {
+        "SubReport" | "SubForm" => match subform_name(control) {
             Some(form_name) => ControlKind::SubForm { form: form_name },
             None => {
                 report.unsupported_properties.push(UnsupportedProperty {
@@ -284,23 +284,27 @@ fn map_control(control: &RawControl, report: &mut ObjectReport) -> Option<Contro
 }
 
 fn map_rect(control: &RawControl, report: &mut ObjectReport) -> Option<Rect> {
-    let mut value = |property: &str| -> Option<u16> {
+    let mut missing: Vec<&'static str> = Vec::new();
+    let mut value = |property: &'static str| -> Option<u16> {
         let found = find(&control.props, property)
             .and_then(unsigned)
             .or_else(|| default_twips(control.type_name.as_deref(), property));
         if found.is_none() {
+            missing.push(property);
+        }
+        found
+    };
+    let values = (value("Left"), value("Top"), value("Width"), value("Height"));
+    let (Some(x), Some(y), Some(width), Some(height)) = values else {
+        for property in missing {
             report.unsupported_properties.push(UnsupportedProperty {
                 control: Some(control.name.clone()),
                 property: property.to_owned(),
                 reason: "no value and no confirmed Access default".to_owned(),
             });
         }
-        found
+        return None;
     };
-    let x = value("Left")?;
-    let y = value("Top")?;
-    let width = value("Width")?;
-    let height = value("Height")?;
     if width == 0 || height == 0 {
         report.unsupported_properties.push(UnsupportedProperty {
             control: Some(control.name.clone()),

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "database_name": "formDesignsV2016",
+  "tables": [],
+  "queries": [],
+  "forms": [
+    {
+      "name": "All Controls",
+      "source": "Items",
+      "grid": 8.0,
+      "size": {
+        "width": 400.0,
+        "height": 200.0
+      },
+      "controls": [
+        {
+          "name": "txtItemName",
+          "kind": {
+            "type": "text_box",
+            "value": {
+              "bound_field": "ItemName"
+            }
+          },
+          "rect": {
+            "x": 25.0,
+            "y": 20.0,
+            "width": 100.0,
+            "height": 20.0
+          }
+        },
+        {
+          "name": "lblItemName",
+          "kind": {
+            "type": "label",
+            "value": {
+              "text": "Item name"
+            }
+          },
+          "rect": {
+            "x": 25.0,
+            "y": 50.0,
+            "width": 100.0,
+            "height": 15.0
+          }
+        },
+        {
+          "name": "chkActive",
+          "kind": {
+            "type": "check_box",
+            "value": {
+              "bound_field": "Active"
+            }
+          },
+          "rect": {
+            "x": 25.0,
+            "y": 80.0,
+            "width": 15.0,
+            "height": 15.0
+          }
+        },
+        {
+          "name": "cboCategory",
+          "kind": {
+            "type": "combo_box",
+            "value": {
+              "bound_field": "CategoryId",
+              "row_source": "",
+              "display_field": ""
+            }
+          },
+          "rect": {
+            "x": 25.0,
+            "y": 110.0,
+            "width": 100.0,
+            "height": 20.0
+          }
+        },
+        {
+          "name": "cmdRun",
+          "kind": {
+            "type": "button",
+            "value": {
+              "caption": "Run",
+              "action": null
+            }
+          },
+          "rect": {
+            "x": 25.0,
+            "y": 140.0,
+            "width": 100.0,
+            "height": 25.0
+          }
+        },
+        {
+          "name": "subCategory",
+          "kind": {
+            "type": "sub_form",
+            "value": {
+              "form": "Category Details"
+            }
+          },
+          "rect": {
+            "x": 150.0,
+            "y": 20.0,
+            "width": 150.0,
+            "height": 100.0
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category Details",
+      "source": "",
+      "grid": 8.0,
+      "size": {
+        "width": 349.7,
+        "height": 297.6
+      },
+      "controls": []
+    },
+    {
+      "name": "Defaults",
+      "source": "Items",
+      "grid": 8.0,
+      "size": {
+        "width": 349.7,
+        "height": 297.6
+      },
+      "controls": []
+    }
+  ],
+  "reports": [],
+  "views": []
+}

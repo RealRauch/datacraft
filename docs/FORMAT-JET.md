@@ -1320,6 +1320,16 @@ defaults), without Access, without COM and without modifying the file. The
 route decision (77.2) can proceed; the remaining risks are the unverified
 control kinds, the default table, and the signed 2-byte rendering.
 
+**Follow-up (78.3, generated six-kind fixture).** A form whose controls were
+created with default geometry stores no `Left`/`Top`/`Width`/`Height` in the
+Blob; SaveAsText likewise omits them, leaving only `LayoutCachedWidth`/
+`LayoutCachedHeight` (ids above `0x01C4`, shifted by Access version and left
+unnamed by jetdb). jetdb's public API drops the form's default-control
+nodes, so such controls cannot be reconstructed without guessing; the
+importer reports them as unsupported. `fixtures/formDesignsV2016.accdb`
+pins the six explicit control kinds and this limitation; Route A's own tree
+reader can read the default nodes (ROADMAP §20).
+
 ## VBA project extraction (step 17.2, item L5)
 
 The ACE VBA project lives under `MSysAccessStorage`:

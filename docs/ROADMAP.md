@@ -791,7 +791,10 @@ clean-room claim must extend to the migration path.
   sections and controls, property records with type tags and lengths) and for
   the Access 2000 tree, with checked ranges and precise errors on hostile
   input (the H46 pattern). Reuse `datacraft-types` only for value
-  vocabulary if needed; no new dependencies.
+  vocabulary if needed; no new dependencies. The same reader can consume the
+  form's **default-control nodes** — which jetdb's public API drops — and
+  thereby reconstruct controls whose geometry Access omitted, the one known
+  limitation of Route B.
 - **Parity.** Put both backends behind one mapping trait so Route A and
   Route B produce identical sidecars and unsupported reports; the expected
   sidecar pair from 77.3 and the generated fixtures are the contract tests.

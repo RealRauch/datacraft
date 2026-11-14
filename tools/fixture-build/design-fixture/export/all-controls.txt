@@ -1,0 +1,313 @@
+Version =21
+VersionRequired =20
+PublishOption =1
+Checksum =1665895342
+Begin Form
+    DividingLines = NotDefault
+    AllowDesignChanges = NotDefault
+    DefaultView =0
+    TabularFamily =0
+    PictureAlignment =2
+    DatasheetGridlinesBehavior =3
+    GridY =10
+    Width =8000
+    DatasheetFontHeight =11
+    ItemSuffix =6
+    Right =17880
+    Bottom =7560
+    DatasheetGridlinesColor =15263976
+    RecSrcDt = Begin
+        0x5043414e94a0e640
+    End
+    GUID = Begin
+        0x7c262cfa26b9a94a84a34e089a59ba01
+    End
+    NameMap = Begin
+        0x0acc0e5500000000bfe85c5c6b83f24183a1d422cb24cd35000000005043414e ,
+        0x94a0e64000000000000000004900740065006d007300000000000000f7ad774a ,
+        0x372b724c86052d125e1bc71401000000a35e3f4e94a0e6400000000000000000 ,
+        0x430061007400650067006f00720079002000440065007400610069006c007300 ,
+        0x0000000000000e9cfd244f7d8541a6956369573e37c907000000bfe85c5c6b83 ,
+        0xf24183a1d422cb24cd354900740065006d004e0061006d006500000000000000 ,
+        0x69f6fb1b2e6fbb48883cbab5fd9e99ff07000000bfe85c5c6b83f24183a1d422 ,
+        0xcb24cd354100630074006900760065000000000000004d3650ea3a5a354191e3 ,
+        0x2b61c02fc74207000000bfe85c5c6b83f24183a1d422cb24cd35430061007400 ,
+        0x650067006f007200790049006400000000000000da05278b6a27a540a22d2d7c ,
+        0x8412bb7a00000000bd4f414e94a0e64000000000000000004300610074006500 ,
+        0x67006f0072006900650073000000000000006eddc9e56750084dba378959a704 ,
+        0x0f4d07000000da05278b6a27a540a22d2d7c8412bb7a49004400000000000000 ,
+        0x8d3372cf1e51e542be67a7f26560a09507000000da05278b6a27a540a22d2d7c ,
+        0x8412bb7a430061007400650067006f00720079004e0061006d00650000000000 ,
+        0x0000000000000000000000000000000000000c00000005000000000000000000 ,
+        0x0000000000000000
+    End
+    RecordSource ="Items"
+    Caption ="All Controls"
+    DatasheetFontName ="Aptos"
+    FilterOnLoad =0
+    ShowPageMargins =0
+    DisplayOnSharePointSite =1
+    DatasheetAlternateBackColor =15921906
+    DatasheetGridlinesColor12 =0
+    FitToScreen =1
+    DatasheetBackThemeColorIndex =1
+    BorderThemeColorIndex =3
+    ThemeFontIndex =1
+    ForeThemeColorIndex =0
+    AlternateBackThemeColorIndex =1
+    AlternateBackShade =95.0
+    NoSaveCTIWhenDisabled =1
+    Begin
+        Begin Label
+            BackStyle =0
+            TextFontFamily =0
+            FontSize =11
+            BorderColor =8355711
+            ForeColor =6710886
+            FontName ="Aptos"
+            GridlineColor =10921638
+            ThemeFontIndex =1
+            BackThemeColorIndex =1
+            BorderThemeColorIndex =0
+            BorderTint =50.0
+            ForeThemeColorIndex =0
+            ForeTint =60.0
+            GridlineThemeColorIndex =1
+            GridlineShade =65.0
+        End
+        Begin CommandButton
+            TextFontFamily =0
+            Width =1701
+            Height =283
+            FontSize =11
+            FontWeight =400
+            ForeColor =4210752
+            FontName ="Aptos"
+            GridlineColor =10921638
+            ForeThemeColorIndex =0
+            ForeTint =75.0
+            GridlineThemeColorIndex =1
+            GridlineShade =65.0
+            UseTheme =1
+            Shape =1
+            Gradient =12
+            BackColor =14790982
+            BackThemeColorIndex =4
+            BackTint =60.0
+            BorderLineStyle =0
+            BorderColor =14790982
+            BorderThemeColorIndex =4
+            BorderTint =60.0
+            ThemeFontIndex =1
+            HoverColor =15453059
+            HoverThemeColorIndex =4
+            HoverTint =40.0
+            PressedColor =6440976
+            PressedThemeColorIndex =4
+            PressedShade =75.0
+            HoverForeColor =4210752
+            HoverForeThemeColorIndex =0
+            HoverForeTint =75.0
+            PressedForeColor =4210752
+            PressedForeThemeColorIndex =0
+            PressedForeTint =75.0
+        End
+        Begin CheckBox
+            BorderLineStyle =0
+            LabelX =230
+            LabelY =-30
+            BorderColor =10921638
+            GridlineColor =10921638
+            BorderThemeColorIndex =1
+            BorderShade =65.0
+            GridlineThemeColorIndex =1
+            GridlineShade =65.0
+        End
+        Begin TextBox
+            AddColon = NotDefault
+            FELineBreak = NotDefault
+            TextFontFamily =0
+            BorderLineStyle =0
+            Width =1701
+            LabelX =-1701
+            FontSize =11
+            BorderColor =10921638
+            ForeColor =4210752
+            FontName ="Aptos"
+            AsianLineBreak =1
+            GridlineColor =10921638
+            BackThemeColorIndex =1
+            BorderThemeColorIndex =1
+            BorderShade =65.0
+            ThemeFontIndex =1
+            ForeThemeColorIndex =0
+            ForeTint =75.0
+            GridlineThemeColorIndex =1
+            GridlineShade =65.0
+        End
+        Begin ComboBox
+            AddColon = NotDefault
+            TextFontFamily =0
+            BorderLineStyle =0
+            Width =1701
+            LabelX =-1701
+            FontSize =11
+            BorderColor =10921638
+            ForeColor =2102279
+            FontName ="Aptos"
+            GridlineColor =10921638
+            AllowValueListEdits =1
+            InheritValueList =1
+            ThemeFontIndex =1
+            BackThemeColorIndex =1
+            BorderThemeColorIndex =1
+            BorderShade =65.0
+            ForeThemeColorIndex =2
+            ForeShade =50.0
+            GridlineThemeColorIndex =1
+            GridlineShade =65.0
+        End
+        Begin Subform
+            BorderLineStyle =0
+            Width =1701
+            Height =1701
+            BorderColor =10921638
+            GridlineColor =10921638
+            BorderThemeColorIndex =1
+            GridlineThemeColorIndex =1
+            GridlineShade =65.0
+            BorderShade =65.0
+            ShowPageHeaderAndPageFooter =1
+        End
+        Begin Section
+            Height =4000
+            Name ="Detailbereich"
+            GUID = Begin
+                0x3677998bd223594081f5c6cbf3f2aeb0
+            End
+            AutoHeight =1
+            AlternateBackColor =15921906
+            AlternateBackThemeColorIndex =1
+            AlternateBackShade =95.0
+            BackThemeColorIndex =1
+            Begin
+                Begin TextBox
+                    OverlapFlags =85
+                    IMESentenceMode =3
+                    Left =500
+                    Top =400
+                    Width =2000
+                    Height =400
+                    Name ="txtItemName"
+                    ControlSource ="ItemName"
+                    GUID = Begin
+                        0x2a5d9e42c42be64abc3f097645516c6f
+                    End
+
+                    LayoutCachedLeft =500
+                    LayoutCachedTop =400
+                    LayoutCachedWidth =2500
+                    LayoutCachedHeight =800
+                End
+                Begin Label
+                    OverlapFlags =85
+                    Left =500
+                    Top =1000
+                    Width =2000
+                    Height =300
+                    Name ="lblItemName"
+                    Caption ="Item name"
+                    GUID = Begin
+                        0x6f7734e03203894aba74e456903ec5b3
+                    End
+                    LayoutCachedLeft =500
+                    LayoutCachedTop =1000
+                    LayoutCachedWidth =2500
+                    LayoutCachedHeight =1300
+                End
+                Begin CheckBox
+                    OverlapFlags =85
+                    Left =500
+                    Top =1600
+                    Width =300
+                    Height =300
+                    TabIndex =1
+                    Name ="chkActive"
+                    ControlSource ="Active"
+                    GUID = Begin
+                        0xdb299d4cc0733f438f8e294880b1883a
+                    End
+
+                    LayoutCachedLeft =500
+                    LayoutCachedTop =1600
+                    LayoutCachedWidth =800
+                    LayoutCachedHeight =1900
+                End
+                Begin ComboBox
+                    OverlapFlags =85
+                    IMESentenceMode =3
+                    ColumnCount =2
+                    Left =500
+                    Top =2200
+                    Width =2000
+                    Height =400
+                    TabIndex =2
+                    ColumnInfo ="\"\";\"\";\"\";\"\";\"10\";\"100\""
+                    GUID = Begin
+                        0x8994ed4aaaa36f469aaa2792ea97b644
+                    End
+                    Name ="cboCategory"
+                    ControlSource ="CategoryId"
+                    RowSourceType ="Table/Query"
+                    RowSource ="SELECT ID, CategoryName FROM Categories; "
+                    ColumnWidths ="0;1701"
+
+                    LayoutCachedLeft =500
+                    LayoutCachedTop =2200
+                    LayoutCachedWidth =2500
+                    LayoutCachedHeight =2600
+                End
+                Begin CommandButton
+                    OverlapFlags =85
+                    Left =500
+                    Top =2800
+                    Width =2000
+                    Height =500
+                    TabIndex =3
+                    Name ="cmdRun"
+                    Caption ="Run"
+                    GUID = Begin
+                        0x99009b1dc45dd344af935f9b47b6e18d
+                    End
+
+                    LayoutCachedLeft =500
+                    LayoutCachedTop =2800
+                    LayoutCachedWidth =2500
+                    LayoutCachedHeight =3300
+                    WebImagePaddingLeft =2
+                    WebImagePaddingTop =2
+                    WebImagePaddingRight =1
+                    WebImagePaddingBottom =1
+                End
+                Begin Subform
+                    OverlapFlags =85
+                    Left =3000
+                    Top =400
+                    Width =3000
+                    Height =2000
+                    TabIndex =4
+                    Name ="subCategory"
+                    SourceObject ="Form.Category Details"
+                    GUID = Begin
+                        0x6182a16a0c1bb64a8ac96c358d4cd04a
+                    End
+
+                    LayoutCachedLeft =3000
+                    LayoutCachedTop =400
+                    LayoutCachedWidth =6000
+                    LayoutCachedHeight =2400
+                End
+            End
+        End
+    End
+End

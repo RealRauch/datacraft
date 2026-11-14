@@ -233,6 +233,47 @@ Empirical values (macro argument strings, module storage order, the exact
 attribute set) are read off the built file and pinned in the ported suites —
 the recipe fixes the object set, not the binary layout.
 
+### Form-design fixture: six control kinds and the defaults object (78.3)
+
+**Purpose:** pin the M88 import mapping (`docs/M88-IMPORT.md`) for the six
+supported control kinds and for controls whose geometry Access omits.
+Self-authored content only; the committed programmability fixture is never
+opened.
+
+| Object | Kind | Exercises |
+|---|---|---|
+| `Items` | table | bound sources (`ItemName`, `StockLevel`, `Active`, `CategoryId`) |
+| `Categories` | table | combo row source and subform parent |
+| `All Controls` | form | Label, TextBox, CheckBox, ComboBox, CommandButton and SubForm with explicit twips rects, captions and control sources |
+| `Defaults` | form | one control of each kind created with default geometry (`CreateControl` without coordinates) |
+| `Category Details` | form | empty subform source; the `Form.Category Details` source-object prefix |
+
+**Creation recipe:** `tools/fixture-build/design-fixture/generate-form-designs.ps1`
+plus the VBA module `generate-form-designs.bas` (imported through
+`LoadFromText acModule`, so no VBA-project trust is needed). The script
+creates a fresh `NewCurrentDatabase` in a scratch directory, runs the
+generator, exports SaveAsText for the three forms, compacts through a
+short-lived second instance and fails on a leftover `MSACCESS.EXE` or
+`.laccdb`. The generator uses `CreateForm`/`CreateReport` with explicit
+`DoCmd.Save`/`Close`/`Rename`; unlike the unsaved-design paths the original
+recipe warns about, this ran headless without dialogs in Access
+`16.0.20527.20112`. UTF-8 copies of the exports live under
+`tools/fixture-build/design-fixture/export/` (converted from the UTF-16LE
+exports at build time).
+
+**Observation pinned by `Defaults`:** controls created with default geometry
+carry **no** `Left`/`Top`/`Width`/`Height` in the Blob or in SaveAsText — only
+`LayoutCachedWidth`/`LayoutCachedHeight` (version-dependent property ids that
+`jetdb` leaves unnamed above `0x01C4`). The importer therefore reports those
+controls as unsupported instead of inventing a default; `All Controls` pins
+the explicit mapping. Route A's own tree reader can consume the form's
+default-control nodes and remove the limitation (`docs/ROADMAP.md` §20).
+
+**Pin:** sha256
+`36515a11303fb845921ff15c94974ab08d2799d0aecd11817380e77a17813e75`
+(`fixtures/formDesignsV2016.accdb`); the file is never reopened in Access
+after commit. Regeneration reruns the script into a scratch directory.
+
 The three ACE fixtures are pinned as `fixtures/testV2007.accdb`,
 `fixtures/testV2010.accdb` and `fixtures/attachmentsV2016.accdb` (hashes and
 `repo@commit` provenance in `fixtures/manifest`; the CI fixtures job verifies

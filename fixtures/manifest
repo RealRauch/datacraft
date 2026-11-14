@@ -53,3 +53,10 @@ ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668  test2V1997.mdb
 # docs/FIXTURE-SOURCES.md "Programmability fixture" for the object
 # inventory and creation recipe)
 6735f409a40ea606a4471315b87cd03405c1fb8f074868a307637c98d3417989  programmability.accdb
+
+# source: created with Microsoft Access 16.0.20527.20112 on 2026-11-14 by
+# DataCraft contributors (self-created six-kind form-design fixture for the
+# M88 import mapping; see docs/FIXTURE-SOURCES.md "Form-design fixture" and
+# tools/fixture-build/design-fixture/ for the generator and the SaveAsText
+# exports)
+36515a11303fb845921ff15c94974ab08d2799d0aecd11817380e77a17813e75  formDesignsV2016.accdb
