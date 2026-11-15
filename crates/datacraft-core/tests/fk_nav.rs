@@ -303,11 +303,15 @@ fn follow_criteria_refuses_null_and_partial_composite_keys() {
         .into_iter()
         .next()
         .expect("declared target");
-    let all_null = vec![("customer_id".to_owned(), None)];
+    // The UI carries cell values as `Some(value)` — a NULL cell arrives
+    // as `Some(FieldValue::Null)`, not as a missing entry, and must
+    // answer the NullKey class, not a parse failure.
+    let all_null = vec![("customer_id".to_owned(), Some(FieldValue::Null))];
     let reason = follow_criteria(&target, &all_null, &tables).expect_err("NULL refuses");
     assert!(
-        reason.to_string().contains("customer_id"),
-        "the message names the empty column: {reason}"
+        matches!(reason, datacraft_core::fk_nav::FkCriteriaError::NullKey { ref column }
+            if column == "customer_id"),
+        "a NULL cell value answers NullKey naming the column: {reason}"
     );
     let composite_target = datacraft_core::fk_nav::FkFollowTarget {
         direction: FkDirection::Forward,
@@ -319,14 +323,15 @@ fn follow_criteria_refuses_null_and_partial_composite_keys() {
     };
     let partial = vec![
         ("a".to_owned(), Some(FieldValue::Integer(5))),
-        ("b".to_owned(), None),
+        ("b".to_owned(), Some(FieldValue::Null)),
     ];
     let keys_tables = vec![tables[3].clone()];
     let reason = follow_criteria(&composite_target, &partial, &keys_tables)
         .expect_err("a partially empty composite refuses");
     assert!(
-        reason.to_string().contains("b"),
-        "the message names the partially empty column: {reason}"
+        matches!(reason, datacraft_core::fk_nav::FkCriteriaError::NullKey { ref column }
+            if column == "b"),
+        "the partial NULL answers NullKey naming the empty column: {reason}"
     );
 }
 
