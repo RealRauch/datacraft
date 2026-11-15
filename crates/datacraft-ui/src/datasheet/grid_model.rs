@@ -8,6 +8,7 @@ use datacraft_core::availability::DisabledReason;
 use datacraft_core::edit_buffer::RowState;
 use datacraft_core::grid::GridMetrics;
 use datacraft_core::qbe::SortOrder;
+use datacraft_core::selection::Selection;
 
 /// Pending state of one displayed row (step 85.2, item H61): the row's
 /// buffer state and the column indices carrying staged changes — the
@@ -30,12 +31,15 @@ pub(crate) struct PendingRow {
 /// `edit` is the armed in-place cell editor (step 40.4, L23) and
 /// `edit_restricted` keeps the cells inert on sources that cannot write;
 /// `pending` carries the edit-buffer markers (step 85.2, H61) and `locked`
-/// refuses every grid input while a submission is in flight.
+/// refuses every grid input while a submission is in flight. `selection`
+/// is the tab's current multi-cell selection (step 86.1, M101 — display
+/// positions over `body`, already clamped by the caller).
 pub(crate) struct Grid<'a> {
     pub metrics: GridMetrics,
     pub columns: &'a [String],
     pub body: &'a [Vec<String>],
     pub cursor: usize,
+    pub selection: &'a Selection,
     pub widths: &'a mut [f32],
     pub sort_orders: &'a [SortOrder],
     /// Active column filters of the tab (empty for query grids); the
@@ -91,11 +95,18 @@ pub(crate) enum EditIntent {
 /// inert.
 /// The grid's paint callbacks plus the header menu's filter drafts
 /// (step 44.5, M54 — bundled so `grid_ui` stays under the arity lint):
-/// selection, QBE sort writes (query grids), freeze, record deletion,
-/// in-place cell editing and the table column filters.
+/// selection, the multi-cell selection changes (step 86.1, M101), QBE
+/// sort writes (query grids), freeze, record deletion, in-place cell
+/// editing and the table column filters.
 pub(crate) struct GridCallbacks<'a> {
     /// Row selection (display index).
     pub on_select: &'a mut dyn FnMut(usize),
+    /// The new selection after a keyboard or mouse intent (step 86.1,
+    /// M101); the caller stores it as the tab's presentation state.
+    pub on_selection: Option<&'a mut dyn FnMut(Selection)>,
+    /// Column selection through the header (the column and whether the
+    /// header was shift-clicked, extending the anchor).
+    pub on_select_column: Option<&'a mut dyn FnMut(usize, bool)>,
     /// Header sort (query grids write the QBE sort cell).
     pub on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     /// Freeze/unfreeze through the header context menu.
@@ -114,6 +125,8 @@ pub(crate) struct GridCallbacks<'a> {
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn grid_ui_callbacks<'a>(
     on_select: &'a mut dyn FnMut(usize),
+    on_selection: Option<&'a mut dyn FnMut(Selection)>,
+    on_select_column: Option<&'a mut dyn FnMut(usize, bool)>,
     on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     on_freeze: Option<&'a mut dyn FnMut(usize)>,
     on_delete: Option<&'a mut dyn FnMut(usize)>,
@@ -122,6 +135,8 @@ pub(crate) fn grid_ui_callbacks<'a>(
 ) -> GridCallbacks<'a> {
     GridCallbacks {
         on_select,
+        on_selection,
+        on_select_column,
         on_sort,
         on_freeze,
         on_delete,

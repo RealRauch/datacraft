@@ -204,6 +204,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Sort by Name", "Nach Name sortieren"),
     ("Sort by Type", "Nach Typ sortieren"),
     ("Freeze Fields", "Felder fixieren"),
+    ("Select Column", "Spalte auswählen"),
     ("Unfreeze All Fields", "Fixierung aufheben"),
     ("Delete Record", "Datensatz löschen"),
     (

@@ -160,12 +160,20 @@ pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         ui.weak(t("No result yet."));
         return;
     };
+    let row_total = result.rows.len();
+    let col_total = result.columns.len();
     let body: Vec<Vec<String>> = result
         .rows
         .iter()
         .map(|row| row.iter().map(value_label).collect())
         .collect();
     let mut widths: Vec<f32> = Vec::new();
+    // The view result grid shares the selection model (step 86.1, item
+    // M101), keyed by the tab like the datasheet's. The bounds copy ends
+    // the `result` borrow before the selection storage below.
+    let selection = app.selection(tab.id, row_total, col_total);
+    let mut selection_intent = None;
+    let mut select_column_intent = None;
     crate::datasheet::grid_ui(
         ui,
         crate::datasheet::Grid {
@@ -173,6 +181,7 @@ pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             columns: &result.columns,
             body: &body,
             cursor: 0,
+            selection: &selection,
             widths: &mut widths,
             sort_orders: &[],
             filters: &std::collections::BTreeMap::new(),
@@ -184,11 +193,34 @@ pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             pending: &[],
             locked: false,
         },
-        crate::datasheet::grid_ui_callbacks(&mut |_row: usize| {}, None, None, None, None, None),
+        crate::datasheet::grid_ui_callbacks(
+            &mut |_row: usize| {},
+            Some(&mut |new_selection| selection_intent = Some(new_selection)),
+            Some(&mut |column: usize, extend: bool| {
+                select_column_intent = Some((column, extend));
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+        ),
     );
+    if let Some(new_selection) = selection_intent {
+        app.set_selection(tab.id, new_selection);
+    }
+    if let Some((column, extend)) = select_column_intent {
+        let current = app.selection(tab.id, row_total, col_total);
+        let new_selection = if extend {
+            current.extend_columns(column)
+        } else {
+            datacraft_core::selection::Selection::select_column(column)
+        };
+        app.set_selection(tab.id, new_selection);
+    }
     ui.label(
         egui::RichText::new(plural(
-            result.rows.len(),
+            row_total,
             "{count} result row",
             "{count} result rows",
         ))

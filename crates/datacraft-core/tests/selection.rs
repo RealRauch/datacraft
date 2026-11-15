@@ -87,9 +87,16 @@ fn a_shrinking_row_count_clamps_both_corners() {
 #[test]
 fn an_out_of_bounds_selection_clamps_to_the_nearest_edge() {
     let clamped = rect((8, 1), (9, 3)).clamped(4, 4);
-    assert_eq!(clamped.row_range(4), 3..4, "the rectangle meets the boundary");
+    assert_eq!(
+        clamped.row_range(4),
+        3..4,
+        "the rectangle meets the boundary"
+    );
     assert_eq!(clamped.col_range(4), 1..4);
-    assert_eq!(Selection::collapse(7, 1).clamped(4, 4), Selection::collapse(3, 1));
+    assert_eq!(
+        Selection::collapse(7, 1).clamped(4, 4),
+        Selection::collapse(3, 1)
+    );
 }
 
 /// A column-count change (schema refresh) clamps columns the same way.
@@ -99,7 +106,10 @@ fn a_shrinking_column_count_clamps_columns() {
     let clamped = sel.clamped(10, 3);
     assert_eq!(clamped.col_range(3), 1..3);
     assert_eq!(clamped.row_range(10), 2..6);
-    assert_eq!(Selection::collapse(0, 2).clamped(10, 2), Selection::collapse(0, 1));
+    assert_eq!(
+        Selection::collapse(0, 2).clamped(10, 2),
+        Selection::collapse(0, 1)
+    );
 }
 
 /// Column selection covers whole columns and extends in both directions
@@ -134,11 +144,46 @@ fn select_all_covers_every_loaded_cell() {
 /// anchor cell is its anchor column's first row.
 #[test]
 fn the_anchor_cell_survives_every_selection_kind() {
-    assert_eq!(Selection::collapse(2, 1).anchor_cell(), CellPos { row: 2, col: 1 });
-    assert_eq!(rect((2, 1), (5, 3)).anchor_cell(), CellPos { row: 2, col: 1 });
+    assert_eq!(
+        Selection::collapse(2, 1).anchor_cell(),
+        CellPos { row: 2, col: 1 }
+    );
+    assert_eq!(
+        rect((2, 1), (5, 3)).anchor_cell(),
+        CellPos { row: 2, col: 1 }
+    );
     assert_eq!(
         Selection::select_column(2).anchor_cell(),
         CellPos { row: 0, col: 2 }
     );
-    assert_eq!(Selection::select_all().anchor_cell(), CellPos { row: 0, col: 0 });
+    assert_eq!(
+        Selection::select_all().anchor_cell(),
+        CellPos { row: 0, col: 0 }
+    );
+}
+
+/// The focus cell is the moving corner: the rectangle's focus, a column
+/// selection's focus column, everything else's own cell.
+#[test]
+fn the_focus_cell_names_the_moving_corner() {
+    assert_eq!(
+        Selection::collapse(2, 1).focus_cell(),
+        CellPos { row: 2, col: 1 }
+    );
+    assert_eq!(
+        rect((2, 1), (5, 3)).focus_cell(),
+        CellPos { row: 5, col: 3 }
+    );
+    assert_eq!(
+        Selection::Columns {
+            anchor: 0,
+            focus: 2
+        }
+        .focus_cell(),
+        CellPos { row: 0, col: 2 }
+    );
+    assert_eq!(
+        Selection::select_all().focus_cell(),
+        CellPos { row: 0, col: 0 }
+    );
 }

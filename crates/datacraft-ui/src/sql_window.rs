@@ -76,6 +76,11 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                     .iter()
                     .map(|row| row.iter().map(value_label).collect())
                     .collect();
+                // The result grid shares the selection model (step 86.1,
+                // item M101); the window keeps one session selection.
+                let selection = app.sql_selection(result.rows.len(), result.columns.len());
+                let mut selection_intent = None;
+                let mut select_column_intent = None;
                 crate::datasheet::grid_ui(
                     ui,
                     Grid {
@@ -83,6 +88,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         columns: &result.columns,
                         body: &body,
                         cursor: 0,
+                        selection: &selection,
                         widths: &mut widths,
                         sort_orders: &sorts,
                         filters: &std::collections::BTreeMap::new(),
@@ -91,11 +97,15 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         delete_reason: None,
                         edit: None,
                         edit_restricted: true,
-pending: &[],
-locked: false,
+                        pending: &[],
+                        locked: false,
                     },
                     crate::datasheet::grid_ui_callbacks(
                         &mut |_row: usize| {},
+                        Some(&mut |new_selection| selection_intent = Some(new_selection)),
+                        Some(&mut |column: usize, extend: bool| {
+                            select_column_intent = Some((column, extend));
+                        }),
                         None,
                         None,
                         None,
@@ -103,6 +113,18 @@ locked: false,
                         None,
                     ),
                 );
+                if let Some(new_selection) = selection_intent {
+                    app.set_sql_selection(new_selection);
+                }
+                if let Some((column, extend)) = select_column_intent {
+                    let current = app.sql_selection(result.rows.len(), result.columns.len());
+                    let new_selection = if extend {
+                        current.extend_columns(column)
+                    } else {
+                        datacraft_core::selection::Selection::select_column(column)
+                    };
+                    app.set_sql_selection(new_selection);
+                }
                 ui.label(
                     egui::RichText::new(plural(
                         result.rows.len(),

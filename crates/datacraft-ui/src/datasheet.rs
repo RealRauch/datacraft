@@ -16,11 +16,12 @@ use eframe::egui;
 
 use datacraft_core::command::Command;
 use datacraft_core::grid::GridMetrics;
-use datacraft_core::qbe::{QbeRow, QbeValue, SortOrder};
+use datacraft_core::qbe::SortOrder;
+use datacraft_core::selection::Selection;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
-use crate::i18n::{plural, t, tr};
+use crate::i18n::{t, tr};
 use crate::labels::value_label;
 use crate::theme::tokens;
 
@@ -28,11 +29,13 @@ mod grid;
 mod grid_model;
 mod header;
 mod nav;
+mod query_results;
 mod submit;
 mod trailing;
 
 pub(crate) use grid::grid_ui;
 pub(crate) use grid_model::{CellEditSlot, EditIntent, Grid, grid_ui_callbacks};
+pub(crate) use query_results::query_results_ui;
 
 /// Renders the datasheet of one table tab.
 pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
@@ -142,6 +145,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .unwrap_or_default();
     let cursor = app.record_cursor(tab.id);
     let row_count = body.len();
+    // The tab's selection (step 86.1, item M101): clamped against the
+    // currently loaded bounds at read time — the survival rule.
+    let selection = app.selection(tab.id, row_count, columns.len());
     let sorts: Vec<SortOrder> = columns
         .iter()
         .map(|column| {
@@ -174,6 +180,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let editor = app.cell_edit_parts(tab.id);
     let edit = editor.map(|(row, col, buffer)| CellEditSlot { row, col, buffer });
     let mut selected = None;
+    let mut selection_intent: Option<Selection> = None;
+    let mut select_column_intent: Option<(usize, bool)> = None;
     let mut freeze_intent: Option<usize> = None;
     let mut delete_intent: Option<usize> = None;
     let mut pending_edit: Option<EditIntent> = None;
@@ -181,6 +189,10 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut dialog_intent: Option<usize> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
+        let mut on_selection = |new_selection: Selection| selection_intent = Some(new_selection);
+        let mut on_select_column = |column: usize, extend: bool| {
+            select_column_intent = Some((column, extend));
+        };
         let mut on_freeze = |count: usize| freeze_intent = Some(count);
         let mut on_delete = |row: usize| delete_intent = Some(row);
         let mut on_edit = |intent: EditIntent| pending_edit = Some(intent);
@@ -205,6 +217,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     columns: &columns,
                     body: &body,
                     cursor,
+                    selection: &selection,
                     widths: &mut widths,
                     sort_orders: &sorts,
                     filters: &tab.filters,
@@ -218,6 +231,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 },
                 crate::datasheet::grid_ui_callbacks(
                     &mut on_select,
+                    Some(&mut on_selection),
+                    Some(&mut on_select_column),
                     Some(&mut on_sort),
                     Some(&mut on_freeze),
                     Some(&mut on_delete),
@@ -229,6 +244,21 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     if let Some(count) = freeze_intent {
         app.set_frozen_columns(tab.id, count);
+    }
+    // Selection storage (step 86.1, item M101): keyboard and mouse
+    // intents report the new selection; the header's column affordances
+    // extend or start a column selection from the current anchor.
+    if let Some(new_selection) = selection_intent {
+        app.set_selection(tab.id, new_selection);
+    }
+    if let Some((column, extend)) = select_column_intent {
+        let current = app.selection(tab.id, row_count, columns.len());
+        let new_selection = if extend {
+            current.extend_columns(column)
+        } else {
+            Selection::select_column(column)
+        };
+        app.set_selection(tab.id, new_selection);
     }
     if let Some((column, order)) = sort_intent
         && let Some(field) = columns.get(column)
@@ -245,6 +275,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     match pending_edit {
         Some(EditIntent::Start { row, col }) => {
             let slot = slots.get(row).copied().unwrap_or(row);
+            // Arming the editor collapses the selection onto the edited
+            // cell (step 86.1, item M101).
+            app.set_selection(tab.id, Selection::collapse(row, col));
             app.start_cell_edit(tab.id, row, slot, col);
         }
         Some(EditIntent::Commit { row, col }) => {
@@ -378,122 +411,4 @@ fn filter_dialog_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &m
     if close {
         app.close_filter_dialog(tab.id);
     }
-}
-
-/// Renders the result grid of one query tab (Datasheet mode). Header
-/// clicks and the header context menu write the column's QBE sort cell —
-/// exactly one `SetQbeCell` per action (step 21.4).
-pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
-    let Some(result) = app.results_for(tab.id) else {
-        // A failed run surfaces its reason (step 39.4, item M31).
-        if let Some(reason) = app.load_error(tab.id) {
-            ui.colored_label(tokens(ui.visuals()).danger, reason.to_owned());
-        } else {
-            ui.centered_and_justified(|ui| {
-                ui.weak(t("The query produced no runnable result yet."))
-            });
-        }
-        return;
-    };
-    let cursor = app.record_cursor(tab.id);
-    let columns = result.columns.clone();
-    let body: Vec<Vec<String>> = result
-        .rows
-        .iter()
-        .map(|row| row.iter().map(value_label).collect())
-        .collect();
-    let row_count = body.len();
-    let (sort_orders, field_indices) = query_sort_state(app, &tab.object_name, columns.len());
-    let mut widths = app.column_widths(tab.id, columns.len());
-    let frozen = datacraft_core::grid::effective_frozen(app.frozen_columns(tab.id), columns.len());
-    let mut selected = None;
-    let mut sort_intent: Option<(usize, SortOrder)> = None;
-    {
-        let mut on_select = |row: usize| selected = Some(row);
-        let mut on_freeze = |count: usize| app.set_frozen_columns(tab.id, count);
-        let mut on_sort = |column: usize, order: SortOrder| {
-            if let Some(field) = field_indices.get(column) {
-                sort_intent = Some((*field, order));
-            }
-        };
-        let sort = if field_indices.is_empty() {
-            None
-        } else {
-            Some(&mut on_sort as &mut dyn FnMut(usize, SortOrder))
-        };
-        grid_ui(
-            ui,
-            Grid {
-                metrics: GridMetrics::default(),
-                columns: &columns,
-                body: &body,
-                cursor,
-                widths: &mut widths,
-                sort_orders: &sort_orders,
-                filters: &std::collections::BTreeMap::new(),
-                id_salt: format!("query.grid.{}", tab.ui_test_id),
-                frozen,
-                delete_reason: None,
-                edit: None,
-                edit_restricted: true,
-                pending: &[],
-                locked: false,
-            },
-            crate::datasheet::grid_ui_callbacks(
-                &mut on_select,
-                sort,
-                Some(&mut on_freeze),
-                None,
-                None,
-                None,
-            ),
-        );
-    }
-    app.set_column_widths(tab.id, widths);
-    if let Some(row) = selected {
-        app.set_record_cursor(tab.id, row, row_count);
-    }
-    if let Some((field, order)) = sort_intent {
-        app.dispatch(Command::SetQbeCell {
-            query: tab.object_name.clone(),
-            row: QbeRow::Sort,
-            col: field,
-            value: QbeValue::Text(order.to_string()),
-        });
-    }
-    ui.label(
-        egui::RichText::new(plural(
-            row_count,
-            "{count} result row",
-            "{count} result rows",
-        ))
-        .small(),
-    );
-}
-
-/// Result-column sort state of a sidecar query: per displayed column its
-/// [`SortOrder`] and the QBE field index it addresses. Native queries have
-/// no sidecar definition and therefore no sort targets.
-fn query_sort_state(app: &App, query: &str, columns: usize) -> (Vec<SortOrder>, Vec<usize>) {
-    let Some(def) = app.snapshot().database.as_ref().and_then(|db| {
-        db.queries
-            .iter()
-            .find(|q| q.name.eq_ignore_ascii_case(query))
-    }) else {
-        return (vec![SortOrder::None; columns], Vec::new());
-    };
-    let indices: Vec<usize> = def
-        .fields
-        .iter()
-        .enumerate()
-        .filter(|(_, field)| field.shown)
-        .map(|(index, _)| index)
-        .collect();
-    let mut orders: Vec<SortOrder> = indices
-        .iter()
-        .map(|index| def.fields[*index].sort)
-        .collect();
-    orders.truncate(columns);
-    orders.resize(columns, SortOrder::None);
-    (orders, indices)
 }

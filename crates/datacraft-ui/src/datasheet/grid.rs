@@ -16,10 +16,11 @@ use datacraft_core::grid::{
     DEFAULT_COLUMN_WIDTH, clamp_scroll_x, ensure_row_visible, frozen_column_x, frozen_width,
     scrolled_column_x, visible_scrolled_range,
 };
+use datacraft_core::selection::Selection;
 
 use super::grid_model::{EditIntent, Grid, GridCallbacks};
 use super::header::{HeaderPass, header_ui};
-use super::nav::{nav_target, read_delete_key, read_nav_intent};
+use super::nav::{nav_target, read_delete_key, read_nav_intent, read_select_all};
 use crate::i18n::t;
 use crate::theme::tokens;
 
@@ -29,6 +30,8 @@ pub(super) const SELECTOR_WIDTH: f32 = 48.0;
 pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCallbacks<'a>) {
     let GridCallbacks {
         on_select,
+        mut on_selection,
+        on_select_column,
         on_sort,
         on_freeze,
         mut on_delete,
@@ -40,6 +43,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         columns,
         body,
         cursor,
+        selection,
         widths,
         sort_orders,
         filters: grid_filters,
@@ -88,10 +92,14 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
             );
         });
     }
-    let intent = if wants_nav { read_nav_intent(ui) } else { None };
+    let nav = if wants_nav { read_nav_intent(ui) } else { None };
     let viewport_height = (ui.available_height() - metrics.header_height).max(metrics.row_height);
-    let follow_target =
-        intent.map(|intent| nav_target(intent, cursor, body.len(), viewport_height, &metrics));
+    let follow_target = nav
+        .as_ref()
+        .map(|(intent, _)| nav_target(*intent, cursor, body.len(), viewport_height, &metrics));
+    // Ctrl+A selects everything loaded (step 86.1, item M101); the
+    // wants_nav gate keeps it away from text fields holding focus.
+    let select_all = wants_nav && read_select_all(ui);
     // Del on the selected record is a deletion intent, not a cursor move —
     // it only fires for capable sources (step 40.3, item M44); a
     // submission in flight refuses it (step 85.2, item H61).
@@ -113,7 +121,9 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         sort: on_sort,
         freeze: on_freeze,
         filter_dialog: on_filter_dialog,
+        select_column: on_select_column,
         filters: grid_filters,
+        selection,
     };
     header_ui(ui, &metrics, columns, widths, sort_orders, &mut header);
     let total_width: f32 = widths.iter().sum();
@@ -121,6 +131,10 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     let body_viewport = (ui.available_width() - SELECTOR_WIDTH).max(0.0);
     let font = egui::TextStyle::Body.resolve(ui.style());
     let tokens = tokens(ui.visuals());
+    // Loaded bounds for the selection's containment checks (step 86.1,
+    // item M101) — copied so the cell closure shares them.
+    let body_row_total = body.len();
+    let col_total = columns.len();
     let mut clicked_row = None;
     let mut delete_row: Option<usize> = delete_intent.then(|| cursor.min(body.len() - 1));
     let mut edit_intent: Option<EditIntent> = None;
@@ -130,6 +144,10 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     // double-hash must be reproduced here.
     let body_id = ui.make_persistent_id(egui::IdSalt::new(&id_salt));
 
+    // The moving corner's column for keyboard selection (step 86.1, item
+    // M101); `selection_after_nav` applies the intent to it.
+    let focus_col = selection.focus_cell().col;
+    let extend_nav = nav.map(|(_, extend)| extend).unwrap_or(false);
     let mut scroll_area = egui::ScrollArea::both()
         .auto_shrink([false, false])
         .id_salt(&id_salt);
@@ -327,6 +345,13 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         }
                         return;
                     }
+                    // Selected cells carry the faint accent wash under
+                    // their text (step 86.1, item M101); the cursor row's
+                    // marker paints over it afterwards.
+                    if selection.contains(row_idx, col, body_row_total, col_total) {
+                        ui.painter()
+                            .rect_filled(cell, 0.0, tokens.accent_faint);
+                    }
                     ui.painter_at(cell).text(
                         cell.left_center() + egui::vec2(4.0, 0.0),
                         egui::Align2::LEFT_CENTER,
@@ -363,8 +388,23 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         egui::Stroke::new(1.0, tokens.border),
                     );
                     if response.clicked() {
+                        // Selection intents (step 86.1, item M101): a
+                        // plain click collapses onto the cell (the anchor),
+                        // Shift+click extends the rectangle to it. The
+                        // editor still arms only on a plain click into the
+                        // cursor row.
+                        let shift = ui.input(|i| i.modifiers.shift);
+                        if let Some(callback) = on_selection.as_mut() {
+                            let new_selection = if shift {
+                                selection.extend_to_cell(row_idx, col)
+                            } else {
+                                Selection::collapse(row_idx, col)
+                            };
+                            callback(new_selection);
+                        }
                         clicked_row = Some(row_idx);
-                        if is_cursor
+                        if !shift
+                            && is_cursor
                             && edit.is_none()
                             && !edit_restricted
                         {
@@ -412,6 +452,21 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         data.insert_temp(anchor_id.with("offset"), offset.y);
         data.insert_temp(h_key, offset.x);
     });
+    // Selection intents (step 86.1, item M101): a plain navigation key
+    // collapses the selection onto the new cursor row, a Shift-modified
+    // one extends from the current anchor (`All` stays all), Ctrl+A
+    // selects everything loaded. Empty grids select nothing.
+    if !body.is_empty()
+        && let Some(target) = follow_target
+        && let Some(callback) = on_selection.as_mut()
+    {
+        callback(crate::datasheet::nav::selection_after_nav(
+            selection, target, extend_nav, focus_col,
+        ));
+    }
+    if select_all && let Some(callback) = on_selection.as_mut() {
+        callback(Selection::All);
+    }
     // The focus anchor covers the whole grid: focusable but not
     // interactive, so it never steals clicks from the rows it overlays.
     // A row-selector click arms keyboard navigation for the next frame.

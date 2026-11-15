@@ -41,6 +41,33 @@ impl App {
         self.record_cursor.insert(tab_id, clamped);
     }
 
+    /// The datasheet selection of a tab (step 86.1, item M101), clamped
+    /// against the currently loaded bounds — the survival rule (scroll
+    /// keeps it untouched, a sort/filter change shrinks it into the new
+    /// row set) applies at read time. Tabs without a selection start on
+    /// the first cell.
+    pub fn selection(
+        &self,
+        tab_id: TabId,
+        rows: usize,
+        cols: usize,
+    ) -> datacraft_core::selection::Selection {
+        self.selections
+            .get(&tab_id)
+            .copied()
+            .unwrap_or_else(|| datacraft_core::selection::Selection::collapse(0, 0))
+            .clamped(rows, cols)
+    }
+
+    /// Stores the datasheet selection of a tab.
+    pub fn set_selection(
+        &mut self,
+        tab_id: TabId,
+        selection: datacraft_core::selection::Selection,
+    ) {
+        self.selections.insert(tab_id, selection);
+    }
+
     /// Buffered cells of a datasheet's new-record row, padded to the
     /// table's column count (step 11.7).
     pub fn new_row_cells(&self, tab_id: TabId, columns: usize) -> Vec<String> {
@@ -121,6 +148,18 @@ impl App {
     /// Stores the SQL window's result grid widths after a resize.
     pub fn set_sql_column_widths(&mut self, widths: Vec<f32>) {
         self.sql_column_widths = widths;
+    }
+
+    /// The SQL window's result-grid selection (step 86.1, item M101),
+    /// clamped against the current bounds — the survival rule at read
+    /// time.
+    pub fn sql_selection(&self, rows: usize, cols: usize) -> datacraft_core::selection::Selection {
+        self.sql_selection.clamped(rows, cols)
+    }
+
+    /// Stores the SQL window's result-grid selection.
+    pub fn set_sql_selection(&mut self, selection: datacraft_core::selection::Selection) {
+        self.sql_selection = selection;
     }
 
     /// The open filter dialog of a tab (step 45.1, M55): the column

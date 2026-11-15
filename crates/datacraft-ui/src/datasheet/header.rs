@@ -12,6 +12,7 @@ use datacraft_core::grid::{
     scrolled_column_x,
 };
 use datacraft_core::qbe::SortOrder;
+use datacraft_core::selection::Selection;
 
 use super::grid::SELECTOR_WIDTH;
 use crate::i18n::{t, tr};
@@ -37,6 +38,14 @@ pub(super) struct HeaderPass<'a> {
     /// criteria dialog (the in-menu editor died on click — egui menus
     /// do not host text editing).
     pub filter_dialog: Option<&'a mut dyn FnMut(usize)>,
+    /// Column selection through the header (step 86.1, item M101): the
+    /// context menu's "Select Column" entry and a Shift+click extension
+    /// report `(column, extend)`. A plain header click keeps sorting
+    /// (step 21.4, U8).
+    pub select_column: Option<&'a mut dyn FnMut(usize, bool)>,
+    /// The tab's current selection — selected columns highlight their
+    /// header (step 86.1, item M101).
+    pub selection: &'a Selection,
     /// Active column filters by field name (step 69.6, item M84): the
     /// header paints a funnel glyph and names the criteria on hover.
     pub filters: &'a std::collections::BTreeMap<String, String>,
@@ -66,6 +75,7 @@ pub(super) fn header_ui(
     let mut pending_sort: Option<(usize, SortOrder)> = None;
     let mut pending_freeze: Option<usize> = None;
     let mut pending_filter_dialog: Option<usize> = None;
+    let mut pending_select_column: Option<(usize, bool)> = None;
     // The band is viewport-bounded, never content-sized: a content-sized
     // band would widen the container ui and defeat the body's horizontal
     // scroll. Cells beyond the band are painted clipped.
@@ -94,6 +104,11 @@ pub(super) fn header_ui(
         let response = ui.interact(cell_rect, cell_id, sense);
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ColumnHeader, true, name));
         ui.painter().rect_filled(cell_rect, 0.0, tokens.accent_fill);
+        // Selected columns highlight their header (step 86.1, item M101).
+        if pass.selection.col_range(columns.len()).contains(&col) {
+            ui.painter()
+                .rect_filled(cell_rect, 0.0, tokens.accent_faint);
+        }
         let order = sort_orders.get(col).copied().unwrap_or_default();
         ui.painter().text(
             cell_rect.left_center() + egui::vec2(4.0, 0.0),
@@ -139,6 +154,12 @@ pub(super) fn header_ui(
             None => response,
         };
         response.context_menu(|ui| {
+            if pass.select_column.is_some()
+                && ui.selectable_label(false, t("Select Column")).clicked()
+            {
+                pending_select_column = Some((col, false));
+                ui.close();
+            }
             if sortable {
                 for target in [SortOrder::Ascending, SortOrder::Descending, SortOrder::None] {
                     let text = match target {
@@ -172,6 +193,12 @@ pub(super) fn header_ui(
                 ui.close();
             }
         });
+        // Shift+click on a header extends the column selection from its
+        // anchor (step 86.1, item M101); a plain click keeps sorting
+        // (step 21.4, U8).
+        if response.clicked() && ui.input(|i| i.modifiers.shift) {
+            pending_select_column = Some((col, true));
+        }
         let handle_rect = egui::Rect::from_min_size(
             origin + egui::vec2(x + cell_width, 0.0),
             egui::vec2(HANDLE_WIDTH, band_h),
@@ -195,6 +222,11 @@ pub(super) fn header_ui(
         && let Some(callback) = pass.sort.as_mut()
     {
         callback(col, order);
+    }
+    if let Some((column, extend)) = pending_select_column
+        && let Some(callback) = pass.select_column.as_mut()
+    {
+        callback(column, extend);
     }
     if let Some(count) = pending_freeze
         && let Some(callback) = pass.freeze.as_mut()

@@ -81,6 +81,10 @@ pub struct App {
     /// Current record cursor per table/query tab (the status bar's
     /// record-navigation box and the datasheet row selector).
     record_cursor: HashMap<TabId, usize>,
+    /// Per-tab datasheet selection (step 86.1, item M101): the core
+    /// model's display positions over the loaded rows; presentation
+    /// state, clamped against the current bounds on every read.
+    selections: HashMap<TabId, datacraft_core::selection::Selection>,
     /// Current preview page of a report tab (defaults to the first).
     preview_page: HashMap<TabId, usize>,
     /// Cached preview pages per report tab (refreshed on dispatch).
@@ -143,6 +147,9 @@ pub struct App {
     frozen_columns: HashMap<TabId, usize>,
     /// Column widths of the SQL window's result grid (step 21.4).
     sql_column_widths: Vec<f32>,
+    /// Selection of the SQL window's result grid (step 86.1, item M101;
+    /// presentation state like the widths above).
+    sql_selection: datacraft_core::selection::Selection,
     /// Open database-password prompt (step 16.2, M5; the state and paint
     /// live in `password_prompt.rs`).
     pub(crate) password_prompt: Option<crate::password_prompt::PasswordPrompt>,
@@ -218,6 +225,7 @@ impl App {
             preview_page: HashMap::new(),
             previews: HashMap::new(),
             record_cursor: HashMap::new(),
+            selections: HashMap::new(),
             load_errors: HashMap::new(),
             drags: HashMap::new(),
             form_record: HashMap::new(),
@@ -250,6 +258,7 @@ impl App {
             column_widths: HashMap::new(),
             frozen_columns: HashMap::new(),
             sql_column_widths: Vec::new(),
+            sql_selection: datacraft_core::selection::Selection::collapse(0, 0),
             password_prompt: None,
             vba_search: String::new(),
             relationship_draft: None,

@@ -76,7 +76,10 @@ impl Selection {
     /// column's first row; extending from `All` anchors at the origin.
     pub fn extend_to_cell(self, row: usize, col: usize) -> Self {
         let anchor = self.anchor_cell();
-        Self::Rect { anchor, focus: CellPos { row, col } }
+        Self::Rect {
+            anchor,
+            focus: CellPos { row, col },
+        }
     }
 
     /// Extends a column selection to `col` (shift click on a header);
@@ -94,10 +97,27 @@ impl Selection {
     /// The anchor cell the next extension extends from.
     pub fn anchor_cell(&self) -> CellPos {
         match *self {
-            Self::Cell { row, col } | Self::Rect { anchor: CellPos { row, col }, .. } => {
-                CellPos { row, col }
-            }
-            Self::Columns { anchor, .. } => CellPos { row: 0, col: anchor },
+            Self::Cell { row, col }
+            | Self::Rect {
+                anchor: CellPos { row, col },
+                ..
+            } => CellPos { row, col },
+            Self::Columns { anchor, .. } => CellPos {
+                row: 0,
+                col: anchor,
+            },
+            Self::All => CellPos { row: 0, col: 0 },
+        }
+    }
+
+    /// The focus cell — the selection's moving corner. Keyboard
+    /// navigation keeps its column for the collapse or extension target;
+    /// a column selection moves on its focus column, `All` on the origin.
+    pub fn focus_cell(&self) -> CellPos {
+        match *self {
+            Self::Cell { row, col } => CellPos { row, col },
+            Self::Rect { focus, .. } => focus,
+            Self::Columns { focus, .. } => CellPos { row: 0, col: focus },
             Self::All => CellPos { row: 0, col: 0 },
         }
     }
@@ -107,7 +127,9 @@ impl Selection {
     /// loaded row.
     pub fn row_range(&self, rows: usize) -> std::ops::Range<usize> {
         match *self {
-            Self::Cell { row, .. } => row.min(rows.saturating_sub(1))..row.min(rows.saturating_sub(1)) + 1,
+            Self::Cell { row, .. } => {
+                row.min(rows.saturating_sub(1))..row.min(rows.saturating_sub(1)) + 1
+            }
             Self::Rect { anchor, focus } => {
                 let (first, last) = ordered(anchor.row, focus.row);
                 first.min(rows.saturating_sub(1))..(last.min(rows.saturating_sub(1)) + 1).min(rows)
@@ -120,7 +142,9 @@ impl Selection {
     /// `[first, last_exclusive)`. `All` covers every column.
     pub fn col_range(&self, cols: usize) -> std::ops::Range<usize> {
         match *self {
-            Self::Cell { col, .. } => col.min(cols.saturating_sub(1))..col.min(cols.saturating_sub(1)) + 1,
+            Self::Cell { col, .. } => {
+                col.min(cols.saturating_sub(1))..col.min(cols.saturating_sub(1)) + 1
+            }
             Self::Rect { anchor, focus } => {
                 let (first, last) = ordered(anchor.col, focus.col);
                 first.min(cols.saturating_sub(1))..(last.min(cols.saturating_sub(1)) + 1).min(cols)
@@ -204,10 +228,13 @@ mod tests {
     #[test]
     fn extending_a_column_selection_to_a_cell_starts_at_the_anchor_column() {
         let sel = Selection::select_column(3).extend_to_cell(4, 1);
-        assert_eq!(sel, Selection::Rect {
-            anchor: CellPos { row: 0, col: 3 },
-            focus: CellPos { row: 4, col: 1 },
-        });
+        assert_eq!(
+            sel,
+            Selection::Rect {
+                anchor: CellPos { row: 0, col: 3 },
+                focus: CellPos { row: 4, col: 1 },
+            }
+        );
         assert_eq!(sel.row_range(10), 0..5);
         assert_eq!(sel.col_range(5), 1..4);
     }
