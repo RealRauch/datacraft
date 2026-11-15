@@ -9,15 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 86 — Datasheet selection, clipboard and value viewer
-
-**Scope (Steps):**
-
-- **86.1 Core selection model: anchor rectangle, column selection, Ctrl+A, documented survival rule across scroll/sort/filter (M101)**
-- **86.2 Clipboard TSV copy/paste with arity and size validation before any cell changes (M101)**
-- **86.3 One-value fill as a single undo step and Delete-to-NULL with the driver NULL boundary (M101)**
-- **86.4 Cell value viewer: read-only text/JSON/bounded hex, Shift+F2 and context menu, multiline editor through the 85 buffer (M102)**
-- **86.5 Documentation and phase gate (M101, M102)**
 ### Phase 87 — Datasheet navigation: foreign keys and structured filter
 
 **Scope (Steps):**
@@ -517,7 +508,7 @@
 | 86.2 | Clipboard TSV copy/paste with arity and size validation before any cell changes (M101) | ✅ |
 | 86.3 | One-value fill as a single undo step and Delete-to-NULL with the driver NULL boundary (M101) | ✅ |
 | 86.4 | Cell value viewer: read-only text/JSON/bounded hex, Shift+F2 and context menu, multiline editor through the 85 buffer (M102) | ✅ |
-| 86.5 | Documentation and phase gate (M101, M102) | ⬜ |
+| 86.5 | Documentation and phase gate (M101, M102) | ✅ |
 | 87.1 | FK follow on key cells: declared foreign keys, reverse keys and inferred references with composite-key pairing (M103) | ⬜ |
 | 87.2 | Per-tab back/forward history and capped, cancellable "referenced by" counts (M103) | ⬜ |
 | 87.3 | Core filter builder model: AND/OR groups with visible parentheses, ordered sort columns, criteria-string serialization (M104) | ⬜ |
