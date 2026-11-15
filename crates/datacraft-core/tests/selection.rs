@@ -99,6 +99,40 @@ fn an_out_of_bounds_selection_clamps_to_the_nearest_edge() {
     );
 }
 
+/// A rectangle whose corners clamp onto the same cell collapses to it.
+#[test]
+fn a_rectangle_clamped_to_one_cell_collapses() {
+    let clamped = rect((2, 1), (3, 1)).clamped(2, 4);
+    assert_eq!(clamped, Selection::collapse(1, 1));
+}
+
+/// A column selection clamps its corners into the new column count and
+/// keeps its kind.
+#[test]
+fn a_column_selection_clamps_its_columns() {
+    assert_eq!(
+        Selection::select_column(3).clamped(10, 2),
+        Selection::Columns {
+            anchor: 1,
+            focus: 1
+        }
+    );
+}
+
+/// Extending a non-column selection to a column starts a fresh column
+/// selection on that column.
+#[test]
+fn extending_a_cell_selection_to_a_column_starts_fresh() {
+    let sel = Selection::collapse(2, 1).extend_columns(0);
+    assert_eq!(
+        sel,
+        Selection::Columns {
+            anchor: 0,
+            focus: 0
+        }
+    );
+}
+
 /// A column-count change (schema refresh) clamps columns the same way.
 #[test]
 fn a_shrinking_column_count_clamps_columns() {
