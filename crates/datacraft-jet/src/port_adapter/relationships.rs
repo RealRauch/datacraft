@@ -6,7 +6,7 @@
 //! the M15 TDEF index metadata, and writes the relationship row in the same
 //! writer session — a failure leaves the file untouched.
 
-use datacraft_core::port::{PortError, Relationship, SchemaChange, StoragePort};
+use datacraft_core::port::{PortError, Relationship, RelationshipGroup, SchemaChange, StoragePort};
 use datacraft_core::schema::{FieldProperties, IndexMode};
 
 use crate::error::StorageError;
@@ -202,4 +202,68 @@ fn msys_row(definition: &JetTableDef, relationship: &Relationship) -> Vec<Storag
             _ => StorageValue::Null,
         })
         .collect()
+}
+
+/// Composite groupings of the declared relationships (step 87.1, item
+/// M103): `MSysRelationships` rows sharing one `szRelationship` name
+/// form one constraint — a composite key lists more than one column
+/// pair, in row order. `None` — the database cannot be read; an absent
+/// `MSysRelationships` answers an empty list (no constraints).
+pub(super) fn groups(port: &Jet4Port) -> Option<Vec<RelationshipGroup>> {
+    match msys_page(port) {
+        Ok(Some(_)) => {}
+        Ok(None) => return Some(Vec::new()),
+        Err(_) => return None,
+    }
+    let reader = port.reader.as_ref()?;
+    let data = reader.open_table("MSysRelationships").ok()?;
+    let index_of = |name: &str| {
+        data.schema
+            .columns
+            .iter()
+            .position(|column| column.name == name)
+    };
+    let (i_name, i_obj, i_col, i_ref_obj, i_ref_col) = (
+        index_of("szRelationship")?,
+        index_of("szObject")?,
+        index_of("szColumn")?,
+        index_of("szReferencedObject")?,
+        index_of("szReferencedColumn")?,
+    );
+    let text = |v: &StorageValue| match v {
+        StorageValue::Text(s) => Some(s.clone()),
+        _ => None,
+    };
+    let mut order: Vec<String> = Vec::new();
+    let mut groups: Vec<RelationshipGroup> = Vec::new();
+    for row in &data.rows {
+        let Some((name, table, column, related_table, related_column)) = (|| {
+            Some((
+                text(&row[i_name])?,
+                text(&row[i_obj])?,
+                text(&row[i_col])?,
+                text(&row[i_ref_obj])?,
+                text(&row[i_ref_col])?,
+            ))
+        })() else {
+            continue;
+        };
+        let key = name.to_lowercase();
+        if !order.contains(&key) {
+            order.push(key.clone());
+            groups.push(RelationshipGroup {
+                name: Some(name),
+                table,
+                related_table,
+                pairs: Vec::new(),
+            });
+        }
+        if let Some(group) = groups
+            .iter_mut()
+            .find(|group| group.name.as_deref().map(str::to_lowercase).as_deref() == Some(&key))
+        {
+            group.pairs.push((column, related_column));
+        }
+    }
+    Some(groups)
 }

@@ -104,6 +104,10 @@ pub struct DatabaseSnapshot {
     /// (`MSys*`) are filtered at load — they are Access's internal
     /// metadata, not user relationships (step 69.1, H57).
     pub relationships: Vec<crate::port::Relationship>,
+    /// Composite relationship groupings (step 87.1, item M103); `None`
+    /// when the driver carries no constraint names.
+    #[serde(default)]
+    pub relationship_groups: Option<Vec<crate::port::RelationshipGroup>>,
     /// Query definitions in creation order.
     pub queries: Vec<QueryEntrySnapshot>,
     /// Sidecar view designs in creation order (step 71.1, item M93).
@@ -301,6 +305,7 @@ impl UiStateSnapshot {
                 capabilities: db.capabilities,
                 availability: crate::availability::affordances(&db.capabilities),
                 relationships: db.relationships.clone(),
+                relationship_groups: db.relationship_groups.clone(),
                 forms: db.forms.clone(),
                 reports: db.reports.clone(),
                 macros: db

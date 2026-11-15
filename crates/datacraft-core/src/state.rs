@@ -110,6 +110,11 @@ pub struct DatabaseState {
     pub tables: Vec<TableDef>,
     /// Referential relationships, as reported by the backend.
     pub relationships: Vec<Relationship>,
+    /// Composite relationship groupings, as reported by the backend
+    /// (step 87.1, item M103); `None` — the driver carries no constraint
+    /// names and the follow resolution pairs entries instead.
+    #[serde(default)]
+    pub relationship_groups: Option<Vec<crate::port::RelationshipGroup>>,
     /// Query definitions in creation order.
     pub queries: Vec<QueryDef>,
     /// Form design documents in creation order.

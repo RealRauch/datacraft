@@ -401,6 +401,10 @@ impl StoragePort for Jet4Port {
             .collect())
     }
 
+    fn relationship_groups(&self) -> Option<Vec<datacraft_core::port::RelationshipGroup>> {
+        relationships::groups(self)
+    }
+
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
         rows::insert_row(self, table, values)
     }

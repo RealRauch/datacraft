@@ -77,14 +77,8 @@ fn shop_tables() -> Vec<TableDef> {
                 field("model", FieldKind::Text { max_len: 50 }),
             ],
         ),
-        TableDef::new(
-            "Keys",
-            vec![field("k1", long()), field("k2", long())],
-        ),
-        TableDef::new(
-            "Other",
-            vec![field("o1", long()), field("o2", long())],
-        ),
+        TableDef::new("Keys", vec![field("k1", long()), field("k2", long())]),
+        TableDef::new("Other", vec![field("o1", long()), field("o2", long())]),
     ]
 }
 
@@ -92,7 +86,13 @@ fn shop_tables() -> Vec<TableDef> {
 #[test]
 fn declared_forward_follows_to_the_parent_table() {
     let relationships = vec![rel("Orders", "customer_id", "Customers", "id")];
-    let targets = follow_targets("Orders", "customer_id", &relationships, None, &shop_tables());
+    let targets = follow_targets(
+        "Orders",
+        "customer_id",
+        &relationships,
+        None,
+        &shop_tables(),
+    );
     assert_eq!(targets.len(), 1, "one declared target");
     assert_eq!(targets[0].direction, FkDirection::Forward);
     assert_eq!(targets[0].table, "Customers");
@@ -207,9 +207,39 @@ fn inference_requires_suffix_base_table_and_id_field() {
     assert!(follow_targets("Orders", "keys_id", &[], None, &shop_tables()).is_empty());
     // A declared target suppresses inference for the same column.
     let relationships = vec![rel("Orders", "customer_id", "Customers", "id")];
-    let targets = follow_targets("Orders", "customer_id", &relationships, None, &shop_tables());
+    let targets = follow_targets(
+        "Orders",
+        "customer_id",
+        &relationships,
+        None,
+        &shop_tables(),
+    );
     assert_eq!(targets.len(), 1, "declared wins, no duplicate inferred");
     assert_eq!(targets[0].direction, FkDirection::Forward);
+}
+
+/// A target table carrying one key column per value family, so the
+/// encoder's kind rules are exercised against the parser's coercion per
+/// family.
+fn targets_table() -> TableDef {
+    TableDef::new(
+        "Targets",
+        vec![
+            field("int_id", long()),
+            field("float_id", FieldKind::Number(NumericKind::Double)),
+            field("currency_id", FieldKind::Currency),
+            field(
+                "decimal_id",
+                FieldKind::Number(NumericKind::Decimal {
+                    precision: 18,
+                    scale: 4,
+                }),
+            ),
+            field("bool_id", FieldKind::Boolean { tri_state: false }),
+            field("date_id", FieldKind::DateTime),
+            field("text_id", FieldKind::Text { max_len: 50 }),
+        ],
+    )
 }
 
 /// Key values encode into criteria the real parser reads back as exact
@@ -217,31 +247,42 @@ fn inference_requires_suffix_base_table_and_id_field() {
 /// text (wildcards stay literal under the explicit `=` form).
 #[test]
 fn follow_criteria_encodes_for_the_real_parser() {
-    let tables = shop_tables();
-    let target = follow_targets("Orders", "customer_id", &[], None, &tables)
-        .into_iter()
-        .next()
-        .expect("inferred target");
+    let tables = vec![targets_table()];
     let cases = [
-        FieldValue::Integer(7),
-        FieldValue::Float(2.5),
-        FieldValue::Currency(125_000),
-        FieldValue::Decimal(1250),
-        FieldValue::Boolean(true),
-        parse_date("2026-01-02").expect("date"),
-        FieldValue::Text("A*B".to_owned()),
-        FieldValue::Text("plain".to_owned()),
+        (FieldValue::Integer(7), "int_id"),
+        (FieldValue::Float(2.5), "float_id"),
+        (FieldValue::Currency(125_000), "currency_id"),
+        (FieldValue::Decimal(1250), "decimal_id"),
+        (FieldValue::Boolean(true), "bool_id"),
+        (parse_date("2026-01-02").expect("date"), "date_id"),
+        (FieldValue::Text("A*B".to_owned()), "text_id"),
+        (FieldValue::Text("plain".to_owned()), "text_id"),
     ];
-    for value in cases {
-        let values = vec![("customer_id".to_owned(), Some(value.clone()))];
+    for (value, target_column) in cases {
+        let target = datacraft_core::fk_nav::FkFollowTarget {
+            direction: FkDirection::Inferred,
+            table: "Targets".to_owned(),
+            pairs: vec![("key".to_owned(), target_column.to_owned())],
+        };
+        let values = vec![("key".to_owned(), Some(value.clone()))];
         let criteria =
             follow_criteria(&target, &values, &tables).expect("every supported value encodes");
         assert_eq!(criteria.len(), 1);
         let (column, text) = &criteria[0];
-        assert_eq!(column, "id");
-        let def = FieldDef::new("id", long());
-        let parsed = parse_predicate(text, "id", &def).expect("the parser reads the encoding");
-        assert_eq!(parsed, Predicate::Equal(value.clone()), "criteria {text:?} re-parses exactly");
+        assert_eq!(column, target_column);
+        let def = tables[0]
+            .fields
+            .iter()
+            .find(|f| f.name == *target_column)
+            .expect("fixture column")
+            .clone();
+        let parsed =
+            parse_predicate(text, target_column, &def).expect("the parser reads the encoding");
+        assert_eq!(
+            parsed,
+            Predicate::Equal(value.clone()),
+            "criteria {text:?} re-parses exactly"
+        );
         assert!(
             parsed.matches(&value),
             "the parsed predicate matches the source value itself"
@@ -290,27 +331,43 @@ fn follow_criteria_refuses_null_and_partial_composite_keys() {
 }
 
 /// Values the criteria dialect cannot express exactly (GUID, binary,
-/// complex, quote-wrapped text) refuse with a precise message instead of
-/// degrading to a wrong filter.
+/// complex, quote-wrapped text) and literals the target column's kind
+/// cannot coerce refuse with a precise message instead of degrading to
+/// a wrong filter.
 #[test]
 fn follow_criteria_refuses_unencodable_values() {
-    let tables = shop_tables();
-    let target = follow_targets("Orders", "customer_id", &[], None, &tables)
-        .into_iter()
-        .next()
-        .expect("inferred target");
+    let tables = vec![targets_table()];
+    let target = datacraft_core::fk_nav::FkFollowTarget {
+        direction: FkDirection::Inferred,
+        table: "Targets".to_owned(),
+        pairs: vec![("key".to_owned(), "text_id".to_owned())],
+    };
     let unencodable = [
         FieldValue::Guid([0u8; 16]),
         FieldValue::Binary(vec![1, 2, 3]),
         FieldValue::Text("\"wrapped\"".to_owned()),
     ];
     for value in unencodable {
-        let values = vec![("customer_id".to_owned(), Some(value))];
+        let values = vec![("key".to_owned(), Some(value))];
         let reason =
             follow_criteria(&target, &values, &tables).expect_err("unencodable values refuse");
         assert!(
-            reason.to_string().contains("customer_id"),
+            reason.to_string().contains("key"),
             "the message names the column: {reason}"
         );
     }
+    // A float literal on an integer target column cannot coerce — the
+    // encoder's parser check refuses it.
+    let mismatch = datacraft_core::fk_nav::FkFollowTarget {
+        direction: FkDirection::Inferred,
+        table: "Targets".to_owned(),
+        pairs: vec![("key".to_owned(), "int_id".to_owned())],
+    };
+    let values = vec![("key".to_owned(), Some(FieldValue::Float(2.5)))];
+    let reason = follow_criteria(&mismatch, &values, &tables)
+        .expect_err("a kind-mismatched literal refuses");
+    assert!(
+        reason.to_string().contains("key"),
+        "the message names the column: {reason}"
+    );
 }

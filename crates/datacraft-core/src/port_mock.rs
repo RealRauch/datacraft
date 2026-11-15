@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use crate::port::{
     DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
-    RowRange, StoragePort, window_slice,
+    RelationshipGroup, RowRange, StoragePort, window_slice,
 };
 use crate::schema::{FieldValue, TableDef};
 
@@ -16,6 +16,9 @@ pub struct MockPort {
     tables: Vec<TableDef>,
     rows: HashMap<String, Vec<Vec<FieldValue>>>,
     relationships: Vec<Relationship>,
+    /// Constraint groupings the mock reports (step 87.1, item M103);
+    /// `None` — tests without groupings exercise the pair fallback.
+    relationship_groups: Option<Vec<RelationshipGroup>>,
     macros: Vec<crate::macro_def::MacroDef>,
     vba: Option<crate::vba::VbaProject>,
     vba_error: Option<String>,
@@ -346,6 +349,10 @@ impl StoragePort for MockPort {
 
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
         Ok(self.relationships.clone())
+    }
+
+    fn relationship_groups(&self) -> Option<Vec<RelationshipGroup>> {
+        self.relationship_groups.clone()
     }
 
     fn create_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {

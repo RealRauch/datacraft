@@ -77,6 +77,17 @@ impl crate::core::Core {
                         !is_system_table(&rel.table) && !is_system_table(&rel.related_table)
                     })
                     .collect();
+                // Composite groupings ride the same system filter (step
+                // 87.1, item M103): the follow resolution never sees an
+                // internal constraint.
+                let relationship_groups = self.port.relationship_groups().map(|groups| {
+                    groups
+                        .into_iter()
+                        .filter(|group| {
+                            !is_system_table(&group.table) && !is_system_table(&group.related_table)
+                        })
+                        .collect()
+                });
                 let (macros, macros_error) = match self.port.macros() {
                     Ok(macros) => (macros, None),
                     // Observable degradation, never a silent drop: the
@@ -157,6 +168,7 @@ impl crate::core::Core {
                     capabilities,
                     tables,
                     relationships,
+                    relationship_groups,
                     queries: sidecar
                         .as_ref()
                         .map(|document| document.queries.clone())

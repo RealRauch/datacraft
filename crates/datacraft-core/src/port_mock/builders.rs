@@ -33,6 +33,13 @@ impl MockPort {
         self
     }
 
+    /// Builder: attaches the constraint groupings the follow resolution
+    /// reads (step 87.1, item M103).
+    pub fn with_relationship_groups(&mut self, groups: Vec<RelationshipGroup>) -> &mut Self {
+        self.relationship_groups = Some(groups);
+        self
+    }
+
     /// Builder: attaches the named-macro inventory (step 17.1, L4).
     pub fn with_macros(&mut self, macros: Vec<crate::macro_def::MacroDef>) -> &mut Self {
         self.macros = macros;

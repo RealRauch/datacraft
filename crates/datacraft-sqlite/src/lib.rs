@@ -395,6 +395,15 @@ COMMIT;",
         }
         Ok(out)
     }
+
+    fn relationship_groups(&self) -> Option<Vec<datacraft_core::port::RelationshipGroup>> {
+        let conn = self.conn.as_ref()?;
+        let mut out = Vec::new();
+        for table in &self.tables {
+            out.extend(foreign_key_groups(conn, table).ok()?);
+        }
+        Some(out)
+    }
 }
 
 mod ddl;
@@ -408,8 +417,8 @@ mod values;
 mod view_inventory;
 
 use mapping::{
-    collect_tables, create_sql, foreign_keys, no_database, open_database, quote_ident, read_magic,
-    read_only,
+    collect_tables, create_sql, foreign_key_groups, foreign_keys, no_database, open_database,
+    quote_ident, read_magic, read_only,
 };
 
 /// Out-of-range error for a single addressed row.

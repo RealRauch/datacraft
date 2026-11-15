@@ -360,6 +360,55 @@ pub(crate) fn foreign_keys(
     Ok(out)
 }
 
+/// Composite groupings of one table's foreign keys (step 87.1, item
+/// M103): the `foreign_key_list` rows sharing one constraint id form one
+/// group, columns in `seq` order. SQLite names no constraints — `name`
+/// stays `None`.
+pub(crate) fn foreign_key_groups(
+    conn: &Connection,
+    table: &TableDef,
+) -> Result<Vec<datacraft_core::port::RelationshipGroup>, PortError> {
+    let mut statement = conn
+        .prepare(&format!(
+            "PRAGMA foreign_key_list({})",
+            quote_ident(&table.name)
+        ))
+        .map_err(|e| read_failed(&table.name, e))?;
+    let mut rows = statement
+        .query([])
+        .map_err(|e| read_failed(&table.name, e))?;
+    let mut out: Vec<(i64, datacraft_core::port::RelationshipGroup)> = Vec::new();
+    while let Some(row) = rows.next().map_err(|e| read_failed(&table.name, e))? {
+        let id: i64 = row.get(0).map_err(|e| read_failed(&table.name, e))?;
+        let related_table: String = row.get(2).map_err(|e| read_failed(&table.name, e))?;
+        let column: String = row.get(3).map_err(|e| read_failed(&table.name, e))?;
+        let target: Option<String> = row.get(4).map_err(|e| read_failed(&table.name, e))?;
+        let related_column = match target {
+            Some(name) => name,
+            None => primary_key(conn, &related_table)?.ok_or_else(|| PortError::Unsupported {
+                reason: format!(
+                    "foreign key {}.{} references {related_table} without a resolvable primary key",
+                    table.name, column
+                ),
+            })?,
+        };
+        if let Some((_, group)) = out.iter_mut().find(|(key, _)| *key == id) {
+            group.pairs.push((column, related_column));
+        } else {
+            out.push((
+                id,
+                datacraft_core::port::RelationshipGroup {
+                    name: None,
+                    table: table.name.clone(),
+                    related_table,
+                    pairs: vec![(column, related_column)],
+                },
+            ));
+        }
+    }
+    Ok(out.into_iter().map(|(_, group)| group).collect())
+}
+
 /// Primary-key columns of `table` in key order (composite keys included;
 /// `WITHOUT ROWID` windows order by exactly this, item M92).
 pub(crate) fn pk_columns(conn: &Connection, table: &str) -> Result<Vec<String>, PortError> {

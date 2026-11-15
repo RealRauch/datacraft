@@ -160,6 +160,25 @@ pub struct Relationship {
     pub related_column: String,
 }
 
+/// Composite grouping of declared relationships (step 87.1, item M103):
+/// one entry per constraint — a composite key lists more than one column
+/// pair. Jet reports the `MSysRelationships` constraint name, SQLite the
+/// `foreign_key_list` constraint id; a driver without constraint names
+/// answers `None` from [`StoragePort::relationship_groups`] and the
+/// follow resolution pairs entries between the same two tables instead
+/// (documented boundary, pinned in the fk_nav suite).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelationshipGroup {
+    /// Constraint name when the source carries one.
+    pub name: Option<String>,
+    /// Table holding the referencing columns (child).
+    pub table: String,
+    /// Referenced (one-side) table (parent).
+    pub related_table: String,
+    /// Column pairs in key order: (child column, parent column).
+    pub pairs: Vec<(String, String)>,
+}
+
 /// Window selector for row reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RowRange {
@@ -372,6 +391,14 @@ pub trait StoragePort {
     }
     /// Referential relationships of the open database.
     fn relationships(&self) -> Result<Vec<Relationship>, PortError>;
+
+    /// Composite groupings of the declared relationships (step 87.1,
+    /// item M103). The default is `None` — a driver that does not carry
+    /// constraint names lets the follow resolution group entries between
+    /// the same two tables instead (documented boundary).
+    fn relationship_groups(&self) -> Option<Vec<RelationshipGroup>> {
+        None
+    }
     /// Creates one referential relationship (step 32.3, item M16).
     /// Backends without a relationship write path answer a precise
     /// `Unsupported` (the default).

@@ -198,6 +198,7 @@ fn the_status_line_names_the_ace_format() {
         capabilities: datacraft_core::port::DriverCapabilities::full(),
         tables: Vec::new(),
         relationships: Vec::new(),
+        relationship_groups: None,
         queries: Vec::new(),
         forms: Vec::new(),
         reports: Vec::new(),
