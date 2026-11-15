@@ -21,7 +21,8 @@ use datacraft_core::selection::Selection;
 use super::grid_model::{EditIntent, Grid, GridCallbacks};
 use super::header::{HeaderPass, header_ui};
 use super::nav::{
-    nav_target, read_copy_key, read_delete_key, read_nav_intent, read_paste_key, read_select_all,
+    nav_target, read_copy_key, read_delete_key, read_fill_key, read_nav_intent, read_paste_key,
+    read_select_all,
 };
 
 use crate::theme::tokens;
@@ -36,6 +37,8 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         on_select_column,
         mut on_copy,
         mut on_paste,
+        mut on_fill,
+        mut on_clear,
         on_sort,
         on_freeze,
         mut on_delete,
@@ -109,11 +112,16 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     // on writable, unlocked grids.
     let copy = wants_nav && !body.is_empty() && read_copy_key(ui);
     let paste = wants_nav && !edit_restricted && !locked && read_paste_key(ui);
+    let fill = wants_nav && !edit_restricted && !locked && read_fill_key(ui);
+    // A whole-column or select-all selection always extends; a collapsed
+    // cell keeps the step 40.3 record deletion.
+    let extended = !matches!(selection, Selection::Cell { .. });
     // Del on the selected record is a deletion intent, not a cursor move —
     // it only fires for capable sources (step 40.3, item M44); a
     // submission in flight refuses it (step 85.2, item H61).
-    let delete_intent =
-        wants_nav && delete_reason.is_none() && !locked && read_delete_key(ui) && !body.is_empty();
+    let del = wants_nav && delete_reason.is_none() && !locked && read_delete_key(ui);
+    let clear_intent = del && extended && !body.is_empty();
+    let delete_intent = del && !extended && !body.is_empty();
 
     // The header trails the body's live horizontal offset by one frame:
     // the body scroll area is the single scroll source, the header only
@@ -440,6 +448,12 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         callback();
     }
     if paste && let Some(callback) = on_paste.as_mut() {
+        callback();
+    }
+    if fill && let Some(callback) = on_fill.as_mut() {
+        callback();
+    }
+    if clear_intent && let Some(callback) = on_clear.as_mut() {
         callback();
     }
     // The focus anchor covers the whole grid: focusable but not

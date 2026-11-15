@@ -185,6 +185,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut select_column_intent: Option<(usize, bool)> = None;
     let mut copy_intent = false;
     let mut paste_intent = false;
+    let mut fill_intent = false;
+    let mut clear_intent = false;
     let mut freeze_intent: Option<usize> = None;
     let mut delete_intent: Option<usize> = None;
     let mut pending_edit: Option<EditIntent> = None;
@@ -198,6 +200,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         };
         let mut on_copy = || copy_intent = true;
         let mut on_paste = || paste_intent = true;
+        let mut on_fill = || fill_intent = true;
+        let mut on_clear = || clear_intent = true;
         let mut on_freeze = |count: usize| freeze_intent = Some(count);
         let mut on_delete = |row: usize| delete_intent = Some(row);
         let mut on_edit = |intent: EditIntent| pending_edit = Some(intent);
@@ -240,6 +244,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut on_select_column),
                     Some(&mut on_copy),
                     Some(&mut on_paste),
+                    Some(&mut on_fill),
+                    Some(&mut on_clear),
                     Some(&mut on_sort),
                     Some(&mut on_freeze),
                     Some(&mut on_delete),
@@ -278,6 +284,12 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     if paste_intent {
         app.paste_clipboard(tab.id, &tab.object_name, &slots);
+    }
+    if fill_intent {
+        app.fill_selection(tab.id, &tab.object_name, &slots, selection);
+    }
+    if clear_intent {
+        app.clear_selection(tab.id, &tab.object_name, &slots, selection);
     }
     if let Some((column, order)) = sort_intent
         && let Some(field) = columns.get(column)

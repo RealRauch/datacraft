@@ -1,10 +1,11 @@
 //! Datasheet editing flows (steps 11.7/40.4; pending batch step 85.2,
 //! item H61) — split from `flows.rs` for the file-size gate (L30).
 
-use datacraft_core::command::Command;
+use datacraft_core::command::{CellEdit, Command};
 use datacraft_core::event::Event;
 use datacraft_core::ids::TabId;
 use datacraft_core::schema::FieldValue;
+use datacraft_core::selection::Selection;
 
 use crate::app::App;
 use crate::i18n::tr;
@@ -178,6 +179,197 @@ impl App {
     /// grid's cancel intent).
     pub fn cancel_cell_edit(&mut self, tab_id: TabId) {
         self.close_cell_edit(tab_id);
+    }
+
+    /// The row's base image for staged or planned edits: the staged image
+    /// when the buffer row exists, the cache row otherwise (step 85.2,
+    /// item H61).
+    fn base_row(&self, tab_id: TabId, slot: usize) -> Option<Vec<FieldValue>> {
+        self.staged_rows(tab_id)
+            .and_then(|buffer| buffer.row_image(slot))
+            .map(<[FieldValue]>::to_vec)
+            .or_else(|| {
+                self.rows_for(tab_id)
+                    .and_then(|rows| rows.get(slot))
+                    .cloned()
+            })
+    }
+
+    /// Fill down (step 86.3, item M101, Ctrl+D): the top row of the
+    /// selection fills the rows below it in the same columns with its
+    /// values. The fill is one command — staged into the H61 batch on an
+    /// atomic-batch driver, one `UpdateCells` write (one undo step)
+    /// otherwise.
+    pub fn fill_selection(
+        &mut self,
+        tab_id: TabId,
+        table: &str,
+        slots: &[usize],
+        selection: Selection,
+    ) {
+        if crate::availability::restricted(
+            self.snapshot(),
+            datacraft_core::availability::ids::EDIT_RECORD,
+        )
+        .is_some()
+        {
+            return;
+        }
+        let parsed = self
+            .table_definition(table)
+            .map(|definition| (definition.name.clone(), definition.fields.len()));
+        let Some((canonical, arity)) = parsed else {
+            self.record_error(tr(
+                "table {table} not found",
+                &[("table", &format!("{table:?}"))],
+            ));
+            return;
+        };
+        let row_span = selection.row_range(slots.len());
+        let col_span = selection.col_range(arity);
+        let Some(&anchor_slot) = slots.get(row_span.start) else {
+            return;
+        };
+        let Some(anchor) = self.base_row(tab_id, anchor_slot) else {
+            self.record_error(format!(
+                "row {} no longer exists in {canonical:?}",
+                row_span.start
+            ));
+            return;
+        };
+        // One planned edit per target row: the anchor's values in every
+        // selected column.
+        let mut edits: Vec<CellEdit> = Vec::new();
+        let mut planned_rows: Vec<(usize, Vec<FieldValue>)> = Vec::new();
+        for row in row_span.clone().skip(1) {
+            let slot = slots.get(row).copied().unwrap_or(row);
+            let Some(mut values) = self.base_row(tab_id, slot) else {
+                self.record_error(format!("row {row} no longer exists in {canonical:?}"));
+                return;
+            };
+            for col in col_span.clone() {
+                let Some(value) = anchor.get(col) else {
+                    self.record_error(format!("column {col} is out of range ({arity} fields)"));
+                    return;
+                };
+                edits.push(CellEdit {
+                    row: slot,
+                    col,
+                    value: value.clone(),
+                });
+                values[col] = value.clone();
+            }
+            planned_rows.push((slot, values));
+        }
+        if self.batch_writes() {
+            for (slot, values) in planned_rows {
+                if !self.stage_cell_update(tab_id, slot, values) {
+                    return;
+                }
+            }
+            return;
+        }
+        let events = self.dispatch(Command::UpdateCells {
+            table: canonical,
+            edits,
+        });
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::Failed { .. }))
+        {
+            let reason = events
+                .iter()
+                .find_map(|event| match event {
+                    Event::Failed { reason, .. } => Some(reason.clone()),
+                    _ => None,
+                })
+                .unwrap_or_default();
+            self.record_error(reason);
+        }
+    }
+
+    /// Delete-to-NULL (step 86.3, item M101, Del over an extended
+    /// selection): every selected cell clears to its empty value — the
+    /// parse of the empty text, so the required/zero-length rules and the
+    /// driver's NULL boundary (M24) answer precisely. One command, like
+    /// the fill.
+    pub fn clear_selection(
+        &mut self,
+        tab_id: TabId,
+        table: &str,
+        slots: &[usize],
+        selection: Selection,
+    ) {
+        if crate::availability::restricted(
+            self.snapshot(),
+            datacraft_core::availability::ids::EDIT_RECORD,
+        )
+        .is_some()
+        {
+            return;
+        }
+        let parsed = self
+            .table_definition(table)
+            .map(|definition| (definition.name.clone(), definition.fields.clone()));
+        let Some((canonical, fields)) = parsed else {
+            self.record_error(tr(
+                "table {table} not found",
+                &[("table", &format!("{table:?}"))],
+            ));
+            return;
+        };
+        let arity = fields.len();
+        let row_span = selection.row_range(slots.len());
+        let col_span = selection.col_range(arity);
+        // Validation first: every cell's empty-value parse resolves
+        // before anything stages or writes.
+        let mut edits: Vec<CellEdit> = Vec::new();
+        let mut planned_rows: Vec<(usize, Vec<FieldValue>)> = Vec::new();
+        for row in row_span.clone() {
+            let slot = slots.get(row).copied().unwrap_or(row);
+            let Some(mut values) = self.base_row(tab_id, slot) else {
+                self.record_error(format!("row {row} no longer exists in {canonical:?}"));
+                return;
+            };
+            for col in col_span.clone() {
+                let Some(field) = fields.get(col) else {
+                    self.record_error(format!("column {col} is out of range ({arity} fields)"));
+                    return;
+                };
+                let value = match datacraft_core::row_edit::parse_field_value(field, "") {
+                    Ok(value) => value,
+                    Err(reason) => {
+                        self.record_error(format!("field {:?}: {reason}", field.name));
+                        return;
+                    }
+                };
+                edits.push(CellEdit {
+                    row: slot,
+                    col,
+                    value: value.clone(),
+                });
+                values[col] = value;
+            }
+            planned_rows.push((slot, values));
+        }
+        if self.batch_writes() {
+            for (slot, values) in planned_rows {
+                if !self.stage_cell_update(tab_id, slot, values) {
+                    return;
+                }
+            }
+            return;
+        }
+        let events = self.dispatch(Command::UpdateCells {
+            table: canonical,
+            edits,
+        });
+        if let Some(reason) = events.iter().find_map(|event| match event {
+            Event::Failed { reason, .. } => Some(reason.clone()),
+            _ => None,
+        }) {
+            self.record_error(reason);
+        }
     }
 
     /// Paste (step 86.2, item M101): parses the clipboard TSV, validates

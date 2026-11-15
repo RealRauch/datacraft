@@ -113,6 +113,12 @@ pub(crate) struct GridCallbacks<'a> {
     /// Ctrl+V on a writable, unlocked grid (step 86.2, M101): the caller
     /// reads the clipboard, validates and writes.
     pub on_paste: Option<&'a mut dyn FnMut()>,
+    /// Ctrl+D on a writable, unlocked grid with an extended selection
+    /// (step 86.3, M101): fills the selection from its top row.
+    pub on_fill: Option<&'a mut dyn FnMut()>,
+    /// Del over an extended selection (step 86.3, M101): clears the
+    /// cells to NULL; a collapsed cell stays the record deletion (M44).
+    pub on_clear: Option<&'a mut dyn FnMut()>,
     /// Header sort (query grids write the QBE sort cell).
     pub on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     /// Freeze/unfreeze through the header context menu.
@@ -135,6 +141,8 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_select_column: Option<&'a mut dyn FnMut(usize, bool)>,
     on_copy: Option<&'a mut dyn FnMut()>,
     on_paste: Option<&'a mut dyn FnMut()>,
+    on_fill: Option<&'a mut dyn FnMut()>,
+    on_clear: Option<&'a mut dyn FnMut()>,
     on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     on_freeze: Option<&'a mut dyn FnMut(usize)>,
     on_delete: Option<&'a mut dyn FnMut(usize)>,
@@ -147,6 +155,8 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_select_column,
         on_copy,
         on_paste,
+        on_fill,
+        on_clear,
         on_sort,
         on_freeze,
         on_delete,

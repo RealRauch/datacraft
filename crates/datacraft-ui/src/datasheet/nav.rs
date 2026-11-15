@@ -72,6 +72,13 @@ pub(crate) fn read_paste_key(ui: &egui::Ui) -> bool {
         .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::V))
 }
 
+/// Ctrl+D seen this frame (the fill-down intent, step 86.3, item M101),
+/// consumed so no other handler reacts to it twice.
+pub(crate) fn read_fill_key(ui: &egui::Ui) -> bool {
+    ui.ctx()
+        .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::D))
+}
+
 /// The selection after a navigation key (step 86.1, item M101): a plain
 /// press collapses onto the new cursor row, a Shift press extends from
 /// the current anchor — `All` stays all. `focus_col` is the moving
