@@ -55,6 +55,9 @@ pub struct Tokens {
     pub on_accent: Color32,
     /// Faint accent veil (cursor row).
     pub accent_faint: Color32,
+    /// Pending-change marker (the datasheet edit buffer's staged cells,
+    /// step 85.2, item H61) — the amber pendant to the accent's teal.
+    pub pending: Color32,
     /// Error text.
     pub danger: Color32,
 }
@@ -80,6 +83,7 @@ impl Tokens {
             checked: Color32::from_rgb(0xDC, 0xE9, 0xE4),
             on_accent: Color32::from_rgb(0xF8, 0xF4, 0xEA),
             accent_faint: Color32::from_rgba_unmultiplied_const(0x0F, 0x8B, 0x7E, 0x24),
+            pending: Color32::from_rgb(0xB4, 0x6F, 0x0A),
             danger: Color32::from_rgb(0xB0, 0x2A, 0x2A),
         }
     }
@@ -104,6 +108,7 @@ impl Tokens {
             checked: Color32::from_rgb(0x1F, 0x3A, 0x36),
             on_accent: Color32::from_rgb(0x10, 0x16, 0x14),
             accent_faint: Color32::from_rgba_unmultiplied_const(0x3F, 0xA7, 0x99, 0x24),
+            pending: Color32::from_rgb(0xE8, 0xA8, 0x3C),
             danger: Color32::from_rgb(0xE0, 0x71, 0x71),
         }
     }
@@ -454,6 +459,12 @@ mod tests {
                 (
                     "accent_text on panel",
                     palette.accent_text,
+                    palette.panel,
+                    3.0,
+                ),
+                (
+                    "pending marker on panel",
+                    palette.pending,
                     palette.panel,
                     3.0,
                 ),

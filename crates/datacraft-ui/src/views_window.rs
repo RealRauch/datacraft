@@ -181,6 +181,8 @@ pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             delete_reason: None,
             edit: None,
             edit_restricted: true,
+            pending: &[],
+            locked: false,
         },
         crate::datasheet::grid_ui_callbacks(&mut |_row: usize| {}, None, None, None, None, None),
     );

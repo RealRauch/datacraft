@@ -30,6 +30,17 @@ impl App {
         self.load_errors.get(&tab_id).map(String::as_str)
     }
 
+    /// Current record cursor of a table/query tab (defaults to the first).
+    pub fn record_cursor(&self, tab_id: TabId) -> usize {
+        self.record_cursor.get(&tab_id).copied().unwrap_or(0)
+    }
+
+    /// Moves the record cursor of a table/query tab, clamped to `len`.
+    pub fn set_record_cursor(&mut self, tab_id: TabId, row: usize, len: usize) {
+        let clamped = len.saturating_sub(1).min(row);
+        self.record_cursor.insert(tab_id, clamped);
+    }
+
     /// Buffered cells of a datasheet's new-record row, padded to the
     /// table's column count (step 11.7).
     pub fn new_row_cells(&self, tab_id: TabId, columns: usize) -> Vec<String> {

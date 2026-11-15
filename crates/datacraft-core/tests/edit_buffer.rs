@@ -133,11 +133,40 @@ fn a_delete_shifts_following_updates_to_evolving_indices() {
         vec![
             WriteOp::Delete { row: 0 },
             WriteOp::Update {
-                row: 0,
+                row: 1,
                 values: update(2, "Linus T.")
             },
         ],
-        "after the delete, original row 2 is evolving index 0"
+        "after the delete, original row 2 is evolving index 1 — the \
+         surviving row 1 shifted in front of it"
+    );
+}
+
+#[test]
+fn a_mid_buffer_delete_counts_the_unchanged_rows_behind_it() {
+    let mut buffer = buffer();
+    buffer.stage_delete(0).expect("delete row 0");
+    buffer
+        .stage_update(1, update(1, "Grace H."))
+        .expect("update");
+    buffer
+        .stage_update(2, update(2, "Linus T."))
+        .expect("update");
+    // Unchanged rows advance the evolving index even without an op of
+    // their own (F-series fix, found by the 85.2 UI suite).
+    assert_eq!(
+        buffer.ops(),
+        vec![
+            WriteOp::Delete { row: 0 },
+            WriteOp::Update {
+                row: 0,
+                values: update(1, "Grace H.")
+            },
+            WriteOp::Update {
+                row: 1,
+                values: update(2, "Linus T.")
+            },
+        ],
     );
 }
 

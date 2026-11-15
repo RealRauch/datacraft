@@ -45,6 +45,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Öffnen Sie das Ausdrucksfenster.",
     ),
     (
+        "Submit the staged datasheet batch or save the design sidecar (.datacraft).",
+        "Reichen Sie den wartenden Datenblatt-Stapel ein oder speichern Sie die Entwurfs-Begleitdatei (.datacraft).",
+    ),
+    (
         "Save the design sidecar (.datacraft).",
         "Speichern Sie die Entwurfs-Begleitdatei (.datacraft).",
     ),

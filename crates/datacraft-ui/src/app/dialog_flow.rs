@@ -3,6 +3,7 @@
 //! answer — no flow blocks inside the frame that asked for the dialog.
 
 use datacraft_core::command::Command;
+use datacraft_core::ids::TabId;
 
 use crate::app::App;
 use crate::dialogs::{DialogAnswer, DialogRequest};
@@ -29,6 +30,9 @@ pub(crate) enum DialogIntent {
     },
     /// A confirmed deletion dispatches the row delete.
     DeleteRow { table: String, row: usize },
+    /// A confirmed deletion stages into the tab's edit buffer (step
+    /// 85.2, item H61) — the batch applies on Ctrl+S.
+    StageRowDelete { tab_id: TabId, slot: usize },
     /// A confirmed deletion dispatches a prepared object command.
     DeleteObject { command: Command },
 }
@@ -91,6 +95,9 @@ impl App {
             }
             (DialogIntent::DeleteRow { table, row }, DialogAnswer::Confirmed(true)) => {
                 self.dispatch(Command::DeleteRow { table, row });
+            }
+            (DialogIntent::StageRowDelete { tab_id, slot }, DialogAnswer::Confirmed(true)) => {
+                self.stage_row_delete(tab_id, slot);
             }
             (DialogIntent::DeleteObject { command }, DialogAnswer::Confirmed(true)) => {
                 self.dispatch(command);

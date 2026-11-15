@@ -63,7 +63,8 @@ fn new_row_ui(
     ui.separator();
     // Capability-disabled for the open source (ADR-7): the read-only
     // new-record row renders muted with the reason instead of editable
-    // cells.
+    // cells. A submission in flight disables it too (step 85.2, H61).
+    let submission_open = app.snapshot().pending_write.is_some();
     let new_record_reason = crate::availability::restricted(
         app.snapshot(),
         datacraft_core::availability::ids::NEW_RECORD,
@@ -78,7 +79,7 @@ fn new_row_ui(
                 ui.label(egui::RichText::new("*").strong());
                 for (index, cell) in cells.iter_mut().enumerate() {
                     let edit = egui::TextEdit::singleline(cell).hint_text(&columns[index]);
-                    if new_record_reason.is_some() {
+                    if new_record_reason.is_some() || submission_open {
                         ui.add_enabled(
                             false,
                             edit.desired_width(
@@ -100,11 +101,14 @@ fn new_row_ui(
         });
     ui.horizontal(|ui| {
         ui.add_space(SELECTOR_WIDTH);
-        let add_response = match new_record_reason {
-            Some(reason) => ui
+        let add_response = match (&new_record_reason, submission_open) {
+            (Some(reason), _) => ui
                 .add_enabled(false, egui::Button::new(t("Add record")))
                 .on_hover_text(crate::availability::reason_text(reason)),
-            None => ui.button(t("Add record")),
+            (None, true) => ui
+                .add_enabled(false, egui::Button::new(t("Add record")))
+                .on_hover_text(t("A submission is in flight — apply or discard it first.")),
+            (None, false) => ui.button(t("Add record")),
         };
         if add_response.clicked() {
             add = true;

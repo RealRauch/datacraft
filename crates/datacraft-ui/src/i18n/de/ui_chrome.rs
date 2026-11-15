@@ -206,6 +206,23 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Freeze Fields", "Felder fixieren"),
     ("Unfreeze All Fields", "Fixierung aufheben"),
     ("Delete Record", "Datensatz löschen"),
+    (
+        "A submission is in flight — apply or discard it first.",
+        "Eine Einreichung läuft — wenden Sie sie an oder verwerfen Sie sie zuerst.",
+    ),
+    ("Apply Changes", "Änderungen anwenden"),
+    ("Discard", "Verwerfen"),
+    (
+        "Discard keeps every staged edit; you can submit again.",
+        "Verwerfen behält alle vorgemerkten Änderungen; Sie können erneut einreichen.",
+    ),
+    ("Insert", "Einfügen"),
+    ("Pending Changes", "Offene Änderungen"),
+    (
+        "The batch applies as one atomic write when you confirm it.",
+        "Der Stapel wird beim Bestätigen als ein atomarer Schreibvorgang angewendet.",
+    ),
+    ("Update", "Aktualisieren"),
     ("Expression", "Ausdruck"),
     (
         "evaluates over an empty scope (no row context)",

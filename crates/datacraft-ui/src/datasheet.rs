@@ -28,6 +28,7 @@ mod grid;
 mod grid_model;
 mod header;
 mod nav;
+mod submit;
 mod trailing;
 
 pub(crate) use grid::grid_ui;
@@ -95,17 +96,51 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             datacraft_core::table_view::view_order(table, rows, sort, &tab.filters).ok()
         })
         .unwrap_or_else(|| (0..rows.len()).collect());
-    let cache_of_display: Vec<usize> = display.clone();
-    let display_of_cache: std::collections::HashMap<usize, usize> = display
-        .iter()
-        .enumerate()
-        .map(|(display_row, cache_row)| (*cache_row, display_row))
-        .collect();
+    // The edit buffer's pending view (step 85.2, item H61): staged rows
+    // render their pending image, staged inserts append after them. The
+    // `slots` vector maps every displayed row onto its buffer row —
+    // cache rows keep their index, void slots (discarded inserts) are
+    // skipped so the grid never shows a hole.
+    let staged = app.staged_rows(tab.id);
+    let mut slots: Vec<usize> = display.clone();
+    if let Some(buffer) = staged {
+        slots.extend((rows.len()..buffer.row_count()).filter(|slot| {
+            buffer.row_state(*slot) == datacraft_core::edit_buffer::RowState::Inserted
+        }));
+    }
+    let body: Vec<Vec<String>> = staged
+        .map(|buffer| {
+            slots
+                .iter()
+                .map(|&slot| {
+                    buffer
+                        .row_image(slot)
+                        .unwrap_or_else(|| rows.get(slot).map(Vec::as_slice).unwrap_or(&[]))
+                        .iter()
+                        .map(value_label)
+                        .collect()
+                })
+                .collect()
+        })
+        .unwrap_or_else(|| {
+            display
+                .iter()
+                .map(|&cache_row| rows[cache_row].iter().map(value_label).collect())
+                .collect()
+        });
+    // Amber-marker positions per displayed row (step 85.2, item H61).
+    let pending_rows: Vec<grid_model::PendingRow> = staged
+        .map(|buffer| {
+            slots
+                .iter()
+                .map(|&slot| grid_model::PendingRow {
+                    state: buffer.row_state(slot),
+                    changed: buffer.changed_cells(slot),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
     let cursor = app.record_cursor(tab.id);
-    let body: Vec<Vec<String>> = display
-        .iter()
-        .map(|&cache_row| rows[cache_row].iter().map(value_label).collect())
-        .collect();
     let row_count = body.len();
     let sorts: Vec<SortOrder> = columns
         .iter()
@@ -129,14 +164,15 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         datacraft_core::availability::ids::EDIT_RECORD,
     )
     .is_some();
+    // A submission in flight locks this grid (step 85.2, item H61) —
+    // read before the editor's mutable borrow.
+    let locked = app.snapshot().pending_write.is_some();
     // The armed editor's buffer is mutably borrowed for the grid pass;
-    // its intents apply afterwards (the borrow ends with the call).
+    // its intents apply afterwards (the borrow ends with the call). The
+    // editor's row is a display index; the grid pass paints the same
+    // indices.
     let editor = app.cell_edit_parts(tab.id);
-    let edit = editor.map(|(row, col, buffer)| CellEditSlot {
-        row: display_of_cache.get(&row).copied().unwrap_or(row),
-        col,
-        buffer,
-    });
+    let edit = editor.map(|(row, col, buffer)| CellEditSlot { row, col, buffer });
     let mut selected = None;
     let mut freeze_intent: Option<usize> = None;
     let mut delete_intent: Option<usize> = None;
@@ -177,6 +213,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     delete_reason,
                     edit,
                     edit_restricted,
+                    pending: &pending_rows,
+                    locked,
                 },
                 crate::datasheet::grid_ui_callbacks(
                     &mut on_select,
@@ -206,39 +244,62 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     match pending_edit {
         Some(EditIntent::Start { row, col }) => {
-            let cache_row = cache_of_display.get(row).copied().unwrap_or(row);
-            app.start_cell_edit(tab.id, cache_row, col);
+            let slot = slots.get(row).copied().unwrap_or(row);
+            app.start_cell_edit(tab.id, row, slot, col);
         }
         Some(EditIntent::Commit { row, col }) => {
-            let cache_row = cache_of_display.get(row).copied().unwrap_or(row);
-            app.commit_cell_edit(tab.id, &tab.object_name, cache_row, col);
+            let slot = slots.get(row).copied().unwrap_or(row);
+            app.commit_cell_edit(tab.id, &tab.object_name, slot, col);
         }
         Some(EditIntent::Cancel) => app.cancel_cell_edit(tab.id),
         None => {}
     }
     if let Some(row) = delete_intent {
-        let cache_row = cache_of_display.get(row).copied().unwrap_or(row);
+        let slot = slots.get(row).copied().unwrap_or(row);
         // Destructive-action confirmation through the dialog seam (step
         // 38.3, item M43; parked on a later frame, step 81.2, M97);
-        // native dialogs speak the OS language.
+        // native dialogs speak the OS language. On an atomic-batch
+        // driver the deletion stages into the edit buffer (step 85.2,
+        // item H61) and removes nothing until the batch applies.
+        let (message, intent) = if app.batch_writes() {
+            (
+                "This stages the record for deletion — it is removed when the batch applies. Delete it?"
+                    .to_owned(),
+                crate::app::dialog_flow::DialogIntent::StageRowDelete {
+                    tab_id: tab.id,
+                    slot,
+                },
+            )
+        } else {
+            (
+                "This permanently deletes the selected record from the database.                           Delete it?"
+                    .to_owned(),
+                crate::app::dialog_flow::DialogIntent::DeleteRow {
+                    table: tab.object_name.clone(),
+                    row: slot,
+                },
+            )
+        };
         app.request_dialog(
             crate::dialogs::DialogRequest::Confirm {
                 title: "Delete Record".to_owned(),
-                message: "This permanently deletes the selected record from the database.                           Delete it?"
-                    .to_owned(),
+                message,
             },
-            crate::app::dialog_flow::DialogIntent::DeleteRow {
-                table: tab.object_name.clone(),
-                row: cache_row,
-            },
+            intent,
         );
     }
     app.set_column_widths(tab.id, widths.clone());
     if let Some(row) = selected {
         app.set_record_cursor(tab.id, row, row_count);
     }
+    // The Escape path discards the active record's staged changes — it
+    // addresses the buffer slot, not the (sorted) display row.
+    let cursor_row = app.record_cursor(tab.id);
+    let cursor_slot = slots.get(cursor_row).copied().unwrap_or(cursor_row);
+    app.set_cursor_slot(tab.id, cursor_slot);
     trailing::trailing_ui(app, tab, row_count, &columns, &widths, ui);
     filter_dialog_ui(app, tab, &columns, ui);
+    submit::submission_ui(app, tab, &columns, ui);
 }
 
 /// The criteria syntax the dialog accepts (step 48.3, item M62): the
@@ -375,6 +436,8 @@ pub fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 delete_reason: None,
                 edit: None,
                 edit_restricted: true,
+                pending: &[],
+                locked: false,
             },
             crate::datasheet::grid_ui_callbacks(
                 &mut on_select,

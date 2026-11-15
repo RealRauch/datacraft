@@ -91,6 +91,8 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         delete_reason: None,
                         edit: None,
                         edit_restricted: true,
+pending: &[],
+locked: false,
                     },
                     crate::datasheet::grid_ui_callbacks(
                         &mut |_row: usize| {},

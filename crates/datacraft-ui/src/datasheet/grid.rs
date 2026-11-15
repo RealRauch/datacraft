@@ -48,9 +48,15 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         delete_reason,
         edit,
         edit_restricted,
+        pending,
+        locked,
     } = grid;
     let mut edit = edit;
     let frozen = frozen.min(widths.len());
+    // A submission in flight locks the grid (step 85.2, item H61): no
+    // editor arms, no deletion reports, the cells keep rendering their
+    // staged image.
+    let edit_restricted = edit_restricted || locked;
     // Navigation gate: the grid reacts when its focus anchor holds focus
     // (a row-selector click arms it) or when the pointer hovers it —
     // unless another widget, e.g. a text field, holds focus. Focus is read
@@ -87,9 +93,10 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     let follow_target =
         intent.map(|intent| nav_target(intent, cursor, body.len(), viewport_height, &metrics));
     // Del on the selected record is a deletion intent, not a cursor move —
-    // it only fires for capable sources (step 40.3, item M44).
+    // it only fires for capable sources (step 40.3, item M44); a
+    // submission in flight refuses it (step 85.2, item H61).
     let delete_intent =
-        wants_nav && delete_reason.is_none() && read_delete_key(ui) && !body.is_empty();
+        wants_nav && delete_reason.is_none() && !locked && read_delete_key(ui) && !body.is_empty();
 
     // The header trails the body's live horizontal offset by one frame:
     // the body scroll area is the single scroll source, the header only
@@ -164,6 +171,31 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                 );
                 let origin = row_rect.left_top();
                 let row_h = metrics.row_height;
+                // Pending-change markers (step 85.2, item H61): staged
+                // updates and inserts carry the amber bar on the row,
+                // staged deletes wash the whole record — the database is
+                // untouched until the batch applies.
+                let pending_row = pending.get(row_idx);
+                if let Some(pending_row) = pending_row {
+                    match pending_row.state {
+                        datacraft_core::edit_buffer::RowState::Deleted => {
+                            ui.painter().rect_filled(
+                                row_rect,
+                                0.0,
+                                tokens.danger.gamma_multiply(0.12),
+                            );
+                        }
+                        datacraft_core::edit_buffer::RowState::Updated
+                        | datacraft_core::edit_buffer::RowState::Inserted => {
+                            let marker = egui::Rect::from_min_size(
+                                row_rect.left_top(),
+                                egui::vec2(3.0, row_rect.height()),
+                            );
+                            ui.painter().rect_filled(marker, 0.0, tokens.pending);
+                        }
+                        _ => {}
+                    }
+                }
                 // The selector rides the scroll compensation: pinned at
                 // the viewport's left edge whatever the offset is.
                 let sel_rect = egui::Rect::from_min_size(
@@ -200,13 +232,19 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                 }
                 // The record menu (step 40.3, item M44): the deletion
                 // affordance reports the row through `on_delete`; for
-                // restricted sources it renders disabled with the reason.
-                selector.context_menu(|ui| match delete_reason {
-                    Some(reason) => {
+                // restricted sources it renders disabled with the reason,
+                // and a submission in flight refuses with its own note
+                // (step 85.2, item H61).
+                selector.context_menu(|ui| match (&delete_reason, locked) {
+                    (Some(reason), _) => {
                         ui.add_enabled(false, egui::Button::new(t("Delete Record")))
-                            .on_hover_text(crate::availability::reason_text(&reason));
+                            .on_hover_text(crate::availability::reason_text(reason));
                     }
-                    None => {
+                    (None, true) => {
+                        ui.add_enabled(false, egui::Button::new(t("Delete Record")))
+                            .on_hover_text(t("A submission is in flight — apply or discard it first."));
+                    }
+                    (None, false) => {
                         if ui.button(t("Delete Record")).clicked() {
                             delete_row = Some(row_idx);
                             ui.close();
@@ -296,6 +334,20 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         font.clone(),
                         tokens.text,
                     );
+                    // Staged cells carry the amber wash and outline (step
+                    // 85.2, item H61) — a visual state only; the value is
+                    // untouched until the batch applies.
+                    if let Some(pending_row) = pending.get(row_idx)
+                        && pending_row.changed.contains(&col)
+                    {
+                        ui.painter().rect_filled(
+                            cell,
+                            0.0,
+                            tokens.pending.gamma_multiply(0.18),
+                        );
+                        ui.painter()
+                            .rect_stroke(cell, 0.0, egui::Stroke::new(1.0, tokens.pending), egui::StrokeKind::Inside);
+                    }
                     let sense = if edit_restricted {
                         egui::Sense::hover()
                     } else {

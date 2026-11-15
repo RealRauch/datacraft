@@ -5,8 +5,21 @@
 //! them. `grid_ui` in [`super::grid`] renders from these.
 
 use datacraft_core::availability::DisabledReason;
+use datacraft_core::edit_buffer::RowState;
 use datacraft_core::grid::GridMetrics;
 use datacraft_core::qbe::SortOrder;
+
+/// Pending state of one displayed row (step 85.2, item H61): the row's
+/// buffer state and the column indices carrying staged changes — the
+/// amber-marker positions. Parallel to the grid's body rows; rows absent
+/// from the slice render unchanged.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PendingRow {
+    /// The row's edit-buffer state.
+    pub state: RowState,
+    /// Column indices with staged changes.
+    pub changed: Vec<usize>,
+}
 
 /// Everything one grid pass needs; the widths are mutated in place by the
 /// header's drag handles and written back by the caller. `id_salt` names
@@ -15,7 +28,9 @@ use datacraft_core::qbe::SortOrder;
 /// frozen leading columns (step 40.2, item M39); `delete_reason` restricts
 /// the record-deletion affordance for the open source (step 40.3, M44);
 /// `edit` is the armed in-place cell editor (step 40.4, L23) and
-/// `edit_restricted` keeps the cells inert on sources that cannot write.
+/// `edit_restricted` keeps the cells inert on sources that cannot write;
+/// `pending` carries the edit-buffer markers (step 85.2, H61) and `locked`
+/// refuses every grid input while a submission is in flight.
 pub(crate) struct Grid<'a> {
     pub metrics: GridMetrics,
     pub columns: &'a [String],
@@ -32,6 +47,8 @@ pub(crate) struct Grid<'a> {
     pub delete_reason: Option<DisabledReason>,
     pub edit: Option<CellEditSlot<'a>>,
     pub edit_restricted: bool,
+    pub pending: &'a [PendingRow],
+    pub locked: bool,
 }
 
 /// The armed in-place cell editor (step 40.4, item L23): the cell being

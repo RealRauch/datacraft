@@ -50,7 +50,7 @@ pub const SHORTCUT_ROWS: &[(Shortcut, &str, &str)] = &[
     (
         Shortcut::SaveDesign,
         "Ctrl+S",
-        "Save the design sidecar (.datacraft).",
+        "Submit the staged datasheet batch or save the design sidecar (.datacraft).",
     ),
     (Shortcut::CloseTab, "Ctrl+W", "Close the active tab."),
     (
@@ -118,7 +118,14 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
         }
         match shortcut(ctrl, key) {
             Some(Shortcut::SaveDesign) => {
-                if !app.sidecar_path.trim().is_empty() {
+                // Ctrl+S on a table tab with staged edits submits the
+                // pending batch (step 85.2, item H61) — the visible
+                // pending state wins over the sidecar shortcut.
+                if let Some(tab_id) = app.snapshot().active_tab
+                    && app.has_staged_edits(tab_id)
+                {
+                    app.submit_datasheet_batch(tab_id);
+                } else if !app.sidecar_path.trim().is_empty() {
                     app.dispatch(Command::SaveDesignDocument {
                         path: app.sidecar_path.clone().into(),
                     });

@@ -10,7 +10,7 @@
 
 use datacraft_core::command::Command;
 use datacraft_core::ids::TabId;
-use datacraft_core::port::MockPort;
+use datacraft_core::port::{DriverCapabilities, MockPort};
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use datacraft_ui::dialogs::ScriptedDialogs;
@@ -30,6 +30,16 @@ fn customers() -> TableDef {
 
 /// App with the Customers tab open over four records; names carry their
 /// index so cells stay uniquely addressable by label.
+/// The database path for this suite lives in the session temp dir — a
+/// test never writes artifacts into the source tree (LESSONS #31): a
+/// sidecar save would otherwise land beside the test crate and leak into
+/// every sibling suite's open path.
+fn db_path() -> String {
+    let dir = std::env::temp_dir().join(format!("datacraft-batch-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    dir.join("shop.mdb").to_string_lossy().into_owned()
+}
+
 fn batch_app() -> (App, TabId) {
     let data: Vec<Vec<datacraft_core::schema::FieldValue>> = (0..4)
         .map(|index| {
@@ -41,10 +51,14 @@ fn batch_app() -> (App, TabId) {
         .collect();
     let mut port = MockPort::with_tables(vec![customers()]);
     port.with_row_data("Customers", data);
+    port.with_capabilities(DriverCapabilities {
+        atomic_batch: true,
+        ..DriverCapabilities::full()
+    });
     let mut app = App::new(Box::new(port));
     app.set_dialogs(Box::new(ScriptedDialogs::new().confirm(true)));
     app.dispatch(Command::OpenDatabase {
-        path: "shop.mdb".into(),
+        path: db_path().into(),
         password: None,
         source: None,
     });
@@ -249,10 +263,14 @@ fn a_failed_apply_keeps_every_edit_pending() {
     let mut port = MockPort::with_tables(vec![customers()]);
     port.with_row_data("Customers", data);
     port.with_write_failure("disk on fire");
+    port.with_capabilities(DriverCapabilities {
+        atomic_batch: true,
+        ..DriverCapabilities::full()
+    });
     let mut app = App::new(Box::new(port));
     app.set_dialogs(Box::new(ScriptedDialogs::new().confirm(true)));
     app.dispatch(Command::OpenDatabase {
-        path: "shop.mdb".into(),
+        path: db_path().into(),
         password: None,
         source: None,
     });
@@ -372,6 +390,10 @@ fn staged_deletes_and_inserts_apply_with_the_batch() {
     harness.run();
     harness.run();
 
+    eprintln!(
+        "DEBUG staged buffer: {:?}",
+        harness.state().staged_rows(tab)
+    );
     harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::S);
     harness.run();
     let summary = harness
@@ -390,6 +412,17 @@ fn staged_deletes_and_inserts_apply_with_the_batch() {
     harness.run();
 
     let rows = harness.state().rows_for(tab).expect("rows reloaded");
+    eprintln!(
+        "DEBUG rows after apply: {:?}",
+        rows.iter()
+            .map(|r| datacraft_ui::labels::value_label(&r[1]))
+            .collect::<Vec<_>>()
+    );
+    eprintln!(
+        "DEBUG pending_write: {:?}",
+        harness.state().snapshot().pending_write
+    );
+    eprintln!("DEBUG last_error: {:?}", harness.state().last_error());
     assert_eq!(rows.len(), 4, "three originals minus one, plus one insert");
     assert!(
         !rows

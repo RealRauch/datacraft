@@ -20,6 +20,7 @@ use datacraft_core::snapshot::UiStateSnapshot;
 
 mod caches;
 pub(crate) mod dialog_flow;
+mod edit_batch;
 mod editors;
 mod form_edit;
 mod grid_state;
@@ -173,6 +174,18 @@ pub struct App {
     /// The parked follow-up of the outstanding dialog request (step
     /// 81.2, item M97); `None` while no dialog is open.
     pending_dialog: Option<dialog_flow::DialogIntent>,
+    /// Per-tab datasheet edit buffer (step 85.2, item H61): staged
+    /// updates, inserts and deletes applied as one journal batch. The
+    /// vocabulary and its accessors live in `app/edit_batch.rs`.
+    edit_buffers: HashMap<TabId, datacraft_core::edit_buffer::EditBuffer>,
+    /// Buffer row (slot) the tab's record cursor addresses — sort and
+    /// filter make display indices differ from slots, so the datasheet
+    /// stores the resolved slot every frame (the Escape path and the
+    /// staged intents address it).
+    cursor_slots: HashMap<TabId, usize>,
+    /// The open submission of a tab: the journal's own changes between
+    /// `PreviewWrite` and its apply/discard (step 85.2, item H61).
+    submission: Option<edit_batch::Submission>,
 }
 
 impl App {
@@ -245,6 +258,9 @@ impl App {
             settings: crate::settings::Settings::default(),
             settings_path: None,
             position_rescued: false,
+            edit_buffers: HashMap::new(),
+            cursor_slots: HashMap::new(),
+            submission: None,
         }
     }
 
@@ -283,16 +299,23 @@ impl App {
         // in `app/lifecycle.rs` (L30).
         self.follow_database_lifecycle(&events);
         self.maintain_caches(&events);
+        // The pending-edit batch follows the journal events (step 85.2,
+        // item H61); its state lives in `app/edit_batch.rs`.
+        self.maintain_submissions(&events);
         events
     }
 
     /// Esc: drops the buffered new-record cells and the in-place cell
     /// editor of the active tab and closes the password prompt (step
-    /// 21.8, U12; cell editor step 40.4, L23).
+    /// 21.8, U12; cell editor step 40.4, L23). With staged datasheet
+    /// edits it discards the active record's staged changes (step 85.2,
+    /// item H61) — never while a cell editor is armed, which Esc cancels
+    /// first.
     pub fn cancel_edit(&mut self) {
         if let Some(tab_id) = self.snapshot.active_tab {
             self.new_row.remove(&tab_id);
             self.cell_edit.remove(&tab_id);
+            self.discard_staged_record(tab_id);
         }
         self.password_prompt = None;
         self.close_shortcuts_help();
@@ -422,17 +445,6 @@ impl App {
     /// Sets the current preview page of a report tab.
     pub fn set_preview_page(&mut self, tab_id: TabId, page: usize) {
         self.preview_page.insert(tab_id, page);
-    }
-
-    /// Current record cursor of a table/query tab (defaults to the first).
-    pub fn record_cursor(&self, tab_id: TabId) -> usize {
-        self.record_cursor.get(&tab_id).copied().unwrap_or(0)
-    }
-
-    /// Moves the record cursor of a table/query tab, clamped to `len`.
-    pub fn set_record_cursor(&mut self, tab_id: TabId, row: usize, len: usize) {
-        let clamped = len.saturating_sub(1).min(row);
-        self.record_cursor.insert(tab_id, clamped);
     }
 
     /// Cached print-preview pages of a report tab (empty until refreshed).

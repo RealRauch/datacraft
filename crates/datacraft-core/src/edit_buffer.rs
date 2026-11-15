@@ -231,11 +231,11 @@ impl EditBuffer {
         let mut out = 0usize;
         for slot in &self.slots {
             match slot {
+                Slot::Void => {}
                 Slot::Row {
                     pending: Pending::None,
                     ..
-                }
-                | Slot::Void => {}
+                } => out += 1,
                 Slot::Row {
                     pending: Pending::Update(values),
                     ..

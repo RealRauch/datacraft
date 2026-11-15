@@ -108,7 +108,10 @@ const RIBBON_TOOLTIPS: &[(&str, &str, &str, &str)] = &[
 
 /// Quick Access entries reuse the ribbon action ids (step 21.2, U6).
 const QAT_TOOLTIPS: &[(&str, &str)] = &[
-    ("save_design", "Save the design sidecar (.datacraft)."),
+    (
+        "save_design",
+        "Submit the staged datasheet batch or save the design sidecar (.datacraft).",
+    ),
     ("undo", "Undo the last row write (Ctrl+Z)."),
     ("redo", "Redo the last undone row write (Ctrl+Y)."),
 ];
