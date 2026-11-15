@@ -1,9 +1,11 @@
-//! Journal batches on a non-atomic driver (step 33.1, item M20).
+//! Journal batches on SQLite (step 85.3, item H61; retired M20 refusal).
 //!
-//! SQLite reports `atomic_batch: false`; the core therefore refuses
-//! multi-operation previews with a precise reason and keeps
-//! single-operation batches available. Jet's atomic batch path is pinned
-//! by the core journal suite and `jet_row_writes.rs`.
+//! SQLite applies a `write_row_ops` batch inside one explicit
+//! transaction — either every operation lands or none does — and
+//! reports `atomic_batch: true`, so the datasheet writes through the
+//! pending-edit batch on SQLite like on Jet. The M20 one-by-one refusal
+//! is retired by H61; the Jet atomic path stays pinned by the core
+//! journal suite and `jet_row_writes.rs`.
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -12,7 +14,7 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::journal::WriteOp;
-use datacraft_core::port::RowRange;
+use datacraft_core::port::{PortError, RowRange, RowWriteOp, StoragePort};
 use datacraft_core::schema::FieldValue;
 use datacraft_sqlite::SqlitePort;
 
@@ -59,25 +61,37 @@ fn open_core(path: &PathBuf) -> Core {
     core
 }
 
-fn failure(events: &[Event]) -> String {
-    events
-        .iter()
-        .find_map(|event| match event {
-            Event::Failed { reason, .. } => Some(reason.clone()),
-            _ => None,
-        })
-        .unwrap_or_else(|| panic!("expected Failed: {events:?}"))
+fn rows(core: &Core) -> Vec<String> {
+    core.read_rows(
+        "notes",
+        RowRange {
+            start: 0,
+            len: usize::MAX,
+        },
+    )
+    .expect("read")
+    .into_iter()
+    .map(|row| match &row[0] {
+        FieldValue::Text(text) => text.clone(),
+        other => panic!("text column, got {other:?}"),
+    })
+    .collect()
 }
 
+/// A multi-operation batch previews, applies as one atomic write and
+/// reports the capability (step 85.3, item H61).
 #[test]
-fn sqlite_refuses_multi_op_batches_and_keeps_single_op_ones() {
+fn sqlite_applies_multi_op_batches_atomically() {
     let path = scratch_path();
     let scratch = Scratch(path.clone());
     let mut core = open_core(&path);
     let db = core.inspect().database.expect("database open");
-    assert!(!db.capabilities.atomic_batch, "SQLite is not atomic");
+    assert!(
+        db.capabilities.atomic_batch,
+        "SQLite applies batches atomically (H61)"
+    );
 
-    let reason = failure(&core.dispatch(Command::PreviewWrite {
+    let events = core.dispatch(Command::PreviewWrite {
         table: "notes".to_owned(),
         ops: vec![
             WriteOp::Update {
@@ -88,19 +102,11 @@ fn sqlite_refuses_multi_op_batches_and_keeps_single_op_ones() {
                 row: 1,
                 values: vec![FieldValue::Text("two".into())],
             },
+            WriteOp::Delete { row: 1 },
+            WriteOp::Insert {
+                values: vec![FieldValue::Text("gamma".into())],
+            },
         ],
-    }));
-    assert!(
-        reason.contains("atomic") && reason.contains("one operation"),
-        "{reason}"
-    );
-
-    let events = core.dispatch(Command::PreviewWrite {
-        table: "notes".to_owned(),
-        ops: vec![WriteOp::Update {
-            row: 0,
-            values: vec![FieldValue::Text("single".into())],
-        }],
     });
     let token = events
         .iter()
@@ -108,7 +114,7 @@ fn sqlite_refuses_multi_op_batches_and_keeps_single_op_ones() {
             Event::WritePreviewed { token, .. } => Some(*token),
             _ => None,
         })
-        .expect("single-op preview");
+        .expect("multi-op preview");
     let events = core.dispatch(Command::ApplyWrite { token });
     assert!(
         events
@@ -116,7 +122,32 @@ fn sqlite_refuses_multi_op_batches_and_keeps_single_op_ones() {
             .any(|event| matches!(event, Event::WriteApplied { .. })),
         "{events:?}"
     );
-    let rows = core
+    assert_eq!(rows(&core), vec!["one", "gamma"]);
+    drop(scratch);
+}
+
+/// A failing batch rolls back: the valid operations before the failure
+/// leave no partial write behind (port-level proof).
+#[test]
+fn a_failed_sqlite_batch_rolls_back_every_operation() {
+    let path = scratch_path();
+    let scratch = Scratch(path.clone());
+    let mut port = SqlitePort::new();
+    port.open(&path, None).expect("open scratch");
+    let error = port
+        .write_row_ops(
+            "notes",
+            &[
+                RowWriteOp::Insert(vec![FieldValue::Text("gamma".into())]),
+                RowWriteOp::Update {
+                    row: 99,
+                    values: vec![FieldValue::Text("nope".into())],
+                },
+            ],
+        )
+        .expect_err("the out-of-range update fails the batch");
+    assert!(matches!(error, PortError::OutOfRange { .. }), "{error:?}");
+    let bodies: Vec<String> = port
         .read_rows(
             "notes",
             RowRange {
@@ -124,7 +155,35 @@ fn sqlite_refuses_multi_op_batches_and_keeps_single_op_ones() {
                 len: usize::MAX,
             },
         )
-        .expect("read");
-    assert_eq!(rows[0][0], FieldValue::Text("single".into()));
+        .expect("read")
+        .into_iter()
+        .map(|row| match &row[0] {
+            FieldValue::Text(text) => text.clone(),
+            other => panic!("text column, got {other:?}"),
+        })
+        .collect();
+    assert_eq!(
+        bodies,
+        vec!["alpha", "beta"],
+        "the rolled-back insert left no partial write"
+    );
+    // The connection stays usable after the rolled-back batch (M25).
+    port.write_row_ops(
+        "notes",
+        &[RowWriteOp::Insert(vec![FieldValue::Text("delta".into())])],
+    )
+    .expect("single-op batch after rollback");
+    assert_eq!(
+        bodies.len() + 1,
+        port.read_rows(
+            "notes",
+            RowRange {
+                start: 0,
+                len: usize::MAX,
+            }
+        )
+        .expect("read")
+        .len()
+    );
     drop(scratch);
 }
