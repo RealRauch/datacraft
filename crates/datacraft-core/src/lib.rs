@@ -17,6 +17,7 @@ pub mod event;
 pub use datacraft_expr as expr;
 pub mod failure;
 pub mod field_expressions;
+pub mod filter_builder;
 pub mod fk_nav;
 pub mod form;
 mod forms;
