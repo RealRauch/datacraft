@@ -94,6 +94,7 @@
 
 
 
+
 ---
 
 ## Progress
@@ -457,3 +458,5 @@
 | 82.2 | Gate run verified end-to-end, sparse VHDX, Windows-side CARGO_TARGET_DIR, documentation and phase gate (M105) | ✅ |
 | 83.1 | scripts/clean-targets.ps1 with report/apply modes and the keep-only-last-build policy (M106, RED first: report run before any delete) | ✅ |
 | 83.2 | Apply run against the 99 GB target, weekly scheduled task, CONTRIBUTING documentation and phase gate (M106) | ✅ |
+| 84.1 | clean-targets.ps1: depth-2 cargo targets (src-tauri) plus node_modules/.venv classes with the stale rule (M107) | ✅ |
+| 84.2 | Report pin of the four Tauri targets, apply run as the one-time clean, CONTRIBUTING documentation and phase gate (M107) | ✅ |

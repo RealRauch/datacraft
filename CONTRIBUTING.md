@@ -91,9 +91,12 @@ The weekly scheduled task **DataCraft Clean Cargo Targets** (Sundays
 policy through `scripts/clean-targets.ps1 -Apply -Quiet`: a `target`
 dir unused for 21 days is removed, a fresh dir above 20 GB is emptied
 so the next build regenerates exactly the last build's artifacts, and
-everything else stays untouched. A directory only counts when its
-parent carries a `Cargo.toml` (or when it is the global
-`CARGO_TARGET_DIR` itself), so foreign `target` dirs are never touched.
+everything else stays untouched. The detection probed two levels deep
+per project (so Tauri's `src-tauri\target` counts) and covers three
+classes: cargo targets (parent carries a `Cargo.toml`), `node_modules`
+(parent carries a `package.json`) and `.venv`/`venv` — the age rule
+applies to all of them, the size rule to whatever it measures. Foreign
+`target` dirs without a manifest are never touched.
 Every action lands in `%LOCALAPPDATA%\datacraft-clean-targets.log`;
 remove the automation with
 `schtasks /Delete /TN "DataCraft Clean Cargo Targets" /F`, inspect it

@@ -1,14 +1,19 @@
-# clean-targets.ps1 — bounded cargo artifacts on this machine (item M106).
+# clean-targets.ps1 — bounded build artifacts on this machine (M106/M107).
 #
-# Policy: keep only the last build. Per target directory:
-#   stale    (no build for > -MaxAgeDays, default 21)   -> remove the whole dir
+# Policy: keep only the last build. Per detected artifact directory:
+#   stale    (no use for > -MaxAgeDays, default 21)     -> remove the whole dir
 #   oversized(fresh but larger than -MaxSizeGB, def 20) -> empty it; the next
 #              build regenerates exactly the last build's artifacts
 #   fresh and small                                    -> keep untouched
 #
-# A directory only counts as a cargo target when its parent carries a
-# Cargo.toml, or when it is the global CARGO_TARGET_DIR itself — a name
-# collision with a foreign "target" dir is never touched.
+# Detection classes (probed two levels under every scan root — project
+# dir and its direct subdirectories, so Tauri's src-tauri\target counts):
+#   cargo target  — a `target` dir whose parent carries a Cargo.toml
+#   npm artifacts — a `node_modules` dir whose parent carries a package.json
+#   python venv   — a `.venv` or `venv` dir
+# plus the global CARGO_TARGET_DIR itself. Foreign "target" dirs without
+# a manifest are never touched. The size walk runs only for entries the
+# age rule does not already decide, so stale giants cost no walk time.
 #
 # The default is REPORT ONLY. -Apply enforces the policy. The scheduled
 # task registered for this machine runs:
@@ -37,6 +42,23 @@ function Log($message) {
     Add-Content -Path $log -Value $line
 }
 
+# Classify one directory by its parent's manifest (or unconditionally
+# for a venv); returns a @{Class; Path} entry or $null.
+function Get-ArtifactEntry([string]$dirPath) {
+    $name = Split-Path -Leaf $dirPath
+    $parent = Split-Path -Parent $dirPath
+    if ($name -eq 'target' -and (Test-Path (Join-Path $parent 'Cargo.toml'))) {
+        return @{ Class = 'cargo'; Path = $dirPath }
+    }
+    if ($name -eq 'node_modules' -and (Test-Path (Join-Path $parent 'package.json'))) {
+        return @{ Class = 'npm'; Path = $dirPath }
+    }
+    if ($name -eq '.venv' -or $name -eq 'venv') {
+        return @{ Class = 'venv'; Path = $dirPath }
+    }
+    return $null
+}
+
 # Scan roots: the development workspace, plus the global redirect dir
 # itself (it *is* a target dir, not a parent of one).
 $scanRoots = @('D:\Development')
@@ -48,32 +70,60 @@ foreach ($root in $scanRoots) {
     if (-not (Test-Path -LiteralPath $root)) { continue }
     $rootItem = Get-Item -LiteralPath $root
     if ($rootItem.Name -eq 'target' -or $root -eq $env:CARGO_TARGET_DIR) {
-        $targets += $rootItem
+        $targets += @{ Class = 'cargo'; Path = $rootItem.FullName }
     }
-    Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
-        ForEach-Object {
-            $inner = Join-Path $_.FullName 'target'
-            if ((Test-Path -LiteralPath $inner) -and (Test-Path (Join-Path $_.FullName 'Cargo.toml'))) {
-                $targets += Get-Item -LiteralPath $inner
+    foreach ($project in (Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)) {
+        # Level 1: <project>\<class-dir>
+        foreach ($name in @('target', 'node_modules', '.venv', 'venv')) {
+            $candidate = Join-Path $project.FullName $name
+            if (Test-Path -LiteralPath $candidate) {
+                $entry = Get-ArtifactEntry $candidate
+                if ($entry) { $targets += $entry }
             }
         }
+        # Level 2: <project>\<sub>\<class-dir> (Tauri's src-tauri\target)
+        foreach ($sub in (Get-ChildItem -LiteralPath $project.FullName -Directory -ErrorAction SilentlyContinue)) {
+            foreach ($name in @('target', 'node_modules', '.venv', 'venv')) {
+                $candidate = Join-Path $sub.FullName $name
+                if (Test-Path -LiteralPath $candidate) {
+                    $entry = Get-ArtifactEntry $candidate
+                    if ($entry) { $targets += $entry }
+                }
+            }
+        }
+    }
 }
 
-foreach ($target in ($targets | Sort-Object FullName -Unique)) {
-    $sizeGB = [math]::Round(
-        ((Get-ChildItem -LiteralPath $target.FullName -Recurse -Force -ErrorAction SilentlyContinue |
-            Measure-Object Length -Sum).Sum) / 1GB, 1)
+foreach ($entry in ($targets | Sort-Object { $_.Path } -Unique)) {
+    $target = Get-Item -LiteralPath $entry.Path
     # Freshness: the newest write among the direct children (a build
-    # touches target\debug etc. deep inside, not the dir itself).
+    # touches the inner content, not the dir itself).
     $fresh = ($target.GetDirectories() + $target.GetFiles() |
         Measure-Object LastWriteTime -Maximum).Maximum
     if (-not $fresh) { $fresh = $target.LastWriteTime }
     $ageDays = [math]::Round(((Get-Date) - $fresh).TotalDays, 1)
 
     $action = 'keep'
-    if ($ageDays -gt $MaxAgeDays) { $action = 'remove (stale)' }
-    elseif ($sizeGB -gt $MaxSizeGB) { $action = 'clean (oversized)' }
-    Log ('{0}: {1} GB, last build {2} d ago -> {3}' -f $target.FullName, $sizeGB, $ageDays, $action)
+    if ($ageDays -gt $MaxAgeDays) {
+        $action = 'remove (stale)'
+        Log ('{0} [{1}]: last use {2} d ago -> {3}' -f
+            $target.FullName, $entry.Class, $ageDays, $action)
+    }
+    else {
+        # The age rule does not decide — measure the size (a failing
+        # walk reports 'size unknown' and keeps the entry).
+        $sum = (Get-ChildItem -LiteralPath $target.FullName -Recurse -Force -ErrorAction SilentlyContinue |
+            Measure-Object Length -Sum).Sum
+        if ($null -eq $sum) {
+            Log ('{0} [{1}]: size unknown -> keep' -f $target.FullName, $entry.Class)
+        }
+        else {
+            $sizeGB = [math]::Round($sum / 1GB, 1)
+            if ($sizeGB -gt $MaxSizeGB) { $action = 'clean (oversized)' }
+            Log ('{0} [{1}]: {2} GB, last use {3} d ago -> {4}' -f
+                $target.FullName, $entry.Class, $sizeGB, $ageDays, $action)
+        }
+    }
 
     if ($Apply -and $action -eq 'remove (stale)') {
         Remove-Item -LiteralPath $target.FullName -Recurse -Force
