@@ -23,11 +23,6 @@
 - **Acceptance:** Pending updates, inserts and deletes submit as one atomic batch on Jet4 and SQLite; a failed batch leaves every edit pending and the database unchanged; Preview matches the applied statements exactly; the grid is unavailable during submission; no second SQL generator exists; the behaviour and its edge cases (cursor moves inside a batch, save-on-row-change if adopted, read-only sources) are documented.
 - **Steps:** none yet.
 
-### [ ] F13 — Inline fix: EditBuffer::ops() skipped unchanged rows in the evolving index count — 🟠
-- **Location:** `crates/datacraft-core/src/edit_buffer.rs` (`ops()`), found by the 85.2 UI suite (staged deletes hit the wrong row).
-- **Problem:** The evolving-index counter only advanced for update rows; unchanged rows between a staged delete and a later op kept the counter back, so `Delete{row}` and the following `Update{row}` addressed wrong rows. The 85.1 core tests passed by luck — every delete came before the unchanged tail.
-- **Fix:** Unchanged rows advance the counter; the new core test `a_mid_buffer_delete_counts_the_unchanged_rows_behind_it` pins an update staged behind an unchanged neighbour after a mid-buffer delete.
-
 ---
 
 ## 🟡 MEDIUM

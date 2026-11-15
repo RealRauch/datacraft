@@ -517,8 +517,8 @@
 | 83.2 | Apply run against the 99 GB target, weekly scheduled task, CONTRIBUTING documentation and phase gate (M106) | ✅ |
 | 84.1 | clean-targets.ps1: depth-2 cargo targets (src-tauri) plus node_modules/.venv classes with the stale rule (M107) | ✅ |
 | 84.2 | Report pin of the four Tauri targets, apply run as the one-time clean, CONTRIBUTING documentation and phase gate (M107) | ✅ |
-| 85.1 | Core: per-tab edit buffer vocabulary mapping datasheet updates/inserts/deletes onto the journal batch commands, RED first (H61) | 🔄 |
-| 85.2 | UI: pending markers, statement preview from the journal, Ctrl+S apply / Escape discard, grid lock during submission (H61) | ⬜ |
+| 85.1 | Core: per-tab edit buffer vocabulary mapping datasheet updates/inserts/deletes onto the journal batch commands, RED first (H61) | ✅ |
+| 85.2 | UI: pending markers, statement preview from the journal, Ctrl+S apply / Escape discard, grid lock during submission (H61) | ✅ |
 | 85.3 | Capability gating without atomic_batch, read-only sources and the batch edge cases: cursor moves inside a batch, save-on-row-change decision (H61) | ⬜ |
 | 85.4 | Documentation and phase gate (H61) | ⬜ |
 | 86.1 | Core selection model: anchor rectangle, column selection, Ctrl+A, documented survival rule across scroll/sort/filter (M101) | ⬜ |
