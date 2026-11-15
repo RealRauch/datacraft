@@ -291,7 +291,9 @@ fn referenced_by_menu_opens_the_child_filtered() {
     harness.get_by_label("1").click();
     harness.run();
     right_click_cell(&mut harness, "1");
-    harness.get_by_label("Referenced by Orders").click();
+    // The reverse entry carries its count once the bounded read
+    // answered (one frame later — the right click's second run).
+    harness.get_by_label("Referenced by Orders (1)").click();
     harness.run();
     harness.run();
 

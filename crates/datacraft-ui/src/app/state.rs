@@ -185,4 +185,17 @@ pub struct App {
     /// The open submission of a tab: the journal's own changes between
     /// `PreviewWrite` and its apply/discard (step 85.2, item H61).
     pub(super) submission: Option<super::edit_batch::Submission>,
+    /// Per-tab foreign-key navigation history (step 87.2, item M103):
+    /// the follow/back/forward chain, carried by the tab it navigates
+    /// from; vocabulary and accessors live in `app/nav_history.rs`.
+    pub(super) fk_histories: HashMap<TabId, super::nav_history::NavHistory>,
+    /// Answered referenced-by counts keyed by child table and criteria
+    /// (step 87.2, item M103); cleared with the tab.
+    pub(super) count_results: HashMap<String, super::nav_history::ReferencedCount>,
+    /// Bounded reads waiting for their frame slot (step 87.2, M103 —
+    /// at most one processes per frame).
+    pub(super) count_pending: Vec<super::nav_history::CountRequest>,
+    /// The tab whose follow context menu is open (step 87.2, item M103):
+    /// the frame-local count context clones only while this holds.
+    pub(super) count_menu_tab: Option<TabId>,
 }

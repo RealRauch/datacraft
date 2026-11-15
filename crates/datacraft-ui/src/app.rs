@@ -24,9 +24,11 @@ mod form_edit;
 mod grid_state;
 mod help;
 mod lifecycle;
+pub(crate) mod nav_history;
 pub(crate) mod notices;
 mod state;
 
+pub use nav_history::ReferencedCount;
 pub use state::App;
 
 impl App {
@@ -107,6 +109,10 @@ impl App {
             edit_buffers: HashMap::new(),
             cursor_slots: HashMap::new(),
             submission: None,
+            fk_histories: HashMap::new(),
+            count_results: HashMap::new(),
+            count_pending: Vec::new(),
+            count_menu_tab: None,
         }
     }
 

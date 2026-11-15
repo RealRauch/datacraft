@@ -44,6 +44,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         mut on_edit,
         on_filter_dialog,
         mut on_follow,
+        mut on_follow_menu,
     } = callbacks;
     let Grid {
         metrics,
@@ -55,6 +56,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         sort_orders,
         filters: grid_filters,
         follow_targets,
+        follow_counts,
         id_salt,
         frozen,
         delete_reason,
@@ -348,7 +350,9 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                             .get(col)
                             .map(Vec::as_slice)
                             .unwrap_or(&[]),
+                        follow_counts,
                         &mut on_follow,
+                        &mut on_follow_menu,
                     );
                     if zoomed {
                         return;

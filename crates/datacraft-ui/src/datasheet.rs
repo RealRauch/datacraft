@@ -25,7 +25,7 @@ use crate::i18n::{t, tr};
 use crate::labels::value_label;
 use crate::theme::tokens;
 
-mod follow;
+pub(crate) mod follow;
 mod grid;
 mod grid_cells;
 mod grid_keys;
@@ -181,6 +181,15 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     // The follow targets (step 87.1, item M103): per column, the grid
     // paints one menu entry each; empty hides the affordance.
     let follow_labels = follow::follow_labels(app, tab, &columns);
+    // The count suffix of one menu entry (step 87.2, item M103): the
+    // frame-local context clones only while a follow context menu is
+    // open — the callback reads it without borrowing `App`.
+    let counts_context = follow::counts_context(app, tab, &columns, &slots);
+    let follow_counts = move |row: usize, col: usize, index: usize| {
+        counts_context
+            .as_ref()
+            .and_then(|context| context.suffix(row, col, index))
+    };
     // The armed editor's buffer is mutably borrowed for the grid pass;
     // its intents apply afterwards (the borrow ends with the call). The
     // editor's row is a display index; the grid pass paints the same
@@ -201,6 +210,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut sort_intent: Option<(usize, SortOrder)> = None;
     let mut dialog_intent: Option<usize> = None;
     let mut follow_intent: Option<(usize, usize, usize)> = None;
+    let mut follow_menu_intent: Option<(usize, usize)> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
         let mut on_selection = |new_selection: Selection| selection_intent = Some(new_selection);
@@ -241,6 +251,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     sort_orders: &sorts,
                     filters: &tab.filters,
                     follow_targets: &follow_labels,
+                    follow_counts: &follow_counts,
                     id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
                     frozen,
                     delete_reason,
@@ -265,6 +276,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut on_filter_dialog),
                     Some(&mut |row: usize, col: usize, index: usize| {
                         follow_intent = Some((row, col, index));
+                    }),
+                    Some(&mut |row: usize, col: usize| {
+                        follow_menu_intent = Some((row, col));
                     }),
                 ),
             );
@@ -321,6 +335,15 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     if let Some(column) = dialog_intent {
         app.open_filter_dialog(tab.id, column);
     }
+    // The menu is open (step 87.2, item M103): queue its count reads —
+    // duplicates answer from the map, one bounded read runs per frame.
+    // A closed menu clears the marker, so the context stops cloning.
+    if let Some((row, col)) = follow_menu_intent {
+        follow::request_counts(app, tab, &columns, &slots, row, col);
+    } else {
+        app.clear_count_menu_tab();
+    }
+    app.poll_referenced_counts();
     if let Some((row, col, index)) = follow_intent {
         // The follow reads the row image (the slots map the display row
         // onto the cache row; staged rows carry their pending image).

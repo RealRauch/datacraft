@@ -186,6 +186,7 @@ pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             sort_orders: &[],
             filters: &std::collections::BTreeMap::new(),
             follow_targets: &[],
+            follow_counts: &|_: usize, _: usize, _: usize| None,
             id_salt: format!("view.grid.{}", tab.ui_test_id),
             frozen: 0,
             delete_reason: None,
@@ -200,6 +201,7 @@ pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             Some(&mut |column: usize, extend: bool| {
                 select_column_intent = Some((column, extend));
             }),
+            None,
             None,
             None,
             None,

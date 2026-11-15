@@ -50,6 +50,10 @@ pub(crate) struct Grid<'a> {
     /// context menu lists one entry per target; an empty list hides the
     /// follow affordance for the column (query grids: empty).
     pub follow_targets: &'a [Vec<String>],
+    /// The count suffix of one menu entry (step 87.2, item M103): the
+    /// (row, col, index)-resolved " (n)"/" (≥ n)" of a reverse target,
+    /// `None` — pending or forward targets render bare.
+    pub follow_counts: &'a dyn Fn(usize, usize, usize) -> Option<String>,
     pub id_salt: String,
     pub frozen: usize,
     pub delete_reason: Option<DisabledReason>,
@@ -141,6 +145,10 @@ pub(crate) struct GridCallbacks<'a> {
     /// The follow intent (step 87.1, item M103): the displayed (row,
     /// col) and the context menu's target index — F4 reports index 0.
     pub on_follow: Option<&'a mut dyn FnMut(usize, usize, usize)>,
+    /// The cell context menu shows for (row, col) (step 87.2, item
+    /// M103) — fired every frame the menu stays open; the caller
+    /// deduplicates its count reads against the answered map.
+    pub on_follow_menu: Option<&'a mut dyn FnMut(usize, usize)>,
 }
 
 /// Bundles the callbacks for [`super::grid::grid_ui`] (keeps the call sites
@@ -161,6 +169,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_edit: Option<&'a mut dyn FnMut(EditIntent)>,
     on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
     on_follow: Option<&'a mut dyn FnMut(usize, usize, usize)>,
+    on_follow_menu: Option<&'a mut dyn FnMut(usize, usize)>,
 ) -> GridCallbacks<'a> {
     GridCallbacks {
         on_select,
@@ -177,5 +186,6 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_edit,
         on_filter_dialog,
         on_follow,
+        on_follow_menu,
     }
 }

@@ -8,7 +8,7 @@
 //! that name their truncation and clear with the tab.
 
 use datacraft_core::command::Command;
-use datacraft_core::port::{DriverCapabilities, MockPort, Relationship, Support};
+use datacraft_core::port::{DriverCapabilities, MockPort, Relationship};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_ui::app::{App, ReferencedCount};
 use datacraft_ui::clipboard::ScriptedClipboard;
@@ -57,6 +57,7 @@ fn shop_app(table: &str, batch: bool, order_rows: Vec<Vec<FieldValue>>) -> App {
         ],
     );
     port.with_row_data("Orders", order_rows);
+    port.with_relationships(vec![order_relationship()]);
     if !batch {
         let caps = DriverCapabilities::full();
         port.with_capabilities(caps);
@@ -112,17 +113,19 @@ fn right_click_cell(harness: &mut Harness<'static, App>, label: &str) {
     harness.run();
 }
 
-/// Filters the Orders tab to id = 10 and follows the key cell to
-/// Customers (the 87.1 flow). Returns the app state after the follow.
+/// Follows the Orders key cell to Customers over F4 (the 87.1 flow).
+/// The filtered views carry one record, so the selector parks the
+/// cursor on record 1; the key cell's click arms the editor, Escape
+/// discards it and F4 follows the selection's focus cell — the same
+/// sequence works over the unfiltered two-record view.
 fn follow_orders_to_customers(harness: &mut Harness<'static, App>) {
-    // The key cell of record 1 (selector click parks the cursor on
-    // record 2 first, so the cell click only selects).
-    harness.get_by_label("     2").click();
+    harness.get_by_label("     1").click();
     harness.run();
     harness.get_by_label("1").click();
     harness.run();
-    right_click_cell(harness, "1");
-    harness.get_by_label("Follow to Customers").click();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    harness.key_press(egui::Key::F4);
     harness.run();
     harness.run();
 }
@@ -276,23 +279,32 @@ fn back_only_activates_a_source_with_pending_edits() {
     });
     let mut harness = harness(app);
     harness.run();
-    // Stage an edit through the 85 buffer: the clipboard pastes one
-    // cell over the id of record 2 (atomic-batch driver).
-    harness.get_by_label("     1").click();
-    harness.run();
-    harness.get_by_label("10").click();
-    harness.run();
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::V);
-    harness.run();
-
-    follow_orders_to_customers(&mut harness);
-    let snapshot = harness.state().snapshot();
-    let orders_id = snapshot
+    let orders_id = harness
+        .state()
+        .snapshot()
         .tabs
         .iter()
         .find(|tab| tab.object_name == "Orders")
         .map(|tab| tab.id)
         .expect("the source is open");
+    // Stage an insert through the 85 buffer (atomic-batch driver) via
+    // the new-record flow — the filtered view's single record cannot
+    // take the selector trick, so the cells stage over the App API.
+    harness
+        .state_mut()
+        .set_new_row_cells(orders_id, vec![String::new(), "5".into()]);
+    harness.run();
+    assert!(
+        harness.state_mut().insert_new_row(orders_id, "Orders"),
+        "the insert staged into the buffer"
+    );
+    harness.run();
+    assert!(
+        harness.state().has_staged_edits(orders_id),
+        "the insert staged into the buffer"
+    );
+
+    follow_orders_to_customers(&mut harness);
 
     harness.get_by_label("Back").click();
     harness.run();
@@ -342,22 +354,16 @@ fn referenced_by_counts_show_in_the_menu() {
             .is_some(),
         "the menu names the capped count of referencing rows"
     );
-    let count = harness.state().referenced_by_count(
-        "Orders",
-        &[("customer_id".to_owned(), "= 1".to_owned())],
-    );
+    let count = harness
+        .state()
+        .referenced_by_count("Orders", &[("customer_id".to_owned(), "= 1".to_owned())]);
     assert_eq!(count, Some(ReferencedCount::Exact(2)));
 }
 
 #[test]
 fn truncated_counts_name_the_cap() {
     let rows: Vec<Vec<FieldValue>> = (0..5000)
-        .map(|index| {
-            vec![
-                FieldValue::Integer(index),
-                FieldValue::Integer(1),
-            ]
-        })
+        .map(|index| vec![FieldValue::Integer(index), FieldValue::Integer(1)])
         .collect();
     let app = shop_app("Customers", false, rows);
     let mut harness = harness(app);
@@ -376,10 +382,9 @@ fn truncated_counts_name_the_cap() {
             .is_some(),
         "the menu names the truncation at the cap"
     );
-    let count = harness.state().referenced_by_count(
-        "Orders",
-        &[("customer_id".to_owned(), "= 1".to_owned())],
-    );
+    let count = harness
+        .state()
+        .referenced_by_count("Orders", &[("customer_id".to_owned(), "= 1".to_owned())]);
     assert_eq!(count, Some(ReferencedCount::Truncated(4096)));
 }
 

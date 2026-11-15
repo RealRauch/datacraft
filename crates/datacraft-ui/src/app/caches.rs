@@ -54,6 +54,13 @@ impl App {
             self.form_record.remove(&tab_id);
             self.preview_page.remove(&tab_id);
             self.drags.retain(|(id, _), _| *id != tab_id);
+            // FK navigation state travels with its tab (step 87.2, item
+            // M103): the closed tab's chain drops and the answered
+            // counts clear — a reopen starts fresh, a cancelled count
+            // never renders.
+            self.fk_histories.remove(&tab_id);
+            self.count_pending.clear();
+            self.count_results.clear();
         }
         if events
             .iter()
@@ -67,6 +74,9 @@ impl App {
         if events.iter().any(|e| matches!(e, Event::DatabaseClosed)) {
             self.vba_analysis = None;
             self.vba_analysis_error = None;
+            self.fk_histories.clear();
+            self.count_pending.clear();
+            self.count_results.clear();
         }
         if events.iter().any(|e| {
             matches!(

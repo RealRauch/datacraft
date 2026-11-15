@@ -35,7 +35,9 @@ pub(super) fn reserve_height(ui: &egui::Ui) -> f32 {
 }
 
 /// The row-count label and the new-record row, rendered after the grid —
-/// the caller reserved their height before laying the grid out.
+/// the caller reserved their height before laying the grid out. The
+/// foreign-key navigation's Back/Forward buttons ride the same row
+/// (step 87.2, item M103): disabled while the tab's stack is empty.
 pub(super) fn trailing_ui(
     app: &mut App,
     tab: &TabSnapshot,
@@ -44,9 +46,26 @@ pub(super) fn trailing_ui(
     widths: &[f32],
     ui: &mut egui::Ui,
 ) {
-    let count =
-        ui.label(egui::RichText::new(plural(row_count, "{count} row", "{count} rows")).small());
-    crate::layout_probe::record("datasheet.row_count", count.rect);
+    ui.horizontal(|ui| {
+        let back = ui
+            .add_enabled(app.fk_back_len(tab.id) > 0, egui::Button::new(t("Back")))
+            .on_hover_text(t("Back to the previous table and filter"));
+        let forward = ui
+            .add_enabled(
+                app.fk_forward_len(tab.id) > 0,
+                egui::Button::new(t("Forward")),
+            )
+            .on_hover_text(t("Forward to the next table and filter"));
+        let count =
+            ui.label(egui::RichText::new(plural(row_count, "{count} row", "{count} rows")).small());
+        crate::layout_probe::record("datasheet.row_count", count.rect);
+        if back.clicked() {
+            app.fk_back(tab.id);
+        }
+        if forward.clicked() {
+            app.fk_forward(tab.id);
+        }
+    });
     new_row_ui(app, tab, columns, widths, ui);
 }
 

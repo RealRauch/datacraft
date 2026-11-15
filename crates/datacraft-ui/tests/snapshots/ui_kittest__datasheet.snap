@@ -1,5 +1,6 @@
 ---
 source: crates/datacraft-ui/tests/ui_kittest.rs
+assertion_line: 230
 expression: tree_dump(&harness)
 ---
 ColumnHeader|id|
@@ -7,6 +8,8 @@ ColumnHeader|name|
 Button|     1|
 Label||1
 Label||alpha
+Button|Back| disabled
+Button|Forward| disabled
 Label||1 row
 TextRun||1 row
 Label||*

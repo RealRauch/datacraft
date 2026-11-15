@@ -18,7 +18,9 @@ pub(super) fn cell_zoom_interactions(
     edit_restricted: bool,
     on_zoom: &mut Option<&mut dyn FnMut(usize, usize)>,
     follow_labels: &[String],
+    follow_counts: &dyn Fn(usize, usize, usize) -> Option<String>,
     on_follow: &mut Option<&mut dyn FnMut(usize, usize, usize)>,
+    on_follow_menu: &mut Option<&mut dyn FnMut(usize, usize)>,
 ) -> bool {
     let alt_click = response.clicked() && ui.input(|i| i.modifiers.alt);
     let dbl_readonly = response.double_clicked() && edit_restricted;
@@ -32,6 +34,11 @@ pub(super) fn cell_zoom_interactions(
     let mut zoom_menu: Option<(usize, usize)> = None;
     let mut follow: Option<usize> = None;
     response.context_menu(|ui| {
+        // The menu is open for this cell (step 87.2, item M103): the
+        // caller deduplicates its count reads against the answered map.
+        if let Some(callback) = on_follow_menu.as_mut() {
+            callback(row, col);
+        }
         if ui.selectable_label(false, t("Zoom Value")).clicked() {
             zoom_menu = Some((row, col));
             ui.close();
@@ -42,7 +49,11 @@ pub(super) fn cell_zoom_interactions(
         }
         ui.separator();
         for (index, label) in follow_labels.iter().enumerate() {
-            if ui.selectable_label(false, label).clicked() {
+            let suffix = follow_counts(row, col, index).unwrap_or_default();
+            if ui
+                .selectable_label(false, format!("{label}{suffix}"))
+                .clicked()
+            {
                 follow = Some(index);
                 ui.close();
                 return;

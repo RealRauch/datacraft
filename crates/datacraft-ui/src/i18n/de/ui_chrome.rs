@@ -208,6 +208,15 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Zoom Value", "Wert anzeigen"),
     ("Follow to {table}", "Folgen zu {table}"),
     ("Referenced by {table}", "Referenziert von {table}"),
+    ("Forward", "Vorwärts"),
+    (
+        "Back to the previous table and filter",
+        "Zurück zur vorherigen Tabelle mit deren Filter",
+    ),
+    (
+        "Forward to the next table and filter",
+        "Vorwärts zur nächsten Tabelle mit deren Filter",
+    ),
     ("Cell value", "Zellwert"),
     ("Value — {field}", "Wert — {field}"),
     (
