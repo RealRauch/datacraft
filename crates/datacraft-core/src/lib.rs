@@ -42,6 +42,7 @@ mod reports;
 pub mod ribbon;
 pub mod row_edit;
 pub mod schema;
+pub mod selection;
 pub mod snapshot;
 #[cfg(feature = "sql-engine")]
 pub use datacraft_query::sql_engine;
