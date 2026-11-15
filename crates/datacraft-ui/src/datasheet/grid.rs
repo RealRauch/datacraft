@@ -18,12 +18,10 @@ use datacraft_core::grid::{
 };
 use datacraft_core::selection::Selection;
 
+use super::grid_keys::{GridKeys, grid_keys};
 use super::grid_model::{EditIntent, Grid, GridCallbacks};
 use super::header::{HeaderPass, header_ui};
-use super::nav::{
-    nav_target, read_copy_key, read_delete_key, read_fill_key, read_nav_intent, read_paste_key,
-    read_select_all, read_zoom_key,
-};
+use super::nav::nav_target;
 
 use crate::theme::tokens;
 
@@ -45,6 +43,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         mut on_delete,
         mut on_edit,
         on_filter_dialog,
+        mut on_follow,
     } = callbacks;
     let Grid {
         metrics,
@@ -55,6 +54,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         widths,
         sort_orders,
         filters: grid_filters,
+        follow_targets,
         id_salt,
         frozen,
         delete_reason,
@@ -69,61 +69,32 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     // editor arms, no deletion reports, the cells keep rendering their
     // staged image.
     let edit_restricted = edit_restricted || locked;
-    // Navigation gate: the grid reacts when its focus anchor holds focus
-    // (a row-selector click arms it) or when the pointer hovers it —
-    // unless another widget, e.g. a text field, holds focus. Focus is
-    // read live; hover uses the previous frame's anchor rect.
+    // Navigation gate and the frame's key intents (step 87.1, item M103
+    // moved the pass into `grid_keys` — the L30 split below the gate).
     let anchor_id = ui.scope_id().with(&id_salt).with("grid-nav");
-    let focused_elsewhere = ui
-        .ctx()
-        .memory(|memory| memory.focused().is_some_and(|id| id != anchor_id));
-    let hover_armed = ui
-        .ctx()
-        .read_response(anchor_id)
-        .is_some_and(|response| response.hovered());
-    let wants_nav = ui.ctx().memory(|memory| memory.has_focus(anchor_id))
-        || (hover_armed && !focused_elsewhere);
-    // egui would otherwise move focus to the next focusable widget on the
-    // first arrow press; the lock keeps the anchor focused so the whole
-    // walk stays on the grid. Tab still leaves it (accessible), Esc still
-    // reaches the global cancel-edit path.
-    if ui.ctx().memory(|memory| memory.has_focus(anchor_id)) {
-        ui.ctx().memory_mut(|memory| {
-            memory.set_focus_lock_filter(
-                anchor_id,
-                egui::EventFilter {
-                    horizontal_arrows: true,
-                    vertical_arrows: true,
-                    ..egui::EventFilter::default()
-                },
-            );
-        });
-    }
-    let nav = if wants_nav { read_nav_intent(ui) } else { None };
+    let GridKeys {
+        nav,
+        select_all,
+        copy,
+        paste,
+        fill,
+        zoom_key,
+        follow_key,
+        clear_intent,
+        delete_intent,
+    } = grid_keys(
+        ui,
+        anchor_id,
+        body.len(),
+        selection,
+        edit_restricted,
+        locked,
+        delete_reason.is_none(),
+    );
     let viewport_height = (ui.available_height() - metrics.header_height).max(metrics.row_height);
     let follow_target = nav
         .as_ref()
         .map(|(intent, _)| nav_target(*intent, cursor, body.len(), viewport_height, &metrics));
-    // Ctrl+A selects everything loaded (step 86.1, item M101); the
-    // wants_nav gate keeps it away from text fields holding focus.
-    let select_all = wants_nav && read_select_all(ui);
-    // Clipboard intents (step 86.2, item M101): Ctrl+C copies (read-only),
-    // Ctrl+V pastes only on writable, unlocked grids.
-    let copy = wants_nav && !body.is_empty() && read_copy_key(ui);
-    let paste = wants_nav && !edit_restricted && !locked && read_paste_key(ui);
-    let fill = wants_nav && !edit_restricted && !locked && read_fill_key(ui);
-    // Shift+F2 zooms the selection's focus cell (step 86.4, item M102);
-    // readable even while the in-place editor holds focus.
-    let zoom_key = !body.is_empty() && read_zoom_key(ui);
-    // A whole-column or select-all selection always extends; a collapsed
-    // cell keeps the step 40.3 record deletion.
-    let extended = !matches!(selection, Selection::Cell { .. });
-    // Del on the selected record is a deletion intent, not a cursor move —
-    // it only fires for capable sources (step 40.3, item M44); a
-    // submission in flight refuses it (step 85.2, item H61).
-    let del = wants_nav && delete_reason.is_none() && !locked && read_delete_key(ui);
-    let clear_intent = del && extended && !body.is_empty();
-    let delete_intent = del && !extended && !body.is_empty();
 
     // The header trails the body's live horizontal offset by one frame:
     // the body scroll area is the single scroll source, the header only
@@ -373,6 +344,11 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         col,
                         edit_restricted,
                         &mut on_zoom,
+                        follow_targets
+                            .get(col)
+                            .map(Vec::as_slice)
+                            .unwrap_or(&[]),
+                        &mut on_follow,
                     );
                     if zoomed {
                         return;
@@ -471,6 +447,13 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     if zoom_key && let Some(callback) = on_zoom.as_mut() {
         let (row, col) = super::grid_cells::zoom_focus_target(selection, body.len(), columns.len());
         callback(row, col);
+    }
+    if follow_key
+        && let Some(callback) = on_follow.as_mut()
+        && let Some((row, col)) =
+            super::grid_cells::follow_key_target(selection, body.len(), follow_targets)
+    {
+        callback(row, col, 0);
     }
     // The focus anchor covers the whole grid: focusable but not
     // interactive, so it never steals clicks from the rows it overlays.

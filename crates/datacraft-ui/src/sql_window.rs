@@ -92,6 +92,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         widths: &mut widths,
                         sort_orders: &sorts,
                         filters: &std::collections::BTreeMap::new(),
+                        follow_targets: &[],
                         id_salt: "sql.grid".to_owned(),
                         frozen: 0,
                         delete_reason: None,
@@ -106,6 +107,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         Some(&mut |column: usize, extend: bool| {
                             select_column_intent = Some((column, extend));
                         }),
+                        None,
                         None,
                         None,
                         None,

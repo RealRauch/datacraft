@@ -25,8 +25,10 @@ use crate::i18n::{t, tr};
 use crate::labels::value_label;
 use crate::theme::tokens;
 
+mod follow;
 mod grid;
 mod grid_cells;
+mod grid_keys;
 mod grid_model;
 mod header;
 mod nav;
@@ -176,6 +178,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     // A submission in flight locks this grid (step 85.2, item H61) —
     // read before the editor's mutable borrow.
     let locked = app.snapshot().pending_write.is_some();
+    // The follow targets (step 87.1, item M103): per column, the grid
+    // paints one menu entry each; empty hides the affordance.
+    let follow_labels = follow::follow_labels(app, tab, &columns);
     // The armed editor's buffer is mutably borrowed for the grid pass;
     // its intents apply afterwards (the borrow ends with the call). The
     // editor's row is a display index; the grid pass paints the same
@@ -195,6 +200,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut pending_edit: Option<EditIntent> = None;
     let mut sort_intent: Option<(usize, SortOrder)> = None;
     let mut dialog_intent: Option<usize> = None;
+    let mut follow_intent: Option<(usize, usize, usize)> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
         let mut on_selection = |new_selection: Selection| selection_intent = Some(new_selection);
@@ -234,6 +240,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     widths: &mut widths,
                     sort_orders: &sorts,
                     filters: &tab.filters,
+                    follow_targets: &follow_labels,
                     id_salt: format!("datasheet.grid.{}", tab.ui_test_id),
                     frozen,
                     delete_reason,
@@ -256,6 +263,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut on_delete),
                     Some(&mut on_edit),
                     Some(&mut on_filter_dialog),
+                    Some(&mut |row: usize, col: usize, index: usize| {
+                        follow_intent = Some((row, col, index));
+                    }),
                 ),
             );
         });
@@ -310,6 +320,13 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     if let Some(column) = dialog_intent {
         app.open_filter_dialog(tab.id, column);
+    }
+    if let Some((row, col, index)) = follow_intent {
+        // The follow reads the row image (the slots map the display row
+        // onto the cache row; staged rows carry their pending image).
+        let slot = slots.get(row).copied().unwrap_or(row);
+        let values = app.row_image(tab.id, slot).unwrap_or_default();
+        follow::follow_ui(app, tab, &columns, values, col, index);
     }
     match pending_edit {
         Some(EditIntent::Start { row, col }) => {

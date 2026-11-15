@@ -22,6 +22,19 @@ impl App {
         self.results.get(&tab_id)
     }
 
+    /// One row's image (step 87.1, item M103): the staged edit-buffer
+    /// image when the slot carries a pending row, the cache row
+    /// otherwise. Owned by value, so follow dispatch borrows the app
+    /// mutably afterwards.
+    pub(crate) fn row_image(&self, tab_id: TabId, slot: usize) -> Option<Vec<FieldValue>> {
+        self.staged_rows(tab_id)
+            .and_then(|buffer| buffer.row_image(slot).map(|image| image.to_vec()))
+            .or_else(|| {
+                self.rows_for(tab_id)
+                    .and_then(|rows| rows.get(slot).cloned())
+            })
+    }
+
     /// The localized load failure of one tab's presentation cache, if the
     /// last load attempt failed (step 39.4, item M31 — the reason renders
     /// in place of the endless loading state and clears on the next

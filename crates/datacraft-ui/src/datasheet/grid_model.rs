@@ -46,6 +46,10 @@ pub(crate) struct Grid<'a> {
     /// header paints their indicator and names the criteria on hover
     /// (step 69.6, item M84).
     pub filters: &'a std::collections::BTreeMap<String, String>,
+    /// Per-column follow-target labels (step 87.1, item M103): the cell
+    /// context menu lists one entry per target; an empty list hides the
+    /// follow affordance for the column (query grids: empty).
+    pub follow_targets: &'a [Vec<String>],
     pub id_salt: String,
     pub frozen: usize,
     pub delete_reason: Option<DisabledReason>,
@@ -134,6 +138,9 @@ pub(crate) struct GridCallbacks<'a> {
     /// Opens a column's filter dialog from the header menu (step 45.1,
     /// M55).
     pub on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
+    /// The follow intent (step 87.1, item M103): the displayed (row,
+    /// col) and the context menu's target index — F4 reports index 0.
+    pub on_follow: Option<&'a mut dyn FnMut(usize, usize, usize)>,
 }
 
 /// Bundles the callbacks for [`super::grid::grid_ui`] (keeps the call sites
@@ -153,6 +160,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_delete: Option<&'a mut dyn FnMut(usize)>,
     on_edit: Option<&'a mut dyn FnMut(EditIntent)>,
     on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
+    on_follow: Option<&'a mut dyn FnMut(usize, usize, usize)>,
 ) -> GridCallbacks<'a> {
     GridCallbacks {
         on_select,
@@ -168,5 +176,6 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_delete,
         on_edit,
         on_filter_dialog,
+        on_follow,
     }
 }

@@ -206,6 +206,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Freeze Fields", "Felder fixieren"),
     ("Select Column", "Spalte auswählen"),
     ("Zoom Value", "Wert anzeigen"),
+    ("Follow to {table}", "Folgen zu {table}"),
+    ("Referenced by {table}", "Referenziert von {table}"),
     ("Cell value", "Zellwert"),
     ("Value — {field}", "Wert — {field}"),
     (

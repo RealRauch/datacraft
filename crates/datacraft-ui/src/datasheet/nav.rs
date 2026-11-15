@@ -86,6 +86,13 @@ pub(crate) fn read_fill_key(ui: &egui::Ui) -> bool {
         .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::D))
 }
 
+/// F4 seen this frame (the foreign-key follow intent, step 87.1, item
+/// M103), consumed so no other handler reacts to it twice.
+pub(crate) fn read_fk_follow_key(ui: &egui::Ui) -> bool {
+    ui.ctx()
+        .input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::F4))
+}
+
 /// The selection after a navigation key (step 86.1, item M101): a plain
 /// press collapses onto the new cursor row, a Shift press extends from
 /// the current anchor — `All` stays all. `focus_col` is the moving

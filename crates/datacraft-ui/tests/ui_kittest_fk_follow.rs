@@ -230,9 +230,13 @@ fn context_menu_follows_the_declared_key_to_the_filtered_parent() {
     harness.run();
 
     let snapshot = harness.state().snapshot();
+    let customers_id = snapshot
+        .tabs
+        .iter()
+        .find(|tab| tab.object_name == "Customers")
+        .map(|tab| tab.id);
     assert_eq!(
-        snapshot.active_tab.map(|tab| tab.value()),
-        Some(1),
+        snapshot.active_tab, customers_id,
         "the follow activates the target tab"
     );
     let customers = snapshot
@@ -368,16 +372,25 @@ fn a_null_key_answers_the_precise_error_without_opening_a_tab() {
 
     let mut harness = harness(app);
     harness.run();
-    // The empty key cell: the second record's customer column (the
-    // first empty cell in paint order — the trailing new-record row
-    // renders after the body).
-    click_selector(&mut harness, "     2");
-    let empty: Vec<_> = harness.get_all_by_label("").collect();
-    assert!(
-        empty.len() >= 2,
-        "the empty key cell and the new-record row"
+    // The empty key cell carries no accessible label (an empty string is
+    // no label) — it is the cell right of the second record's id cell,
+    // clicked at its position (the freeze suite's positional precedent).
+    click_selector(&mut harness, "     1");
+    let rect = harness.get_by_label("11").rect();
+    let pos = egui::pos2(
+        rect.right() + datacraft_core::grid::DEFAULT_COLUMN_WIDTH / 2.0,
+        rect.center().y,
     );
-    empty[0].click();
+    harness.hover_at(pos);
+    let press = |pressed| egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed,
+        modifiers: egui::Modifiers::default(),
+    };
+    harness.event(press(true));
+    harness.run();
+    harness.event(press(false));
     harness.run();
     harness.key_press(egui::Key::F4);
     harness.run();
