@@ -420,6 +420,7 @@ impl Core {
             ),
             Command::InsertRow { table, values } => self.insert_row(&table, &values),
             Command::UpdateRow { table, row, values } => self.update_row(&table, row, &values),
+            Command::UpdateCells { table, edits } => self.update_cells(&table, &edits),
             Command::DeleteRow { table, row } => self.delete_row(&table, row),
             Command::RenameObject { object, new_name } => self.rename_object(&object, &new_name),
             Command::PreviewWrite { table, ops } => self.preview_write(&table, ops),

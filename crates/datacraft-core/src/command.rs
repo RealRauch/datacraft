@@ -14,7 +14,9 @@ use crate::schema::TableDef;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+mod cells;
 mod contexts;
+pub use cells::CellEdit;
 pub use contexts::ExpressionContext;
 mod source;
 pub use source::{SourceSpec, effective_path};
@@ -118,8 +120,8 @@ pub enum Command {
         /// New field name.
         new_name: String,
     },
-    /// Replaces a field's properties (step 24.3, item M9); the storage
-    /// shape (type, size, kind) must not change.
+    /// Replaces a field's properties (step 24.3, M9); the storage shape
+    /// must not change.
     SetFieldProperties {
         /// Target table (case-insensitive).
         table: String,
@@ -128,9 +130,8 @@ pub enum Command {
         /// The new property set.
         properties: crate::schema::FieldProperties,
     },
-    /// Appends one row to a table (step 13.2, H36). Values are positional
-    /// and validated against the table schema; `Null` on an AutoNumber
-    /// field means "engine-assigned".
+    /// Appends one row (step 13.2, H36); `Null` on an AutoNumber field
+    /// means "engine-assigned".
     InsertRow {
         /// Target table name (case-insensitive).
         table: String,
@@ -138,8 +139,7 @@ pub enum Command {
         values: Vec<crate::schema::FieldValue>,
     },
     /// Replaces one row by its zero-based live-row index (step 11.10,
-    /// H40). `Null` on an AutoNumber field keeps the engine-assigned value;
-    /// any other AutoNumber value must equal the current one.
+    /// H40); `Null` keeps an AutoNumber's engine-assigned value.
     UpdateRow {
         /// Target table name (case-insensitive).
         table: String,
@@ -155,36 +155,41 @@ pub enum Command {
         /// Zero-based index in the table's live-row order.
         row: usize,
     },
-    /// Previews a journaled write batch and stores it for confirmation
-    /// (step 11.11, M2). Nothing is written until `ApplyWrite`.
-    /// Headless-only (L26): the GUI's equivalent is the immediate row
-    /// commands plus Undo/Redo — a separate history, not journal tokens.
+    /// Replaces individual cells across several rows (step 86.3, M101):
+    /// one history entry, so a fill is one undo step; every edit is
+    /// validated before the first write (`Null` = clear, M24 boundary).
+    UpdateCells {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// The cell edits, grouped per row by the handler.
+        edits: Vec<crate::command::CellEdit>,
+    },
+    /// Previews a journaled write batch (step 11.11, M2); nothing is
+    /// written until `ApplyWrite`. Headless-only (L26 — the GUI's
+    /// equivalent is the immediate row commands plus Undo/Redo).
     PreviewWrite {
         /// Target table name (case-insensitive).
         table: String,
         /// The batch (indices address the evolving row set).
         ops: Vec<crate::journal::WriteOp>,
     },
-    /// Applies the pending journal identified by `token` (step 11.11, M2).
-    /// Headless-only — see `PreviewWrite` (L26).
+    /// Applies the pending journal (step 11.11, M2). Headless-only (L26).
     ApplyWrite {
         /// Token from the preview.
         token: u64,
     },
-    /// Rolls the last applied journal back (inverse operations).
-    /// Headless-only — see `PreviewWrite` (L26).
+    /// Rolls the last applied journal back. Headless-only (L26).
     RollbackWrite {
         /// Token of the applied journal.
         token: u64,
     },
-    /// Discards the pending journal without writing anything.
-    /// Headless-only — see `PreviewWrite` (L26).
+    /// Discards the pending journal without writing. Headless-only (L26).
     DiscardWrite {
         /// Token from the preview.
         token: u64,
     },
-    /// Renames one table, query, form or report (step 72.1, item M81);
-    /// tabs, sidecar references and relationships follow the new name.
+    /// Renames one table, query, form or report (step 72.1, M81);
+    /// tabs, sidecar references and relationships follow.
     RenameObject {
         /// The object to rename (kind + current name).
         object: ObjectId,
@@ -194,8 +199,8 @@ pub enum Command {
     /// Opens the object in a tab (re-activates an existing tab instead of
     /// opening a second one for the same object).
     OpenObject(ObjectId),
-    /// Opens the object in the given view (step 21.5, item U9) — the
-    /// navigation pane's Open/Design context menu in one command.
+    /// Opens the object in the given view (step 21.5, U9): the nav
+    /// pane's Open/Design menu in one command.
     OpenObjectInMode {
         /// The object to open.
         object: ObjectId,
@@ -208,8 +213,7 @@ pub enum Command {
         /// The tab to close.
         tab_id: TabId,
     },
-    /// Closes every tab except `tab_id` and activates the kept tab
-    /// (step 21.6, item U10).
+    /// Closes every tab except the kept one (step 21.6, U10).
     CloseOtherTabs {
         /// The tab to keep.
         tab_id: TabId,
@@ -221,12 +225,12 @@ pub enum Command {
         /// The tab to activate.
         tab_id: TabId,
     },
-    /// Undoes the last row write of the open database (step 28.1, item U14).
+    /// Undoes the last row write of the open database (step 28.1, U14).
     Undo,
-    /// Re-applies the last undone row write (step 28.1, item U14).
+    /// Re-applies the last undone row write (step 28.1, U14).
     Redo,
-    /// Switches one tab between its datasheet and design view (step 21.1,
-    /// item U5) — the Views split-button's single action.
+    /// Switches one tab between datasheet and design view (step 21.1,
+    /// U5): the Views split-button's single action.
     SetTabMode {
         /// The tab whose view changes.
         tab_id: TabId,
@@ -235,12 +239,10 @@ pub enum Command {
     },
     /// Shows or hides the navigation pane.
     ToggleNavPane,
-    /// Shows or hides the relationship mapper (Access opens it as a
-    /// document; the headless core models it as a pane flag).
+    /// Shows or hides the relationship mapper pane (step 7.1).
     ToggleRelationshipMapper,
-    /// Creates a referential relationship (step 32.3, item M16). The
-    /// referencing and referenced tables/columns must exist; duplicates are
-    /// refused.
+    /// Creates a referential relationship (step 32.3, M16); both sides
+    /// must exist, duplicates are refused.
     CreateRelationship {
         /// The relationship to create.
         relationship: crate::port::Relationship,
@@ -254,23 +256,22 @@ pub enum Command {
     ToggleSqlWindow,
     /// Opens or closes the Import File window (step 58.1, item M50).
     ToggleImportWindow,
-    /// Parses an external CSV file and stores its import preview for the
-    /// Import File window (step 58.1, item M50). The source is only read.
+    /// Parses an external CSV file for the Import File window (step
+    /// 58.1, M50); the source is only read.
     PreviewImportFile {
         /// The CSV file to read.
         source: std::path::PathBuf,
     },
     /// Shows or hides the expression window (step 41.2, item M46).
     ToggleExpressionWindow,
-    /// Runs exactly one SELECT/WITH statement over the loaded tables in a
-    /// throwaway in-memory SQLite database (step 13.3, H37).
+    /// Runs one SELECT/WITH over the loaded tables in throwaway SQLite
+    /// (step 13.3, H37).
     RunSql {
         /// The statement; anything but one SELECT/WITH is rejected.
         sql: String,
     },
-    /// Evaluates one expression (step 15.2, H41) — over the bus, the MCP
-    /// endpoint and the CLI alike. With a row context the expression sees
-    /// the table's fields; without one it evaluates over an empty scope.
+    /// Evaluates one expression (step 15.2, H41); with a row context it
+    /// sees the table's fields, without one an empty scope.
     RunExpression {
         /// Optional row context (table + zero-based live-row index).
         context: Option<ExpressionContext>,
@@ -300,9 +301,8 @@ pub enum Command {
         /// Target query name (case-insensitive).
         query: String,
     },
-    /// Sorts a table's datasheet view (step 44.5, item M54): core view
-    /// state projected into the tab snapshot; `SortOrder::None` clears.
-    /// The field is whitelisted against the table's schema (LESSONS #5).
+    /// Sorts a table's datasheet view (step 44.5, M54); `None` clears.
+    /// The field is whitelisted against the schema (LESSONS #5).
     SetTableSort {
         /// Target table name (case-insensitive).
         table: String,
@@ -311,10 +311,9 @@ pub enum Command {
         /// Sort direction; `None` clears the sort.
         order: SortOrder,
     },
-    /// Filters a table's datasheet view by one column's criteria
-    /// (step 44.5, item M54): parsed eagerly against the column's kind
-    /// so garbage fails at set time; `None` clears that column's
-    /// filter. Multiple filters AND together.
+    /// Filters a table's datasheet view by one column's criteria (step
+    /// 44.5, M54): parsed eagerly so garbage fails at set time; `None`
+    /// clears. Multiple filters AND together.
     SetTableFilter {
         /// Target table name (case-insensitive).
         table: String,

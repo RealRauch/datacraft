@@ -228,6 +228,38 @@ impl crate::core::Core {
         });
     }
 
+    /// Records several successful updates as **one** history entry
+    /// (step 86.3, item M101): a fill of a selected range is one undo
+    /// step. The rows are distinct (the caller groups per row).
+    pub(crate) fn record_updates(
+        &mut self,
+        table: &str,
+        images: &[(Vec<FieldValue>, Vec<FieldValue>)],
+    ) {
+        if images.is_empty() {
+            return;
+        }
+        let undo = images
+            .iter()
+            .map(|(before, after)| HistoryOp::Update {
+                from: after.clone(),
+                to: before.clone(),
+            })
+            .collect();
+        let redo = images
+            .iter()
+            .map(|(before, after)| HistoryOp::Update {
+                from: before.clone(),
+                to: after.clone(),
+            })
+            .collect();
+        self.push_history(HistoryEntry {
+            table: table.to_owned(),
+            undo,
+            redo,
+        });
+    }
+
     /// Records a successful delete (undo restores the before image).
     pub(crate) fn record_delete(&mut self, table: &str, before: &[FieldValue]) {
         self.push_history(HistoryEntry {
