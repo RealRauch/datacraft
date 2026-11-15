@@ -139,9 +139,7 @@ fn a_direct_fill_is_one_undo_step() {
 
     // The fill's inverse rides the bus: one Undo restores every row
     // (the Ctrl+Z key itself is pinned by the shortcuts suite).
-    harness
-        .state_mut()
-        .dispatch(Command::Undo);
+    harness.state_mut().dispatch(Command::Undo);
     harness.run();
     let rows = harness.state().rows_for(tab).expect("loaded rows");
     assert_eq!(rows[1][1], FieldValue::Text("alpha1".into()));
