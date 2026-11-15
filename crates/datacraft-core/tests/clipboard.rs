@@ -140,3 +140,60 @@ fn select_all_takes_a_full_grid_matrix() {
     assert_eq!(cols, 0..2);
     assert!(clipboard::paste_targets(&Selection::All, 3, 2, 4, 2).is_err());
 }
+
+/// The rejection texts name the numbers — the UI renders them verbatim
+/// (the status-bar error path calls `to_string`).
+#[test]
+fn the_rejection_texts_name_the_numbers() {
+    let err = clipboard::TsvError::TooManyCells {
+        cells: 70000,
+        limit: MAX_TSV_CELLS,
+    };
+    assert_eq!(
+        err.to_string(),
+        "70000 cells exceed the clipboard limit of 65536"
+    );
+    let err = clipboard::TsvError::NotRectangular {
+        row: 2,
+        expected: 2,
+        found: 1,
+    };
+    assert_eq!(err.to_string(), "row 3 has 1 columns, the first row has 2");
+    assert_eq!(
+        clipboard::TsvError::Empty.to_string(),
+        "the clipboard holds no table text"
+    );
+    let err = clipboard::PasteError::ShapeMismatch {
+        expected: (2, 2),
+        found: (3, 2),
+    };
+    assert_eq!(
+        err.to_string(),
+        "the pasted matrix is 3x2 but the selection is 2x2"
+    );
+    let err = clipboard::PasteError::DoesNotFit {
+        found: (2, 1),
+        available: (1, 1),
+    };
+    assert_eq!(
+        err.to_string(),
+        "the pasted matrix is 2x1 but only 1x1 fit from the selected cell on"
+    );
+    assert_eq!(
+        clipboard::PasteError::ColumnsNotACellTarget.to_string(),
+        "a column selection cannot take pasted cells — select the target cell first"
+    );
+}
+
+/// A text of only row separators carries no matrix — the empty
+/// rejection, not a one-empty-column grid.
+#[test]
+fn a_text_of_only_separators_is_empty() {
+    assert!(matches!(
+        clipboard::parse_tsv(
+            "
+"
+        ),
+        Err(clipboard::TsvError::Empty)
+    ));
+}

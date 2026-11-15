@@ -190,11 +190,9 @@ pub fn parse_tsv(text: &str) -> Result<Vec<Vec<String>>, TsvError> {
     }
     // The final row: dropped when the text ended with a row separator
     // (row is freshly empty) — that is the trailing-newline tolerance.
+    // Whitespace-only texts never reach here (the empty guard above).
     if row.len() > 1 || !row[0].is_empty() {
         matrix.push(row);
-    }
-    if matrix.is_empty() {
-        return Err(TsvError::Empty);
     }
     let width = matrix[0].len();
     for (row, cells) in matrix.iter().enumerate().skip(1) {
