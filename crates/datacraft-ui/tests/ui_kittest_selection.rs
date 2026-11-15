@@ -109,7 +109,9 @@ fn shift_click_extends_the_rectangle_from_the_anchor() {
         "a plain click collapses onto the cell"
     );
 
-    harness.get_by_label("alpha4").click_modifiers(egui::Modifiers::SHIFT);
+    harness
+        .get_by_label("alpha4")
+        .click_modifiers(egui::Modifiers::SHIFT);
     harness.run();
     assert_eq!(
         harness.state().selection(tab, 6, 2),
@@ -132,7 +134,10 @@ fn plain_arrows_collapse_and_shift_arrows_extend() {
     harness.run();
     harness.key_press(egui::Key::ArrowDown);
     harness.run();
-    assert_eq!(harness.state().selection(tab, 6, 2), Selection::collapse(2, 0));
+    assert_eq!(
+        harness.state().selection(tab, 6, 2),
+        Selection::collapse(2, 0)
+    );
 
     harness.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowDown);
     harness.run();
