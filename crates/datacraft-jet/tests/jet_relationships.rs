@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
-use datacraft_core::port::{DatabaseFormat, Relationship, StoragePort};
+use datacraft_core::port::{DatabaseFormat, Relationship, RelationshipGroup, StoragePort};
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, IndexMode, NumericKind, TableDef};
 use datacraft_jet::port_adapter::Jet4Port;
 
@@ -291,4 +291,29 @@ fn port_level_relationship_errors_are_precise() {
         .delete_relationship(&absent)
         .expect_err("four names must match");
     assert!(error.to_string().contains("not found"), "{error:?}");
+}
+
+/// The reopened relationships carry their constraint name as the group
+/// (step 87.1, item M103): DataCraft's writer names the constraint
+/// `{child}_{column}_{parent}`, and the follow resolution reads it for
+/// composite pairing.
+#[test]
+fn reopened_relationships_carry_the_constraint_name_as_group() {
+    let (mut core, scratch) = setup();
+    core.dispatch(Command::CreateRelationship {
+        relationship: relationship(),
+    });
+    core.dispatch(Command::CloseDatabase);
+    let reopened = open(&scratch.0);
+    let database = reopened.inspect().database.expect("open");
+    assert_eq!(
+        database.relationship_groups,
+        Some(vec![RelationshipGroup {
+            name: Some("Orders_customer_id_Customers".to_owned()),
+            table: "Orders".to_owned(),
+            related_table: "Customers".to_owned(),
+            pairs: vec![("customer_id".to_owned(), "id".to_owned())],
+        }]),
+        "the written constraint name reads back as the group"
+    );
 }
