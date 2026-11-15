@@ -235,3 +235,128 @@ fn null_edits_clear_cells_and_read_only_sources_refuse() {
         "a read-only source refuses: {events:?}"
     );
 }
+
+/// The guards mirror the single-row paths: no open database, an empty
+/// edit list, a schema-invalid value and a port write failure all answer
+/// precisely and record nothing.
+#[test]
+fn the_guards_answer_precisely() {
+    // No open database.
+    let mut port = MockPort::with_tables(vec![items()]);
+    let mut core = Core::new(Box::new(port));
+    let events = core.dispatch(Command::UpdateCells {
+        table: "Items".into(),
+        edits: vec![CellEdit {
+            row: 0,
+            col: 1,
+            value: FieldValue::Null,
+        }],
+    });
+    assert!(
+        events
+            .iter()
+            .all(|event| matches!(event, Event::Failed { .. })),
+    );
+
+    // Empty edit list.
+    let mut core = app_with(1);
+    let events = core.dispatch(Command::UpdateCells {
+        table: "Items".into(),
+        edits: Vec::new(),
+    });
+    let reason = failure_reason(&events);
+    assert!(reason.contains("no cell edits"), "{reason}");
+
+    // A required field refuses the cleared value (schema validation).
+    let mut required = TableDef::new(
+        "Items",
+        vec![FieldDef::new("name", FieldKind::Text { max_len: 50 })],
+    );
+    required.fields[0].properties.required = true;
+    let def = required;
+    let mut port = MockPort::with_tables(vec![def]);
+    port.with_row_data("Items", vec![vec![FieldValue::Text("kept".into())]]);
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+        password: None,
+        source: None,
+    });
+    let events = core.dispatch(Command::UpdateCells {
+        table: "Items".into(),
+        edits: vec![CellEdit {
+            row: 0,
+            col: 0,
+            value: FieldValue::Null,
+        }],
+    });
+    let reason = failure_reason(&events);
+    assert!(
+        reason.contains("name"),
+        "the failure names the field: {reason}"
+    );
+    assert_eq!(
+        core.read_rows("Items", RowRange { start: 0, len: 1 },)
+            .expect("read")[0][0],
+        FieldValue::Text("kept".into()),
+        "the refused write never reached storage"
+    );
+
+    // A port read failure answers the port reason.
+    let mut port = MockPort::with_tables(vec![items()]);
+    port.with_read_failure("read boom");
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+        password: None,
+        source: None,
+    });
+    let events = core.dispatch(Command::UpdateCells {
+        table: "Items".into(),
+        edits: vec![CellEdit {
+            row: 0,
+            col: 1,
+            value: FieldValue::Null,
+        }],
+    });
+    let reason = failure_reason(&events);
+    assert!(reason.contains("read boom"), "{reason}");
+
+    // A port write failure stops the fill with the precise reason.
+    let mut port = MockPort::with_tables(vec![items()]);
+    port.with_row_data(
+        "Items",
+        (0..3)
+            .map(|index| {
+                vec![
+                    FieldValue::Integer(index as i64),
+                    FieldValue::Text(format!("name{index}")),
+                ]
+            })
+            .collect(),
+    );
+    port.with_write_failure("disk full");
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: PathBuf::from("shop.mdb"),
+        password: None,
+        source: None,
+    });
+    let events = core.dispatch(Command::UpdateCells {
+        table: "Items".into(),
+        edits: vec![
+            CellEdit {
+                row: 0,
+                col: 1,
+                value: FieldValue::Text("x".into()),
+            },
+            CellEdit {
+                row: 1,
+                col: 1,
+                value: FieldValue::Text("y".into()),
+            },
+        ],
+    });
+    let reason = failure_reason(&events);
+    assert!(reason.contains("disk full"), "{reason}");
+}
