@@ -8,6 +8,7 @@
 pub mod atomic_write;
 pub mod availability;
 pub mod canvas;
+pub mod clipboard;
 pub mod command;
 pub mod core;
 mod database;
