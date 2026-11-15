@@ -268,6 +268,21 @@ impl crate::core::Core {
         if let Some(reason) = atomic_batch_reason(db, ops.len()) {
             return failed(FailureCode::Unsupported, reason);
         }
+        // Step 85.1 (H61): one pending journal at a time. The datasheet
+        // edit buffers are per tab, so a second tab must not silently
+        // replace another tab's previewed batch; re-previewing the same
+        // table stays the buffer's refresh path.
+        if let Some(pending) = self.state.pending_write.as_ref()
+            && !pending.table.eq_ignore_ascii_case(table)
+        {
+            return failed(
+                FailureCode::Lifecycle,
+                format!(
+                    "a write journal for {:?} is pending — apply or discard it before previewing {:?}",
+                    pending.table, table
+                ),
+            );
+        }
         let Some(def) = db
             .tables
             .iter()

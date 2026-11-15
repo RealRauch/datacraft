@@ -35,7 +35,11 @@ fn row(id: i64, name: &str, score: f64) -> Vec<FieldValue> {
 }
 
 fn seeded_rows() -> Vec<Vec<FieldValue>> {
-    vec![row(1, "Ada", 1.5), row(2, "Grace", 2.5), row(3, "Linus", 3.5)]
+    vec![
+        row(1, "Ada", 1.5),
+        row(2, "Grace", 2.5),
+        row(3, "Linus", 3.5),
+    ]
 }
 
 fn buffer() -> EditBuffer {
@@ -49,7 +53,11 @@ fn update(row: usize, name: &str) -> Vec<FieldValue> {
 }
 
 fn insert(name: &str) -> Vec<FieldValue> {
-    vec![FieldValue::Null, FieldValue::Text(name.into()), FieldValue::Float(9.9)]
+    vec![
+        FieldValue::Null,
+        FieldValue::Text(name.into()),
+        FieldValue::Float(9.9),
+    ]
 }
 
 fn failure(events: &[Event]) -> String {
@@ -117,7 +125,9 @@ fn staged_edits_serialize_to_the_journal_batch() {
 fn a_delete_shifts_following_updates_to_evolving_indices() {
     let mut buffer = buffer();
     buffer.stage_delete(0).expect("delete row 0");
-    buffer.stage_update(2, update(2, "Linus T.")).expect("update");
+    buffer
+        .stage_update(2, update(2, "Linus T."))
+        .expect("update");
     assert_eq!(
         buffer.ops(),
         vec![
@@ -160,6 +170,10 @@ fn editing_a_deleted_row_is_refused_precisely() {
     assert!(reason.contains("pending delete"), "{reason}");
     let reason = buffer.stage_delete(1).unwrap_err();
     assert!(reason.contains("pending delete"), "{reason}");
+    assert!(
+        buffer.changed_cells(1).is_empty(),
+        "a delete marks the whole record, not cells"
+    );
     assert_eq!(
         buffer.row_image(1).expect("deleted rows stay visible")[1],
         FieldValue::Text("Grace".into()),
@@ -174,6 +188,45 @@ fn out_of_range_rows_are_refused() {
     assert!(reason.contains("out of range"), "{reason}");
     let reason = buffer.stage_delete(7).unwrap_err();
     assert!(reason.contains("out of range"), "{reason}");
+}
+
+#[test]
+fn editing_a_pending_insert_replaces_its_values() {
+    let mut buffer = buffer();
+    buffer.stage_insert(insert("Draft"));
+    buffer
+        .stage_update(3, insert("Draft v2"))
+        .expect("edit the new record");
+    assert_eq!(buffer.row_state(3), RowState::Inserted);
+    assert_eq!(
+        buffer.row_image(3).expect("image")[1],
+        FieldValue::Text("Draft v2".into())
+    );
+    assert_eq!(buffer.changed_cells(3), vec![0, 1, 2], "every cell is new");
+    assert!(!buffer.is_empty(), "an insert is pending");
+}
+
+#[test]
+fn deleting_a_pending_insert_voids_its_slot() {
+    let mut buffer = buffer();
+    buffer.stage_insert(insert("Draft"));
+    buffer.stage_delete(3).expect("delete the new record");
+    assert_eq!(buffer.row_state(3), RowState::Void);
+    assert!(buffer.is_empty(), "nothing reaches the database");
+    assert_eq!(buffer.ops(), vec![]);
+}
+
+#[test]
+fn void_slots_refuse_every_edit() {
+    let mut buffer = buffer();
+    buffer.stage_insert(insert("Draft"));
+    buffer.discard_row(3).expect("discard");
+    let reason = buffer.stage_update(3, insert("x")).unwrap_err();
+    assert!(reason.contains("no longer exists"), "{reason}");
+    let reason = buffer.stage_delete(3).unwrap_err();
+    assert!(reason.contains("no longer exists"), "{reason}");
+    let reason = buffer.discard_row(3).unwrap_err();
+    assert!(reason.contains("no longer exists"), "{reason}");
 }
 
 #[test]
@@ -222,11 +275,12 @@ fn the_buffer_applies_as_one_journal_batch() {
     buffer.stage_update(0, update(0, "Ada L.")).expect("update");
     buffer.stage_delete(1).expect("delete");
     buffer.stage_insert(insert("New"));
-    let token = match core.dispatch(Command::PreviewWrite {
-        table: "Customers".into(),
-        ops: buffer.ops(),
-    })
-    .first()
+    let token = match core
+        .dispatch(Command::PreviewWrite {
+            table: "Customers".into(),
+            ops: buffer.ops(),
+        })
+        .first()
     {
         Some(Event::WritePreviewed { token, .. }) => *token,
         other => panic!("expected WritePreviewed, got {other:?}"),
@@ -237,8 +291,12 @@ fn the_buffer_applies_as_one_journal_batch() {
         .expect("read rows");
     assert_eq!(after.len(), 3);
     assert_eq!(after[0][1], FieldValue::Text("Ada L.".into()));
-    assert_eq!(after[1][1], FieldValue::Text("New".into()));
-    assert_eq!(after[2][1], FieldValue::Text("Linus".into()));
+    assert_eq!(after[1][1], FieldValue::Text("Linus".into()));
+    assert_eq!(
+        after[2][1],
+        FieldValue::Text("New".into()),
+        "inserts append"
+    );
 }
 
 #[test]
@@ -249,11 +307,12 @@ fn the_snapshot_reports_the_pending_journal_summary() {
     buffer.stage_update(0, update(0, "Ada L.")).expect("update");
     buffer.stage_delete(1).expect("delete");
     buffer.stage_insert(insert("New"));
-    let token = match core.dispatch(Command::PreviewWrite {
-        table: "Customers".into(),
-        ops: buffer.ops(),
-    })
-    .first()
+    let token = match core
+        .dispatch(Command::PreviewWrite {
+            table: "Customers".into(),
+            ops: buffer.ops(),
+        })
+        .first()
     {
         Some(Event::WritePreviewed { token, .. }) => *token,
         other => panic!("expected WritePreviewed, got {other:?}"),
@@ -261,7 +320,10 @@ fn the_snapshot_reports_the_pending_journal_summary() {
     let summary = core.inspect().pending_write.expect("pending summary");
     assert_eq!(summary.table, "Customers");
     assert_eq!(summary.token, token);
-    assert_eq!((summary.inserts, summary.updates, summary.deletes), (1, 1, 1));
+    assert_eq!(
+        (summary.inserts, summary.updates, summary.deletes),
+        (1, 1, 1)
+    );
     core.dispatch(Command::DiscardWrite { token });
     assert!(core.inspect().pending_write.is_none(), "cleared on discard");
 }
@@ -278,6 +340,11 @@ fn a_journal_for_another_table_refuses_a_new_preview() {
             ],
         ),
     ]);
+    port.with_row_data("Customers", seeded_rows());
+    port.with_row_data(
+        "Orders",
+        vec![vec![FieldValue::Integer(1), FieldValue::Float(10.0)]],
+    );
     port.with_capabilities(DriverCapabilities {
         atomic_batch: true,
         ..DriverCapabilities::full()

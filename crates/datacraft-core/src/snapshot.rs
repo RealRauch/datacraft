@@ -49,6 +49,28 @@ pub struct UiStateSnapshot {
     pub undo_depth: usize,
     /// Row-write redo depth of the open database (step 28.1, item U14).
     pub redo_depth: usize,
+    /// Summary of the pending write journal (step 85.1, item H61): the
+    /// batch awaiting confirmation, observed by every client. Full value
+    /// images stay in the `WritePreviewed` event and the UI's edit buffer.
+    /// Wire-additive: older snapshot JSON without the key deserializes to
+    /// `None`.
+    #[serde(default)]
+    pub pending_write: Option<PendingWriteSummary>,
+}
+
+/// Compact summary of the pending write journal (step 85.1, item H61).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PendingWriteSummary {
+    /// Table the batch targets (canonical name).
+    pub table: String,
+    /// Confirmation token of the batch.
+    pub token: u64,
+    /// Pending row inserts.
+    pub inserts: usize,
+    /// Pending row updates.
+    pub updates: usize,
+    /// Pending row deletes.
+    pub deletes: usize,
 }
 
 /// Snapshot of the open database.
@@ -435,6 +457,22 @@ impl UiStateSnapshot {
             expression_window_open: state.expression_window_open,
             undo_depth: state.database.as_ref().map_or(0, |db| db.undo.len()),
             redo_depth: state.database.as_ref().map_or(0, |db| db.redo.len()),
+            pending_write: state.pending_write.as_ref().map(|pending| {
+                let count = |kind: crate::journal::ChangeKind| {
+                    pending
+                        .changes
+                        .iter()
+                        .filter(|change| change.kind == kind)
+                        .count()
+                };
+                PendingWriteSummary {
+                    table: pending.table.clone(),
+                    token: pending.token,
+                    inserts: count(crate::journal::ChangeKind::Insert),
+                    updates: count(crate::journal::ChangeKind::Update),
+                    deletes: count(crate::journal::ChangeKind::Delete),
+                }
+            }),
         }
     }
 

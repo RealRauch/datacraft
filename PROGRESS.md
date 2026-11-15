@@ -9,6 +9,63 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 85 — Datasheet pending-edit batch
+
+**Scope (Steps):**
+
+- **85.1 Core: per-tab edit buffer vocabulary mapping datasheet updates/inserts/deletes onto the journal batch commands, RED first (H61)**
+- **85.2 UI: pending markers, statement preview from the journal, Ctrl+S apply / Escape discard, grid lock during submission (H61)**
+- **85.3 Capability gating without atomic_batch, read-only sources and the batch edge cases: cursor moves inside a batch, save-on-row-change decision (H61)**
+- **85.4 Documentation and phase gate (H61)**
+### Phase 86 — Datasheet selection, clipboard and value viewer
+
+**Scope (Steps):**
+
+- **86.1 Core selection model: anchor rectangle, column selection, Ctrl+A, documented survival rule across scroll/sort/filter (M101)**
+- **86.2 Clipboard TSV copy/paste with arity and size validation before any cell changes (M101)**
+- **86.3 One-value fill as a single undo step and Delete-to-NULL with the driver NULL boundary (M101)**
+- **86.4 Cell value viewer: read-only text/JSON/bounded hex, Shift+F2 and context menu, multiline editor through the 85 buffer (M102)**
+- **86.5 Documentation and phase gate (M101, M102)**
+### Phase 87 — Datasheet navigation: foreign keys and structured filter
+
+**Scope (Steps):**
+
+- **87.1 FK follow on key cells: declared foreign keys, reverse keys and inferred references with composite-key pairing (M103)**
+- **87.2 Per-tab back/forward history and capped, cancellable "referenced by" counts (M103)**
+- **87.3 Core filter builder model: AND/OR groups with visible parentheses, ordered sort columns, criteria-string serialization (M104)**
+- **87.4 Builder UI: draft/apply distinction, text mode as escape hatch, builder-to-criteria round-trip (M104)**
+- **87.5 Documentation and phase gate (M103, M104)**
+### Phase 88 — Shell chrome: ribbon overflow, tabs, glyphs
+
+**Scope (Steps):**
+
+- **88.1 Ribbon overflow: group-overflow layout math in core and the overflow control with identical command dispatch (M98)**
+- **88.2 Tab strip scroll-to-selected on activation and reachability by pointer and keyboard (L45)**
+- **88.3 Close-to-side bus commands and the idle-tab reuse policy in the open-object path (L49)**
+- **88.4 Glyph coverage test over both catalogs and hostile names with an explicit painted-glyph allowlist (T11)**
+- **88.5 Documentation and phase gate (M98, L45, L49, T11)**
+### Phase 89 — Decisions and design review
+
+**Scope (Steps):**
+
+- **89.1 Tool windows as task panes — decision record in docs/ROADMAP.md with go/no-go and a scoped follow-up if yes (M100)**
+- **89.2 Native menu bar on macOS — decision record; if yes, existing commands only and the M99 shortcut model (L46)**
+- **89.3 Low-power/RDP rendering mode — detection decision and the mode's measurable effects (L50)**
+- **89.4 Design pass: the human's live density/typography/spacing review with per-finding items (L47)**
+- **89.5 Documentation and phase gate (M100, L46, L50, L47)**
+### Phase 90 — Publishing and CI hygiene
+
+**Scope (Steps):**
+
+- **90.1 Per-crate READMEs for the ten published crates with cargo package --list verification and the PUBLISHING checklist (L44, Medium gate)**
+- **90.2 Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate)**
+- **90.3 Documentation and phase gate (L40, L44)**
+
+
+
+
+
+
 
 
 
@@ -460,3 +517,30 @@
 | 83.2 | Apply run against the 99 GB target, weekly scheduled task, CONTRIBUTING documentation and phase gate (M106) | ✅ |
 | 84.1 | clean-targets.ps1: depth-2 cargo targets (src-tauri) plus node_modules/.venv classes with the stale rule (M107) | ✅ |
 | 84.2 | Report pin of the four Tauri targets, apply run as the one-time clean, CONTRIBUTING documentation and phase gate (M107) | ✅ |
+| 85.1 | Core: per-tab edit buffer vocabulary mapping datasheet updates/inserts/deletes onto the journal batch commands, RED first (H61) | 🔄 |
+| 85.2 | UI: pending markers, statement preview from the journal, Ctrl+S apply / Escape discard, grid lock during submission (H61) | ⬜ |
+| 85.3 | Capability gating without atomic_batch, read-only sources and the batch edge cases: cursor moves inside a batch, save-on-row-change decision (H61) | ⬜ |
+| 85.4 | Documentation and phase gate (H61) | ⬜ |
+| 86.1 | Core selection model: anchor rectangle, column selection, Ctrl+A, documented survival rule across scroll/sort/filter (M101) | ⬜ |
+| 86.2 | Clipboard TSV copy/paste with arity and size validation before any cell changes (M101) | ⬜ |
+| 86.3 | One-value fill as a single undo step and Delete-to-NULL with the driver NULL boundary (M101) | ⬜ |
+| 86.4 | Cell value viewer: read-only text/JSON/bounded hex, Shift+F2 and context menu, multiline editor through the 85 buffer (M102) | ⬜ |
+| 86.5 | Documentation and phase gate (M101, M102) | ⬜ |
+| 87.1 | FK follow on key cells: declared foreign keys, reverse keys and inferred references with composite-key pairing (M103) | ⬜ |
+| 87.2 | Per-tab back/forward history and capped, cancellable "referenced by" counts (M103) | ⬜ |
+| 87.3 | Core filter builder model: AND/OR groups with visible parentheses, ordered sort columns, criteria-string serialization (M104) | ⬜ |
+| 87.4 | Builder UI: draft/apply distinction, text mode as escape hatch, builder-to-criteria round-trip (M104) | ⬜ |
+| 87.5 | Documentation and phase gate (M103, M104) | ⬜ |
+| 88.1 | Ribbon overflow: group-overflow layout math in core and the overflow control with identical command dispatch (M98) | ⬜ |
+| 88.2 | Tab strip scroll-to-selected on activation and reachability by pointer and keyboard (L45) | ⬜ |
+| 88.3 | Close-to-side bus commands and the idle-tab reuse policy in the open-object path (L49) | ⬜ |
+| 88.4 | Glyph coverage test over both catalogs and hostile names with an explicit painted-glyph allowlist (T11) | ⬜ |
+| 88.5 | Documentation and phase gate (M98, L45, L49, T11) | ⬜ |
+| 89.1 | Tool windows as task panes — decision record in docs/ROADMAP.md with go/no-go and a scoped follow-up if yes (M100) | ⬜ |
+| 89.2 | Native menu bar on macOS — decision record; if yes, existing commands only and the M99 shortcut model (L46) | ⬜ |
+| 89.3 | Low-power/RDP rendering mode — detection decision and the mode's measurable effects (L50) | ⬜ |
+| 89.4 | Design pass: the human's live density/typography/spacing review with per-finding items (L47) | ⬜ |
+| 89.5 | Documentation and phase gate (M100, L46, L50, L47) | ⬜ |
+| 90.1 | Per-crate READMEs for the ten published crates with cargo package --list verification and the PUBLISHING checklist (L44, Medium gate) | ⬜ |
+| 90.2 | Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate) | ⬜ |
+| 90.3 | Documentation and phase gate (L40, L44) | ⬜ |

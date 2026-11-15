@@ -11,6 +11,7 @@ pub mod canvas;
 pub mod command;
 pub mod core;
 mod database;
+pub mod edit_buffer;
 pub mod event;
 pub use datacraft_expr as expr;
 pub mod failure;
