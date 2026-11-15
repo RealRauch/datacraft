@@ -89,8 +89,11 @@ fn every_operator_round_trips_through_the_real_parser() {
         let parsed =
             parse_predicate(criteria, "amount", &def).expect("the parser reads the encoding");
         match (parsed, op, literal) {
-            (Predicate::Equal(v), BuilderOp::Equal, _)
-                if v == datacraft_core::schema::FieldValue::Integer(42) => {}
+            (
+                Predicate::Equal(datacraft_core::schema::FieldValue::Integer(42)),
+                BuilderOp::Equal,
+                _,
+            ) => {}
             (Predicate::NotEqual(_), BuilderOp::NotEqual, _)
             | (Predicate::Less(_), BuilderOp::Less, _)
             | (Predicate::LessEqual(_), BuilderOp::LessEqual, _)
