@@ -514,7 +514,7 @@
 | 85.3 | Capability gating without atomic_batch, read-only sources and the batch edge cases: cursor moves inside a batch, save-on-row-change decision (H61) | ✅ |
 | 85.4 | Documentation and phase gate (H61) | ✅ |
 | 86.1 | Core selection model: anchor rectangle, column selection, Ctrl+A, documented survival rule across scroll/sort/filter (M101) | ✅ |
-| 86.2 | Clipboard TSV copy/paste with arity and size validation before any cell changes (M101) | ⬜ |
+| 86.2 | Clipboard TSV copy/paste with arity and size validation before any cell changes (M101) | ✅ |
 | 86.3 | One-value fill as a single undo step and Delete-to-NULL with the driver NULL boundary (M101) | ⬜ |
 | 86.4 | Cell value viewer: read-only text/JSON/bounded hex, Shift+F2 and context menu, multiline editor through the 85 buffer (M102) | ⬜ |
 | 86.5 | Documentation and phase gate (M101, M102) | ⬜ |
