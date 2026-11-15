@@ -62,7 +62,7 @@ fn the_composite_reports_the_sqlite_session_identity_and_capabilities() {
     port.open(&path, None).expect("open the SQLite file");
     assert_eq!(port.driver_id(), DriverId::new("sqlite"));
     let caps = port.capabilities();
-    assert!(!caps.atomic_batch);
+    assert!(caps.atomic_batch, "batches apply in one transaction (H61)");
     assert!(!caps.passwords);
     assert_eq!(caps.native_queries, Support::No);
     assert_eq!(caps.macros, Support::No);

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{
     DatabaseFormat, DriverCapabilities, DriverId, NativeView, OpenedDatabase, PortError,
-    Relationship, RowRange, StoragePort, Support,
+    Relationship, RowRange, RowWriteOp, StoragePort, Support,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 use rusqlite::Connection;
@@ -101,11 +101,12 @@ impl StoragePort for SqlitePort {
     }
 
     /// Per-session capabilities (phase 30, M17; ADR-7): table renames ride
-    /// the native `ALTER TABLE`; field-level alterations, batches one by
-    /// one (no transaction wrapper), passwords do not exist, and the
-    /// inventories Jet exposes (native queries, macros, VBA) have no
-    /// SQLite counterpart. A read-only file disables the write
-    /// capabilities; file creation is session-independent.
+    /// the native `ALTER TABLE`; field-level alterations are refused;
+    /// passwords do not exist; and the inventories Jet exposes (native
+    /// queries, macros, VBA) have no SQLite counterpart. Batches apply in
+    /// one explicit transaction (step 85.3, item H61 — the M20 refusal is
+    /// retired). A read-only file disables the write capabilities; file
+    /// creation is session-independent.
     fn capabilities(&self) -> DriverCapabilities {
         let mut caps = DriverCapabilities::full();
         caps.write_rows = self.writable;
@@ -113,7 +114,7 @@ impl StoragePort for SqlitePort {
         caps.drop_table = self.writable;
         caps.alter_table = false;
         caps.rename_table = self.writable;
-        caps.atomic_batch = false;
+        caps.atomic_batch = true;
         caps.passwords = false;
         caps.relationships = Support::Yes;
         caps.autonumber = Support::Yes; // single AutoNumber via AUTOINCREMENT
@@ -369,6 +370,13 @@ COMMIT;",
 
     fn delete_row(&mut self, table: &str, row: usize) -> Result<(), PortError> {
         self.write_delete(table, row)
+    }
+
+    /// Applies the batch in one explicit transaction (step 85.3, item
+    /// H61) — the H61 datasheet batch writes on SQLite like on Jet, so
+    /// the M20 one-by-one refusal is retired.
+    fn write_row_ops(&mut self, table: &str, ops: &[RowWriteOp]) -> Result<(), PortError> {
+        self.write_batch(table, ops)
     }
 
     fn create_relationship(&mut self, relationship: &Relationship) -> Result<(), PortError> {

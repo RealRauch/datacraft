@@ -1,7 +1,7 @@
 //! SQLite row windows and row writes (split from `lib.rs` for the
 //! file-size gate in phase 73).
 
-use datacraft_core::port::{PortError, RowRange};
+use datacraft_core::port::{PortError, RowRange, RowWriteOp};
 use datacraft_core::schema::{FieldKind, FieldValue};
 
 use crate::SqlitePort;
@@ -159,6 +159,42 @@ impl SqlitePort {
         if affected == 0 {
             return Err(out_of_range(table, row, count_rows(conn, &def.name)?));
         }
+        Ok(())
+    }
+
+    /// Applies a batch inside one explicit transaction (step 85.3, item
+    /// H61; retired the M20 one-by-one refusal): either every operation
+    /// lands or none does. A failing op rolls the whole batch back and
+    /// the connection stays usable (the M25 lesson).
+    pub(super) fn write_batch(&mut self, table: &str, ops: &[RowWriteOp]) -> Result<(), PortError> {
+        {
+            let conn = self.conn.as_mut().ok_or_else(no_database)?;
+            if !self.writable {
+                return Err(read_only());
+            }
+            conn.execute_batch("BEGIN IMMEDIATE;")
+                .map_err(|e| PortError::WriteFailed {
+                    detail: format!("batch begin failed: {e}"),
+                })?;
+        }
+        for op in ops {
+            let result = match op {
+                RowWriteOp::Insert(values) => self.insert_values(table, values, false),
+                RowWriteOp::Update { row, values } => self.write_update(table, *row, values),
+                RowWriteOp::Delete { row } => self.write_delete(table, *row),
+            };
+            if let Err(error) = result {
+                if let Some(conn) = self.conn.as_mut() {
+                    let _ = conn.execute_batch("ROLLBACK;");
+                }
+                return Err(error);
+            }
+        }
+        let conn = self.conn.as_mut().ok_or_else(no_database)?;
+        conn.execute_batch("COMMIT;")
+            .map_err(|e| PortError::WriteFailed {
+                detail: format!("batch commit failed: {e}"),
+            })?;
         Ok(())
     }
 }

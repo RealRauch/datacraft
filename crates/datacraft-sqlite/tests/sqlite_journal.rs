@@ -132,6 +132,14 @@ fn sqlite_applies_multi_op_batches_atomically() {
 fn a_failed_sqlite_batch_rolls_back_every_operation() {
     let path = scratch_path();
     let scratch = Scratch(path.clone());
+    {
+        let conn = rusqlite::Connection::open(&path).expect("create scratch database");
+        conn.execute_batch(
+            "CREATE TABLE notes (body TEXT);
+             INSERT INTO notes (body) VALUES ('alpha'), ('beta');",
+        )
+        .expect("seed the scratch database");
+    }
     let mut port = SqlitePort::new();
     port.open(&path, None).expect("open scratch");
     let error = port
