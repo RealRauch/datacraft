@@ -24,6 +24,23 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   viewer (JSON indents only when it parses, binary values show a bounded hex
   view naming the truncation) whose multiline editor writes editable long
   text through the same path.
+- ui/core: datasheet foreign-key navigation and the structured filter
+  builder (87, M103/M104) - a key cell's context menu and F4 follow the
+  declared key (composite constraints stay paired over the port's
+  constraint groupings), the inferred `<table>_id` reference or the
+  reverse referenced-by target: the target opens or activates with the
+  row's key values as exact-equality filters whose encoding the real
+  criteria parser validates, empty keys and unencodable values answer
+  precisely, and drivers without relationship support hide the
+  affordance; the datasheet's trailing row carries Back/Forward over the
+  per-tab navigation stacks (a closed source reopens with its stored
+  filter, a source with pending edits only activates); the reverse menu
+  entries carry capped referenced-by counts (window-capped separate
+  reads, the truncation named, counts cleared with the tab); the Filter
+  Builder window edits a per-tab draft that serializes onto the existing
+  criteria map through the core model (OR groups and duplicate columns
+  fence precisely), the text mode stays the raw-criteria escape hatch
+  including the bare wildcard's implicit Like.
 
 ### Changed
 - ui: datasheet edits stage into a pending batch instead of writing
