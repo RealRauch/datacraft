@@ -88,6 +88,50 @@ impl App {
         }
     }
 
+    /// The open cell value viewer of a tab (step 86.4, item M102): the
+    /// displayed (row, col) the zoom window addresses, if any.
+    pub fn value_viewer(&self, tab_id: TabId) -> Option<(usize, usize)> {
+        self.value_viewer.get(&tab_id).copied()
+    }
+
+    /// Opens the cell value viewer on one cell.
+    pub fn open_value_viewer(&mut self, tab_id: TabId, row: usize, col: usize) {
+        self.value_viewer.insert(tab_id, (row, col));
+        self.value_editor.remove(&tab_id);
+    }
+
+    /// Closes the tab's cell value viewer.
+    pub fn close_value_viewer(&mut self, tab_id: TabId) {
+        self.value_viewer.remove(&tab_id);
+        self.value_editor.remove(&tab_id);
+    }
+
+    /// The value viewer's multiline editor draft (step 86.4, item M102),
+    /// seeded from the cell on open.
+    pub fn value_editor_draft(&self, tab_id: TabId) -> Option<String> {
+        self.value_editor.get(&tab_id).cloned()
+    }
+
+    /// Stores the value viewer's multiline editor draft.
+    pub fn set_value_editor_draft(&mut self, tab_id: TabId, text: String) {
+        self.value_editor.insert(tab_id, text);
+    }
+
+    /// One cell's current value: the staged image when the buffer row
+    /// exists, the cache row otherwise (step 86.4, item M102 — the zoom
+    /// window reads the real value, not the grid's display label).
+    pub fn cell_value(&self, tab_id: TabId, slot: usize, col: usize) -> Option<&FieldValue> {
+        self.staged_rows(tab_id)
+            .and_then(|buffer| buffer.row_image(slot))
+            .and_then(|values| values.get(col))
+            .or_else(|| {
+                self.rows
+                    .get(&tab_id)
+                    .and_then(|rows| rows.get(slot))
+                    .and_then(|values| values.get(col))
+            })
+    }
+
     /// Buffered cells of a datasheet's new-record row, padded to the
     /// table's column count (step 11.7).
     pub fn new_row_cells(&self, tab_id: TabId, columns: usize) -> Vec<String> {

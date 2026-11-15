@@ -119,6 +119,10 @@ pub(crate) struct GridCallbacks<'a> {
     /// Del over an extended selection (step 86.3, M101): clears the
     /// cells to NULL; a collapsed cell stays the record deletion (M44).
     pub on_clear: Option<&'a mut dyn FnMut()>,
+    /// Zoom on one cell (step 86.4, M102): Shift+F2 over the focus cell,
+    /// Alt+click, a double click on a read-only cell or the cell context
+    /// menu's "Zoom Value" report the displayed (row, col).
+    pub on_zoom: Option<&'a mut dyn FnMut(usize, usize)>,
     /// Header sort (query grids write the QBE sort cell).
     pub on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     /// Freeze/unfreeze through the header context menu.
@@ -143,6 +147,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_paste: Option<&'a mut dyn FnMut()>,
     on_fill: Option<&'a mut dyn FnMut()>,
     on_clear: Option<&'a mut dyn FnMut()>,
+    on_zoom: Option<&'a mut dyn FnMut(usize, usize)>,
     on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     on_freeze: Option<&'a mut dyn FnMut(usize)>,
     on_delete: Option<&'a mut dyn FnMut(usize)>,
@@ -157,6 +162,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_paste,
         on_fill,
         on_clear,
+        on_zoom,
         on_sort,
         on_freeze,
         on_delete,

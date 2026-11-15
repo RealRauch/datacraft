@@ -94,6 +94,8 @@ impl App {
             frozen_columns: HashMap::new(),
             sql_column_widths: Vec::new(),
             sql_selection: datacraft_core::selection::Selection::collapse(0, 0),
+            value_viewer: HashMap::new(),
+            value_editor: HashMap::new(),
             password_prompt: None,
             vba_search: String::new(),
             relationship_draft: None,

@@ -26,6 +26,7 @@ use crate::labels::value_label;
 use crate::theme::tokens;
 
 mod grid;
+mod grid_cells;
 mod grid_model;
 mod header;
 mod nav;
@@ -33,6 +34,7 @@ mod query_results;
 mod selector;
 mod submit;
 mod trailing;
+mod value_viewer;
 
 pub(crate) use grid::grid_ui;
 pub(crate) use grid_model::{CellEditSlot, EditIntent, Grid, grid_ui_callbacks};
@@ -187,6 +189,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut paste_intent = false;
     let mut fill_intent = false;
     let mut clear_intent = false;
+    let mut zoom_intent: Option<(usize, usize)> = None;
     let mut freeze_intent: Option<usize> = None;
     let mut delete_intent: Option<usize> = None;
     let mut pending_edit: Option<EditIntent> = None;
@@ -202,6 +205,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         let mut on_paste = || paste_intent = true;
         let mut on_fill = || fill_intent = true;
         let mut on_clear = || clear_intent = true;
+        let mut on_zoom = |row: usize, col: usize| zoom_intent = Some((row, col));
         let mut on_freeze = |count: usize| freeze_intent = Some(count);
         let mut on_delete = |row: usize| delete_intent = Some(row);
         let mut on_edit = |intent: EditIntent| pending_edit = Some(intent);
@@ -246,6 +250,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut on_paste),
                     Some(&mut on_fill),
                     Some(&mut on_clear),
+                    Some(&mut on_zoom),
                     Some(&mut on_sort),
                     Some(&mut on_freeze),
                     Some(&mut on_delete),
@@ -290,6 +295,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     if clear_intent {
         app.clear_selection(tab.id, &tab.object_name, &slots, selection);
+    }
+    if let Some((row, col)) = zoom_intent {
+        app.open_value_viewer(tab.id, row, col);
     }
     if let Some((column, order)) = sort_intent
         && let Some(field) = columns.get(column)
@@ -364,6 +372,10 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     trailing::trailing_ui(app, tab, row_count, &columns, &widths, ui);
     filter_dialog_ui(app, tab, &columns, ui);
     submit::submission_ui(app, tab, &columns, ui);
+    // The cell value viewer (step 86.4, item M102) rides the trailing
+    // windows — after the in-place editor's commit, so a viewer Apply is
+    // the newer intent and stages over it.
+    value_viewer::value_viewer_ui(app, tab, &columns, &slots, ui);
 }
 
 /// The criteria syntax the dialog accepts (step 48.3, item M62): the

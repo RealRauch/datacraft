@@ -205,6 +205,13 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Sort by Type", "Nach Typ sortieren"),
     ("Freeze Fields", "Felder fixieren"),
     ("Select Column", "Spalte auswählen"),
+    ("Zoom Value", "Wert anzeigen"),
+    ("Cell value", "Zellwert"),
+    ("Value — {field}", "Wert — {field}"),
+    (
+        "Showing the first {shown} of {total} bytes",
+        "Zeige die ersten {shown} von {total} Bytes",
+    ),
     ("Unfreeze All Fields", "Fixierung aufheben"),
     ("Delete Record", "Datensatz löschen"),
     (

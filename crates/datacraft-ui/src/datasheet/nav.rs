@@ -72,6 +72,13 @@ pub(crate) fn read_paste_key(ui: &egui::Ui) -> bool {
         .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::V))
 }
 
+/// Shift+F2 seen this frame (the value-viewer intent, step 86.4, item
+/// M102), consumed so no other handler reacts to it twice.
+pub(crate) fn read_zoom_key(ui: &egui::Ui) -> bool {
+    ui.ctx()
+        .input_mut(|input| input.consume_key(egui::Modifiers::SHIFT, egui::Key::F2))
+}
+
 /// Ctrl+D seen this frame (the fill-down intent, step 86.3, item M101),
 /// consumed so no other handler reacts to it twice.
 pub(crate) fn read_fill_key(ui: &egui::Ui) -> bool {

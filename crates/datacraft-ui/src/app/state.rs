@@ -133,6 +133,12 @@ pub struct App {
     /// Selection of the SQL window's result grid (step 86.1, item M101;
     /// presentation state like the widths above).
     pub(super) sql_selection: datacraft_core::selection::Selection,
+    /// The open cell value viewer per table tab (step 86.4, item M102):
+    /// the displayed (row, col) the zoom window addresses.
+    pub(super) value_viewer: HashMap<TabId, (usize, usize)>,
+    /// The value viewer's multiline editor draft per tab (step 86.4,
+    /// item M102); absent while the window shows read-only content.
+    pub(super) value_editor: HashMap<TabId, String>,
     /// Open database-password prompt (step 16.2, M5; the state and paint
     /// live in `password_prompt.rs`).
     pub(crate) password_prompt: Option<crate::password_prompt::PasswordPrompt>,

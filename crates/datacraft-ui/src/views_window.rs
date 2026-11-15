@@ -208,6 +208,7 @@ pub fn view_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             None,
             None,
             None,
+            None,
         ),
     );
     if let Some(new_selection) = selection_intent {

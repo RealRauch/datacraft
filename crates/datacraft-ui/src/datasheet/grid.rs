@@ -22,7 +22,7 @@ use super::grid_model::{EditIntent, Grid, GridCallbacks};
 use super::header::{HeaderPass, header_ui};
 use super::nav::{
     nav_target, read_copy_key, read_delete_key, read_fill_key, read_nav_intent, read_paste_key,
-    read_select_all,
+    read_select_all, read_zoom_key,
 };
 
 use crate::theme::tokens;
@@ -39,6 +39,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         mut on_paste,
         mut on_fill,
         mut on_clear,
+        mut on_zoom,
         on_sort,
         on_freeze,
         mut on_delete,
@@ -70,9 +71,8 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     let edit_restricted = edit_restricted || locked;
     // Navigation gate: the grid reacts when its focus anchor holds focus
     // (a row-selector click arms it) or when the pointer hovers it —
-    // unless another widget, e.g. a text field, holds focus. Focus is read
-    // live from memory so a just-clicked grid navigates in the very next
-    // frame; hover uses the previous frame's anchor rect, which is stable.
+    // unless another widget, e.g. a text field, holds focus. Focus is
+    // read live; hover uses the previous frame's anchor rect.
     let anchor_id = ui.scope_id().with(&id_salt).with("grid-nav");
     let focused_elsewhere = ui
         .ctx()
@@ -107,12 +107,14 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     // Ctrl+A selects everything loaded (step 86.1, item M101); the
     // wants_nav gate keeps it away from text fields holding focus.
     let select_all = wants_nav && read_select_all(ui);
-    // Clipboard intents (step 86.2, item M101): Ctrl+C copies the
-    // selection (read-only, also over locked grids), Ctrl+V pastes only
-    // on writable, unlocked grids.
+    // Clipboard intents (step 86.2, item M101): Ctrl+C copies (read-only),
+    // Ctrl+V pastes only on writable, unlocked grids.
     let copy = wants_nav && !body.is_empty() && read_copy_key(ui);
     let paste = wants_nav && !edit_restricted && !locked && read_paste_key(ui);
     let fill = wants_nav && !edit_restricted && !locked && read_fill_key(ui);
+    // Shift+F2 zooms the selection's focus cell (step 86.4, item M102);
+    // readable even while the in-place editor holds focus.
+    let zoom_key = !body.is_empty() && read_zoom_key(ui);
     // A whole-column or select-all selection always extends; a collapsed
     // cell keeps the step 40.3 record deletion.
     let extended = !matches!(selection, Selection::Cell { .. });
@@ -323,8 +325,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         return;
                     }
                     // Selected cells carry the faint accent wash under
-                    // their text (step 86.1, item M101); the cursor row's
-                    // marker paints over it afterwards.
+                    // their text (step 86.1, item M101).
                     if selection.contains(row_idx, col, body_row_total, col_total) {
                         ui.painter()
                             .rect_filled(cell, 0.0, tokens.accent_faint);
@@ -350,11 +351,10 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         ui.painter()
                             .rect_stroke(cell, 0.0, egui::Stroke::new(1.0, tokens.pending), egui::StrokeKind::Inside);
                     }
-                    let sense = if edit_restricted {
-                        egui::Sense::hover()
-                    } else {
-                        egui::Sense::click()
-                    };
+                    // Click sense on every grid: a read-only cell still
+                    // offers zoom (step 86.4, item M102); the edit arm
+                    // stays gated below.
+                    let sense = egui::Sense::click();
                     let cell_id = ui.scope_id().with(("cell", row_idx, col));
                     let response = ui.interact(cell, cell_id, sense);
                     response.widget_info(|| {
@@ -364,12 +364,24 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         [egui::pos2(cell.right(), cell.top()), cell.right_bottom()],
                         egui::Stroke::new(1.0, tokens.border),
                     );
+                    // Zoom intents (step 86.4, item M102); see
+                    // grid_cells — a zooming click never arms the editor.
+                    let zoomed = super::grid_cells::cell_zoom_interactions(
+                        ui,
+                        &response,
+                        row_idx,
+                        col,
+                        edit_restricted,
+                        &mut on_zoom,
+                    );
+                    if zoomed {
+                        return;
+                    }
                     if response.clicked() {
-                        // Selection intents (step 86.1, item M101): a
-                        // plain click collapses onto the cell (the anchor),
-                        // Shift+click extends the rectangle to it. The
-                        // editor still arms only on a plain click into the
-                        // cursor row.
+                        // Selection intents (step 86.1, item M101): a plain
+                        // click collapses onto the cell (the anchor),
+                        // Shift+click extends; the editor arms only on a
+                        // plain click into the cursor row.
                         let shift = ui.input(|i| i.modifiers.shift);
                         if let Some(callback) = on_selection.as_mut() {
                             let new_selection = if shift {
@@ -455,6 +467,10 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     }
     if clear_intent && let Some(callback) = on_clear.as_mut() {
         callback();
+    }
+    if zoom_key && let Some(callback) = on_zoom.as_mut() {
+        let (row, col) = super::grid_cells::zoom_focus_target(selection, body.len(), columns.len());
+        callback(row, col);
     }
     // The focus anchor covers the whole grid: focusable but not
     // interactive, so it never steals clicks from the rows it overlays.
