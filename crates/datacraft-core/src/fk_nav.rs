@@ -266,10 +266,16 @@ pub fn follow_criteria(
                 column: source_column.clone(),
                 detail: "the column value is not loaded".to_owned(),
             })?;
-        let Some(value) = value else {
-            return Err(FkCriteriaError::NullKey {
-                column: source_column.clone(),
-            });
+        let value = match value {
+            // The UI carries NULL cells as `Some(FieldValue::Null)` — the
+            // missing entry and the explicit NULL both answer NullKey
+            // (an empty key has no record to follow).
+            None | Some(FieldValue::Null) => {
+                return Err(FkCriteriaError::NullKey {
+                    column: source_column.clone(),
+                });
+            }
+            Some(value) => value,
         };
         let field = table_def
             .fields
