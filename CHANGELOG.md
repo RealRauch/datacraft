@@ -10,6 +10,23 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Changed
+- ui: datasheet edits stage into a pending batch instead of writing
+  immediately (85, H61) — on Jet4 and SQLite sources every cell edit,
+  new record and deletion collects into a per-tab edit buffer with
+  amber pending markers; Ctrl+S previews the journal's own diff and
+  applies the batch as one atomic write (a failed apply keeps every
+  edit and the database untouched; Discard keeps the buffer; Escape
+  discards the active record's staged changes; the grid refuses input
+  while a submission is in flight). Drivers without the atomic-batch
+  capability and read-only sources keep the immediate per-cell path.
+- core: the snapshot reports the pending write journal as a compact
+  summary (85, H61) — table, token and per-kind operation counts — so
+  every client observes the batch awaiting confirmation, and
+  `PreviewWrite` refuses while a journal for another table is pending.
+- sqlite: row-write batches apply atomically (85, H61) —
+  `write_row_ops` wraps the batch in one transaction with rollback on
+  the first failure; the capability reports `atomic_batch: true`,
+  retiring the phase-33 one-operation-at-a-time refusal.
 - ui: native file and message dialogs no longer block inside the event
   loop (81, M97) — every picker and confirmation parks a request and its
   follow-up, the native host answers on a helper thread through rfd's

@@ -106,9 +106,12 @@ command bus.
   indexes, relationships); SQLite read/write; CSV directories
   read/write; ACE complex values; RC4 passwords; Access lock-file
   co-existence.
-- **Workbench:** datasheet with in-cell editing, sort/filter/freeze and
-  undo/redo; table design with the property sheet; QBE builder; form and
-  report designers with a runtime; relationship mapper; SQL window.
+- **Workbench:** datasheet with in-cell editing (edits stage into a
+  pending batch and apply as one atomic write on Ctrl+S on Jet4 and
+  SQLite; read-only sources and drivers without atomic batches keep the
+  immediate per-cell writes), sort/filter/freeze and undo/redo; table
+  design with the property sheet; QBE builder; form and report
+  designers with a runtime; relationship mapper; SQL window.
 - **Programmability:** native saved queries (qualified dialect), macro
   inventory, VBA extraction, viewer and static analysis — no execution.
 - **Automation:** the same commands through the GUI, `datacraft-cli` and
