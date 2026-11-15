@@ -4,6 +4,7 @@
 use datacraft_core::command::Command;
 use datacraft_core::event::Event;
 use datacraft_core::ids::TabId;
+use datacraft_core::schema::FieldValue;
 
 use crate::app::App;
 use crate::i18n::tr;
@@ -177,5 +178,129 @@ impl App {
     /// grid's cancel intent).
     pub fn cancel_cell_edit(&mut self, tab_id: TabId) {
         self.close_cell_edit(tab_id);
+    }
+
+    /// Paste (step 86.2, item M101): parses the clipboard TSV, validates
+    /// the fit onto the tab's selection and every pasted value against
+    /// the column kind **before any cell changes**, then stages the
+    /// updates (atomic-batch driver) or dispatches one `UpdateRow` per
+    /// target row. A rejection reports precisely and leaves the database
+    /// and the buffer untouched. `slots` maps display rows onto buffer
+    /// rows (sort and filter make them differ).
+    pub fn paste_clipboard(&mut self, tab_id: TabId, table: &str, slots: &[usize]) {
+        if crate::availability::restricted(
+            self.snapshot(),
+            datacraft_core::availability::ids::EDIT_RECORD,
+        )
+        .is_some()
+        {
+            return;
+        }
+        let Some(text) = self.clipboard_text() else {
+            self.record_error("the clipboard is unavailable — nothing to paste".to_owned());
+            return;
+        };
+        let matrix = match datacraft_core::clipboard::parse_tsv(&text) {
+            Ok(matrix) => matrix,
+            Err(reason) => {
+                self.record_error(reason.to_string());
+                return;
+            }
+        };
+        let parsed = self.table_definition(table).map(|definition| {
+            (
+                definition.name.clone(),
+                definition.fields.clone(),
+                definition.fields.len(),
+            )
+        });
+        let Some((canonical, fields, arity)) = parsed else {
+            self.record_error(tr(
+                "table {table} not found",
+                &[("table", &format!("{table:?}"))],
+            ));
+            return;
+        };
+        let row_total = slots.len();
+        let selection = self.selection(tab_id, row_total, arity);
+        let (row_span, col_span) = match datacraft_core::clipboard::paste_targets(
+            &selection,
+            matrix.len(),
+            matrix[0].len(),
+            row_total,
+            arity,
+        ) {
+            Ok(spans) => spans,
+            Err(reason) => {
+                self.record_error(reason.to_string());
+                return;
+            }
+        };
+        // Validation first: every pasted cell parses against its column
+        // kind and every target row resolves to a base image — one bad
+        // cell rejects the whole paste before any write.
+        let mut planned: Vec<(usize, Vec<FieldValue>)> = Vec::new();
+        for (matrix_row, row) in row_span.clone().enumerate() {
+            let slot = slots.get(row).copied().unwrap_or(row);
+            // The row's base image: the staged image when the buffer row
+            // exists, the cache row otherwise (step 85.2, item H61).
+            let base = self
+                .staged_rows(tab_id)
+                .and_then(|buffer| buffer.row_image(slot))
+                .map(<[FieldValue]>::to_vec)
+                .or_else(|| {
+                    self.rows_for(tab_id)
+                        .and_then(|rows| rows.get(slot))
+                        .cloned()
+                });
+            let Some(mut values) = base else {
+                self.record_error(format!("row {row} no longer exists in {canonical:?}"));
+                return;
+            };
+            for (matrix_col, col) in col_span.clone().enumerate() {
+                let Some(field) = fields.get(col) else {
+                    self.record_error(format!(
+                        "field index {col} is out of range ({arity} fields)"
+                    ));
+                    return;
+                };
+                let cell = matrix
+                    .get(matrix_row)
+                    .and_then(|cells| cells.get(matrix_col))
+                    .map(String::as_str)
+                    .unwrap_or_default();
+                match datacraft_core::row_edit::parse_field_value(field, cell) {
+                    Ok(value) => values[col] = value,
+                    Err(reason) => {
+                        self.record_error(format!("field {:?}: {reason}", field.name));
+                        return;
+                    }
+                }
+            }
+            planned.push((slot, values));
+        }
+        // Apply: staged rows on an atomic-batch driver (Ctrl+S applies
+        // the batch), one dispatch per target row otherwise.
+        if self.batch_writes() {
+            for (slot, values) in planned {
+                if !self.stage_cell_update(tab_id, slot, values) {
+                    return;
+                }
+            }
+            return;
+        }
+        for (slot, values) in planned {
+            let events = self.dispatch(Command::UpdateRow {
+                table: canonical.clone(),
+                row: slot,
+                values,
+            });
+            if !events
+                .iter()
+                .any(|event| matches!(event, Event::RowUpdated { .. }))
+            {
+                return;
+            }
+        }
     }
 }

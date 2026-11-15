@@ -1104,6 +1104,7 @@ dependencies = [
 name = "datacraft-ui"
 version = "0.2.0"
 dependencies = [
+ "arboard",
  "datacraft-core",
  "datacraft-csv",
  "datacraft-storage",

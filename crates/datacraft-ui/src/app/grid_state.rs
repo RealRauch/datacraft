@@ -68,6 +68,26 @@ impl App {
         self.selections.insert(tab_id, selection);
     }
 
+    /// Swaps the clipboard port (the headless suite injects a scripted
+    /// one; step 86.2, item M101).
+    pub fn with_clipboard(mut self, clipboard: Box<dyn crate::clipboard::ClipboardPort>) -> Self {
+        self.clipboard = clipboard;
+        self
+    }
+
+    /// The clipboard's text through the port, if any.
+    pub fn clipboard_text(&self) -> Option<String> {
+        self.clipboard.get_text()
+    }
+
+    /// Writes text to the clipboard through the port; a failure reports
+    /// precisely (the copy is lost otherwise, step 86.2, item M101).
+    pub fn set_clipboard_text(&mut self, text: String) {
+        if !self.clipboard.set_text(text) {
+            self.record_error("the clipboard is unavailable — the copy was not written".to_owned());
+        }
+    }
+
     /// Buffered cells of a datasheet's new-record row, padded to the
     /// table's column count (step 11.7).
     pub fn new_row_cells(&self, tab_id: TabId, columns: usize) -> Vec<String> {

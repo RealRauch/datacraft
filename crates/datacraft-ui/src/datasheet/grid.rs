@@ -20,8 +20,10 @@ use datacraft_core::selection::Selection;
 
 use super::grid_model::{EditIntent, Grid, GridCallbacks};
 use super::header::{HeaderPass, header_ui};
-use super::nav::{nav_target, read_delete_key, read_nav_intent, read_select_all};
-use crate::i18n::t;
+use super::nav::{
+    nav_target, read_copy_key, read_delete_key, read_nav_intent, read_paste_key, read_select_all,
+};
+
 use crate::theme::tokens;
 
 /// Width of the row-selector column (Access's record selector).
@@ -32,6 +34,8 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         on_select,
         mut on_selection,
         on_select_column,
+        mut on_copy,
+        mut on_paste,
         on_sort,
         on_freeze,
         mut on_delete,
@@ -100,6 +104,11 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     // Ctrl+A selects everything loaded (step 86.1, item M101); the
     // wants_nav gate keeps it away from text fields holding focus.
     let select_all = wants_nav && read_select_all(ui);
+    // Clipboard intents (step 86.2, item M101): Ctrl+C copies the
+    // selection (read-only, also over locked grids), Ctrl+V pastes only
+    // on writable, unlocked grids.
+    let copy = wants_nav && !body.is_empty() && read_copy_key(ui);
+    let paste = wants_nav && !edit_restricted && !locked && read_paste_key(ui);
     // Del on the selected record is a deletion intent, not a cursor move —
     // it only fires for capable sources (step 40.3, item M44); a
     // submission in flight refuses it (step 85.2, item H61).
@@ -215,60 +224,20 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                     }
                 }
                 // The selector rides the scroll compensation: pinned at
-                // the viewport's left edge whatever the offset is.
-                let sel_rect = egui::Rect::from_min_size(
-                    origin + egui::vec2(scroll_x, 0.0),
-                    egui::vec2(SELECTOR_WIDTH, row_h),
+                // the viewport's left edge whatever the offset is. The
+                // paint lives in `selector.rs` (the size-gate split).
+                super::selector::record_selector(
+                    ui,
+                    super::selector::selector_rect(origin, scroll_x, row_h),
+                    row_idx,
+                    is_cursor,
+                    delete_reason.as_ref(),
+                    locked,
+                    tokens,
+                    &font,
+                    &mut clicked_row,
+                    &mut delete_row,
                 );
-                // The selector is an interact+paint pair, not a laid-out
-                // Button: ui.put would clamp the rect against the
-                // scrolled content ui's max_rect and break the pinned
-                // placement. AccessKit still reports it as a Button with
-                // the row number.
-                let selector_label = format!("{:>6}", row_idx + 1);
-                let selector_id = ui.scope_id().with(("selector", row_idx));
-                let selector = ui.interact(sel_rect, selector_id, egui::Sense::click());
-                selector.widget_info(|| {
-                    egui::WidgetInfo::labeled(egui::Role::Button, true, selector_label.clone())
-                });
-                if is_cursor {
-                    ui.painter().rect_filled(sel_rect, 2.0, tokens.accent_faint);
-                }
-                ui.painter().text(
-                    sel_rect.center(),
-                    egui::Align2::CENTER_CENTER,
-                    selector_label,
-                    font.clone(),
-                    if is_cursor {
-                        tokens.accent_text
-                    } else {
-                        tokens.text
-                    },
-                );
-                if selector.clicked() {
-                    clicked_row = Some(row_idx);
-                }
-                // The record menu (step 40.3, item M44): the deletion
-                // affordance reports the row through `on_delete`; for
-                // restricted sources it renders disabled with the reason,
-                // and a submission in flight refuses with its own note
-                // (step 85.2, item H61).
-                selector.context_menu(|ui| match (&delete_reason, locked) {
-                    (Some(reason), _) => {
-                        ui.add_enabled(false, egui::Button::new(t("Delete Record")))
-                            .on_hover_text(crate::availability::reason_text(reason));
-                    }
-                    (None, true) => {
-                        ui.add_enabled(false, egui::Button::new(t("Delete Record")))
-                            .on_hover_text(t("A submission is in flight — apply or discard it first."));
-                    }
-                    (None, false) => {
-                        if ui.button(t("Delete Record")).clicked() {
-                            delete_row = Some(row_idx);
-                            ui.close();
-                        }
-                    }
-                });
                 // Painted cell: AccessKit label for the headless suite
                 // (step 23.2, T5) plus the ink hairline separator. On an
                 // editable source the cell also senses clicks: clicking a
@@ -466,6 +435,12 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     }
     if select_all && let Some(callback) = on_selection.as_mut() {
         callback(Selection::All);
+    }
+    if copy && let Some(callback) = on_copy.as_mut() {
+        callback();
+    }
+    if paste && let Some(callback) = on_paste.as_mut() {
+        callback();
     }
     // The focus anchor covers the whole grid: focusable but not
     // interactive, so it never steals clicks from the rows it overlays.

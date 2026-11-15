@@ -15,6 +15,7 @@ path = "src/main.rs"
 datacraft-core = { workspace = true, features = ["sql-engine"] }
 datacraft-csv = { workspace = true }
 datacraft-storage = { workspace = true }
+arboard = { version = "3.7.0", default-features = false }
 eframe = "0.37.0"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 rfd = { workspace = true }

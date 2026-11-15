@@ -50,6 +50,7 @@ pub(crate) fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::
     let mut selected = None;
     let mut selection_intent: Option<Selection> = None;
     let mut select_column_intent: Option<(usize, bool)> = None;
+    let mut copy_intent = false;
     let mut sort_intent: Option<(usize, SortOrder)> = None;
     {
         let mut on_select = |row: usize| selected = Some(row);
@@ -57,6 +58,9 @@ pub(crate) fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::
         let mut on_select_column = |column: usize, extend: bool| {
             select_column_intent = Some((column, extend));
         };
+        // Copy works on the read-only result grid; paste never fires
+        // (edit_restricted keeps the key unconsumed).
+        let mut on_copy = || copy_intent = true;
         let mut on_freeze = |count: usize| app.set_frozen_columns(tab.id, count);
         let mut on_sort = |column: usize, order: SortOrder| {
             if let Some(field) = field_indices.get(column) {
@@ -91,6 +95,8 @@ pub(crate) fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::
                 &mut on_select,
                 Some(&mut on_selection),
                 Some(&mut on_select_column),
+                Some(&mut on_copy),
+                None,
                 sort,
                 Some(&mut on_freeze),
                 None,
@@ -114,6 +120,12 @@ pub(crate) fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::
             Selection::select_column(column)
         };
         app.set_selection(tab.id, new_selection);
+    }
+    if copy_intent {
+        match datacraft_core::clipboard::copy_tsv(&body, &selection, row_count, columns.len()) {
+            Ok(text) => app.set_clipboard_text(text),
+            Err(reason) => app.record_error(reason.to_string()),
+        }
     }
     if let Some((field, order)) = sort_intent {
         app.dispatch(Command::SetQbeCell {

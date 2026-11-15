@@ -107,6 +107,12 @@ pub(crate) struct GridCallbacks<'a> {
     /// Column selection through the header (the column and whether the
     /// header was shift-clicked, extending the anchor).
     pub on_select_column: Option<&'a mut dyn FnMut(usize, bool)>,
+    /// Ctrl+C over a non-empty grid (step 86.2, M101): the caller builds
+    /// the TSV from the body it passed in.
+    pub on_copy: Option<&'a mut dyn FnMut()>,
+    /// Ctrl+V on a writable, unlocked grid (step 86.2, M101): the caller
+    /// reads the clipboard, validates and writes.
+    pub on_paste: Option<&'a mut dyn FnMut()>,
     /// Header sort (query grids write the QBE sort cell).
     pub on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     /// Freeze/unfreeze through the header context menu.
@@ -127,6 +133,8 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_select: &'a mut dyn FnMut(usize),
     on_selection: Option<&'a mut dyn FnMut(Selection)>,
     on_select_column: Option<&'a mut dyn FnMut(usize, bool)>,
+    on_copy: Option<&'a mut dyn FnMut()>,
+    on_paste: Option<&'a mut dyn FnMut()>,
     on_sort: Option<&'a mut dyn FnMut(usize, SortOrder)>,
     on_freeze: Option<&'a mut dyn FnMut(usize)>,
     on_delete: Option<&'a mut dyn FnMut(usize)>,
@@ -137,6 +145,8 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_select,
         on_selection,
         on_select_column,
+        on_copy,
+        on_paste,
         on_sort,
         on_freeze,
         on_delete,

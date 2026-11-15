@@ -18,6 +18,7 @@ pub mod availability;
 pub mod backstage;
 pub mod busy;
 pub mod button_action;
+pub mod clipboard;
 pub mod combo_source;
 pub mod control_content;
 pub mod datasheet;

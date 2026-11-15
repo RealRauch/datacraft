@@ -30,6 +30,7 @@ mod grid_model;
 mod header;
 mod nav;
 mod query_results;
+mod selector;
 mod submit;
 mod trailing;
 
@@ -182,6 +183,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut selected = None;
     let mut selection_intent: Option<Selection> = None;
     let mut select_column_intent: Option<(usize, bool)> = None;
+    let mut copy_intent = false;
+    let mut paste_intent = false;
     let mut freeze_intent: Option<usize> = None;
     let mut delete_intent: Option<usize> = None;
     let mut pending_edit: Option<EditIntent> = None;
@@ -193,6 +196,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         let mut on_select_column = |column: usize, extend: bool| {
             select_column_intent = Some((column, extend));
         };
+        let mut on_copy = || copy_intent = true;
+        let mut on_paste = || paste_intent = true;
         let mut on_freeze = |count: usize| freeze_intent = Some(count);
         let mut on_delete = |row: usize| delete_intent = Some(row);
         let mut on_edit = |intent: EditIntent| pending_edit = Some(intent);
@@ -233,6 +238,8 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     &mut on_select,
                     Some(&mut on_selection),
                     Some(&mut on_select_column),
+                    Some(&mut on_copy),
+                    Some(&mut on_paste),
                     Some(&mut on_sort),
                     Some(&mut on_freeze),
                     Some(&mut on_delete),
@@ -259,6 +266,18 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             Selection::select_column(column)
         };
         app.set_selection(tab.id, new_selection);
+    }
+    // Clipboard intents (step 86.2, item M101): copy builds the TSV from
+    // the displayed body; paste validates and writes through the edit
+    // path (the rejection precedes every cell change).
+    if copy_intent {
+        match datacraft_core::clipboard::copy_tsv(&body, &selection, row_count, columns.len()) {
+            Ok(text) => app.set_clipboard_text(text),
+            Err(reason) => app.record_error(reason.to_string()),
+        }
+    }
+    if paste_intent {
+        app.paste_clipboard(tab.id, &tab.object_name, &slots);
     }
     if let Some((column, order)) = sort_intent
         && let Some(field) = columns.get(column)
