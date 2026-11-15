@@ -509,7 +509,7 @@
 | 86.3 | One-value fill as a single undo step and Delete-to-NULL with the driver NULL boundary (M101) | ✅ |
 | 86.4 | Cell value viewer: read-only text/JSON/bounded hex, Shift+F2 and context menu, multiline editor through the 85 buffer (M102) | ✅ |
 | 86.5 | Documentation and phase gate (M101, M102) | ✅ |
-| 87.1 | FK follow on key cells: declared foreign keys, reverse keys and inferred references with composite-key pairing (M103) | ⬜ |
+| 87.1 | FK follow on key cells: declared foreign keys, reverse keys and inferred references with composite-key pairing (M103) | ✅ |
 | 87.2 | Per-tab back/forward history and capped, cancellable "referenced by" counts (M103) | ⬜ |
 | 87.3 | Core filter builder model: AND/OR groups with visible parentheses, ordered sort columns, criteria-string serialization (M104) | ⬜ |
 | 87.4 | Builder UI: draft/apply distinction, text mode as escape hatch, builder-to-criteria round-trip (M104) | ⬜ |
