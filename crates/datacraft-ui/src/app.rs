@@ -20,6 +20,7 @@ mod caches;
 pub(crate) mod dialog_flow;
 mod edit_batch;
 mod editors;
+pub(crate) mod filter_builder;
 mod form_edit;
 mod grid_state;
 mod help;
@@ -113,6 +114,7 @@ impl App {
             count_results: HashMap::new(),
             count_pending: Vec::new(),
             count_menu_tab: None,
+            filter_builder_drafts: HashMap::new(),
         }
     }
 

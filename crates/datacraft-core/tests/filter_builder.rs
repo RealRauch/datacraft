@@ -239,6 +239,30 @@ fn unmodelable_criteria_refuse_deserialization() {
     );
 }
 
+/// The bare wildcard pattern is the dialect's implicit-Like form (step
+/// 70.1, H58) — reading it as a condition would round-trip into an
+/// equality, so it fences to the text mode as well.
+#[test]
+fn bare_wildcard_criteria_read_as_text_mode() {
+    let filters = BTreeMap::from([("name".to_owned(), "A*".to_owned())]);
+    let reason = match deserialize_filters(&filters) {
+        datacraft_core::filter_builder::FilterRead::Failed(reason) => reason.to_string(),
+        _ => panic!("the bare wildcard fences to the text mode"),
+    };
+    assert!(
+        reason.contains("name") && reason.to_lowercase().contains("text mode"),
+        "the message names the column and the escape hatch: {reason}"
+    );
+    // An explicit operator keeps the condition (the semantics stay).
+    let filters = BTreeMap::from([("name".to_owned(), "= A*".to_owned())]);
+    match deserialize_filters(&filters) {
+        datacraft_core::filter_builder::FilterRead::Model(node) => {
+            assert!(node.to_string().contains("name = \"A*\""));
+        }
+        other => panic!("an explicit condition models: {other:?}"),
+    }
+}
+
 /// Sort columns stay ordered in the model; the existing single-column
 /// path applies the first entry (the documented fence).
 #[test]

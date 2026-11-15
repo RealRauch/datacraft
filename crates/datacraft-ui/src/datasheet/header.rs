@@ -38,6 +38,9 @@ pub(super) struct HeaderPass<'a> {
     /// criteria dialog (the in-menu editor died on click — egui menus
     /// do not host text editing).
     pub filter_dialog: Option<&'a mut dyn FnMut(usize)>,
+    /// The filter builder window (step 87.4, item M104): opens the
+    /// tab-wide structured draft over the live criteria.
+    pub filter_builder: Option<&'a mut dyn FnMut()>,
     /// Column selection through the header (step 86.1, item M101): the
     /// context menu's "Select Column" entry and a Shift+click extension
     /// report `(column, extend)`. A plain header click keeps sorting
@@ -73,6 +76,7 @@ pub(super) fn header_ui(
     let frozen_total = frozen_width(widths, frozen);
     let band_h = metrics.header_height;
     let mut pending_sort: Option<(usize, SortOrder)> = None;
+    let mut pending_filter_builder = false;
     let mut pending_freeze: Option<usize> = None;
     let mut pending_filter_dialog: Option<usize> = None;
     let mut pending_select_column: Option<(usize, bool)> = None;
@@ -179,6 +183,14 @@ pub(super) fn header_ui(
                     pending_filter_dialog = Some(col);
                     ui.close();
                 }
+                // The structured builder (step 87.4, item M104): the
+                // tab-wide draft over the live criteria.
+                if pass.filter_builder.is_some()
+                    && ui.selectable_label(false, t("Filter Builder")).clicked()
+                {
+                    pending_filter_builder = true;
+                    ui.close();
+                }
             }
             if col >= frozen && ui.selectable_label(false, t("Freeze Fields")).clicked() {
                 pending_freeze = Some(col + 1);
@@ -237,6 +249,9 @@ pub(super) fn header_ui(
         && let Some(callback) = pass.filter_dialog.as_mut()
     {
         callback(column);
+    }
+    if pending_filter_builder && let Some(callback) = pass.filter_builder.as_mut() {
+        callback();
     }
 }
 

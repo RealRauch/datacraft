@@ -114,7 +114,7 @@ fn dynamic_keys() -> BTreeSet<String> {
         crate::relationships::LABEL_REFERENCING_FIELD,
         crate::relationships::LABEL_REFERENCED_TABLE,
         crate::relationships::LABEL_REFERENCED_FIELD,
-        crate::datasheet::FILTER_SYNTAX_HELP,
+        crate::datasheet::filter_dialog::FILTER_SYNTAX_HELP,
         crate::shell::LOCK_NOTICE_STATUS,
         crate::shell::LOCK_NOTICE_DETAIL,
         // The control-content panel's kind-specific accessor labels

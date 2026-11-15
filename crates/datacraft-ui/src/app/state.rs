@@ -198,4 +198,8 @@ pub struct App {
     /// The tab whose follow context menu is open (step 87.2, item M103):
     /// the frame-local count context clones only while this holds.
     pub(super) count_menu_tab: Option<TabId>,
+    /// The filter builder's per-tab draft (step 87.4, item M104):
+    /// present while the window is open; vocabulary lives in
+    /// `app/filter_builder.rs`.
+    pub(super) filter_builder_drafts: HashMap<TabId, super::filter_builder::FilterBuilderDraft>,
 }

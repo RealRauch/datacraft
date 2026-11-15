@@ -182,10 +182,13 @@ mod tests {
     /// flip, so no cross-test leakage.
     #[test]
     fn the_filter_syntax_help_is_localized_in_german() {
-        let german = translate(Lang::German, crate::datasheet::FILTER_SYNTAX_HELP);
+        let german = translate(
+            Lang::German,
+            crate::datasheet::filter_dialog::FILTER_SYNTAX_HELP,
+        );
         assert_ne!(
             german,
-            crate::datasheet::FILTER_SYNTAX_HELP,
+            crate::datasheet::filter_dialog::FILTER_SYNTAX_HELP,
             "the key has a German catalog entry"
         );
         assert!(

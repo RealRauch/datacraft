@@ -149,6 +149,8 @@ pub(crate) struct GridCallbacks<'a> {
     /// M103) — fired every frame the menu stays open; the caller
     /// deduplicates its count reads against the answered map.
     pub on_follow_menu: Option<&'a mut dyn FnMut(usize, usize)>,
+    /// Opens the tab-wide filter builder window (step 87.4, item M104).
+    pub filter_builder: Option<&'a mut dyn FnMut()>,
 }
 
 /// Bundles the callbacks for [`super::grid::grid_ui`] (keeps the call sites
@@ -170,6 +172,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
     on_follow: Option<&'a mut dyn FnMut(usize, usize, usize)>,
     on_follow_menu: Option<&'a mut dyn FnMut(usize, usize)>,
+    filter_builder: Option<&'a mut dyn FnMut()>,
 ) -> GridCallbacks<'a> {
     GridCallbacks {
         on_select,
@@ -187,5 +190,6 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_filter_dialog,
         on_follow,
         on_follow_menu,
+        filter_builder,
     }
 }

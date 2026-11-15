@@ -21,10 +21,12 @@ use datacraft_core::selection::Selection;
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
-use crate::i18n::{t, tr};
+use crate::i18n::t;
 use crate::labels::value_label;
 use crate::theme::tokens;
 
+mod filter_builder;
+pub(crate) mod filter_dialog;
 pub(crate) mod follow;
 mod grid;
 mod grid_cells;
@@ -211,6 +213,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut dialog_intent: Option<usize> = None;
     let mut follow_intent: Option<(usize, usize, usize)> = None;
     let mut follow_menu_intent: Option<(usize, usize)> = None;
+    let mut builder_open_intent = false;
     {
         let mut on_select = |row: usize| selected = Some(row);
         let mut on_selection = |new_selection: Selection| selection_intent = Some(new_selection);
@@ -280,6 +283,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut |row: usize, col: usize| {
                         follow_menu_intent = Some((row, col));
                     }),
+                    Some(&mut || builder_open_intent = true),
                 ),
             );
         });
@@ -344,6 +348,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         app.clear_count_menu_tab();
     }
     app.poll_referenced_counts();
+    if builder_open_intent {
+        app.open_filter_builder(tab);
+    }
     if let Some((row, col, index)) = follow_intent {
         // The follow reads the row image (the slots map the display row
         // onto the cache row; staged rows carry their pending image).
@@ -410,88 +417,11 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let cursor_slot = slots.get(cursor_row).copied().unwrap_or(cursor_row);
     app.set_cursor_slot(tab.id, cursor_slot);
     trailing::trailing_ui(app, tab, row_count, &columns, &widths, ui);
-    filter_dialog_ui(app, tab, &columns, ui);
+    filter_dialog::filter_dialog_ui(app, tab, &columns, ui);
+    filter_builder::filter_builder_ui(app, tab, &columns, ui);
     submit::submission_ui(app, tab, &columns, ui);
     // The cell value viewer (step 86.4, item M102) rides the trailing
     // windows — after the in-place editor's commit, so a viewer Apply is
     // the newer intent and stages over it.
     value_viewer::value_viewer_ui(app, tab, &columns, &slots, ui);
-}
-
-/// The criteria syntax the dialog accepts (step 48.3, item M62): the
-/// M37-fenced dialect in one line — wildcards, quoting rule, comparison
-/// operators and one example each. The English source is the i18n key;
-/// the German catalog entry lives in `i18n/de/ui_chrome.rs`.
-pub(crate) const FILTER_SYNTAX_HELP: &str = "Criteria: quoted Like patterns with the wildcards * (any run), ? (one character), # (one digit) — e.g. Like \"A*\" — or a comparison =, <>, <, <=, >, >= with a literal coerced to the column's kind, e.g. > 100.";
-
-/// The column filter dialog (step 45.1, M55): egui menus do not host
-/// text editing — clicking the in-menu editor closed the whole menu —
-/// so the criteria editor lives in a small window (the mapper/sql
-/// window pattern). The editor seeds from the live filter; Apply and
-/// Clear dispatch the existing `SetTableFilter` commands.
-fn filter_dialog_ui(app: &mut App, tab: &TabSnapshot, columns: &[String], ui: &mut egui::Ui) {
-    let Some(column) = app.filter_dialog(tab.id) else {
-        return;
-    };
-    let Some(field) = columns.get(column) else {
-        app.close_filter_dialog(tab.id);
-        return;
-    };
-    let title = tr("Filter — {field}", &[("field", field)]);
-    let live = tab.filters.get(field).cloned().unwrap_or_default();
-    let mut close = false;
-    egui::Window::new(title)
-        .id(egui::Id::unique(format!(
-            "datacraft.filter.{}",
-            tab.ui_test_id
-        )))
-        .default_width(320.0)
-        .default_pos(crate::tool_window::centered_pos(
-            ui.ctx(),
-            egui::vec2(320.0, 240.0),
-        ))
-        .show(ui, |ui| {
-            let mut draft = {
-                let buffered = app.filter_draft(tab.id, column);
-                if buffered.is_empty() {
-                    live.clone()
-                } else {
-                    buffered
-                }
-            };
-            let criteria_label = ui.label(t("Filter criteria"));
-            if ui
-                .text_edit_singleline(&mut draft)
-                .labelled_by(criteria_label.id)
-                .changed()
-            {
-                app.set_filter_draft(tab.id, column, draft.clone());
-            }
-            // The dialog states the dialect it accepts (step 48.3, item
-            // M62) — the user asked for the syntax in the walkthrough.
-            ui.label(egui::RichText::new(t(FILTER_SYNTAX_HELP)).weak());
-            ui.horizontal(|ui| {
-                if ui.button(t("Apply Filter")).clicked() && !draft.trim().is_empty() {
-                    app.dispatch(Command::SetTableFilter {
-                        table: tab.object_name.clone(),
-                        field: field.clone(),
-                        criteria: Some(draft.clone()),
-                    });
-                    app.set_filter_draft(tab.id, column, String::new());
-                    close = true;
-                }
-                if !live.is_empty() && ui.button(t("Clear Filter")).clicked() {
-                    app.dispatch(Command::SetTableFilter {
-                        table: tab.object_name.clone(),
-                        field: field.clone(),
-                        criteria: None,
-                    });
-                    app.set_filter_draft(tab.id, column, String::new());
-                    close = true;
-                }
-            });
-        });
-    if close {
-        app.close_filter_dialog(tab.id);
-    }
 }

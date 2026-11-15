@@ -23,10 +23,7 @@ fn orders() -> TableDef {
         "Orders",
         vec![
             FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
-            FieldDef::new(
-                "amount",
-                FieldKind::Number(NumericKind::LongInteger),
-            ),
+            FieldDef::new("amount", FieldKind::Number(NumericKind::LongInteger)),
             FieldDef::new("name", FieldKind::Text { max_len: 50 }),
         ],
     )
@@ -37,8 +34,16 @@ fn orders_app() -> App {
     port.with_row_data(
         "Orders",
         vec![
-            vec![FieldValue::Integer(10), FieldValue::Integer(100), FieldValue::Text("Ada".into())],
-            vec![FieldValue::Integer(11), FieldValue::Integer(250), FieldValue::Text("Grace".into())],
+            vec![
+                FieldValue::Integer(10),
+                FieldValue::Integer(100),
+                FieldValue::Text("Ada".into()),
+            ],
+            vec![
+                FieldValue::Integer(11),
+                FieldValue::Integer(250),
+                FieldValue::Text("Grace".into()),
+            ],
         ],
     );
     let mut app = App::new(Box::new(port));
@@ -88,17 +93,15 @@ fn right_click_cell(harness: &mut Harness<'static, App>, label: &str) {
     harness.run();
 }
 
-/// Opens the builder from the header context menu of the first column.
+/// Opens the builder from the header context menu of the first column
+/// (the menu carries the column's criteria dialog and the builder).
 fn open_builder(harness: &mut Harness<'static, App>) {
-    harness.get_by_label("     1").click();
-    harness.run();
-    right_click_cell(harness, "10");
+    right_click_cell(harness, "id");
     harness.get_by_label("Filter Builder").click();
     harness.run();
     harness.run();
 }
 
-/// The live filter map of the Orders tab.
 fn orders_filters(harness: &Harness<'static, App>) -> BTreeMap<String, String> {
     harness
         .state()
@@ -119,19 +122,29 @@ fn fill_condition(
     op: &str,
     value: &str,
 ) {
+    // The row exists once added (the draft starts empty).
+    harness.get_by_label("Add condition").click();
+    harness.run();
     harness
         .get_by_role_and_label(egui::accesskit::Role::TextInput, &format!("Value — {row}"))
         .set_text_value_accesskit(value);
     harness.run();
     // The column pickers read "Column — {row}"; open and choose.
     harness
-        .get_by_role_and_label(egui::accesskit::Role::Button, &format!("Column — {row}"))
+        .get_by_role_and_label(egui::accesskit::Role::ComboBox, &format!("Column — {row}"))
         .click();
     harness.run();
-    harness.get_by_label(column).click();
+    // The picker lists the column after the header carries the same
+    // name — the popup option is the last matching node in traversal
+    // order.
+    let options: Vec<_> = harness.get_all_by_label(column).collect();
+    options.last().expect("the picker lists the column").click();
     harness.run();
     harness
-        .get_by_role_and_label(egui::accesskit::Role::Button, &format!("Operator — {row}"))
+        .get_by_role_and_label(
+            egui::accesskit::Role::ComboBox,
+            &format!("Operator — {row}"),
+        )
         .click();
     harness.run();
     harness.get_by_label(op).click();
@@ -208,10 +221,12 @@ fn text_mode_edits_the_raw_criteria() {
 #[test]
 fn unmodelable_live_filter_seeds_the_text_mode() {
     let mut app = orders_app();
+    // The bare wildcard pattern is the dialect's implicit-Like form
+    // (H58): the parser accepts it, the builder's model does not.
     app.dispatch(Command::SetTableFilter {
         table: "Orders".into(),
-        field: "amount".into(),
-        criteria: Some("Between 1 and 9".into()),
+        field: "name".into(),
+        criteria: Some("A*".into()),
     });
     let mut harness = harness(app);
     harness.run();
@@ -220,12 +235,12 @@ fn unmodelable_live_filter_seeds_the_text_mode() {
     // The live criteria is outside the builder's model — the window
     // opens in the text mode carrying the raw form.
     let value = harness
-        .get_by_role_and_label(egui::accesskit::Role::TextInput, "criteria — amount")
+        .get_by_role_and_label(egui::accesskit::Role::TextInput, "criteria — name")
         .accesskit_node()
         .value()
         .unwrap_or_default()
         .to_owned();
-    assert_eq!(value, "Between 1 and 9", "the text mode seeds the raw form");
+    assert_eq!(value, "A*", "the text mode seeds the raw form");
 }
 
 #[test]
@@ -259,10 +274,15 @@ fn sort_from_the_builder_dispatches() {
     open_builder(&mut harness);
     // The sort line's column picker, then the ascending direction.
     harness
-        .get_by_role_and_label(egui::accesskit::Role::Button, "Sort column")
+        .get_by_role_and_label(egui::accesskit::Role::ComboBox, "Sort column")
         .click();
     harness.run();
-    harness.get_by_label("name").click();
+    let options: Vec<_> = harness.get_all_by_label("name").collect();
+    options.last().expect("the picker lists the column").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(egui::accesskit::Role::ComboBox, "Sort order")
+        .click();
     harness.run();
     harness.get_by_label("Sort Ascending").click();
     harness.run();

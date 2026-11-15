@@ -45,6 +45,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         on_filter_dialog,
         mut on_follow,
         mut on_follow_menu,
+        filter_builder,
     } = callbacks;
     let Grid {
         metrics,
@@ -113,6 +114,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         sort: on_sort,
         freeze: on_freeze,
         filter_dialog: on_filter_dialog,
+        filter_builder,
         select_column: on_select_column,
         filters: grid_filters,
         selection,

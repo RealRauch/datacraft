@@ -339,6 +339,12 @@ fn condition_from_criteria(field: &str, criteria: &str) -> Option<BuilderConditi
     } else {
         ("", trimmed)
     };
+    // A bare wildcard pattern is the text mode's own implicit-Like form
+    // (step 70.1, H58): reading it as a condition would round-trip into
+    // an equality — the fence keeps the semantics honest.
+    if prefix.is_empty() && rest.contains(['*', '?', '#']) {
+        return None;
+    }
     Some(BuilderCondition {
         column: field.to_owned(),
         op: BuilderOp::from_prefix(prefix)?,

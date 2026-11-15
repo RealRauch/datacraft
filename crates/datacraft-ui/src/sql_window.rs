@@ -120,6 +120,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         None,
                         None,
                         None,
+                        None,
                     ),
                 );
                 if let Some(new_selection) = selection_intent {
