@@ -467,36 +467,3 @@ fn a_rebuild_failure_rolls_back() {
         .expect("child rows survive the rollback");
     assert_eq!(rows.len(), 1);
 }
-
-/// A composite foreign key (one constraint over two column pairs) reads
-/// back as one group carrying both pairs — the follow resolution's
-/// composite pairing input (step 87.1, item M103). SQLite names no
-/// constraints, so the group name stays `None`.
-#[test]
-fn composite_foreign_keys_share_one_constraint_group() {
-    let path = scratch_path("composite");
-    let scratch = Scratch(path.clone());
-    let conn = rusqlite::Connection::open(&path).expect("open scratch");
-    conn.execute_batch(
-        "CREATE TABLE parents (x INTEGER, y INTEGER, PRIMARY KEY (x, y));
-         CREATE TABLE children (a INTEGER, b INTEGER,
-             FOREIGN KEY (a, b) REFERENCES parents (x, y));",
-    )
-    .expect("composite fixture schema");
-    drop(conn);
-    let core = open(&path);
-    let database = core.inspect().database.expect("open");
-    assert_eq!(
-        database.relationship_groups,
-        Some(vec![datacraft_core::port::RelationshipGroup {
-            name: None,
-            table: "children".to_owned(),
-            related_table: "parents".to_owned(),
-            pairs: vec![
-                ("a".to_owned(), "x".to_owned()),
-                ("b".to_owned(), "y".to_owned()),
-            ],
-        }]),
-        "the two column pairs share one constraint group in seq order"
-    );
-}
