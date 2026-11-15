@@ -512,7 +512,7 @@
 | 87.1 | FK follow on key cells: declared foreign keys, reverse keys and inferred references with composite-key pairing (M103) | ✅ |
 | 87.2 | Per-tab back/forward history and capped, cancellable "referenced by" counts (M103) | ✅ |
 | 87.3 | Core filter builder model: AND/OR groups with visible parentheses, ordered sort columns, criteria-string serialization (M104) | ✅ |
-| 87.4 | Builder UI: draft/apply distinction, text mode as escape hatch, builder-to-criteria round-trip (M104) | ⬜ |
+| 87.4 | Builder UI: draft/apply distinction, text mode as escape hatch, builder-to-criteria round-trip (M104) | ✅ |
 | 87.5 | Documentation and phase gate (M103, M104) | ⬜ |
 | 88.1 | Ribbon overflow: group-overflow layout math in core and the overflow control with identical command dispatch (M98) | ⬜ |
 | 88.2 | Tab strip scroll-to-selected on activation and reachability by pointer and keyboard (L45) | ⬜ |
