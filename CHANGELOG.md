@@ -9,6 +9,22 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 *Next version: reassessed at every phase close (breaking → minor, additions
 and fixes → patch per `docs/PUBLISHING.md`).*
 
+### Added
+- ui/core: datasheet selection, clipboard, fill and the cell value viewer
+  (86, M101/M102) - a multi-cell selection model (anchor rectangle,
+  Shift+arrows/Shift+click extension, whole-column selection through the
+  header, Ctrl+A; the selection survives scroll untouched and clamps into a
+  smaller row set after sort/filter changes); Ctrl+C copies the selection as
+  spreadsheet-compatible TSV and Ctrl+V validates the pasted matrix's fit and
+  every value before any cell changes, then writes through the tab's normal
+  path (the H61 batch on an atomic-batch driver, direct row writes
+  otherwise); Ctrl+D fills the selection from its top row and Del over an
+  extended selection clears the cells to NULL - both as one command and one
+  undo step; Shift+F2, Alt+click and the cell context menu open a value
+  viewer (JSON indents only when it parses, binary values show a bounded hex
+  view naming the truncation) whose multiline editor writes editable long
+  text through the same path.
+
 ### Changed
 - ui: datasheet edits stage into a pending batch instead of writing
   immediately (85, H61) — on Jet4 and SQLite sources every cell edit,
