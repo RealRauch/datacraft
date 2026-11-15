@@ -242,8 +242,7 @@ fn null_edits_clear_cells_and_read_only_sources_refuse() {
 #[test]
 fn the_guards_answer_precisely() {
     // No open database.
-    let mut port = MockPort::with_tables(vec![items()]);
-    let mut core = Core::new(Box::new(port));
+    let mut core = Core::new(Box::new(MockPort::with_tables(vec![items()])));
     let events = core.dispatch(Command::UpdateCells {
         table: "Items".into(),
         edits: vec![CellEdit {
