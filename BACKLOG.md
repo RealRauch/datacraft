@@ -78,13 +78,6 @@
 - **Steps:** none yet (Medium gate; candidate for a later phase after M96/Phase 79 fixes the root README structure).
 - **Acceptance:** Every published crate packages its own README (visible in `cargo package --list`); the crates.io page states what the crate is, its feature flags and MSRV, and links the product page; PUBLISHING's checklist names the per-crate README verification; no publish metadata drift.
 
-### [ ] L46 — Native menu bar on macOS — decision — 🟢
-- **Location:** the shell roots (`crates/datacraft-ui/src/app.rs`, `shell.rs`) and the macOS target gate; no menu-bar module exists.
-- **Problem:** macOS apps are expected to provide a menu bar (App/File/Edit/View/Window/Help) with the standard About, Settings, Services, Hide and Quit items, and a Window menu listing open documents. DataCraft ships a ribbon-only shell, so those platform affordances are absent and standard chords such as Cmd+Q are not routed through the app's policies. craft-libs' `craft-menu` documents the role-based layout (items found by role, not title) and a native macOS backend.
-- **Approach:** A time-boxed decision: whether to add a macOS-only menu bar that dispatches the existing command vocabulary (no new commands), built either with a small own module or an adopted menu crate. The ribbon stays the primary surface on every platform.
-- **Acceptance:** A written decision record; if yes, the menu items dispatch existing commands only, their key equivalents route through the same shortcut model as M99, and Windows/Linux stay visually and behaviourally unchanged.
-- **Steps:** none yet.
-
 ### [ ] L47 — Design pass: density, typography, spacing on the current build — 🟢
 - **Location:** the shell surfaces (ribbon, QAT, nav pane, datasheet, backstage, tool windows, form/report designers).
 - **Problem:** M42/M78 closed concrete chrome findings, but no subjective density/typography/spacing pass has run against the current build. Without a protocol such a pass becomes an unbounded task and slips into unmeasured changes.

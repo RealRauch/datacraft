@@ -13,8 +13,19 @@
 - **Steps:** none yet.
 - **Done:** done in `5426d79` — ROADMAP §21 decision record: own minimal dock host, no new dependency; implementation follow-up M103 filed (pilot: SQL window)
 
+---
+
+### [x] L46 — Native menu bar on macOS — decision — 🟢
+- **Location:** the shell roots (`crates/datacraft-ui/src/app.rs`, `shell.rs`) and the macOS target gate; no menu-bar module exists.
+- **Problem:** macOS apps are expected to provide a menu bar (App/File/Edit/View/Window/Help) with the standard About, Settings, Services, Hide and Quit items, and a Window menu listing open documents. DataCraft ships a ribbon-only shell, so those platform affordances are absent and standard chords such as Cmd+Q are not routed through the app's policies. craft-libs' `craft-menu` documents the role-based layout (items found by role, not title) and a native macOS backend.
+- **Approach:** A time-boxed decision: whether to add a macOS-only menu bar that dispatches the existing command vocabulary (no new commands), built either with a small own module or an adopted menu crate. The ribbon stays the primary surface on every platform.
+- **Acceptance:** A written decision record; if yes, the menu items dispatch existing commands only, their key equivalents route through the same shortcut model as M99, and Windows/Linux stay visually and behaviourally unchanged.
+- **Steps:** none yet.
+- **Done:** done in `43aebbd` — ROADMAP §22 decision record: ribbon-only, no native menu bar now; re-evaluation gated on reachable macOS hardware for verification
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
 
 - M100 — Tool windows as task panes — decision and scope — done (done in `5426d79` — ROADMAP §21 decision record: own minimal dock host, no new dependency; implementation follow-up M103 filed (pilot: SQL window))
+- L46 — Native menu bar on macOS — decision — done (done in `43aebbd` — ROADMAP §22 decision record: ribbon-only, no native menu bar now; re-evaluation gated on reachable macOS hardware for verification)
