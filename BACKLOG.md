@@ -23,13 +23,6 @@
 
 ## 🟡 MEDIUM
 
-### [ ] M98 — Ribbon has no group overflow at narrow widths — 🟡
-- **Location:** `crates/datacraft-ui/src/ribbon.rs` (group row) and the spec in `crates/datacraft-core/src/ribbon.rs`; H52 sized the groups to content and T10 pins them in-window at 1280x800 and 960x600.
-- **Problem:** There is no overflow rule below those widths: groups keep their natural widths, so with a narrower window (or a longer localized label) trailing groups leave the window and their actions become unreachable. Access collapses groups into dropdown buttons; craft-libs' `layout::fit_toolbar` documents the policy (keep whole groups, reserve the overflow control's width, never let a command disappear silently).
-- **Approach:** Keep the layout math in core (the H52 precedent): compute visible groups plus overflow indices from natural widths, available width, spacing and the overflow control's width. The UI paints one overflow control whose menu dispatches the same `command_for` actions, so disabled states and tooltips stay identical. Decide per group whether to collapse or to list the actions in the overflow menu.
-- **Acceptance:** At 800x600 every ribbon action stays reachable (visible or in the overflow list); layout_probe/kittest pins the group widths and the overflow boundary at 800x600, 960x600 and 1280x800 in both languages; no command disappears without a visible entry point.
-- **Steps:** none yet.
-
 ### [ ] M99 — Keyboard shortcuts are Ctrl-only and mislabeled on macOS — 🟡
 - **Location:** `crates/datacraft-ui/src/keys.rs:77` (`shortcut(ctrl, key)`), `:106` (reads `input.modifiers.ctrl`), and the `SHORTCUT_ROWS` labels at `:52-62`; the help page renders those labels verbatim in `crates/datacraft-ui/src/shortcuts_help.rs`.
 - **Problem:** egui reports Cmd as `modifiers.command` (the platform command key: Cmd on macOS, Ctrl elsewhere) while `modifiers.ctrl` is the Control key. On macOS Cmd+S, Cmd+W, Cmd+Z and Cmd+Y therefore do nothing, and the help page plus every tooltip say "Ctrl+..." although macOS uses ⌘. Redo on macOS is conventionally ⌘⇧Z. The README claims macOS support, so this is a shipped-platform gap.
