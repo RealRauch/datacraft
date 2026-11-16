@@ -84,6 +84,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Macros", "Makros"),
     ("Modified", "Geändert"),
     ("Modules", "Module"),
+    ("More", "Mehr"),
+    ("More ribbon actions", "Weitere Ribbonaktionen"),
     ("Navigation Pane", "Navigationsbereich"),
     ("New Table", "Neue Tabelle"),
     (

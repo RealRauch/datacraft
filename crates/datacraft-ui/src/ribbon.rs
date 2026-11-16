@@ -21,6 +21,7 @@ use crate::theme::fonts;
 use crate::theme::tokens;
 
 mod actions;
+mod overflow;
 mod qat;
 mod views;
 
@@ -130,14 +131,25 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
     let mut tip_index = 0usize;
     ui.horizontal(|ui| {
         ui.add_space(4.0);
-        for group in &tab.groups {
+        // Group overflow (step 88.1, M98): measure every group's natural
+        // width once, let the core fit math decide the visible prefix and
+        // the collapsed suffix, and paint one overflow control for the
+        // suffix — no command ever leaves the window silently.
+        let spacing = ui.spacing().item_spacing.x;
+        let widths: Vec<f32> = tab
+            .groups
+            .iter()
+            .map(|group| group_width(ui, group).max(120.0))
+            .collect();
+        let fit = overflow::plan(ui, &widths, spacing);
+        for (group, width) in tab.groups.iter().zip(&widths).take(fit.visible) {
             // Content-sized container (step 44.1, H52): the first
             // `ui.vertical` in a horizontal row absorbs the whole
             // remaining width in egui 0.37 and pushed every later group
             // off-window while its caption centred across the full row.
             // Measure the group with the same width formula the buttons
             // allocate with and reserve exactly that.
-            let width = group_width(ui, group).max(120.0);
+            let width = *width;
             let group_ui = ui.allocate_ui_with_layout(
                 egui::vec2(width, 64.0),
                 egui::Layout::top_down(egui::Align::Center),
@@ -178,6 +190,12 @@ pub fn ribbon_ui(app: &mut App, ui: &mut egui::Ui) {
                 group_ui.response.rect,
             );
             ui.separator();
+        }
+        if fit.overflow > 0
+            && let Some(command) =
+                overflow::overflow_control(app, ui, tab.id, &tab.groups[fit.visible..])
+        {
+            intent = Some(command);
         }
     });
     if let Some(command) = intent {
