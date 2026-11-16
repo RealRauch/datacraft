@@ -35,7 +35,7 @@ pub enum BuilderOp {
 
 impl BuilderOp {
     /// The operator's criteria prefix (Like takes the quoted pattern —
-    /// [`condition_criteria`] adds it).
+    /// the serialization adds it).
     pub fn criteria_prefix(self) -> &'static str {
         match self {
             Self::Equal => "=",

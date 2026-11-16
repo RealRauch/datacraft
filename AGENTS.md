@@ -95,10 +95,15 @@ Run the canonical verification set before calling anything done:
 ```bash
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo test --workspace
 cargo llvm-cov --workspace --exclude datacraft-ui \
   --lcov --output-path lcov.info
 ```
+
+The rustdoc gate is part of the set: CI runs it with `-D warnings` (step
+59.2, L33), and a broken intra-doc link passed the other local gates in
+phase 87 because it was missing here (F14).
 
 The ≥ 95 % line gate is evaluated from the exported lcov — the same
 explicit parse `ci.yml` runs — because the tool's embedded

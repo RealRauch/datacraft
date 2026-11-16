@@ -240,9 +240,9 @@ impl std::error::Error for FkCriteriaError {}
 
 /// The source row's key values as exact-equality filter criteria for the
 /// target table: one `(target column, criteria)` per key pair, in key
-/// order. A NULL value anywhere in the tuple answers [`NullKey`] — the
+/// order. A NULL value anywhere in the tuple answers [`FkCriteriaError::NullKey`] — the
 /// follow never guesses a partial key; values the dialect cannot express
-/// exactly answer [`Unsupported`] instead of degrading to a wrong
+/// exactly answer [`FkCriteriaError::Unsupported`] instead of degrading to a wrong
 /// filter.
 pub fn follow_criteria(
     target: &FkFollowTarget,
