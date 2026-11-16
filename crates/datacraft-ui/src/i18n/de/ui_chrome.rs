@@ -24,6 +24,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Close All", "Alle schließen"),
     ("Close Database", "Datenbank schließen"),
     ("Close Others", "Andere schließen"),
+    ("Close Tabs to the Left", "Linke Registerkarten schließen"),
+    ("Close Tabs to the Right", "Rechte Registerkarten schließen"),
     ("Clear Sort", "Sortierung löschen"),
     ("Combo Box", "Kombinationsfeld"),
     ("Create", "Erstellen"),

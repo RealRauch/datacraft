@@ -98,6 +98,25 @@ pub fn workspace_ui(app: &mut App, ui: &mut egui::Ui) {
                                     intent = Some(WorkspaceIntent::CloseOthers(tab.id));
                                     ui.close();
                                 }
+                                // Close to one side (step 88.3, L49): the
+                                // bus commands keep the anchor and answer
+                                // an empty side precisely.
+                                if menu_item(
+                                    ui,
+                                    format!("{}.menu.close_left", tab.ui_test_id),
+                                    t("Close Tabs to the Left"),
+                                ) {
+                                    intent = Some(WorkspaceIntent::CloseLeft(tab.id));
+                                    ui.close();
+                                }
+                                if menu_item(
+                                    ui,
+                                    format!("{}.menu.close_right", tab.ui_test_id),
+                                    t("Close Tabs to the Right"),
+                                ) {
+                                    intent = Some(WorkspaceIntent::CloseRight(tab.id));
+                                    ui.close();
+                                }
                                 if menu_item(
                                     ui,
                                     format!("{}.menu.close_all", tab.ui_test_id),
@@ -203,6 +222,8 @@ enum WorkspaceIntent {
     Activate(TabId),
     Close(TabId),
     CloseOthers(TabId),
+    CloseLeft(TabId),
+    CloseRight(TabId),
     CloseAll,
 }
 
@@ -221,6 +242,12 @@ fn apply(app: &mut App, intent: WorkspaceIntent) {
         }
         WorkspaceIntent::CloseOthers(tab_id) => {
             app.dispatch(Command::CloseOtherTabs { tab_id });
+        }
+        WorkspaceIntent::CloseLeft(tab_id) => {
+            app.dispatch(Command::CloseTabsToLeft { tab_id });
+        }
+        WorkspaceIntent::CloseRight(tab_id) => {
+            app.dispatch(Command::CloseTabsToRight { tab_id });
         }
         WorkspaceIntent::CloseAll => {
             app.dispatch(Command::CloseAllTabs);
