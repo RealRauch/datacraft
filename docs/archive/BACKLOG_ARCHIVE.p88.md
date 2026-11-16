@@ -13,8 +13,19 @@
 - **Steps:** none yet.
 - **Done:** done in `93fc293` (core fit_groups math, RED `67b2c8b`) + `576eefd` (UI overflow control, RED `4a37401`) — step 88.1: the core math answers a GroupFit plan (whole groups, control width reserved first, total for degenerate rows); the UI paints one localized overflow control whose menu stacks the hidden groups' own action buttons, so dispatch, disabled states and tooltips are identical by construction; pins cover the boundary at 1280x800/960x600/800x600 in both languages, menu reachability at narrow widths and menu dispatch equalling the row command
 
+---
+
+### [x] L45 — Tab strip: the selected tab can scroll out of view — 🟢
+- **Location:** `crates/datacraft-ui/src/workspace.rs:46` (the horizontal `ScrollArea` around the tab row).
+- **Problem:** The tab strip has no fitting or scroll-to-selected rule: with many open objects the active tab can sit outside the visible strip, and activation from the nav pane, a command or a lifecycle action does not scroll it back into view. craft-libs' `tabs::fit`/`fit_whole` document the policy (shrink wide tabs before hiding them, always keep the selected tab visible, overflow the rest).
+- **Approach:** Keep the current strip and add a scroll-to-selected rule on activation; only if that proves insufficient, add a width policy (shrink wide tabs, overflow list) with the math in core. No dependency.
+- **Acceptance:** Activating an off-screen tab scrolls the strip to it (kittest/layout_probe pin); every tab stays reachable by pointer and keyboard; the selected tab is always visible after nav-pane activation and lifecycle-driven activation.
+- **Steps:** none yet.
+- **Done:** done in `c7e60b7` (RED `c0e5ad9`) — step 88.2: the strip row lives in a horizontal ScrollArea and a scroll-to-selected rule fires on activation only; every tab stays reachable by pointer (scrollable content, pinned) and by keyboard (all activation paths manifest as a changed active tab); the pins cover the overflowing strip at 640x600 with the lifecycle-opened and the nav-pane re-activated tab fully visible
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
 
 - M98 — Ribbon has no group overflow at narrow widths — done (done in `93fc293` (core fit_groups math, RED `67b2c8b`) + `576eefd` (UI overflow control, RED `4a37401`) — step 88.1: the core math answers a GroupFit plan (whole groups, control width reserved first, total for degenerate rows); the UI paints one localized overflow control whose menu stacks the hidden groups' own action buttons, so dispatch, disabled states and tooltips are identical by construction; pins cover the boundary at 1280x800/960x600/800x600 in both languages, menu reachability at narrow widths and menu dispatch equalling the row command)
+- L45 — Tab strip: the selected tab can scroll out of view — done (done in `c7e60b7` (RED `c0e5ad9`) — step 88.2: the strip row lives in a horizontal ScrollArea and a scroll-to-selected rule fires on activation only; every tab stays reachable by pointer (scrollable content, pinned) and by keyboard (all activation paths manifest as a changed active tab); the pins cover the overflowing strip at 640x600 with the lifecycle-opened and the nav-pane re-activated tab fully visible)

@@ -78,13 +78,6 @@
 - **Steps:** none yet (Medium gate; candidate for a later phase after M96/Phase 79 fixes the root README structure).
 - **Acceptance:** Every published crate packages its own README (visible in `cargo package --list`); the crates.io page states what the crate is, its feature flags and MSRV, and links the product page; PUBLISHING's checklist names the per-crate README verification; no publish metadata drift.
 
-### [ ] L45 — Tab strip: the selected tab can scroll out of view — 🟢
-- **Location:** `crates/datacraft-ui/src/workspace.rs:46` (the horizontal `ScrollArea` around the tab row).
-- **Problem:** The tab strip has no fitting or scroll-to-selected rule: with many open objects the active tab can sit outside the visible strip, and activation from the nav pane, a command or a lifecycle action does not scroll it back into view. craft-libs' `tabs::fit`/`fit_whole` document the policy (shrink wide tabs before hiding them, always keep the selected tab visible, overflow the rest).
-- **Approach:** Keep the current strip and add a scroll-to-selected rule on activation; only if that proves insufficient, add a width policy (shrink wide tabs, overflow list) with the math in core. No dependency.
-- **Acceptance:** Activating an off-screen tab scrolls the strip to it (kittest/layout_probe pin); every tab stays reachable by pointer and keyboard; the selected tab is always visible after nav-pane activation and lifecycle-driven activation.
-- **Steps:** none yet.
-
 ### [ ] L46 — Native menu bar on macOS — decision — 🟢
 - **Location:** the shell roots (`crates/datacraft-ui/src/app.rs`, `shell.rs`) and the macOS target gate; no menu-bar module exists.
 - **Problem:** macOS apps are expected to provide a menu bar (App/File/Edit/View/Window/Help) with the standard About, Settings, Services, Hide and Quit items, and a Window menu listing open documents. DataCraft ships a ribbon-only shell, so those platform affordances are absent and standard chords such as Cmd+Q are not routed through the app's policies. craft-libs' `craft-menu` documents the role-based layout (items found by role, not title) and a native macOS backend.
