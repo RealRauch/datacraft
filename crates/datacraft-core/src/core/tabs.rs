@@ -9,6 +9,25 @@ use crate::ids::TabId;
 use crate::port::PortError;
 use crate::state::{TabMode, TabState};
 
+/// The side the close-to-side commands anchor on (step 88.3, item L49).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Side {
+    /// Every tab strictly left of the anchor.
+    Left,
+    /// Every tab strictly right of the anchor.
+    Right,
+}
+
+impl Side {
+    /// The word for the precise empty-side failure.
+    fn word(self) -> &'static str {
+        match self {
+            Side::Left => "left",
+            Side::Right => "right",
+        }
+    }
+}
+
 impl crate::core::Core {
     /// Opens (or re-activates) an object tab. An explicit mode is honoured
     /// for kinds with a design view and applied to existing tabs as well
@@ -80,11 +99,18 @@ impl crate::core::Core {
                 PortError::TableNotFound(object.name).to_string(),
             );
         }
+        // Idle-tab reuse (step 88.3, L49): an object that is already open
+        // re-activates its tab — never a second one. The match is
+        // case-insensitive like the existence check, so a differently
+        // cased name cannot open a duplicate tab of the same object.
         if let Some(existing) = self
             .state
             .tabs
             .iter()
-            .find(|tab| tab.object == object)
+            .find(|tab| {
+                tab.object.kind == object.kind
+                    && tab.object.name.to_lowercase() == object.name.to_lowercase()
+            })
             .cloned()
         {
             self.state.active_tab = Some(existing.id);
@@ -174,6 +200,50 @@ impl crate::core::Core {
             .map(|tab_id| Event::TabClosed { tab_id })
             .collect();
         events.push(Event::ActiveTabChanged { tab_id: None });
+        events
+    }
+
+    /// Closes every tab strictly to one side of the anchor tab (step
+    /// 88.3, item L49); the anchor survives and becomes active only when
+    /// the active tab was on the closed side. An empty side answers the
+    /// same precise failure as `close_all_tabs`.
+    pub(crate) fn close_tabs_to_side(&mut self, tab_id: TabId, side: Side) -> Vec<Event> {
+        if !self.state.tabs.iter().any(|tab| tab.id == tab_id) {
+            return failed(FailureCode::NotFound, format!("unknown tab {tab_id}"));
+        }
+        let Some(anchor) = self.state.tabs.iter().position(|tab| tab.id == tab_id) else {
+            return failed(FailureCode::NotFound, format!("unknown tab {tab_id}"));
+        };
+        let side_range = match side {
+            Side::Left => 0..anchor,
+            Side::Right => anchor + 1..self.state.tabs.len(),
+        };
+        if side_range.is_empty() {
+            return failed(
+                FailureCode::Lifecycle,
+                format!("no tabs to the {} of the open document", side.word()),
+            );
+        }
+        let closed: Vec<TabId> = self.state.tabs[side_range.clone()]
+            .iter()
+            .map(|tab| tab.id)
+            .collect();
+        let closed_set: std::collections::HashSet<TabId> = closed.iter().copied().collect();
+        self.state.tabs.retain(|tab| !closed_set.contains(&tab.id));
+        let mut events: Vec<Event> = closed
+            .iter()
+            .map(|closed_id| Event::TabClosed { tab_id: *closed_id })
+            .collect();
+        if self
+            .state
+            .active_tab
+            .is_some_and(|active| closed_set.contains(&active))
+        {
+            self.state.active_tab = Some(tab_id);
+            events.push(Event::ActiveTabChanged {
+                tab_id: Some(tab_id),
+            });
+        }
         events
     }
 

@@ -431,6 +431,12 @@ impl Core {
             Command::OpenObjectInMode { object, mode } => self.open_object(object, Some(mode)),
             Command::CloseTab { tab_id } => self.close_tab(tab_id),
             Command::CloseOtherTabs { tab_id } => self.close_other_tabs(tab_id),
+            Command::CloseTabsToLeft { tab_id } => {
+                self.close_tabs_to_side(tab_id, tabs::Side::Left)
+            }
+            Command::CloseTabsToRight { tab_id } => {
+                self.close_tabs_to_side(tab_id, tabs::Side::Right)
+            }
             Command::CloseAllTabs => self.close_all_tabs(),
             Command::SetActiveTab { tab_id } => self.set_active_tab(tab_id),
             Command::SetTabMode { tab_id, mode } => self.set_tab_mode(tab_id, mode),

@@ -140,16 +140,14 @@ fn close_tabs_to_the_left_keeps_the_addressed_tab_and_the_right_side() {
     let customers = open(&mut core, "Customers");
     let orders = open(&mut core, "Orders");
     let items = open(&mut core, "Items");
-    // Active tab sits on the closed side: activation moves to the anchor.
+    // The lifecycle's active tab is the anchor itself: the close stays
+    // silent about activation.
     let events = core.dispatch(Command::CloseTabsToLeft { tab_id: items });
     assert_eq!(
         events,
         vec![
             Event::TabClosed { tab_id: customers },
             Event::TabClosed { tab_id: orders },
-            Event::ActiveTabChanged {
-                tab_id: Some(items)
-            },
         ]
     );
     let snapshot = core.inspect();
@@ -159,18 +157,21 @@ fn close_tabs_to_the_left_keeps_the_addressed_tab_and_the_right_side() {
 }
 
 #[test]
-fn close_tabs_to_the_left_with_an_active_survivor_stays_silent() {
+fn close_tabs_to_the_left_moves_activation_when_it_was_closed() {
     let mut core = opened_core();
     let customers = open(&mut core, "Customers");
     let orders = open(&mut core, "Orders");
     let items = open(&mut core, "Items");
-    core.dispatch(Command::SetActiveTab { tab_id: items });
+    core.dispatch(Command::SetActiveTab { tab_id: customers });
     let events = core.dispatch(Command::CloseTabsToLeft { tab_id: items });
     assert_eq!(
         events,
         vec![
             Event::TabClosed { tab_id: customers },
             Event::TabClosed { tab_id: orders },
+            Event::ActiveTabChanged {
+                tab_id: Some(items)
+            },
         ]
     );
     assert_eq!(core.inspect().active_tab, Some(items));
@@ -253,33 +254,36 @@ fn side_close_commands_round_trip_over_the_json_rpc_wire() {
             "jsonrpc": "2.0",
             "id": 1,
             "method": "dispatch",
-            "params": {"CloseTabsToLeft": {"tab_id": {"value": _items.value()}}},
+            "params": {"CloseTabsToRight": {"tab_id": {"value": customers.value()}}},
         })
         .to_string(),
     );
     let response: Value = serde_json::from_str(&raw).expect("response parses");
-    let open: Vec<Value> = response["result"]["snapshot"]["tabs"]
+    let open_tabs: Vec<Value> = response["result"]["snapshot"]["tabs"]
         .as_array()
         .cloned()
         .unwrap_or_default();
-    assert_eq!(open.len(), 2, "the left side closed over the wire");
-    assert_eq!(open[0]["id"]["value"], customers.value());
+    assert_eq!(open_tabs.len(), 1, "the right side closed over the wire");
+    assert_eq!(open_tabs[0]["id"]["value"], customers.value());
+    // Re-open one document left of the anchor and close it from the wire.
+    let orders = open(&mut core, "Orders");
     let raw = handle_json(
         &mut core,
         &json!({
             "jsonrpc": "2.0",
             "id": 2,
             "method": "dispatch",
-            "params": {"CloseTabsToRight": {"tab_id": {"value": customers.value()}}},
+            "params": {"CloseTabsToLeft": {"tab_id": {"value": orders.value()}}},
         })
         .to_string(),
     );
     let response: Value = serde_json::from_str(&raw).expect("response parses");
-    let open: Vec<Value> = response["result"]["snapshot"]["tabs"]
+    let open_tabs: Vec<Value> = response["result"]["snapshot"]["tabs"]
         .as_array()
         .cloned()
         .unwrap_or_default();
-    assert_eq!(open.len(), 1, "the right side closed over the wire");
+    assert_eq!(open_tabs.len(), 1, "the left side closed over the wire");
+    assert_eq!(open_tabs[0]["id"]["value"], orders.value());
 }
 
 #[test]

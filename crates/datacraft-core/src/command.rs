@@ -218,6 +218,18 @@ pub enum Command {
         /// The tab to keep.
         tab_id: TabId,
     },
+    /// Closes every tab strictly to the left of the anchor tab; the
+    /// anchor survives (step 88.3, L49).
+    CloseTabsToLeft {
+        /// The tab that anchors the action and survives.
+        tab_id: TabId,
+    },
+    /// Closes every tab strictly to the right of the anchor tab; the
+    /// anchor survives (step 88.3, L49).
+    CloseTabsToRight {
+        /// The tab that anchors the action and survives.
+        tab_id: TabId,
+    },
     /// Closes every document tab (step 21.6, item U10).
     CloseAllTabs,
     /// Makes an existing tab the active one.
