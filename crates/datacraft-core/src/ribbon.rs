@@ -281,3 +281,69 @@ pub fn rendered_tabs(active_kind: Option<&str>) -> Vec<&'static RibbonTab> {
     }
     tabs
 }
+
+#[cfg(test)]
+mod overflow_tests {
+    use super::*;
+
+    fn widths() -> Vec<f32> {
+        vec![120.0, 150.0, 130.0, 110.0]
+    }
+
+    /// Every group fits: nothing collapses and the UI paints no overflow
+    /// control at all (an empty overflow entry point would be noise).
+    #[test]
+    fn all_groups_stay_visible_when_they_fit() {
+        let fit = fit_groups(&widths(), 600.0, 8.0, 40.0);
+        assert_eq!(fit, GroupFit { visible: 4, overflow: 0 });
+    }
+
+    /// A boundary fit still counts as visible (the row uses the full
+    /// width before anything collapses).
+    #[test]
+    fn an_exact_fit_counts_as_visible() {
+        let fit = fit_groups(&[100.0, 100.0], 208.0, 8.0, 40.0);
+        assert_eq!(fit, GroupFit { visible: 2, overflow: 0 });
+    }
+
+    /// Groups never split: the row keeps the longest prefix of whole
+    /// groups that fits beside the reserved overflow control, and the
+    /// rest collapses into the menu (M98, Access convention).
+    #[test]
+    fn whole_groups_collapse_into_the_overflow_menu() {
+        // 120 + 8 + 150 = 278; beside the control (8 + 40) exactly 326 <= 330,
+        // while a third group would cross the row.
+        let fit = fit_groups(&widths(), 330.0, 8.0, 40.0);
+        assert_eq!(fit, GroupFit { visible: 2, overflow: 2 });
+    }
+
+    /// The overflow control's width is reserved before any group: a row
+    /// that could show one wide group without the control must still
+    /// collapse it so the entry point for hidden commands never
+    /// disappears itself (M98 policy).
+    #[test]
+    fn the_overflow_control_width_is_reserved_before_any_group() {
+        let fit = fit_groups(&[300.0, 300.0], 320.0, 8.0, 40.0);
+        assert_eq!(fit, GroupFit { visible: 0, overflow: 2 });
+    }
+
+    /// A single group wider than the whole row collapses alone; the
+    /// overflow control stays the only visible entry point.
+    #[test]
+    fn a_single_group_wider_than_the_row_collapses_alone() {
+        let fit = fit_groups(&[500.0], 300.0, 8.0, 40.0);
+        assert_eq!(fit, GroupFit { visible: 0, overflow: 1 });
+    }
+
+    /// Degenerate rows stay total: no groups means an empty plan, and a
+    /// row too narrow for even the control still answers a plan (the
+    /// UI paints the control as best it can rather than hiding it).
+    #[test]
+    fn degenerate_rows_stay_total() {
+        assert_eq!(fit_groups(&[], 100.0, 8.0, 40.0), GroupFit { visible: 0, overflow: 0 });
+        assert_eq!(
+            fit_groups(&widths(), 10.0, 8.0, 40.0),
+            GroupFit { visible: 0, overflow: 4 }
+        );
+    }
+}
