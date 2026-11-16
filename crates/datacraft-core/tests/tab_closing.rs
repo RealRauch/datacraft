@@ -135,6 +135,154 @@ fn close_all_tabs_without_tabs_fails_precisely() {
 }
 
 #[test]
+fn close_tabs_to_the_left_keeps_the_addressed_tab_and_the_right_side() {
+    let mut core = opened_core();
+    let customers = open(&mut core, "Customers");
+    let orders = open(&mut core, "Orders");
+    let items = open(&mut core, "Items");
+    // Active tab sits on the closed side: activation moves to the anchor.
+    let events = core.dispatch(Command::CloseTabsToLeft { tab_id: items });
+    assert_eq!(
+        events,
+        vec![
+            Event::TabClosed { tab_id: customers },
+            Event::TabClosed { tab_id: orders },
+            Event::ActiveTabChanged {
+                tab_id: Some(items)
+            },
+        ]
+    );
+    let snapshot = core.inspect();
+    let open: Vec<TabId> = snapshot.tabs.iter().map(|tab| tab.id).collect();
+    assert_eq!(open, vec![items]);
+    assert_eq!(snapshot.active_tab, Some(items));
+}
+
+#[test]
+fn close_tabs_to_the_left_with_an_active_survivor_stays_silent() {
+    let mut core = opened_core();
+    let customers = open(&mut core, "Customers");
+    let orders = open(&mut core, "Orders");
+    let items = open(&mut core, "Items");
+    core.dispatch(Command::SetActiveTab { tab_id: items });
+    let events = core.dispatch(Command::CloseTabsToLeft { tab_id: items });
+    assert_eq!(
+        events,
+        vec![
+            Event::TabClosed { tab_id: customers },
+            Event::TabClosed { tab_id: orders },
+        ]
+    );
+    assert_eq!(core.inspect().active_tab, Some(items));
+}
+
+#[test]
+fn close_tabs_to_the_right_keeps_the_addressed_tab_and_the_left_side() {
+    let mut core = opened_core();
+    let customers = open(&mut core, "Customers");
+    let orders = open(&mut core, "Orders");
+    let items = open(&mut core, "Items");
+    core.dispatch(Command::SetActiveTab { tab_id: customers });
+    let events = core.dispatch(Command::CloseTabsToRight { tab_id: customers });
+    assert_eq!(
+        events,
+        vec![
+            Event::TabClosed { tab_id: orders },
+            Event::TabClosed { tab_id: items },
+        ]
+    );
+    let snapshot = core.inspect();
+    let open: Vec<TabId> = snapshot.tabs.iter().map(|tab| tab.id).collect();
+    assert_eq!(open, vec![customers]);
+    assert_eq!(snapshot.active_tab, Some(customers));
+}
+
+#[test]
+fn close_tabs_to_the_right_moves_activation_when_it_was_closed() {
+    let mut core = opened_core();
+    let customers = open(&mut core, "Customers");
+    let orders = open(&mut core, "Orders");
+    let items = open(&mut core, "Items");
+    let events = core.dispatch(Command::CloseTabsToRight { tab_id: customers });
+    assert_eq!(
+        events,
+        vec![
+            Event::TabClosed { tab_id: orders },
+            Event::TabClosed { tab_id: items },
+            Event::ActiveTabChanged {
+                tab_id: Some(customers)
+            },
+        ]
+    );
+    assert_eq!(core.inspect().active_tab, Some(customers));
+}
+
+#[test]
+fn close_tabs_to_an_empty_side_fails_precisely_and_keeps_everything() {
+    let mut core = opened_core();
+    let customers = open(&mut core, "Customers");
+    let orders = open(&mut core, "Orders");
+    let reason = failed_reason(&core.dispatch(Command::CloseTabsToLeft { tab_id: customers }));
+    assert!(reason.contains("no tabs to the left"), "{reason}");
+    assert_eq!(core.inspect().tabs.len(), 2, "nothing was closed");
+    let reason = failed_reason(&core.dispatch(Command::CloseTabsToRight { tab_id: orders }));
+    assert!(reason.contains("no tabs to the right"), "{reason}");
+    assert_eq!(core.inspect().tabs.len(), 2, "nothing was closed");
+}
+
+#[test]
+fn close_tabs_to_a_side_rejects_an_unknown_tab() {
+    let mut core = opened_core();
+    open(&mut core, "Customers");
+    let reason = failed_reason(&core.dispatch(Command::CloseTabsToLeft {
+        tab_id: TabId::new(99),
+    }));
+    assert!(reason.contains("unknown tab"), "{reason}");
+    assert_eq!(core.inspect().tabs.len(), 1, "nothing was closed");
+}
+
+#[test]
+fn side_close_commands_round_trip_over_the_json_rpc_wire() {
+    let mut core = opened_core();
+    let customers = open(&mut core, "Customers");
+    let _orders = open(&mut core, "Orders");
+    let _items = open(&mut core, "Items");
+    let raw = handle_json(
+        &mut core,
+        &json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "dispatch",
+            "params": {"CloseTabsToLeft": {"tab_id": {"value": _items.value()}}},
+        })
+        .to_string(),
+    );
+    let response: Value = serde_json::from_str(&raw).expect("response parses");
+    let open: Vec<Value> = response["result"]["snapshot"]["tabs"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    assert_eq!(open.len(), 2, "the left side closed over the wire");
+    assert_eq!(open[0]["id"]["value"], customers.value());
+    let raw = handle_json(
+        &mut core,
+        &json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "dispatch",
+            "params": {"CloseTabsToRight": {"tab_id": {"value": customers.value()}}},
+        })
+        .to_string(),
+    );
+    let response: Value = serde_json::from_str(&raw).expect("response parses");
+    let open: Vec<Value> = response["result"]["snapshot"]["tabs"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    assert_eq!(open.len(), 1, "the right side closed over the wire");
+}
+
+#[test]
 fn bulk_close_commands_round_trip_over_the_json_rpc_wire() {
     let mut core = opened_core();
     let customers = open(&mut core, "Customers");
