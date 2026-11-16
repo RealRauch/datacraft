@@ -23,9 +23,18 @@
 - **Steps:** none yet.
 - **Done:** steps 87.3/87.4 — filter builder model, window with draft/apply, text-mode fence for the bare wildcard (commits f837454, 959099d, 3c872a1, 1fabe59, 587cf7b, d155b40, 6b3a6d6, 1e72e03)
 
+---
+
+### [x] F14 — Inline fix: broken intra-doc links reached CI because the local set lacked the rustdoc gate — 🟢
+- **Location:** `crates/datacraft-core/src/fk_nav.rs` and `filter_builder.rs` doc comments; `AGENTS.md` §4 canonical verification set.
+- **Problem:** The phase 87 pushes failed the CI rustdoc gate ("unresolved link to `NullKey`", "links to private item `condition_criteria`") while every local gate was green — the canonical set in AGENTS §4 lacked the rustdoc command that CI enforces (step 59.2, L33), so the failure only surfaced at the phase boundary.
+- **Fix:** the enum-variant links and the private link are repaired in `883e341`; the rustdoc command joined the AGENTS §4 set in the same commit.
+- **Done:** fixed in 883e341 (doc links + AGENTS §4 rustdoc gate)
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
 
 - M103 — No foreign-key navigation from a datasheet row — done (steps 87.1/87.2 — follow affordance, per-tab history and capped referenced-by counts (commits 582810a, 65201d3, 3df0e87, cf903be, 4f2a99d, 57d8cd0, e34f4b3, c8f48f8, 1e862ca, 21c29c2, 05ceed4))
 - M104 — Datasheet filtering is a criteria string — no structured AND/OR builder — done (steps 87.3/87.4 — filter builder model, window with draft/apply, text-mode fence for the bare wildcard (commits f837454, 959099d, 3c872a1, 1fabe59, 587cf7b, d155b40, 6b3a6d6, 1e72e03))
+- F14 — Inline fix: broken intra-doc links reached CI because the local set lacked the rustdoc gate — done (fixed in 883e341 (doc links + AGENTS §4 rustdoc gate))
