@@ -282,6 +282,67 @@ pub fn rendered_tabs(active_kind: Option<&str>) -> Vec<&'static RibbonTab> {
     tabs
 }
 
+/// The overflow decision for one ribbon group row (step 88.1, item M98).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GroupFit {
+    /// Groups that stay in the row: a prefix, in render order.
+    pub visible: usize,
+    /// Groups collapsed into the overflow menu: the remaining suffix.
+    pub overflow: usize,
+}
+
+/// Ribbon group-overflow policy (step 88.1, item M98; the H52 precedent
+/// of layout math living in core): whole groups never split — the row
+/// keeps the longest prefix of groups whose natural widths fit the
+/// available width, and everything else collapses into the overflow
+/// menu. The overflow control's width is reserved *before* any group so
+/// the entry point for hidden commands never disappears itself, and no
+/// command ever leaves the window silently.
+///
+/// `available` is the row width available for group content *and* the
+/// control (the caller subtracts per-element chrome such as separators
+/// first); `spacing` is the gap between consecutive elements and
+/// `overflow_width` the painted width of the control. Total: even a row
+/// too narrow for the control answers a plan instead of hiding it.
+pub fn fit_groups(
+    group_widths: &[f32],
+    available: f32,
+    spacing: f32,
+    overflow_width: f32,
+) -> GroupFit {
+    let count = group_widths.len();
+    let prefix_width = |count: usize| -> f32 {
+        group_widths
+            .iter()
+            .take(count)
+            .enumerate()
+            .map(
+                |(index, width)| {
+                    if index == 0 { *width } else { spacing + width }
+                },
+            )
+            .sum()
+    };
+    if prefix_width(count) <= available {
+        return GroupFit {
+            visible: count,
+            overflow: 0,
+        };
+    }
+    for visible in (0..count).rev() {
+        if prefix_width(visible) + spacing + overflow_width <= available {
+            return GroupFit {
+                visible,
+                overflow: count - visible,
+            };
+        }
+    }
+    GroupFit {
+        visible: 0,
+        overflow: count,
+    }
+}
+
 #[cfg(test)]
 mod overflow_tests {
     use super::*;
@@ -295,7 +356,13 @@ mod overflow_tests {
     #[test]
     fn all_groups_stay_visible_when_they_fit() {
         let fit = fit_groups(&widths(), 600.0, 8.0, 40.0);
-        assert_eq!(fit, GroupFit { visible: 4, overflow: 0 });
+        assert_eq!(
+            fit,
+            GroupFit {
+                visible: 4,
+                overflow: 0
+            }
+        );
     }
 
     /// A boundary fit still counts as visible (the row uses the full
@@ -303,7 +370,13 @@ mod overflow_tests {
     #[test]
     fn an_exact_fit_counts_as_visible() {
         let fit = fit_groups(&[100.0, 100.0], 208.0, 8.0, 40.0);
-        assert_eq!(fit, GroupFit { visible: 2, overflow: 0 });
+        assert_eq!(
+            fit,
+            GroupFit {
+                visible: 2,
+                overflow: 0
+            }
+        );
     }
 
     /// Groups never split: the row keeps the longest prefix of whole
@@ -314,7 +387,13 @@ mod overflow_tests {
         // 120 + 8 + 150 = 278; beside the control (8 + 40) exactly 326 <= 330,
         // while a third group would cross the row.
         let fit = fit_groups(&widths(), 330.0, 8.0, 40.0);
-        assert_eq!(fit, GroupFit { visible: 2, overflow: 2 });
+        assert_eq!(
+            fit,
+            GroupFit {
+                visible: 2,
+                overflow: 2
+            }
+        );
     }
 
     /// The overflow control's width is reserved before any group: a row
@@ -324,7 +403,13 @@ mod overflow_tests {
     #[test]
     fn the_overflow_control_width_is_reserved_before_any_group() {
         let fit = fit_groups(&[300.0, 300.0], 320.0, 8.0, 40.0);
-        assert_eq!(fit, GroupFit { visible: 0, overflow: 2 });
+        assert_eq!(
+            fit,
+            GroupFit {
+                visible: 0,
+                overflow: 2
+            }
+        );
     }
 
     /// A single group wider than the whole row collapses alone; the
@@ -332,7 +417,13 @@ mod overflow_tests {
     #[test]
     fn a_single_group_wider_than_the_row_collapses_alone() {
         let fit = fit_groups(&[500.0], 300.0, 8.0, 40.0);
-        assert_eq!(fit, GroupFit { visible: 0, overflow: 1 });
+        assert_eq!(
+            fit,
+            GroupFit {
+                visible: 0,
+                overflow: 1
+            }
+        );
     }
 
     /// Degenerate rows stay total: no groups means an empty plan, and a
@@ -340,10 +431,19 @@ mod overflow_tests {
     /// UI paints the control as best it can rather than hiding it).
     #[test]
     fn degenerate_rows_stay_total() {
-        assert_eq!(fit_groups(&[], 100.0, 8.0, 40.0), GroupFit { visible: 0, overflow: 0 });
+        assert_eq!(
+            fit_groups(&[], 100.0, 8.0, 40.0),
+            GroupFit {
+                visible: 0,
+                overflow: 0
+            }
+        );
         assert_eq!(
             fit_groups(&widths(), 10.0, 8.0, 40.0),
-            GroupFit { visible: 0, overflow: 4 }
+            GroupFit {
+                visible: 0,
+                overflow: 4
+            }
         );
     }
 }
