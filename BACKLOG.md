@@ -30,13 +30,6 @@
 - **Acceptance:** Unit tests cover the matcher and both label forms; a kittest with `modifiers.command` proves Cmd+S dispatches SaveDesign; the help page and tooltips show ⌘ on macOS and Ctrl elsewhere; redo works with ⌘⇧Z on macOS and Ctrl+Y elsewhere.
 - **Steps:** none yet.
 
-### [ ] M100 — Tool windows as task panes — decision and scope — 🟡
-- **Location:** `crates/datacraft-ui/src/tool_window.rs` plus the floating windows it centres (SQL, Expression, Relationships, VBA analysis, Notices).
-- **Problem:** Tool windows are free-floating `egui::Window`s with no remembered placement. Access and modern database clients use docked task panes; craft-libs' `panes`/`docking` show the mature model (side/bottom/floating panes, title bar, resize, remembered geometry, transactional dock moves). A migration is a UX decision with a potentially large dependency, not a quick change.
-- **Approach:** Write a decision record in `docs/ROADMAP.md` with three options: keep floating windows, build a minimal docked task-pane host in the UI (no new dependency), or adopt craft-ui's panes (git-pinned, unpublished). Compare effort, geometry persistence, multi-window behaviour, testability and the impact on the desktop shell's identity.
-- **Acceptance:** A written decision with a go/no-go and, if yes, a scoped follow-up item with acceptance; no implementation before the decision.
-- **Steps:** none yet.
-
 ### [ ] M101 — Datasheet lacks multi-cell selection, clipboard and fill — 🟡
 - **Location:** `crates/datacraft-ui/src/datasheet.rs` and `crates/datacraft-ui/src/datasheet/grid.rs` (single record cursor; M38 added arrow/Home/End/PgUp/PgDn).
 - **Problem:** There is no rectangle selection, Ctrl+A, copy/paste, fill or Delete-to-NULL. Access users expect all of them: a clipboard matrix from Excel, a column fill with one value, and clearing cells to NULL. Today every edit addresses one cell.
