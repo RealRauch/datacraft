@@ -49,12 +49,7 @@ const HOSTILE_NAMES: &[&str] = &[
 const ACCEPTED_MISSING: &[char] = &[
     '表', 'テ', 'ー', 'ブ', 'ル', // CJK object names
     '🚀', '🔥', // emoji object names
-    '√',  // technical symbols
 ];
-
-/// RED evidence only — an injected string the shipped stack cannot
-/// cover; removed at GREEN (step 88.4, T11, H53's U+2715 evidence).
-const INJECTED_MISSING: &[&str] = &["injected RED string ✕"];
 
 /// Every catalog string renders without tofu in both languages.
 #[test]
@@ -76,9 +71,6 @@ fn every_catalog_string_is_fully_covered_in_both_languages() {
         for (english, german) in de::entries() {
             walk("en", english, english, fonts);
             walk("de", english, german, fonts);
-        }
-        for injected in INJECTED_MISSING {
-            walk("injected", injected, injected, fonts);
         }
         missing
     });
