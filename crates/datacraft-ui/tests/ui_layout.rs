@@ -314,6 +314,113 @@ fn record_navigation_places_previous_left_of_next() {
     );
 }
 
+/// An app with `names` tables opened in order — the last opened tab is
+/// the active one (the shell follows lifecycle actions, step 69.3, M80).
+fn app_with_open_tabs(names: &[&str]) -> App {
+    let port = MockPort::with_tables(
+        names
+            .iter()
+            .map(|name| {
+                TableDef::new(
+                    *name,
+                    vec![FieldDef::new(
+                        "Id",
+                        FieldKind::Number(NumericKind::LongInteger),
+                    )],
+                )
+            })
+            .collect(),
+    );
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "database.mdb".into(),
+        password: None,
+        source: None,
+    });
+    for name in names {
+        app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+            datacraft_core::ObjectKind::Table,
+            *name,
+        )));
+    }
+    app
+}
+
+/// Rect of one tab's paint block and the tab-strip viewport.
+fn tab_rect(rects: &[(String, egui::Rect)], name: &str) -> egui::Rect {
+    let id = format!("workspace.tab.table.{}", name.to_lowercase());
+    panel_rect(rects, &id)
+}
+
+fn tabstrip_view(rects: &[(String, egui::Rect)]) -> egui::Rect {
+    panel_rect(rects, "workspace.tabstrip.view")
+}
+
+/// Six tables overflow the strip at a 640px window (step 88.2, item L45):
+/// the strip must scroll instead of clipping, so the active tab — the
+/// last one the lifecycle opened — stays fully visible.
+#[test]
+fn the_active_tab_stays_visible_when_the_strip_overflows() {
+    let names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"];
+    let app = app_with_open_tabs(&names);
+    let (rects, _) = shell_frame(app, egui::vec2(640.0, 600.0));
+    let view = tabstrip_view(&rects);
+    let active = tab_rect(&rects, "Foxtrot");
+    assert!(
+        active.right() <= view.right() + 1.0 && active.left() >= view.left() - 1.0,
+        "the active tab paints at {active:?}, outside the strip viewport {view:?} — the \
+         selected tab disappeared from the visible strip (L45)",
+    );
+}
+
+/// Activating an already-open tab whose rect sits left of the viewport
+/// (the nav-pane path: OpenObject re-activates the existing tab) scrolls
+/// the strip back to it (step 88.2, item L45).
+#[test]
+fn activating_an_open_tab_scrolls_the_strip_back_to_it() {
+    let names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"];
+    let mut app = app_with_open_tabs(&names);
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Alpha",
+    )));
+    let (rects, _) = shell_frame(app, egui::vec2(640.0, 600.0));
+    let view = tabstrip_view(&rects);
+    let active = tab_rect(&rects, "Alpha");
+    assert!(
+        active.right() <= view.right() + 1.0 && active.left() >= view.left() - 1.0,
+        "the re-activated tab paints at {active:?}, outside the strip viewport {view:?} — \
+         nav-pane activation left the selected tab off-screen (L45)",
+    );
+}
+
+/// The overflowing strip keeps every tab reachable by scrolling: all
+/// six paint blocks live inside the scrollable content area, and the
+/// content really overflows the viewport (the scenario exists).
+#[test]
+fn the_overflowing_strip_scrolls_instead_of_clipping() {
+    let names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"];
+    let app = app_with_open_tabs(&names);
+    let (rects, _) = shell_frame(app, egui::vec2(640.0, 600.0));
+    let view = tabstrip_view(&rects);
+    let content = panel_rect(rects.as_slice(), "workspace.tabstrip.content");
+    assert!(
+        content.width() > view.width(),
+        "six tabs fit the {}px viewport ({:.0}px content) — the overflow scenario does not \
+         exist at this size",
+        view.width(),
+        content.width(),
+    );
+    for name in names {
+        let rect = tab_rect(&rects, name);
+        assert!(
+            rect.right() <= content.right() + 1.0,
+            "tab {name} paints at {rect:?}, beyond the scrollable content {content:?} — no \
+             scroll position can ever reach it",
+        );
+    }
+}
+
 /// The record-navigation counter reads the cursor the arrows write (step
 /// 48.1, item M60, user report 2026-11-06): clicking next on a 2-row
 /// table moves the counter to "2 of 2" and the record cursor to 1. The
