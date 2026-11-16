@@ -13,7 +13,7 @@ use std::sync::Mutex;
 use datacraft_core::command::Command;
 use datacraft_core::port::MockPort;
 use datacraft_core::ribbon::ribbon_spec;
-use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
+use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use datacraft_ui::i18n::{self, Lang, translate};
 use datacraft_ui::layout_probe;
@@ -51,7 +51,11 @@ fn app_with_tables() -> App {
     app
 }
 
-fn ribbon_rects(mut app: App, ribbon_tab: &'static str, size: egui::Vec2) -> Vec<(String, egui::Rect)> {
+fn ribbon_rects(
+    mut app: App,
+    ribbon_tab: &'static str,
+    size: egui::Vec2,
+) -> Vec<(String, egui::Rect)> {
     app.active_ribbon_tab = ribbon_tab;
     let mut harness = Harness::new_ui_state(
         move |ui, app: &mut App| {
@@ -120,8 +124,16 @@ fn tree_labels(harness: &Harness<'_, App>) -> Vec<String> {
 fn overflow_boundary_at_the_acceptance_sizes() {
     for lang in [Lang::English, Lang::German] {
         with_lang(lang, || {
-            for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0), egui::vec2(800.0, 600.0)] {
-                for tab in ribbon_spec().tabs.iter().filter(|tab| !tab.groups.is_empty()) {
+            for size in [
+                egui::vec2(1280.0, 800.0),
+                egui::vec2(960.0, 600.0),
+                egui::vec2(800.0, 600.0),
+            ] {
+                for tab in ribbon_spec()
+                    .tabs
+                    .iter()
+                    .filter(|tab| !tab.groups.is_empty())
+                {
                     let rects = ribbon_rects(app_with_tables(), tab.id, size);
                     let window = window_rect(&rects);
                     let painted = group_rects(&rects, tab.id);
