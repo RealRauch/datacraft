@@ -899,3 +899,37 @@ the SQL window as the first dockable pane, persistence, kittest pins; the
 remaining surfaces migrate per-surface after the pilot proves the model).
 The item is filed now because M100's acceptance required it; implementation
 starts only after the human releases the owning phase.
+
+## 22. Native menu bar on macOS — decision record
+
+**Decision (2026-11-16, human-approved):** DataCraft stays **ribbon-only;
+no native macOS menu bar for now**. The gap is documented, not forgotten —
+the re-evaluation gate below names exactly when it reopens.
+
+**Rationale:**
+
+1. **Nothing ships that cannot be verified.** No Mac is available to this
+   project (the M97 precedent in `docs/COMPATIBILITY.md`: the queued-dialog
+   model was chosen precisely because the native path was unverifiable on
+   hardware). A native menu bar is platform-native UI by definition — CI can
+   compile it on `macos-latest`, but the menu's presence, order and chord
+   routing cannot be exercised without the real menu bar, and a kittest
+   cannot see it. Shipping unverifiable platform UI contradicts the project's
+   verification honesty.
+2. **The in-app alternative is not the platform affordance.** egui 0.37
+   ships `menu::MenuBar`, but an in-app bar renders inside the canvas — it is
+   not the screen-top native menu macOS users expect, and it does not route
+   Cmd+Q, Hide or Services through the app's policies. Half-delivering the
+   affordance would be decoration, not the platform contract.
+3. **The keyboard gap has a cheaper owner.** The broken Cmd chords are M99's
+   scope (`modifiers.command` vs `modifiers.ctrl`, ⌘⇧Z redo) — fixable now,
+   unit- and kittest-verifiable, and independent of any menu bar.
+
+**Re-evaluation gate:** revisit when macOS hardware is reachable for a
+verification pass. The implementation path is then decided fresh — the
+published `muda` crate (which, like the already-used `rfd`, rides the
+platform's own frameworks) or craft-libs' `craft-menu` role-based model.
+Whatever the path: menu items dispatch existing commands only, key
+equivalents route through the M99 shortcut model, the ribbon stays the
+primary surface, and Windows/Linux stay visually and behaviourally
+unchanged.
