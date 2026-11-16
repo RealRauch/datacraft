@@ -92,13 +92,6 @@
 - **Acceptance:** Typing in the search narrows the visible objects across categories with a case-insensitive match and a clear empty state; multi-select works with Shift/Ctrl and the context menu acts on the selection; groups and colours persist per database path and never touch the sidecar or the database file; behaviour doc.
 - **Steps:** none yet.
 
-### [ ] L50 — No low-power/RDP rendering mode — 🟢
-- **Location:** the eframe/wgpu composition (`crates/datacraft-ui/src/main.rs`, `app.rs`); no rendering-mode policy exists.
-- **Problem:** Enterprise Access users often run over Remote Desktop or on software adapters, where every drawn frame is rasterized and re-encoded. The reference client detects a software adapter or RDP session and switches to a low-power mode (30 fps cap, one-frame wheel steps, no animations or blurred shadows, frame-statistics overlay), while still repainting only on input or when a result arrives.
-- **Approach:** Decide first whether the automatic detection is worth a platform probe (wgpu adapter info, `SM_REMOTESESSION` on Windows); then a small mode switch that only changes repaint/animation policy, with a settings entry and an env override. No renderer change, no new drawing path.
-- **Acceptance:** A decision record names the detection mechanism and the mode's measurable effects; if implemented, frame-statistics show the cap only while interacting, idle repaint stays zero, the setting persists, and the mode can be forced for a review; behaviour doc.
-- **Steps:** none yet.
-
 ### [ ] L51 — Low-power/RDP rendering mode — 🟢
 - **Location:** `crates/datacraft-ui/src/main.rs` (adapter probe in the creation callback), a new `crates/datacraft-ui/src/render_mode.rs`, `settings.rs` (setting entry), `shell.rs` (frame-statistics overlay).
 - **Problem:** Enterprise/RDP sessions rasterize and re-encode every drawn frame; egui's built-in animations multiply frames during interaction. ROADMAP §23 decided (2026-11-16, human-approved) the minimal mode and corrected the premise: the shell renders through glow (OpenGL), not wgpu — detection reads the glow adapter string plus the Windows `SESSIONNAME` heuristic (`SM_REMOTESESSION`/winapi stays banned).

@@ -23,9 +23,20 @@
 - **Steps:** none yet.
 - **Done:** done in `43aebbd` — ROADMAP §22 decision record: ribbon-only, no native menu bar now; re-evaluation gated on reachable macOS hardware for verification
 
+---
+
+### [x] L50 — No low-power/RDP rendering mode — 🟢
+- **Location:** the eframe/wgpu composition (`crates/datacraft-ui/src/main.rs`, `app.rs`); no rendering-mode policy exists.
+- **Problem:** Enterprise Access users often run over Remote Desktop or on software adapters, where every drawn frame is rasterized and re-encoded. The reference client detects a software adapter or RDP session and switches to a low-power mode (30 fps cap, one-frame wheel steps, no animations or blurred shadows, frame-statistics overlay), while still repainting only on input or when a result arrives.
+- **Approach:** Decide first whether the automatic detection is worth a platform probe (wgpu adapter info, `SM_REMOTESESSION` on Windows); then a small mode switch that only changes repaint/animation policy, with a settings entry and an env override. No renderer change, no new drawing path.
+- **Acceptance:** A decision record names the detection mechanism and the mode's measurable effects; if implemented, frame-statistics show the cap only while interacting, idle repaint stays zero, the setting persists, and the mode can be forced for a review; behaviour doc.
+- **Steps:** none yet.
+- **Done:** done in `ae981f3` — ROADMAP §23 decision record: minimal mode with glow adapter + SESSIONNAME probes (premise corrected: glow, not wgpu); implementation follow-up L51 filed
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
 
 - M100 — Tool windows as task panes — decision and scope — done (done in `5426d79` — ROADMAP §21 decision record: own minimal dock host, no new dependency; implementation follow-up M103 filed (pilot: SQL window))
 - L46 — Native menu bar on macOS — decision — done (done in `43aebbd` — ROADMAP §22 decision record: ribbon-only, no native menu bar now; re-evaluation gated on reachable macOS hardware for verification)
+- L50 — No low-power/RDP rendering mode — done (done in `ae981f3` — ROADMAP §23 decision record: minimal mode with glow adapter + SESSIONNAME probes (premise corrected: glow, not wgpu); implementation follow-up L51 filed)
