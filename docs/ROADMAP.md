@@ -857,3 +857,45 @@ clean-room claim must extend to the migration path.
 
 Cross-reference: the backlog item is M88; the feasibility evidence is
 `docs/FORMAT-JET.md` "M88 feasibility — jetdb against the committed exports".
+
+## 21. Tool windows as task panes — decision record
+
+**Decision (2026-11-16, human-approved):** DataCraft adds a **minimal docked
+task-pane host as its own UI module** — no new dependency. The tool surfaces
+(SQL, Expression, Relationships, Import File, View editor, Notices, VBA
+viewer, shortcuts help — today all free-floating `egui::Window`s with no
+remembered placement) gain a dock/float toggle: dockable right or bottom,
+floatable as today. Pane geometry persists in `ui.json` per surface (the
+window-geometry pattern, ADR-5). craft-libs' `panes`/`docking` stay the
+**pattern source only** — the same relationship `window.rs` already has with
+`ui-egui @ fd7f662` — never a dependency: the library is unpublished
+(git-pinned supply chain) and the desktop shell stays rendering glue with a
+small, own surface vocabulary.
+
+**Option comparison (the item's contract):**
+
+| Option | Effort | Geometry persistence | Multi-window behaviour | Testability | Shell identity |
+|---|---|---|---|---|---|
+| Keep floating windows | none | none today | free-floating, overlapping | kittest over windows ✓ | Access-divergent for task surfaces |
+| **Own minimal dock host (chosen)** | medium, staged per surface | `ui.json` per surface (ADR-5 pattern) | dock right/bottom + float toggle | kittest pins on dock state + layout_probe rects | closest to Access's docked task panes |
+| Adopt craft-libs panes | git pin + Medium gate, lib learning curve | built into the lib | full dock model | lib-owned; the UI tests lose the semantic seam | richest model, unpublished dependency |
+
+**Why the own host:** (1) the pattern-borrow precedent exists and worked
+(window geometry's `sanitized`/`rescue_position` came from `ui-egui` as a
+pattern, not a link); (2) an unpublished, git-pinned dependency contradicts
+the publishing hygiene the release track just built (per-crate READMEs,
+crates.io pages — Phase 90); (3) `datacraft-ui` is the registered coverage
+exception — surface logic must stay thin and kittest-driven, which an own
+host can pin and a foreign library cannot.
+
+**Access reference:** Access itself splits the roles — Property Sheet and
+Field List are docked panes, the Expression Builder floats, and query SQL
+view is a document window. The host therefore supports dock + float; whether
+a surface eventually becomes a workspace document instead of a pane stays a
+per-surface UX decision, made when that surface migrates.
+
+**Follow-up:** M103 — the scoped implementation item (host module + pilot:
+the SQL window as the first dockable pane, persistence, kittest pins; the
+remaining surfaces migrate per-surface after the pilot proves the model).
+The item is filed now because M100's acceptance required it; implementation
+starts only after the human releases the owning phase.

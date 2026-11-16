@@ -501,7 +501,7 @@
 | 88.3 | Close-to-side bus commands and the idle-tab reuse policy in the open-object path (L49) | ✅ |
 | 88.4 | Glyph coverage test over both catalogs and hostile names with an explicit painted-glyph allowlist (T11) | ✅ |
 | 88.5 | Documentation and phase gate (M98, L45, L49, T11) | ✅ |
-| 89.1 | Tool windows as task panes — decision record in docs/ROADMAP.md with go/no-go and a scoped follow-up if yes (M100) | ⬜ |
+| 89.1 | Tool windows as task panes — decision record in docs/ROADMAP.md with go/no-go and a scoped follow-up if yes (M100) | 🔄 |
 | 89.2 | Native menu bar on macOS — decision record; if yes, existing commands only and the M99 shortcut model (L46) | ⬜ |
 | 89.3 | Low-power/RDP rendering mode — detection decision and the mode's measurable effects (L50) | ⬜ |
 | 89.4 | Design pass: the human's live density/typography/spacing review with per-finding items (L47) | ⬜ |
