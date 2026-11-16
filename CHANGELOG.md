@@ -10,6 +10,20 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- ui/core: shell chrome keeps every action reachable at narrow widths
+  (88, M98/L45/L49) - ribbon groups collapse whole trailing groups behind
+  one localized overflow control when the row runs out of width (the fit
+  math lives in core, the menu stacks the hidden groups' own buttons so
+  dispatch, disabled states and tooltips stay identical; no command
+  leaves the window silently), the tab strip scrolls horizontally and
+  scrolls the selected tab back into view on every activation, and the
+  tab context menu gains Close Tabs to the Left/Right as bus commands
+  (`CloseTabsToLeft`/`CloseTabsToRight` over the wire, activation moves
+  to the anchor only when it was on the closed side); activating an
+  already-open object re-activates its tab, now matched case-insensitively,
+  and never touches a tab with a staged batch; a headless glyph-coverage
+  contract walks both catalog languages and hostile names against the
+  shipped font stack (T11).
 - ui/core: datasheet selection, clipboard, fill and the cell value viewer
   (86, M101/M102) - a multi-cell selection model (anchor rectangle,
   Shift+arrows/Shift+click extension, whole-column selection through the
