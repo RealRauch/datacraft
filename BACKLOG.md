@@ -44,9 +44,9 @@
 - **Acceptance:** A long memo, a JSON value and a binary value each open the viewer with the right form; invalid JSON stays raw; the hex view is bounded and names the truncation; the editor writes through the normal path; opening never modifies the database; kittest pins all three kinds.
 - **Steps:** none yet.
 
-### [ ] M103 — Minimal docked task-pane host, pilot: SQL window — 🟡
+### [ ] M108 — Minimal docked task-pane host, pilot: SQL window — 🟡
 - **Location:** a new `crates/datacraft-ui/src/panes.rs` host module plus the pilot surface `crates/datacraft-ui/src/sql_window.rs`; geometry in `crates/datacraft-ui/src/settings.rs` (`ui.json`, ADR-5).
-- **Problem:** The tool surfaces are free-floating `egui::Window`s with no remembered placement (M100's problem). ROADMAP §21 decided (2026-11-16, human-approved) an own minimal dock host — no new dependency, craft-libs' `panes`/`docking` stay pattern-only (the `window.rs` @ `fd7f662` precedent).
+- **Problem:** The tool surfaces are free-floating `egui::Window`s with no remembered placement (M100's problem). ROADMAP §21 decided (2026-11-16, human-approved) an own minimal dock host — no new dependency, craft-libs' `panes`/`docking` stay pattern-only (the `window.rs` @ `fd7f662` precedent). Numbered M108: the M100 archive note names the follow-up as "M103", which collided with the archived M103 (`BACKLOG_ARCHIVE.p87`) and was renumbered before any work started.
 - **Approach:** A host module with dock-right/dock-bottom/float states per surface, resize within the host, an i18n'd toggle reachable from the pane's title area and the context menu, and per-surface geometry persistence in `ui.json` (sane/rescue like the window geometry). Pilot: the SQL window migrates first; the remaining surfaces follow per-surface items after the pilot proves the model.
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
@@ -97,6 +97,13 @@
 - **Problem:** Enterprise Access users often run over Remote Desktop or on software adapters, where every drawn frame is rasterized and re-encoded. The reference client detects a software adapter or RDP session and switches to a low-power mode (30 fps cap, one-frame wheel steps, no animations or blurred shadows, frame-statistics overlay), while still repainting only on input or when a result arrives.
 - **Approach:** Decide first whether the automatic detection is worth a platform probe (wgpu adapter info, `SM_REMOTESESSION` on Windows); then a small mode switch that only changes repaint/animation policy, with a settings entry and an env override. No renderer change, no new drawing path.
 - **Acceptance:** A decision record names the detection mechanism and the mode's measurable effects; if implemented, frame-statistics show the cap only while interacting, idle repaint stays zero, the setting persists, and the mode can be forced for a review; behaviour doc.
+- **Steps:** none yet.
+
+### [ ] L51 — Low-power/RDP rendering mode — 🟢
+- **Location:** `crates/datacraft-ui/src/main.rs` (adapter probe in the creation callback), a new `crates/datacraft-ui/src/render_mode.rs`, `settings.rs` (setting entry), `shell.rs` (frame-statistics overlay).
+- **Problem:** Enterprise/RDP sessions rasterize and re-encode every drawn frame; egui's built-in animations multiply frames during interaction. ROADMAP §23 decided (2026-11-16, human-approved) the minimal mode and corrected the premise: the shell renders through glow (OpenGL), not wgpu — detection reads the glow adapter string plus the Windows `SESSIONNAME` heuristic (`SM_REMOTESESSION`/winapi stays banned).
+- **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
+- **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
 
 ---

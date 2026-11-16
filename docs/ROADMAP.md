@@ -894,11 +894,12 @@ view is a document window. The host therefore supports dock + float; whether
 a surface eventually becomes a workspace document instead of a pane stays a
 per-surface UX decision, made when that surface migrates.
 
-**Follow-up:** M103 — the scoped implementation item (host module + pilot:
+**Follow-up:** M108 — the scoped implementation item (host module + pilot:
 the SQL window as the first dockable pane, persistence, kittest pins; the
 remaining surfaces migrate per-surface after the pilot proves the model).
 The item is filed now because M100's acceptance required it; implementation
-starts only after the human releases the owning phase.
+starts only after the human releases the owning phase. It is numbered M108 —
+the archive already holds M103–M107, and item IDs are never reused.
 
 ## 22. Native menu bar on macOS — decision record
 
@@ -933,3 +934,37 @@ Whatever the path: menu items dispatch existing commands only, key
 equivalents route through the M99 shortcut model, the ribbon stays the
 primary surface, and Windows/Linux stay visually and behaviourally
 unchanged.
+
+## 23. Low-power/RDP rendering mode — decision record
+
+**Decision (2026-11-16, human-approved):** DataCraft adds a **small
+low-power rendering mode** — a policy switch over the existing reactive
+frame loop. No new dependency, no renderer change, no new drawing path.
+
+**Premise correction:** the shell renders through **glow** (OpenGL, eframe's
+default feature) — not wgpu as the backlog item assumed (wgpu sits in the
+lock file only transitively, via the dev tooling). Detection therefore reads
+the glow adapter string, not `wgpu::AdapterInfo`.
+
+**Detection (worth it — two cheap, pure-Rust probes):**
+
+| Probe | Mechanism | Cost |
+|---|---|---|
+| Software adapter | the `GL_RENDERER` string of the glow context DataCraft already creates, matched against the known software adapters (`llvmpipe`, `SwiftShader`, `GDI Generic`, `Microsoft Basic Render Driver`, …) | zero — glow is already linked |
+| RDP session (Windows) | the `SESSIONNAME` environment variable starts with `RDP-` (pure `std::env` heuristic) | zero — `SM_REMOTESESSION` would need `GetSystemMetrics`/winapi, which stays banned |
+
+**Mode effects (all measurable, and L51's acceptance pins them):**
+
+- `style.animation_duration = 0` — no menu, collapse or fade animation
+  frames.
+- Interaction repaints capped at ~30 fps (`request_repaint_after(33ms)`);
+  idle repaint stays zero — reactive eframe is already the default (one
+  `request_repaint` call exists today, in the busy overlay).
+- No blurred shadows in the visuals.
+- A frame-statistics overlay while the mode is on.
+- `DATACRAFT_LOW_POWER=1|0` as the env override and a settings entry;
+  auto-detection is the default, an explicit setting wins over detection.
+
+**Boundary, stated plainly:** the mode changes repaint/animation policy
+only. It never selects a different renderer (the glow/wgpu renderer question
+is not part of this record) and never changes what is drawn.
