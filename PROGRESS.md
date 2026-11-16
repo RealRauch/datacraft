@@ -508,7 +508,7 @@
 | 88.1 | Ribbon overflow: group-overflow layout math in core and the overflow control with identical command dispatch (M98) | ✅ |
 | 88.2 | Tab strip scroll-to-selected on activation and reachability by pointer and keyboard (L45) | ✅ |
 | 88.3 | Close-to-side bus commands and the idle-tab reuse policy in the open-object path (L49) | ✅ |
-| 88.4 | Glyph coverage test over both catalogs and hostile names with an explicit painted-glyph allowlist (T11) | ⬜ |
+| 88.4 | Glyph coverage test over both catalogs and hostile names with an explicit painted-glyph allowlist (T11) | ✅ |
 | 88.5 | Documentation and phase gate (M98, L45, L49, T11) | ⬜ |
 | 89.1 | Tool windows as task panes — decision record in docs/ROADMAP.md with go/no-go and a scoped follow-up if yes (M100) | ⬜ |
 | 89.2 | Native menu bar on macOS — decision record; if yes, existing commands only and the M99 shortcut model (L46) | ⬜ |

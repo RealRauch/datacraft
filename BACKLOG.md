@@ -110,12 +110,8 @@
 
 ## 🔵 TEST GAPS
 
-### [ ] T11 — Glyph coverage of the shipped UI fonts is untested — 🔵
-- **Location:** `crates/datacraft-ui/src/theme/fonts.rs` (Inter and its named cuts in front of egui's defaults), the de/en catalogs under `crates/datacraft-ui/src/i18n/`, and every painter that draws a glyph instead of typing it.
-- **Problem:** egui draws a character no installed face covers as tofu; the project already hit two cases (F12 combo caret, H53 ✕ U+2715) and fixed them by painting instead of typing. Nothing mechanically checks that every character the UI can render — catalog strings, database/object/file names, formatted values — has a glyph in the shipped stack, so the next missing character reaches users unnoticed.
-- **Approach:** A test that walks both catalogs plus a sample of hostile names (CJK, emoji, accents, symbols) and asks the installed `FontDefinitions` (or a small cmap reader over the embedded faces) whether a glyph exists; it fails naming the language, key and code point. Intentionally painted glyphs get an explicit allowlist so the check does not flag them. craft-libs' `fonts::assert_covers` is the reference.
-- **Acceptance:** The test fails on an injected missing character (RED evidenced before the GREEN), passes on the shipped stack, names language/key/code point, and runs headless without a GPU.
-- **Steps:** none yet.
+> No open items.
+
 
 ---
 
