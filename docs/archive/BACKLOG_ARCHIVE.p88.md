@@ -23,9 +23,20 @@
 - **Steps:** none yet.
 - **Done:** done in `c7e60b7` (RED `c0e5ad9`) — step 88.2: the strip row lives in a horizontal ScrollArea and a scroll-to-selected rule fires on activation only; every tab stays reachable by pointer (scrollable content, pinned) and by keyboard (all activation paths manifest as a changed active tab); the pins cover the overflowing strip at 640x600 with the lifecycle-opened and the nav-pane re-activated tab fully visible
 
+---
+
+### [x] L49 — Tabs: no close-to-side and no reuse of an idle tab — 🟢
+- **Location:** the tab context menu and `CloseOtherTabs`/`CloseAllTabs` (U10), and the open-object paths that always create a new tab.
+- **Problem:** The context menu closes a tab, the others or all, but not the tabs to the left/right; and every activation opens another tab even when the same object is already open and idle. The reference client reuses an idle tab (no pending changes) for navigation targets and closes to either side.
+- **Approach:** Two small additions: Close to the Left/Right as bus commands (additive wire vocabulary, same shape as U10) and a reuse policy in the open-object path (activate the existing tab when the object is already open in the requested mode and has no pending edits; H61 introduces that state). No new UI surface beyond two context-menu entries.
+- **Acceptance:** Close to the Left/Right closes exactly the expected tabs and keeps the active one; activating an already-open idle object activates its tab instead of opening a second one; an object with pending edits is never replaced; JSON-RPC pins for the two new commands.
+- **Steps:** none yet.
+- **Done:** done in `483ce35` (core commands + reuse fix, RED `86be08b`) + `3022ab4` (UI menu, RED `f60ca45`) — step 88.3: CloseTabsToLeft/Right anchor on one surviving tab, move activation only when it was on the closed side, answer empty-side and unknown-tab precisely and round-trip over the JSON-RPC wire; the reuse lookup now matches case-insensitively (the tab_reuse pin caught 'ORDERS' opening a duplicate tab of the open 'Orders'); the reuse/pending-edit pins ran green on arrival (documented no-RED) and the menu kittest proves a staged batch survives re-activation
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
 
 - M98 — Ribbon has no group overflow at narrow widths — done (done in `93fc293` (core fit_groups math, RED `67b2c8b`) + `576eefd` (UI overflow control, RED `4a37401`) — step 88.1: the core math answers a GroupFit plan (whole groups, control width reserved first, total for degenerate rows); the UI paints one localized overflow control whose menu stacks the hidden groups' own action buttons, so dispatch, disabled states and tooltips are identical by construction; pins cover the boundary at 1280x800/960x600/800x600 in both languages, menu reachability at narrow widths and menu dispatch equalling the row command)
 - L45 — Tab strip: the selected tab can scroll out of view — done (done in `c7e60b7` (RED `c0e5ad9`) — step 88.2: the strip row lives in a horizontal ScrollArea and a scroll-to-selected rule fires on activation only; every tab stays reachable by pointer (scrollable content, pinned) and by keyboard (all activation paths manifest as a changed active tab); the pins cover the overflowing strip at 640x600 with the lifecycle-opened and the nav-pane re-activated tab fully visible)
+- L49 — Tabs: no close-to-side and no reuse of an idle tab — done (done in `483ce35` (core commands + reuse fix, RED `86be08b`) + `3022ab4` (UI menu, RED `f60ca45`) — step 88.3: CloseTabsToLeft/Right anchor on one surviving tab, move activation only when it was on the closed side, answer empty-side and unknown-tab precisely and round-trip over the JSON-RPC wire; the reuse lookup now matches case-insensitively (the tab_reuse pin caught 'ORDERS' opening a duplicate tab of the open 'Orders'); the reuse/pending-edit pins ran green on arrival (documented no-RED) and the menu kittest proves a staged batch survives re-activation)

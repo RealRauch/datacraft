@@ -99,13 +99,6 @@
 - **Acceptance:** Typing in the search narrows the visible objects across categories with a case-insensitive match and a clear empty state; multi-select works with Shift/Ctrl and the context menu acts on the selection; groups and colours persist per database path and never touch the sidecar or the database file; behaviour doc.
 - **Steps:** none yet.
 
-### [ ] L49 — Tabs: no close-to-side and no reuse of an idle tab — 🟢
-- **Location:** the tab context menu and `CloseOtherTabs`/`CloseAllTabs` (U10), and the open-object paths that always create a new tab.
-- **Problem:** The context menu closes a tab, the others or all, but not the tabs to the left/right; and every activation opens another tab even when the same object is already open and idle. The reference client reuses an idle tab (no pending changes) for navigation targets and closes to either side.
-- **Approach:** Two small additions: Close to the Left/Right as bus commands (additive wire vocabulary, same shape as U10) and a reuse policy in the open-object path (activate the existing tab when the object is already open in the requested mode and has no pending edits; H61 introduces that state). No new UI surface beyond two context-menu entries.
-- **Acceptance:** Close to the Left/Right closes exactly the expected tabs and keeps the active one; activating an already-open idle object activates its tab instead of opening a second one; an object with pending edits is never replaced; JSON-RPC pins for the two new commands.
-- **Steps:** none yet.
-
 ### [ ] L50 — No low-power/RDP rendering mode — 🟢
 - **Location:** the eframe/wgpu composition (`crates/datacraft-ui/src/main.rs`, `app.rs`); no rendering-mode policy exists.
 - **Problem:** Enterprise Access users often run over Remote Desktop or on software adapters, where every drawn frame is rasterized and re-encoded. The reference client detects a software adapter or RDP session and switches to a low-power mode (30 fps cap, one-frame wheel steps, no animations or blurred shadows, frame-statistics overlay), while still repainting only on input or when a result arrives.
