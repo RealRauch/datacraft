@@ -8,6 +8,8 @@
 
 use std::sync::atomic::{AtomicU8, Ordering};
 
+#[cfg(test)]
+mod coverage;
 mod de;
 #[cfg(test)]
 mod layout;
