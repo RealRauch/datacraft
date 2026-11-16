@@ -30,14 +30,12 @@ pub enum Command {
     OpenDatabase {
         /// Filesystem path of the `.mdb`/`.accdb` file.
         path: PathBuf,
-        /// Database password for protected files (step 16.2, M5); absent
-        /// or `None` for unprotected files.
+        /// Database password (step 16.2, M5); absent/`None` = unprotected.
         #[serde(default)]
         password: Option<String>,
-        /// Source override (step 65.1, L8; ADR-7): `None` opens the plain
-        /// `path` byte-identically; `Some` is authoritative and resolves
-        /// through [`SourceSpec`] (`file://` opens like its path, other
-        /// schemes answer the no-server-driver boundary).
+        /// Source override (step 65.1, L8; ADR-7): `None` opens `path`
+        /// byte-identically; `Some` resolves through [`SourceSpec`]
+        /// (`file://` like its path, others answer the no-server boundary).
         #[serde(default)]
         source: Option<SourceSpec>,
     },
@@ -51,16 +49,16 @@ pub enum Command {
         /// Target format family (`Jet4` or `Sqlite`).
         format: crate::port::DatabaseFormat,
     },
-    /// Materializes a shipped template into a brand-new file (phase 29,
-    /// H44); the new database is not opened. Names come from `templates`.
+    /// Materializes a shipped template into a new file (phase 29, H44);
+    /// not opened. Names come from `templates`.
     CreateDatabaseFromTemplate {
         /// Filesystem path of the new file.
         path: PathBuf,
         /// Registry name of the template (case-insensitive).
         template: String,
     },
-    /// Writes a copy under `path` (step 27.2, M14): the original stays
-    /// untouched; gated on the driver's `passwords` capability.
+    /// Writes a copy under `path` (step 27.2, M14), original untouched;
+    /// gated on `passwords`.
     SaveDatabaseAs {
         /// Filesystem path of the copy; it must not exist yet.
         path: PathBuf,
@@ -80,24 +78,21 @@ pub enum Command {
         /// Full field-level definition.
         definition: TableDef,
     },
-    /// Imports an external CSV file as a new table (step 58.1, M50):
-    /// inferred kinds, filled over the write path — the source is never
-    /// touched; GUI, CLI and MCP share this chain.
+    /// Imports an external CSV as a new table (step 58.1, M50): inferred
+    /// kinds, the source never touched; all clients share the chain.
     ImportFile {
         /// The CSV file to read (header row + records).
         source: std::path::PathBuf,
         /// Target table name.
         table: String,
     },
-    /// Drops a table (name matched case-insensitively); dependent tabs
-    /// close first.
+    /// Drops a table (case-insensitive); dependent tabs close first.
     DropTable {
         /// Table name as shown in the navigation pane.
         table: String,
     },
-    /// Appends a field to a table (step 24.3, item M9). Existing rows get
-    /// Null in the new column; the field must be nullable (or carry no
-    /// engine-evaluable default).
+    /// Appends a field (step 24.3, M9); existing rows get Null. The
+    /// field must be nullable (or carry no engine-evaluable default).
     AddField {
         /// Target table (case-insensitive).
         table: String,
@@ -155,9 +150,9 @@ pub enum Command {
         /// Zero-based index in the table's live-row order.
         row: usize,
     },
-    /// Replaces individual cells across several rows (step 86.3, M101):
-    /// one history entry, so a fill is one undo step; every edit is
-    /// validated before the first write (`Null` = clear, M24 boundary).
+    /// Replaces individual cells across rows (step 86.3, M101): one
+    /// history entry, every edit validated before the first write
+    /// (`Null` = clear, M24).
     UpdateCells {
         /// Target table name (case-insensitive).
         table: String,
@@ -165,8 +160,7 @@ pub enum Command {
         edits: Vec<crate::command::CellEdit>,
     },
     /// Previews a journaled write batch (step 11.11, M2); nothing is
-    /// written until `ApplyWrite`. Headless-only (L26 — the GUI's
-    /// equivalent is the immediate row commands plus Undo/Redo).
+    /// written until `ApplyWrite`. Headless-only (L26).
     PreviewWrite {
         /// Target table name (case-insensitive).
         table: String,
@@ -207,8 +201,7 @@ pub enum Command {
         /// The view the tab starts (or switches to) in.
         mode: crate::state::TabMode,
     },
-    /// Closes one document tab; closing the active tab activates its
-    /// next-lower neighbor.
+    /// Closes one document tab; the active tab activates its neighbor.
     CloseTab {
         /// The tab to close.
         tab_id: TabId,
@@ -218,14 +211,12 @@ pub enum Command {
         /// The tab to keep.
         tab_id: TabId,
     },
-    /// Closes every tab strictly to the left of the anchor tab; the
-    /// anchor survives (step 88.3, L49).
+    /// Closes every tab strictly left of the anchor; it survives (88.3).
     CloseTabsToLeft {
         /// The tab that anchors the action and survives.
         tab_id: TabId,
     },
-    /// Closes every tab strictly to the right of the anchor tab; the
-    /// anchor survives (step 88.3, L49).
+    /// Closes every tab strictly right of the anchor; it survives (88.3).
     CloseTabsToRight {
         /// The tab that anchors the action and survives.
         tab_id: TabId,
@@ -324,8 +315,7 @@ pub enum Command {
         order: SortOrder,
     },
     /// Filters a table's datasheet view by one column's criteria (step
-    /// 44.5, M54): parsed eagerly so garbage fails at set time; `None`
-    /// clears. Multiple filters AND together.
+    /// 44.5, M54): parsed eagerly, `None` clears; filters AND together.
     SetTableFilter {
         /// Target table name (case-insensitive).
         table: String,
@@ -345,8 +335,7 @@ pub enum Command {
         /// Query name (case-insensitive).
         name: String,
     },
-    /// Executes a query; the row count is observable, the data itself is
-    /// fetched via `Core::run_query`.
+    /// Executes a query; the data itself is fetched via `Core::run_query`.
     RunQuery {
         /// Query name (case-insensitive).
         query: String,
@@ -379,9 +368,8 @@ pub enum Command {
         rect: Rect,
     },
     /// Sets the content property a placed control carries (step 63.1,
-    /// item H56): the label text, the button caption, the bound source
-    /// field or the embedded form — one property per kind, by the model's
-    /// design. An empty value clears a binding.
+    /// H56): label text, button caption, bound field or embedded form —
+    /// one per kind; an empty value clears a binding.
     SetFormControlContent {
         /// Target form name (case-insensitive).
         form: String,
@@ -445,9 +433,8 @@ pub enum Command {
         rect: Rect,
     },
     /// Sets the content property a placed report control carries (step
-    /// 63.1, item H56): the label text, the button caption, the bound
-    /// source field (or a `=expression`) or the embedded form. An empty
-    /// value clears a binding.
+    /// 63.1, H56): label text, button caption, bound field (or a
+    /// `=expression`) or embedded form; an empty value clears a binding.
     SetReportControlContent {
         /// Target report name (case-insensitive).
         report: String,
