@@ -38,9 +38,9 @@
 
 | # | Surface | Reviewed | Findings |
 |---|---------|----------|----------|
-| 1 | Ribbon + Quick Access Toolbar | ⬜ | — |
+| 1 | Ribbon + Quick Access Toolbar | ✅ 2026-11-17 | none — reviewer: nothing found on the current build |
 | 2 | Navigation pane | ⬜ | — |
-| 3 | Datasheet (table view) | ⬜ | — |
+| 3 | Datasheet (table view) | 🔄 2026-11-17 | sort finding 7 (M113); remaining: density/typography/spacing pass |
 | 4 | Backstage (File tab) | ⬜ | — |
 | 5 | Tool windows (SQL, Expression, Relationships, Import, Notices, VBA viewer) | ⬜ | — |
 | 6 | Form designer + form runtime | ⬜ | — |
@@ -59,3 +59,4 @@
 | 4 | tool windows — Import File, error composition (same screenshot) | typography / density of the status line | The composed error shows the file path twice (`C:\…\database-access-ready.mdb: C:\…\database-access-ready.mdb: byte 0x00 …`): `import.rs` wraps the decode error with `"{path}: {e}"` while the inner layer already carries the path — the duplication pushes the actual reason off-screen. | inconsistency | accepted → item | M112 |
 | 5 | status bar (same screenshot) | density / typography | A long error paints the full status bar without truncation; the click-into-history affordance exists, but the inline text has no ellipsis/hover contract and floods the chrome. | annoyance | accepted → item | L52 |
 | 6 | tool windows — Import File, source-file field (same screenshot) | density / spacing | The Quelldatei field is too narrow for realistic paths: only the tail is visible, the directory context at the start is invisible (the window is resizable but the default is too small). | annoyance | accepted → item | L53 |
+| 7 | datasheet — column sort (reviewer's screenshot, reviewed out of sequence) | none of the three — correctness ("Sortierreihenfolge überprüfen") | The Birthday header shows an active descending-sort indicator while the rows follow no column order (dates 1937, 1923, 1935, …, 2026; ids 2, 1, 3, 4, 6, 7; one row has an empty Birthday). Root causes located: `compare()` returns `None` for NULL/mixed-family pairs and `view_order` degrades `None` → `Ordering::Equal`, making the comparator inconsistent (violates the sort contract, scrambles the order); separately, `datasheet.rs` swallows `view_order` errors with `.ok()` yet still renders the indicator from the sort state — indicator-without-sort is possible. Access sorts NULLs at a defined place (first ascending, last descending); here NULL placement is undefined. | broken feel (wrong data order presented as sorted) | accepted → item | M113 |
