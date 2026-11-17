@@ -58,6 +58,13 @@
 - **Acceptance:** `--version` exits 0 with name + version on stdout; the three clients (CLI, MCP wire, backstage Info page) report the identical version string, pinned by one contract test over a shared source; the Info page string goes through `t()`; kittest pins the Info page; MCP wire test pins the report; usage-error and exit-code contracts unchanged.
 - **Steps:** none yet (from the phase 89 design review).
 
+### [ ] M110 — SQL window grows animated toward full screen height on every run — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet/grid.rs` (the shared grid's `ScrollArea::both().auto_shrink([false, false])` at the `scroll_area` construction) plus `crates/datacraft-ui/src/sql_window.rs` (embeds `grid_ui` inside the floating `egui::Window` without a height budget).
+- **Problem:** Found in the L47 design review (2026-11-16, finding 2 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): running any statement stretches the SQL window animated toward full screen height — "as if the query were still producing rows" — with four result rows on screen. Mechanism: `auto_shrink([false, false])` claims all available space in both axes (correct inside the datasheet's CentralPanel), but inside a resizable `egui::Window` the claim is circular — the window auto-sizes to its content while the content claims the available size — and `show_rows` supplies the virtual height (rows × row_height) into that loop. egui's window-size interpolation turns the per-frame growth into the visible animation.
+- **Approach:** A height policy on `grid_ui`/the grid host: fill (the datasheet host, unchanged) vs. an explicit bounded height for window embedders (the SQL window passes a result height; the window then keeps the user's resized size). Alternative: constrain the window's result container instead of the grid — decided at implementation, one of the two must hold: the datasheet host keeps `auto_shrink([false, false])`, the window embedder does not feed the size loop.
+- **Acceptance:** Running a 4-row query keeps the SQL window at its current size (no growth animation); the window stays user-resizable and large result sets scroll inside the bounded result area; the datasheet's layout_probe pins are unchanged at both pinned window sizes; kittest pins result visibility in the SQL window; no regression in the other `grid_ui` consumer (the datasheet).
+- **Steps:** none yet (from the phase 89 design review).
+
 
 ---
 
