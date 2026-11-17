@@ -65,6 +65,20 @@
 - **Acceptance:** Running a 4-row query keeps the SQL window at its current size (no growth animation); the window stays user-resizable and large result sets scroll inside the bounded result area; the datasheet's layout_probe pins are unchanged at both pinned window sizes; kittest pins result visibility in the SQL window; no regression in the other `grid_ui` consumer (the datasheet).
 - **Steps:** none yet (from the phase 89 design review).
 
+### [ ] M111 — Import File accepts database files and answers with a raw decoder error — 🟡
+- **Location:** `crates/datacraft-core/src/import.rs` (`read_csv_file` → `decode_csv_text`), the import flow (`crates/datacraft-ui/src/import_window.rs`, `PreviewImportFile`/`ImportFile`), and the file picker.
+- **Problem:** Found in the L47 design review (2026-11-16, finding 3 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a Jet4 `.mdb` chosen in the Import File window (the delimited-text import surface) runs the text-decoder chain (UTF-8 → UTF-16 BOM → Windows-1252) and answers "byte 0x00 at offset 0 is not defined in Windows-1252" — precise but misleading: the file is a healthy database on the wrong surface, and nothing names the right surface. The composite's format sniff already identifies the file as Jet4.
+- **Approach:** Before decoding, run the existing format-detection knowledge over the chosen source: a database family (Jet3/Jet4/ACE/SQLite) answers a precise error naming the detected format and the right surface ("open it via File → Open"); the picker filters to the supported text/CSV extensions first. Reuse the sniff — no new detection logic, no new dependency.
+- **Acceptance:** Importing a Jet4 fixture through `PreviewImportFile`/`ImportFile` answers the format-naming error over the wire and in the UI (pinned), not a decoder byte error; genuine text/CSV imports behave unchanged; the picker filter names the supported extensions; the SQLite and Jet3 families answer the same way (one test per family or one parameterized).
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M112 — Import errors repeat the file path twice — 🟡
+- **Location:** `crates/datacraft-core/src/import.rs` (`read_csv_file` wraps the decode error with `format!("{}: {e}", path.display())`) and the inner decode layer whose error already carries the path.
+- **Problem:** Found in the L47 design review (2026-11-16, finding 4, reviewer screenshot): the status line shows `C:\…\database-access-ready.mdb: C:\…\database-access-ready.mdb: byte 0x00 …` — two error layers prepend the same path, pushing the actual reason off-screen.
+- **Approach:** One layer owns the path prefix: the inner decode error stays path-free, the outer `read_csv_file` adds `{path}: ` exactly once. Error text is contract — pinned by tests, not by string tricks.
+- **Acceptance:** A failing import shows the path exactly once in the composed error; the precise inner locations survive unchanged (`row N:`, `header column …`); a test pins the composed text for the decode-failure case.
+- **Steps:** none yet (from the phase 89 design review).
+
 
 ---
 
@@ -112,6 +126,20 @@
 - **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
 - **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
+
+### [ ] L52 — Status-line errors flood the bar without truncation — 🟢
+- **Location:** `crates/datacraft-ui/src/shell.rs` (the status bar's error/notice rendering, `notice_label`).
+- **Problem:** Found in the L47 design review (2026-11-16, finding 5 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a long error paints the entire status bar — the click-to-open-history affordance exists, but the inline text has no ellipsis/hover contract and floods the chrome.
+- **Approach:** Truncate the inline text to the available bar width with an ellipsis; the full text rides the hover tooltip; the existing click opens the message history unchanged. Truncation is pure width math over the chrome font metrics.
+- **Acceptance:** A long error truncates with an ellipsis, hover shows the full text, click still opens the history; layout_probe pins the truncated rect at both pinned window sizes; the string path stays in `t()`/`tr()` where localized.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L53 — Import source-file field clips long paths at the start — 🟢
+- **Location:** `crates/datacraft-ui/src/import_window.rs` (the Quelldatei/source-file row: field width and the window's default size).
+- **Problem:** Found in the L47 design review (2026-11-16, finding 6, reviewer screenshot): realistic long paths show only their tail in the narrow field — the directory context at the start is invisible; the window is resizable but the default is too small.
+- **Approach:** Wider field (window default width or field proportion), and the chosen file name shown prominently once picked (the full path on hover). Simplest sufficient variant at implementation; no functional change to the import flow.
+- **Acceptance:** A realistic long path (`C:\Users\…\Downloads\database-access-ready.mdb`) is identifiable at the default window size — the file name is visible and the full path rides the hover; kittest pins the field; import behaviour unchanged.
+- **Steps:** none yet (from the phase 89 design review).
 
 ---
 
