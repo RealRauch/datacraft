@@ -40,7 +40,7 @@
 |---|---------|----------|----------|
 | 1 | Ribbon + Quick Access Toolbar | ✅ 2026-11-17 | none — reviewer: nothing found on the current build |
 | 2 | Navigation pane | ⬜ | — |
-| 3 | Datasheet (table view) | 🔄 2026-11-17 | sort finding 7 (M113); remaining: density/typography/spacing pass |
+| 3 | Datasheet (table view) | ✅ 2026-11-17 | findings 7 (M113), 8 (M114), 9 (L54), 10 (rejected — hard clip is Access parity); further density/typography checkpoints: no findings reported |
 | 4 | Backstage (File tab) | ⬜ | — |
 | 5 | Tool windows (SQL, Expression, Relationships, Import, Notices, VBA viewer) | ⬜ | — |
 | 6 | Form designer + form runtime | ⬜ | — |
