@@ -86,6 +86,13 @@
 - **Acceptance:** `view_order` over DateTime/Text/Numeric columns with NULLs yields a defined, unit-tested order in both directions (NULL placement per the documented convention, stable for equal keys); the comparator passes a consistency property (no scrambled output on NULL mixes); a renamed sort field answers a precise notice or clears the indicator (pinned); the datasheet contract test pins indicator ↔ order agreement; docs name the NULL and mixed-family placement.
 - **Steps:** none yet (from the phase 89 design review).
 
+### [ ] M114 — The AutoNumber cell's contract is invisible until a rejection — 🟡
+- **Location:** the new-record hint (`crates/datacraft-ui/src/i18n/de/views.rs` — "Empty cells are Null; AutoNumber assigns itself." / „Leere Zellen sind Null; AutoWert vergibt sich selbst."), the datasheet edit-start path (`crates/datacraft-ui/src/datasheet.rs`, `row_edit_zls.rs`), the Jet rejection of user-supplied AutoNumber values (M8, `crates/datacraft-jet`).
+- **Problem:** Found in the L47 design review (2026-11-17, finding 8, reviewer comment): the hint does not say whether a manual value may be entered. It may not — the Jet port rejects user-supplied AutoNumber values — and the datasheet has no AutoNumber edit gate, so the contract surfaces only as a runtime rejection after typing into the id cell.
+- **Approach:** Make the contract visible before input: either the AutoNumber cell is not editable (the availability/capability gate pattern the datasheet already uses) or the hint states the rejection precisely ("Eingaben werden abgelehnt — der Motor vergibt den Wert"). The rejection error names the column. The chosen variant lands in both catalogs.
+- **Acceptance:** The AutoNumber cell shows its contract before input (gate or precise hint, pinned by kittest); typing into it is either impossible or produces the precise rejection naming the column; en/de catalog parity; no change to the M8 writer behaviour itself.
+- **Steps:** none yet (from the phase 89 design review).
+
 
 ---
 
@@ -146,6 +153,13 @@
 - **Problem:** Found in the L47 design review (2026-11-16, finding 6, reviewer screenshot): realistic long paths show only their tail in the narrow field — the directory context at the start is invisible; the window is resizable but the default is too small.
 - **Approach:** Wider field (window default width or field proportion), and the chosen file name shown prominently once picked (the full path on hover). Simplest sufficient variant at implementation; no functional change to the import flow.
 - **Acceptance:** A realistic long path (`C:\Users\…\Downloads\database-access-ready.mdb`) is identifiable at the default window size — the file name is visible and the full path rides the hover; kittest pins the field; import behaviour unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L54 — "Felder fixieren" has no explanation and no visible frozen state — 🟢
+- **Location:** the column context menu (Freeze Fields / Unfreeze All Fields — `crates/datacraft-ui/src/i18n/de/ui_chrome.rs`, "Freeze Fields"/"Felder fixieren" and "Unfreeze All Fields"/"Fixierung aufheben"), the grid's frozen-column rendering (`crates/datacraft-ui/src/datasheet/grid.rs`, `effective_frozen`).
+- **Problem:** Found in the L47 design review (2026-11-17, finding 9, reviewer comment): it is unclear what "Felder fixieren" does — no tooltip explains that the leading columns stay pinned during horizontal scroll, and the frozen state itself carries no visible marker in the grid beyond the layout change.
+- **Approach:** A one-line tooltip on both menu items (what freezing does), and a visible frozen-state indicator in the grid (e.g. a stronger separator after the last frozen column and/or a check/state mark on the menu items); i18n parity en/de; no behaviour change to the freeze itself (M39 semantics stay).
+- **Acceptance:** Both menu items carry tooltips; the frozen state is recognisable without opening the menu (layout_probe pin at both pinned window sizes); "Fixierung aufheben" returns the plain grid; kittest pins menu and state.
 - **Steps:** none yet (from the phase 89 design review).
 
 ---
