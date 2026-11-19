@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-16T01:09
+# BACKLOG.md — Open items (As of: 2026-11-19T19:19
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -93,6 +93,76 @@
 - **Acceptance:** The AutoNumber cell shows its contract before input (gate or precise hint, pinned by kittest); typing into it is either impossible or produces the precise rejection naming the column; en/de catalog parity; no change to the M8 writer behaviour itself.
 - **Steps:** none yet (from the phase 89 design review).
 
+### [ ] M115 — Nav-pane sort menu shows no active order and reads per-group while being global — 🟡
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the group-header context menu's sort entries; the order itself is the global `app.nav_sort` applied by `nav::sort_entries` to every section).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 11 in `docs/UI-DESIGN-REVIEW.md`): the group-header menu offers "Sort by Name"/"Sort by Type" as plain buttons with no indicator of the active order, and the same menu sits on every group header while it sets one pane-wide order — the affordance reads per-group but acts global.
+- **Approach:** Render the active order as a check/state mark on the menu entries (the M79 pattern: state-bearing controls render their state from the snapshot/state), and make the scope honest: label the entries as the pane-wide order ("Sort all sections by …") or scope the menu per section — one decision, applied consistently.
+- **Acceptance:** The sort menu shows the active order (kittest pin); the entry labels name the order's scope truthfully; sorting behaviour itself is unchanged (pure presentation/labelling); en/de catalog parity.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M116 — The Save page mixes titled and untitled sections — 🟡
+- **Location:** `crates/datacraft-ui/src/backstage/save.rs` (`save_page`: the sidecar block starts with a bare field label; "Save a Copy" and "Database Password" carry `ui.heading`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 16): the Save page has three sections, only two carry headings — the page reads unstructured and the sidecar section has no name to anchor it.
+- **Approach:** Give every section a consistent heading treatment (e.g. "Design Sidecar", "Save a Copy", "Database Password"); heading rung and spacing follow the page grammar used elsewhere in the backstage.
+- **Acceptance:** All three Save-page sections carry consistent headings (kittest pins them); en/de catalogs complete; no flow change.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M117 — The Relationships window has no scroll area — 🟡
+- **Location:** `crates/datacraft-ui/src/relationships.rs` (window body: relationship list, create form and painted canvas render without a `ScrollArea`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 20): once the database holds more relationships/tables than fit one window height, the list and the canvas clip with no way to reach the rest — the mapper silently loses content.
+- **Approach:** Wrap the body in a vertical `ScrollArea` with a height budget (the form runtime's navigation-row reservation is the pattern); the deterministic canvas grid layout stays.
+- **Acceptance:** A database with many tables/relationships scrolls to every list entry and every canvas box (kittest at both pinned window sizes); canvas geometry math unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M118 — VBA viewer paints error text in the literal LIGHT_RED instead of tokens.danger — 🟡
+- **Location:** `crates/datacraft-ui/src/vba_viewer.rs` (two sites: the extraction-failure text and the analysis-error pane, both `egui::Color32::LIGHT_RED`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 22): error text uses color literals, breaking the token contract (ADR-6: paint sites name roles, never literals) and rendering harshly in light mode and wrongly in dark mode, where every other error uses `tokens.danger`.
+- **Approach:** Replace both literals with `crate::theme::tokens(ui.visuals()).danger` — the treatment every other error text gets.
+- **Acceptance:** No color literals remain in the viewer; error text follows `tokens.danger` in both palettes (token/contract test or explicit review pin); rendering otherwise unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M119 — The view editor's fields have no label association — 🟡
+- **Location:** `crates/datacraft-ui/src/views_window.rs` (`view_editor`: the "View name" and "SQL" labels and their fields).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 23): neither field is associated with its label (`labelled_by`), unlike the established pattern (expression window, backstage open field) — screen readers and the kittest's accessibility checks see anonymous fields.
+- **Approach:** Associate both fields with their labels via `labelled_by`, exactly like the neighbouring windows.
+- **Acceptance:** Both editor fields carry their label association (kittest accessibility pass); no behaviour change.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M120 — The selected-control ring is nearly invisible in dark mode — 🟡
+- **Location:** `crates/datacraft-ui/src/form_design.rs` (`paint_control` selection ring strokes `ui.visuals().selection.bg_fill`; shared by the form and the report design canvases).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 26): the ring paints the `checked` wash — dark `0x1F3A36` against the `0x252525` form surface is nearly invisible, so the designers lose their selection state in dark mode; light mode shows only a faint ring.
+- **Approach:** Stroke the ring from the accent family (`accent_text`/`accent` per palette) at the established 2 px, matching the selection language used elsewhere in the app.
+- **Acceptance:** The selected control's ring is clearly visible in both palettes (contrast-checked like the theme tests; kittest/layout_probe pin); form and report canvases share the fix.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M121 — The runtime combo's dropdown affordance is the literal letter "v" — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (`combo_box_ui`: `ui.menu_button("v", …)`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 27): the combo's dropdown affordance renders the letter "v" as button text — it reads as text, not as a caret; the design canvas paints a proper caret polygon for the same control kind.
+- **Approach:** Paint the caret (the designer's existing convex-polygon glyph in `form_design.rs`) or an equivalent painted affordance — never a letter standing in for an icon.
+- **Acceptance:** The runtime combo shows a painted caret consistent with the designer's (kittest pins the control); no font-glyph regression under the glyph-coverage policy (T11).
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M122 — The fixed 640×400 form canvas clips at the pinned minimum window size — 🟡
+- **Location:** `crates/datacraft-ui/src/form_design.rs` (the design canvas column, `FORM_WIDTH`/`FORM_HEIGHT`) and `crates/datacraft-ui/src/form_runtime.rs` (the runtime canvas inside a vertical-only `ScrollArea`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 28): the canvas is a fixed 640×400 surface without scroll or zoom; at the pinned 960×600 minimum with the nav pane open, the right edge clips and controls beyond are unreachable — in the designer and at runtime.
+- **Approach:** Make the whole canvas reachable at narrow widths — a scroll area covering both axes (the runtime already reserves its navigation row) or a scale-down variant; simplest sufficient solution at implementation.
+- **Acceptance:** At both pinned window sizes every part of the canvas is reachable (kittest/layout_probe pins); stored control rects and the WYSIWYG contract (ADR-1) stay untouched.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M123 — The report preview paints a fixed A4 page instead of the report's page setup — 🟡
+- **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: hardcoded 595×842 pt canvas) versus the design canvas, which renders `report.page`.
+- **Problem:** Found in the L47 design review (2026-11-19, finding 29): the preview hardcodes A4 while `PageSetup` is sidecar-deserialized per report — a report with a different page setup previews on the wrong paper. Latent today (no UI edits the page setup), but the divergence is structural.
+- **Approach:** Size the preview canvas from `report.page`; the preview already renders in page coordinates and core pagination uses the same setup.
+- **Acceptance:** The preview canvas dimensions follow `report.page` (unit test with a non-A4 `PageSetup`); the A4 default is unchanged; pagination behaviour unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] M124 — Form record navigation lacks first/last/new-record — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (the navigation row: "< Prev" / "Record {n} of {m}" / "Next >").
+- **Problem:** Found in the L47 design review (2026-11-19, finding 31, reviewer comment: „das brauchen wir"): the form runtime navigates only prev/next — Access's record navigation includes first, last and new-record, and the datasheet's navigation row already carries the fuller set.
+- **Approach:** Extend the row to first/prev/next/last plus the new-record action (the datasheet's new-record path is the model); new-record respects the driver's insert capability and the M114 AutoNumber contract; edits flush exactly as today.
+- **Acceptance:** First/last jump and new-record insert work with the per-record edit buffer flushed (kittest flows); capability-gated like the datasheet's row actions; en/de catalog parity.
+- **Steps:** none yet (from the phase 89 design review).
+
 
 ---
 
@@ -142,17 +212,17 @@
 - **Steps:** none yet.
 
 ### [ ] L52 — Status-line errors flood the bar without truncation — 🟢
-- **Location:** `crates/datacraft-ui/src/shell.rs` (the status bar's error/notice rendering, `notice_label`).
-- **Problem:** Found in the L47 design review (2026-11-16, finding 5 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a long error paints the entire status bar — the click-to-open-history affordance exists, but the inline text has no ellipsis/hover contract and floods the chrome.
-- **Approach:** Truncate the inline text to the available bar width with an ellipsis; the full text rides the hover tooltip; the existing click opens the message history unchanged. Truncation is pure width math over the chrome font metrics.
-- **Acceptance:** A long error truncates with an ellipsis, hover shows the full text, click still opens the history; layout_probe pins the truncated rect at both pinned window sizes; the string path stays in `t()`/`tr()` where localized.
+- **Location:** `crates/datacraft-ui/src/shell.rs` (the status bar's error/notice rendering, `notice_label`) and, folded 2026-11-19, `crates/datacraft-ui/src/backstage/pages.rs` (`status_line` — the same unbounded last-error/notice text at the backstage page bottoms).
+- **Problem:** Found in the L47 design review (2026-11-16, finding 5 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a long error paints the entire status bar — the click-to-open-history affordance exists, but the inline text has no ellipsis/hover contract and floods the chrome. The 2026-11-19 review pass (surfaces closed) found the same unbounded text pattern in the backstage `status_line`, so the truncation contract is folded here instead of a second item.
+- **Approach:** Truncate the inline text to the available width with an ellipsis at both call sites (ideally one shared helper); the full text rides the hover tooltip; the existing click opens the message history unchanged. Truncation is pure width math over the chrome font metrics.
+- **Acceptance:** A long error truncates with an ellipsis, hover shows the full text, click still opens the history — on the status bar and on the backstage pages; layout_probe pins the truncated rects at both pinned window sizes; the string path stays in `t()`/`tr()` where localized.
 - **Steps:** none yet (from the phase 89 design review).
 
 ### [ ] L53 — Import source-file field clips long paths at the start — 🟢
-- **Location:** `crates/datacraft-ui/src/import_window.rs` (the Quelldatei/source-file row: field width and the window's default size).
-- **Problem:** Found in the L47 design review (2026-11-16, finding 6, reviewer screenshot): realistic long paths show only their tail in the narrow field — the directory context at the start is invisible; the window is resizable but the default is too small.
-- **Approach:** Wider field (window default width or field proportion), and the chosen file name shown prominently once picked (the full path on hover). Simplest sufficient variant at implementation; no functional change to the import flow.
-- **Acceptance:** A realistic long path (`C:\Users\…\Downloads\database-access-ready.mdb`) is identifiable at the default window size — the file name is visible and the full path rides the hover; kittest pins the field; import behaviour unchanged.
+- **Location:** `crates/datacraft-ui/src/import_window.rs` (the Quelldatei/source-file row: field width and the window's default size). Folded 2026-11-19: the same fixed-width path fields across the backstage — Open (`backstage/pages.rs` `open_page`), New (`backstage/new_database.rs` `location_step`), Save-As and sidecar (`backstage/save.rs`), each `desired_width(360.0)`.
+- **Problem:** Found in the L47 design review (2026-11-16, finding 6, reviewer screenshot): realistic long paths show only their tail in the narrow field — the directory context at the start is invisible; the window is resizable but the default is too small. The 2026-11-19 review pass found the same fixed-width pattern in every backstage path field, so one path-field contract is folded here instead of per-field items.
+- **Approach:** One contract for all path fields: wider field (window default width or field proportion) and the chosen file name shown prominently once picked (the full path on hover). Simplest sufficient variant at implementation; no functional change to any flow.
+- **Acceptance:** A realistic long path (`C:\Users\…\Downloads\database-access-ready.mdb`) is identifiable at the default size in the import window and in every backstage path field — the file name is visible and the full path rides the hover; kittest pins the fields; import/open/create/save behaviour unchanged.
 - **Steps:** none yet (from the phase 89 design review).
 
 ### [ ] L54 — "Felder fixieren" has no explanation and no visible frozen state — 🟢
@@ -160,6 +230,69 @@
 - **Problem:** Found in the L47 design review (2026-11-17, finding 9, reviewer comment): it is unclear what "Felder fixieren" does — no tooltip explains that the leading columns stay pinned during horizontal scroll, and the frozen state itself carries no visible marker in the grid beyond the layout change.
 - **Approach:** A one-line tooltip on both menu items (what freezing does), and a visible frozen-state indicator in the grid (e.g. a stronger separator after the last frozen column and/or a check/state mark on the menu items); i18n parity en/de; no behaviour change to the freeze itself (M39 semantics stay).
 - **Acceptance:** Both menu items carry tooltips; the frozen state is recognisable without opening the menu (layout_probe pin at both pinned window sizes); "Fixierung aufheben" returns the plain grid; kittest pins menu and state.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L55 — Nav-pane entry click target excludes the icon — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (entry rows: icon widget and `selectable_label` as separate widgets with the 6 px item spacing between them).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 12): only the label opens an object — the icon is inert, and icon+label read as two widgets instead of one row; Access opens from the whole row.
+- **Approach:** Make the whole row one click target (allocate the row, paint icon and label inside, interact over the full rect — the backstage nav-row pattern), keeping the context menu, active state and test ids.
+- **Acceptance:** Clicking anywhere on a row (icon included) opens the object (kittest); context menu, selection state and automation ids unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L56 — Native-objects inventory renders as disabled buttons — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the native forms/reports group: `ui.add_enabled(false, egui::Button::new(name))` per entry).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 13): the read-only inventory renders every entry as a disabled button while all other entries are selectable labels — the group reads as a block of dead controls.
+- **Approach:** Render the entries in the pane's row language (icon + label like the other groups), carrying the read-only state through the group hint and muted text instead of button chrome.
+- **Acceptance:** Native entries visually match the pane's row language (kittest pin); the read-only hint stays; no affordance appears where none exists.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L57 — The nav-pane category dropdown opens a menu that does nothing — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the "All Access Objects" menu button with its single selectable entry).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 14): the category dropdown's only menu entry re-states the current selection and performs nothing — a dead-looking affordance (LESSONS #29 family) until the category model grows (L48).
+- **Approach:** Until real categories exist (L48), render the header as a plain labelled header without the empty menu, or keep the dropdown but disable its single entry with an explanatory tooltip; revisit when L48 lands.
+- **Acceptance:** No menu opens that cannot do anything (kittest pins the header form); the Access category language returns with L48's categories.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L58 — The nav pane's "New View" button sits detached at the pane bottom — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the `small_button` rendered below the scroll area).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 15): the button pins below the object list at the pane bottom regardless of any Views group state — an odd duplicate of the ribbon's Views entry point that reads as orphaned chrome.
+- **Approach:** Move the create affordance into the Views group header's context menu (where the other group actions live) or beside the group header; the ribbon split-button stays as-is.
+- **Acceptance:** The pane bottom carries no detached button; view creation remains reachable from the pane (kittest flow pins the new location).
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L59 — The Info page's fact values do not align into a column — 🟢
+- **Location:** `crates/datacraft-ui/src/backstage/info.rs` (the facts and driver-fact rows: label+value horizontals).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 17): label widths differ, so values start at varying x — the page reads ragged; a property-grid alignment would match the Access Info look.
+- **Approach:** Two-column alignment: a fixed label column (or a max-label-width pass over the fact set) before the values.
+- **Acceptance:** All fact values share one left edge at both pinned window sizes (layout_probe pin); long values wrap within the value column.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L60 — The expression window's Close button sits mid-title-row — 🟢
+- **Location:** `crates/datacraft-ui/src/expression_window.rs` (the first row: the field label followed directly by Close).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 21): Close renders directly after the "Expression" label instead of right-aligned or in window chrome — it reads as part of the form rather than as a window control.
+- **Approach:** Right-align Close in its row or use the window's own close glyph (`open(&mut …)`, as the view editor and notices window do), keeping the `labelled_by` wiring.
+- **Acceptance:** The Close affordance sits in a consistent window-chrome position (kittest pin); the field label association stays.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L61 — The notices dialog separators every entry and encodes severity by color only — 🟢
+- **Location:** `crates/datacraft-ui/src/notices_dialog.rs` (the entry loop: `ui.separator()` per entry; severity carried by danger/accent text color).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 24): a separator after every entry adds visual noise, and severity is encoded only by text color — no icon or tag, so the encoding fails without color.
+- **Approach:** Drop per-entry separators in favour of spacing (or separators only between severity groups), and add a painted severity glyph/tag beside each entry — painted, not a font glyph (T11 policy).
+- **Acceptance:** The dialog reads as a list, not a rule table (kittest/layout_probe pin); severity is recognisable without color.
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L62 — Macro-viewer action numbers do not align from ten on — 🟢
+- **Location:** `crates/datacraft-ui/src/macro_viewer.rs` (the action list: `ui.weak(format!("{}.", index + 1))`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 25): unpadded numbers (`1.` vs `10.`) shift the monospace argument column — the list jagges.
+- **Approach:** Right-align the number column to the widest index (fixed-width formatting matching the digit count).
+- **Acceptance:** The argument column keeps one left edge for lists of ten or more entries (kittest pin with a synthetic long macro).
+- **Steps:** none yet (from the phase 89 design review).
+
+### [ ] L63 — Preview text paints at 100 % on the 0.9-scaled page — 🟢
+- **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: geometry scales by 0.9, glyphs render at full `TextStyle::Body` size).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 30): item rects scale by 0.9 while the font renders at full size — long values can overflow their scaled rects on the preview page.
+- **Approach:** Scale the preview font with the page scale (`FontId` sized `BODY_SIZE * scale`); positions stay as they are.
+- **Acceptance:** Preview text fits its item rects at the shipped scale (kittest pin on a long-value page); item positions unchanged.
 - **Steps:** none yet (from the phase 89 design review).
 
 ---
