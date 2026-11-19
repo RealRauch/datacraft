@@ -211,3 +211,22 @@ fn error_responses_carry_the_request_id_when_present() {
     );
     assert_eq!(response["id"], 42);
 }
+
+// ---------------------------------------------------------------------------
+// version report (step 91.1, item M109)
+// ---------------------------------------------------------------------------
+
+/// The `version` method answers the shared product version (one source for
+/// every client) plus the product name — the server-info anchor agents and
+/// bug reports rely on.
+#[test]
+fn version_method_reports_the_shared_product_version() {
+    let mut core = core();
+    let response = response_of(
+        &mut core,
+        json!({"jsonrpc": "2.0", "id": 9, "method": "version"}),
+    );
+    assert_eq!(response["id"], 9);
+    assert_eq!(response["result"]["version"], datacraft_core::VERSION);
+    assert_eq!(response["result"]["name"], "datacraft");
+}

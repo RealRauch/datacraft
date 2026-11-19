@@ -396,3 +396,49 @@ fn a_file_uri_open_dispatches_the_source_spec_and_reports_it() {
     let text = String::from_utf8(out).unwrap();
     assert!(text.contains("\"source\":null"), "{text}");
 }
+
+// ---------------------------------------------------------------------------
+// version report (step 91.1, item M109)
+// ---------------------------------------------------------------------------
+
+/// `--version` answers `datacraft-cli <version>` on stdout with exit 0 —
+/// the shared workspace version (`datacraft_core::VERSION`), before any
+/// database work.
+#[test]
+fn version_flag_prints_name_and_version_and_succeeds() {
+    let mut core = fresh_core();
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(&mut core, &["--version".to_owned()], &mut out);
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert_eq!(
+        text.trim(),
+        format!("datacraft-cli {}", datacraft_core::VERSION),
+        "{text}"
+    );
+}
+
+/// `-V` is an alias and the flag's position among other flags is
+/// irrelevant; no database work happens (the fresh `MockPort` core stays
+/// untouched — no `--db` pre-open is dispatched either).
+#[test]
+fn version_alias_v_wins_over_any_other_args() {
+    let mut core = fresh_core();
+    let mut out: Vec<u8> = Vec::new();
+    let outcome = run(
+        &mut core,
+        &[
+            "--db".to_owned(),
+            "shop.mdb".to_owned(),
+            "-V".to_owned(),
+        ],
+        &mut out,
+    );
+    assert_eq!(outcome, Outcome::Ok);
+    let text = String::from_utf8(out).unwrap();
+    assert_eq!(
+        text.trim(),
+        format!("datacraft-cli {}", datacraft_core::VERSION),
+        "{text}"
+    );
+}
