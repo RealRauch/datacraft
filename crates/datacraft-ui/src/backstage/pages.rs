@@ -103,14 +103,19 @@ fn open_source(entry: &str) -> Option<SourceSpec> {
         .then(|| SourceSpec::Uri(entry.to_owned()))
 }
 
+/// The open picker's database filter (step 91.3, item M111).
+const DATABASE_EXTENSIONS: &[&str] = &["mdb", "accdb", "sqlite", "sqlite3", "db"];
+
 fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
     let label = ui.label(t("Database path"));
     let field = ui.add(
         egui::TextEdit::singleline(&mut app.open_path)
-            .desired_width(360.0)
+            .desired_width(480.0)
             .hint_text(t("path or file:// URI")),
     );
     field.labelled_by(label.id);
+    // The chosen file's identity at the default size (step 91.3, L53).
+    crate::labels::path_field_identity(ui, &app.open_path);
     ui.horizontal(|ui| {
         let browse = ui
             .push_id("backstage.open.browse", |ui| ui.button(t("Browse…")))
@@ -118,7 +123,9 @@ fn open_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         if tooltips::backstage_response(browse, "backstage.open.browse").clicked() {
             // The picked path lands on a later frame (step 81.2, M97).
             app.request_dialog(
-                crate::dialogs::DialogRequest::OpenFile,
+                crate::dialogs::DialogRequest::OpenFile {
+                    extensions: DATABASE_EXTENSIONS,
+                },
                 crate::app::dialog_flow::DialogIntent::FillOpenPath,
             );
         }

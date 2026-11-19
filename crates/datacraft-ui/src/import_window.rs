@@ -12,7 +12,11 @@ use datacraft_core::import::ImportPreview;
 
 use crate::app::App;
 use crate::i18n::{t, tr};
-use crate::labels::field_kind_label;
+use crate::labels::{field_kind_label, path_field_identity};
+
+/// The source picker's filter (step 91.3, item M111): the text/CSV
+/// suffixes the import surface actually decodes.
+const SOURCE_EXTENSIONS: &[&str] = &["csv", "txt", "tsv"];
 
 /// Renders the Import File window, when open (the shell calls this beside
 /// the other windows).
@@ -24,10 +28,10 @@ pub fn import_window_ui(app: &mut App, ui: &mut egui::Ui) {
     egui::Window::new(t("Import File"))
         .id(egui::Id::unique("datacraft.import_window".to_owned()))
         .open(&mut open)
-        .default_width(440.0)
+        .default_width(520.0)
         .default_pos(crate::tool_window::centered_pos(
             ui.ctx(),
-            egui::vec2(440.0, 360.0),
+            egui::vec2(520.0, 420.0),
         ))
         .show(ui, |ui| import_window_body(app, ui));
     if !open {
@@ -42,18 +46,22 @@ fn import_window_body(app: &mut App, ui: &mut egui::Ui) {
     let mut source = app.import_source().to_owned();
     ui.horizontal(|ui| {
         let label = ui.label(t("Source file"));
-        let field = ui.add(egui::TextEdit::singleline(&mut source).desired_width(280.0));
+        let field = ui.add(egui::TextEdit::singleline(&mut source).desired_width(360.0));
         if field.labelled_by(label.id).changed() {
             app.set_import_source(source.clone());
         }
         if ui.button(t("Browse…")).clicked() {
             // The picked source lands on a later frame (step 81.2, M97).
             app.request_dialog(
-                crate::dialogs::DialogRequest::OpenFile,
+                crate::dialogs::DialogRequest::OpenFile {
+                    extensions: SOURCE_EXTENSIONS,
+                },
                 crate::app::dialog_flow::DialogIntent::ImportSource,
             );
         }
     });
+    // The chosen file's identity at the default size (step 91.3, L53).
+    path_field_identity(ui, &source);
     ui.horizontal(|ui| {
         if ui
             .add_enabled(

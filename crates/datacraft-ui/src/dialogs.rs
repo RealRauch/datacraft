@@ -28,8 +28,9 @@ use std::task::{Context, Poll, Wake, Waker};
 /// host answers it through `poll_answer` on a later frame.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DialogRequest {
-    /// A native open-file picker.
-    OpenFile,
+    /// A native open-file picker; `extensions` names the supported
+    /// suffixes (without dots) the picker filters to (step 91.3, M111).
+    OpenFile { extensions: &'static [&'static str] },
     /// A native open-folder picker (the CSV directory driver opens a
     /// directory as a database).
     OpenFolder,
@@ -80,9 +81,13 @@ impl NativeDialogs {
     /// The blocking happens here, away from the event loop.
     fn answer_on_thread(request: DialogRequest) -> DialogAnswer {
         match request {
-            DialogRequest::OpenFile => DialogAnswer::Path(
-                block_on(rfd::AsyncFileDialog::new().pick_file())
-                    .map(|handle| handle.path().to_path_buf()),
+            DialogRequest::OpenFile { extensions } => DialogAnswer::Path(
+                block_on(
+                    rfd::AsyncFileDialog::new()
+                        .add_filter(crate::i18n::t("Supported files"), extensions)
+                        .pick_file(),
+                )
+                .map(|handle| handle.path().to_path_buf()),
             ),
             DialogRequest::OpenFolder => DialogAnswer::Path(
                 block_on(rfd::AsyncFileDialog::new().pick_folder())
@@ -247,7 +252,7 @@ impl DialogQueue for ScriptedDialogs {
     fn poll_answer(&mut self) -> Option<DialogAnswer> {
         let request = self.requests.pop_front()?;
         Some(match request {
-            DialogRequest::OpenFile => DialogAnswer::Path(if self.files.is_empty() {
+            DialogRequest::OpenFile { .. } => DialogAnswer::Path(if self.files.is_empty() {
                 None
             } else {
                 self.files.remove(0)
@@ -286,7 +291,7 @@ mod queue_contract {
         let mut host = ScriptedDialogs::new()
             .file(Some("/tmp/a.csv"))
             .confirm(true);
-        host.request(DialogRequest::OpenFile);
+        host.request(DialogRequest::OpenFile { extensions: &[] });
         host.request(DialogRequest::Confirm {
             title: "Delete Object".into(),
             message: "Delete Card? This cannot be undone.".into(),

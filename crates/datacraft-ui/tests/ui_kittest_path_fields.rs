@@ -9,10 +9,9 @@ use datacraft_core::port::MockPort;
 use datacraft_ui::app::App;
 use datacraft_ui::backstage::BackstagePage;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
-const LONG_PATH: &str =
-    "C:\\Users\\someuser\\Downloads\\data-exchange\\database-access-ready.mdb";
+const LONG_PATH: &str = "C:\\Users\\someuser\\Downloads\\data-exchange\\database-access-ready.mdb";
 const FILE_NAME: &str = "database-access-ready.mdb";
 
 fn app() -> App {
@@ -52,11 +51,12 @@ fn tree_dump(harness: &Harness<'_, App>) -> String {
     lines.join("\n")
 }
 
-/// A node whose label is exactly the file name — the identity row, not
-/// the field's raw value (the value line carries the whole path).
+/// A node whose text is exactly the file name — the identity row, not
+/// the field's raw value (that line carries the whole path, so a pipe
+/// never sits directly before the name there).
 fn asserts_identity_row(dump: &str, surface: &str) {
     assert!(
-        dump.contains(&format!("|{FILE_NAME}|")),
+        dump.contains(&format!("|{FILE_NAME}")),
         "the {surface} field names the chosen file as its own row:\n{dump}"
     );
 }
@@ -78,40 +78,50 @@ fn the_import_source_field_names_the_chosen_file() {
 /// carries the same identity row.
 #[test]
 fn every_backstage_path_field_names_the_chosen_file() {
-    let pages: [(BackstagePage, &str, fn(&mut App), fn(&mut App)); 4] = [
-        (
-            BackstagePage::Open,
-            "open",
-            |app: &mut App| app.open_path = LONG_PATH.to_owned(),
-            |_| {},
-        ),
-        (
-            BackstagePage::New,
-            "new database",
-            |app: &mut App| app.new_database.path = LONG_PATH.to_owned(),
-            |app: &mut App| app.new_database.kind = Some(datacraft_ui::backstage::NewDatabaseKind::Blank),
-        ),
-        (
-            BackstagePage::Save,
-            "save-a-copy",
-            |app: &mut App| app.save_as_path = LONG_PATH.to_owned(),
-            |_| {},
-        ),
-        (
-            BackstagePage::Save,
-            "sidecar",
-            |app: &mut App| app.sidecar_path = LONG_PATH.to_owned(),
-            |_| {},
-        ),
+    struct SurfaceCase {
+        page: BackstagePage,
+        name: &'static str,
+        seed: fn(&mut App),
+        prepare: fn(&mut App),
+    }
+    let pages = [
+        SurfaceCase {
+            page: BackstagePage::Open,
+            name: "open",
+            seed: |app: &mut App| app.open_path = LONG_PATH.to_owned(),
+            prepare: |_| {},
+        },
+        SurfaceCase {
+            page: BackstagePage::New,
+            name: "new database",
+            seed: |app: &mut App| app.new_database.path = LONG_PATH.to_owned(),
+            prepare: |app: &mut App| {
+                app.new_database.kind = Some(datacraft_ui::backstage::NewDatabaseKind::Blank);
+                app.new_database.step = datacraft_ui::backstage::NewDatabaseStep::Location;
+            },
+        },
+        SurfaceCase {
+            page: BackstagePage::Save,
+            name: "save-a-copy",
+            seed: |app: &mut App| app.save_as_path = LONG_PATH.to_owned(),
+            prepare: |_| {},
+        },
+        SurfaceCase {
+            page: BackstagePage::Save,
+            name: "sidecar",
+            seed: |app: &mut App| app.sidecar_path = LONG_PATH.to_owned(),
+            prepare: |_| {},
+        },
     ];
-    for (page, surface, seed, prepare) in pages {
+    for case in &pages {
         let mut app = app();
-        seed(&mut app);
-        prepare(&mut app);
-        app.backstage_page = page;
+        (case.seed)(&mut app);
+        (case.prepare)(&mut app);
+        app.backstage_page = case.page;
+        app.active_ribbon_tab = "file";
         let mut harness = shell_harness(app);
         harness.run();
         let dump = tree_dump(&harness);
-        asserts_identity_row(&dump, surface);
+        asserts_identity_row(&dump, case.name);
     }
 }

@@ -26,7 +26,10 @@ fn a_parked_dialog_intent_runs_on_a_later_poll() {
     app.set_dialogs(Box::new(
         ScriptedDialogs::new().file(Some("C:/data/shop.mdb")),
     ));
-    app.request_dialog(DialogRequest::OpenFile, DialogIntent::FillOpenPath);
+    app.request_dialog(
+        DialogRequest::OpenFile { extensions: &[] },
+        DialogIntent::FillOpenPath,
+    );
     assert!(
         app.open_path.is_empty(),
         "the answer arrives on a later frame, never inside the click"
@@ -41,7 +44,10 @@ fn a_parked_dialog_intent_runs_on_a_later_poll() {
 fn a_cancelled_dialog_clears_the_park_without_running_the_intent() {
     let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
     app.set_dialogs(Box::new(ScriptedDialogs::new()));
-    app.request_dialog(DialogRequest::OpenFile, DialogIntent::FillOpenPath);
+    app.request_dialog(
+        DialogRequest::OpenFile { extensions: &[] },
+        DialogIntent::FillOpenPath,
+    );
     app.poll_dialogs();
     assert!(
         app.open_path.is_empty(),
@@ -60,8 +66,14 @@ fn a_second_request_while_one_is_pending_is_ignored() {
         .file(Some("C:/data/first.mdb"))
         .file(Some("C:/data/second.mdb"));
     app.set_dialogs(Box::new(host));
-    app.request_dialog(DialogRequest::OpenFile, DialogIntent::FillOpenPath);
-    app.request_dialog(DialogRequest::OpenFile, DialogIntent::FillOpenPath);
+    app.request_dialog(
+        DialogRequest::OpenFile { extensions: &[] },
+        DialogIntent::FillOpenPath,
+    );
+    app.request_dialog(
+        DialogRequest::OpenFile { extensions: &[] },
+        DialogIntent::FillOpenPath,
+    );
     app.poll_dialogs();
     assert_eq!(app.open_path, "C:/data/first.mdb");
     app.poll_dialogs();
@@ -75,7 +87,10 @@ fn a_second_request_while_one_is_pending_is_ignored() {
 fn an_unavailable_dialog_answers_a_precise_notice() {
     let mut app = App::new(Box::new(datacraft_core::port::MockPort::new()));
     app.set_dialogs(Box::new(DeadHost));
-    app.request_dialog(DialogRequest::OpenFile, DialogIntent::FillOpenPath);
+    app.request_dialog(
+        DialogRequest::OpenFile { extensions: &[] },
+        DialogIntent::FillOpenPath,
+    );
     app.poll_dialogs();
     assert!(
         !app.has_pending_dialog(),

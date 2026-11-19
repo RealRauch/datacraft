@@ -121,6 +121,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Run", "Ausführen"),
     ("SQL", "SQL"),
     ("Save", "Speichern"),
+    ("Supported files", "Unterstützte Dateien"),
     ("Save Design", "Entwurf speichern"),
     ("Save a Copy", "Eine Kopie speichern"),
     ("Save Copy", "Kopie speichern"),

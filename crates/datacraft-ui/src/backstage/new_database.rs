@@ -166,9 +166,11 @@ fn location_step(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>, r
     ui.label(t("path for the new database"));
     ui.add(
         egui::TextEdit::singleline(&mut app.new_database.path)
-            .desired_width(360.0)
+            .desired_width(480.0)
             .hint_text(t("path for the new database")),
     );
+    // The chosen file's identity at the default size (step 91.3, L53).
+    crate::labels::path_field_identity(ui, &app.new_database.path);
     let chosen_format = chosen_format(app, &kind);
     let conflict = chosen_format.and_then(|format| {
         format

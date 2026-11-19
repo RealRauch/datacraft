@@ -25,9 +25,11 @@ fn save_copy_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
         ui.label(t("path to the copy"));
         ui.add(
             egui::TextEdit::singleline(&mut app.save_as_path)
-                .desired_width(360.0)
+                .desired_width(480.0)
                 .hint_text(t("path to the copy")),
         );
+        // The chosen file's identity at the default size (step 91.3, L53).
+        crate::labels::path_field_identity(ui, &app.save_as_path);
         let suggested = std::path::Path::new(app.save_as_path.trim())
             .file_name()
             .map_or_else(
@@ -147,9 +149,11 @@ pub(super) fn save_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Comm
     ui.label(t("path to .datacraft"));
     ui.add(
         egui::TextEdit::singleline(&mut app.sidecar_path)
-            .desired_width(360.0)
+            .desired_width(480.0)
             .hint_text(t("path to .datacraft")),
     );
+    // The chosen file's identity at the default size (step 91.3, L53).
+    crate::labels::path_field_identity(ui, &app.sidecar_path);
     ui.add_space(8.0);
     ui.horizontal(|ui| {
         let enabled = !app.sidecar_path.trim().is_empty();

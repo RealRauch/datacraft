@@ -3,7 +3,7 @@
 //! the healthy file belongs to File → Open, not to the decoder — and the
 //! composed error carries the source path exactly once.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
@@ -12,10 +12,7 @@ use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
 
 fn scratch(name: &str, bytes: &[u8]) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "datacraft-import-surface-{}",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("datacraft-import-surface-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("scratch dir");
     let path = dir.join(name);
     std::fs::write(&path, bytes).expect("write the probe file");

@@ -46,9 +46,9 @@ impl Core {
         }
         let (parsed, _dialect) = match crate::import::read_csv_file(source) {
             Ok(parsed) => parsed,
-            Err(reason) => {
-                return failed(FailureCode::Io, format!("{}: {reason}", source.display()));
-            }
+            // The file layer owns the path prefix (step 91.3, item M112)
+            // — one prefix, never two.
+            Err(reason) => return failed(FailureCode::Io, reason),
         };
         let definition = TableDef::new(table.to_owned(), parsed.fields.clone());
         let mut events = self.create_table(definition);
@@ -88,9 +88,11 @@ impl Core {
         }
         let (parsed, dialect) = match crate::import::read_csv_file(source) {
             Ok(parsed) => parsed,
+            // The file layer owns the path prefix (step 91.3, item M112)
+            // — one prefix, never two.
             Err(reason) => {
                 self.state.import_preview = None;
-                return failed(FailureCode::Io, format!("{}: {reason}", source.display()));
+                return failed(FailureCode::Io, reason);
             }
         };
         let table = source.file_stem().map_or_else(

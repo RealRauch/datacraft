@@ -62,6 +62,17 @@ pub const PREVIEW_ROWS: usize = 8;
 /// read.
 pub fn read_csv_file(path: &Path) -> Result<(CsvTable, Dialect), String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    // Wrong-surface honesty (step 91.3, item M111): a database file is
+    // healthy — it belongs to File → Open, not to the text import. The
+    // sniff runs before the decode chain: Jet bytes can decode as text
+    // (a garbage table), so the decoder error alone is not enough.
+    if let Some(family) = crate::port::sniff_database_family(&bytes) {
+        return Err(format!(
+            "{}: this is a {} database file, not delimited text — open it via File → Open",
+            path.display(),
+            family.label()
+        ));
+    }
     let (text, dialect) = decode_csv_text(bytes).map_err(|e| format!("{}: {e}", path.display()))?;
     parse_csv_text(&text, dialect.delimiter).map(|table| (table, dialect))
 }

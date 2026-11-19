@@ -10,6 +10,23 @@ use datacraft_core::port::NativeQueryKind;
 
 use crate::i18n::{t, tr};
 
+use eframe::egui;
+
+/// The path-field identity row (step 91.3, item L53): once the field
+/// carries a path, the chosen file name renders prominently below it and
+/// the full path rides its hover — a realistic long path is identifiable
+/// at the default field size on every surface (import window and the
+/// backstage path fields).
+pub fn path_field_identity(ui: &mut egui::Ui, path: &str) {
+    let trimmed = path.trim();
+    let Some(name) = std::path::Path::new(trimmed).file_name() else {
+        return;
+    };
+    let name = name.to_string_lossy();
+    ui.label(egui::RichText::new(name).strong())
+        .on_hover_text(trimmed);
+}
+
 /// Localized name of a native query flavor (the QBE viewer's subtitle).
 /// The wire enum stays locale-neutral (ADR-4); the UI supplies the words.
 pub fn native_query_kind_label(kind: NativeQueryKind) -> &'static str {
