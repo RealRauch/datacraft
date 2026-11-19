@@ -519,7 +519,7 @@
 | 90.2 | Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate) | ⬜ |
 | 90.3 | Documentation and phase gate (L40, L44) | ⬜ |
 | 91.1 | Version display in UI, CLI and MCP (M109) | ✅ |
-| 91.2 | SQL window height budget (M110) | ⬜ |
+| 91.2 | SQL window height budget (M110) | ✅ |
 | 91.3 | Import File honesty: wrong-surface rejection, single path, path display (M111, M112, L53) | ⬜ |
 | 91.4 | Status-line truncation contract (L52) | ⬜ |
 | 91.5 | Datasheet sort: total order with defined NULL placement and honest indicator (M113) | ⬜ |
