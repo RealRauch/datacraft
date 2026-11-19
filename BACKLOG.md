@@ -51,13 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M114 — The AutoNumber cell's contract is invisible until a rejection — 🟡
-- **Location:** the new-record hint (`crates/datacraft-ui/src/i18n/de/views.rs` — "Empty cells are Null; AutoNumber assigns itself." / „Leere Zellen sind Null; AutoWert vergibt sich selbst."), the datasheet edit-start path (`crates/datacraft-ui/src/datasheet.rs`, `row_edit_zls.rs`), the Jet rejection of user-supplied AutoNumber values (M8, `crates/datacraft-jet`).
-- **Problem:** Found in the L47 design review (2026-11-17, finding 8, reviewer comment): the hint does not say whether a manual value may be entered. It may not — the Jet port rejects user-supplied AutoNumber values — and the datasheet has no AutoNumber edit gate, so the contract surfaces only as a runtime rejection after typing into the id cell.
-- **Approach:** Make the contract visible before input: either the AutoNumber cell is not editable (the availability/capability gate pattern the datasheet already uses) or the hint states the rejection precisely ("Eingaben werden abgelehnt — der Motor vergibt den Wert"). The rejection error names the column. The chosen variant lands in both catalogs.
-- **Acceptance:** The AutoNumber cell shows its contract before input (gate or precise hint, pinned by kittest); typing into it is either impossible or produces the precise rejection naming the column; en/de catalog parity; no change to the M8 writer behaviour itself.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] M115 — Nav-pane sort menu shows no active order and reads per-group while being global — 🟡
 - **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the group-header context menu's sort entries; the order itself is the global `app.nav_sort` applied by `nav::sort_entries` to every section).
 - **Problem:** Found in the L47 design review (2026-11-19, finding 11 in `docs/UI-DESIGN-REVIEW.md`): the group-header menu offers "Sort by Name"/"Sort by Type" as plain buttons with no indicator of the active order, and the same menu sits on every group header while it sets one pane-wide order — the affordance reads per-group but acts global.
@@ -168,13 +161,6 @@
 - **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
 - **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
-
-### [ ] L54 — "Felder fixieren" has no explanation and no visible frozen state — 🟢
-- **Location:** the column context menu (Freeze Fields / Unfreeze All Fields — `crates/datacraft-ui/src/i18n/de/ui_chrome.rs`, "Freeze Fields"/"Felder fixieren" and "Unfreeze All Fields"/"Fixierung aufheben"), the grid's frozen-column rendering (`crates/datacraft-ui/src/datasheet/grid.rs`, `effective_frozen`).
-- **Problem:** Found in the L47 design review (2026-11-17, finding 9, reviewer comment): it is unclear what "Felder fixieren" does — no tooltip explains that the leading columns stay pinned during horizontal scroll, and the frozen state itself carries no visible marker in the grid beyond the layout change.
-- **Approach:** A one-line tooltip on both menu items (what freezing does), and a visible frozen-state indicator in the grid (e.g. a stronger separator after the last frozen column and/or a check/state mark on the menu items); i18n parity en/de; no behaviour change to the freeze itself (M39 semantics stay).
-- **Acceptance:** Both menu items carry tooltips; the frozen state is recognisable without opening the menu (layout_probe pin at both pinned window sizes); "Fixierung aufheben" returns the plain grid; kittest pins menu and state.
-- **Steps:** none yet (from the phase 89 design review).
 
 ### [ ] L55 — Nav-pane entry click target excludes the icon — 🟢
 - **Location:** `crates/datacraft-ui/src/nav_pane.rs` (entry rows: icon widget and `selectable_label` as separate widgets with the 6 px item spacing between them).

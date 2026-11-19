@@ -523,7 +523,7 @@
 | 91.3 | Import File honesty: wrong-surface rejection, single path, path display (M111, M112, L53) | ✅ |
 | 91.4 | Status-line truncation contract (L52) | ✅ |
 | 91.5 | Datasheet sort: total order with defined NULL placement and honest indicator (M113) | ✅ |
-| 91.6 | Datasheet affordance clarity: AutoNumber hint, freeze tooltip and visible frozen state (M114, L54) | ⬜ |
+| 91.6 | Datasheet affordance clarity: AutoNumber hint, freeze tooltip and visible frozen state (M114, L54) | ✅ |
 | 91.7 | Nav pane: sort-state honesty, whole-row click target, native-object chrome, category dropdown, New View placement (M115, L55–L58) | ⬜ |
 | 91.8 | Backstage: Save-page section hierarchy, Info fact-value column (M116, L59) | ⬜ |
 | 91.9 | Tool windows: Relationships scroll, Expression Close placement, VBA token errors, view-editor field labels, notices density, macro numbering (M117–M119, L60–L62) | ⬜ |
