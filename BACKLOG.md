@@ -51,20 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M111 — Import File accepts database files and answers with a raw decoder error — 🟡
-- **Location:** `crates/datacraft-core/src/import.rs` (`read_csv_file` → `decode_csv_text`), the import flow (`crates/datacraft-ui/src/import_window.rs`, `PreviewImportFile`/`ImportFile`), and the file picker.
-- **Problem:** Found in the L47 design review (2026-11-16, finding 3 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a Jet4 `.mdb` chosen in the Import File window (the delimited-text import surface) runs the text-decoder chain (UTF-8 → UTF-16 BOM → Windows-1252) and answers "byte 0x00 at offset 0 is not defined in Windows-1252" — precise but misleading: the file is a healthy database on the wrong surface, and nothing names the right surface. The composite's format sniff already identifies the file as Jet4.
-- **Approach:** Before decoding, run the existing format-detection knowledge over the chosen source: a database family (Jet3/Jet4/ACE/SQLite) answers a precise error naming the detected format and the right surface ("open it via File → Open"); the picker filters to the supported text/CSV extensions first. Reuse the sniff — no new detection logic, no new dependency.
-- **Acceptance:** Importing a Jet4 fixture through `PreviewImportFile`/`ImportFile` answers the format-naming error over the wire and in the UI (pinned), not a decoder byte error; genuine text/CSV imports behave unchanged; the picker filter names the supported extensions; the SQLite and Jet3 families answer the same way (one test per family or one parameterized).
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] M112 — Import errors repeat the file path twice — 🟡
-- **Location:** `crates/datacraft-core/src/import.rs` (`read_csv_file` wraps the decode error with `format!("{}: {e}", path.display())`) and the inner decode layer whose error already carries the path.
-- **Problem:** Found in the L47 design review (2026-11-16, finding 4, reviewer screenshot): the status line shows `C:\…\database-access-ready.mdb: C:\…\database-access-ready.mdb: byte 0x00 …` — two error layers prepend the same path, pushing the actual reason off-screen.
-- **Approach:** One layer owns the path prefix: the inner decode error stays path-free, the outer `read_csv_file` adds `{path}: ` exactly once. Error text is contract — pinned by tests, not by string tricks.
-- **Acceptance:** A failing import shows the path exactly once in the composed error; the precise inner locations survive unchanged (`row N:`, `header column …`); a test pins the composed text for the decode-failure case.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] M113 — Sort order scrambles with NULL values and the indicator can claim unapplied sorts — 🟡
 - **Location:** `crates/datacraft-types/src/compare.rs` (`compare` returns `None` for NULL and mixed-family pairs), `crates/datacraft-core/src/table_view.rs` (`view_order` degrades `None` → `Ordering::Equal`, an inconsistent comparator), `crates/datacraft-ui/src/datasheet.rs` (`.ok()` fallback on `view_order` errors while the sort indicator renders from `tab.sort_field` independently).
 - **Problem:** Found in the L47 design review (2026-11-17, finding 7 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot, "Sortierreihenfolge überprüfen"): a DateTime column with one NULL row sorted descending shows the descending indicator while the rows land in a scrambled order (dates 1937, 1923, 1935, …, 2026; ids 2, 1, 3, 4, 6, 7). Mechanism: `None`-comparisons become `Equal`, so the sort comparator violates transitivity and the stable sort produces an implementation-defined scramble; separately, a `view_order` error (unknown/renamed field) is swallowed and the indicator still claims a sort that is not applied.
@@ -195,13 +181,6 @@
 - **Problem:** Found in the L47 design review (2026-11-16, finding 5 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a long error paints the entire status bar — the click-to-open-history affordance exists, but the inline text has no ellipsis/hover contract and floods the chrome. The 2026-11-19 review pass (surfaces closed) found the same unbounded text pattern in the backstage `status_line`, so the truncation contract is folded here instead of a second item.
 - **Approach:** Truncate the inline text to the available width with an ellipsis at both call sites (ideally one shared helper); the full text rides the hover tooltip; the existing click opens the message history unchanged. Truncation is pure width math over the chrome font metrics.
 - **Acceptance:** A long error truncates with an ellipsis, hover shows the full text, click still opens the history — on the status bar and on the backstage pages; layout_probe pins the truncated rects at both pinned window sizes; the string path stays in `t()`/`tr()` where localized.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] L53 — Import source-file field clips long paths at the start — 🟢
-- **Location:** `crates/datacraft-ui/src/import_window.rs` (the Quelldatei/source-file row: field width and the window's default size). Folded 2026-11-19: the same fixed-width path fields across the backstage — Open (`backstage/pages.rs` `open_page`), New (`backstage/new_database.rs` `location_step`), Save-As and sidecar (`backstage/save.rs`), each `desired_width(360.0)`.
-- **Problem:** Found in the L47 design review (2026-11-16, finding 6, reviewer screenshot): realistic long paths show only their tail in the narrow field — the directory context at the start is invisible; the window is resizable but the default is too small. The 2026-11-19 review pass found the same fixed-width pattern in every backstage path field, so one path-field contract is folded here instead of per-field items.
-- **Approach:** One contract for all path fields: wider field (window default width or field proportion) and the chosen file name shown prominently once picked (the full path on hover). Simplest sufficient variant at implementation; no functional change to any flow.
-- **Acceptance:** A realistic long path (`C:\Users\…\Downloads\database-access-ready.mdb`) is identifiable at the default size in the import window and in every backstage path field — the file name is visible and the full path rides the hover; kittest pins the fields; import/open/create/save behaviour unchanged.
 - **Steps:** none yet (from the phase 89 design review).
 
 ### [ ] L54 — "Felder fixieren" has no explanation and no visible frozen state — 🟢
