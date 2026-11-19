@@ -51,13 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M115 — Nav-pane sort menu shows no active order and reads per-group while being global — 🟡
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the group-header context menu's sort entries; the order itself is the global `app.nav_sort` applied by `nav::sort_entries` to every section).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 11 in `docs/UI-DESIGN-REVIEW.md`): the group-header menu offers "Sort by Name"/"Sort by Type" as plain buttons with no indicator of the active order, and the same menu sits on every group header while it sets one pane-wide order — the affordance reads per-group but acts global.
-- **Approach:** Render the active order as a check/state mark on the menu entries (the M79 pattern: state-bearing controls render their state from the snapshot/state), and make the scope honest: label the entries as the pane-wide order ("Sort all sections by …") or scope the menu per section — one decision, applied consistently.
-- **Acceptance:** The sort menu shows the active order (kittest pin); the entry labels name the order's scope truthfully; sorting behaviour itself is unchanged (pure presentation/labelling); en/de catalog parity.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] M116 — The Save page mixes titled and untitled sections — 🟡
 - **Location:** `crates/datacraft-ui/src/backstage/save.rs` (`save_page`: the sidecar block starts with a bare field label; "Save a Copy" and "Database Password" carry `ui.heading`).
 - **Problem:** Found in the L47 design review (2026-11-19, finding 16): the Save page has three sections, only two carry headings — the page reads unstructured and the sidecar section has no name to anchor it.
@@ -161,34 +154,6 @@
 - **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
 - **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
-
-### [ ] L55 — Nav-pane entry click target excludes the icon — 🟢
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (entry rows: icon widget and `selectable_label` as separate widgets with the 6 px item spacing between them).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 12): only the label opens an object — the icon is inert, and icon+label read as two widgets instead of one row; Access opens from the whole row.
-- **Approach:** Make the whole row one click target (allocate the row, paint icon and label inside, interact over the full rect — the backstage nav-row pattern), keeping the context menu, active state and test ids.
-- **Acceptance:** Clicking anywhere on a row (icon included) opens the object (kittest); context menu, selection state and automation ids unchanged.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] L56 — Native-objects inventory renders as disabled buttons — 🟢
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the native forms/reports group: `ui.add_enabled(false, egui::Button::new(name))` per entry).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 13): the read-only inventory renders every entry as a disabled button while all other entries are selectable labels — the group reads as a block of dead controls.
-- **Approach:** Render the entries in the pane's row language (icon + label like the other groups), carrying the read-only state through the group hint and muted text instead of button chrome.
-- **Acceptance:** Native entries visually match the pane's row language (kittest pin); the read-only hint stays; no affordance appears where none exists.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] L57 — The nav-pane category dropdown opens a menu that does nothing — 🟢
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the "All Access Objects" menu button with its single selectable entry).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 14): the category dropdown's only menu entry re-states the current selection and performs nothing — a dead-looking affordance (LESSONS #29 family) until the category model grows (L48).
-- **Approach:** Until real categories exist (L48), render the header as a plain labelled header without the empty menu, or keep the dropdown but disable its single entry with an explanatory tooltip; revisit when L48 lands.
-- **Acceptance:** No menu opens that cannot do anything (kittest pins the header form); the Access category language returns with L48's categories.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] L58 — The nav pane's "New View" button sits detached at the pane bottom — 🟢
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the `small_button` rendered below the scroll area).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 15): the button pins below the object list at the pane bottom regardless of any Views group state — an odd duplicate of the ribbon's Views entry point that reads as orphaned chrome.
-- **Approach:** Move the create affordance into the Views group header's context menu (where the other group actions live) or beside the group header; the ribbon split-button stays as-is.
-- **Acceptance:** The pane bottom carries no detached button; view creation remains reachable from the pane (kittest flow pins the new location).
-- **Steps:** none yet (from the phase 89 design review).
 
 ### [ ] L59 — The Info page's fact values do not align into a column — 🟢
 - **Location:** `crates/datacraft-ui/src/backstage/info.rs` (the facts and driver-fact rows: label+value horizontals).

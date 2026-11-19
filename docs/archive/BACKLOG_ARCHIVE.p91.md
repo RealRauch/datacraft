@@ -93,6 +93,56 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `df7de1e` — both freeze menu items carry one-line tooltips ("Keep the leading columns pinned…", "Release the pinned columns."), and the frozen state is visible without the menu: a 2 px accent boundary after the last frozen column in header and body, recorded under the `datasheet.frozen_boundary` layout probe and pinned present frozen / absent unfrozen; M39 semantics unchanged
 
+---
+
+### [x] M115 — Nav-pane sort menu shows no active order and reads per-group while being global — 🟡
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the group-header context menu's sort entries; the order itself is the global `app.nav_sort` applied by `nav::sort_entries` to every section).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 11 in `docs/UI-DESIGN-REVIEW.md`): the group-header menu offers "Sort by Name"/"Sort by Type" as plain buttons with no indicator of the active order, and the same menu sits on every group header while it sets one pane-wide order — the affordance reads per-group but acts global.
+- **Approach:** Render the active order as a check/state mark on the menu entries (the M79 pattern: state-bearing controls render their state from the snapshot/state), and make the scope honest: label the entries as the pane-wide order ("Sort all sections by …") or scope the menu per section — one decision, applied consistently.
+- **Acceptance:** The sort menu shows the active order (kittest pin); the entry labels name the order's scope truthfully; sorting behaviour itself is unchanged (pure presentation/labelling); en/de catalog parity.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `fa378a5` — the sort menu renders the active order as selectable state (the M79 pattern: name/type entries carry selected/unselected marks, pinned via the accesskit toggled property) and the entries name the pane-wide scope ("Sort all sections by Name/Type"); sorting behaviour unchanged; de catalog follows
+
+---
+
+### [x] L55 — Nav-pane entry click target excludes the icon — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (entry rows: icon widget and `selectable_label` as separate widgets with the 6 px item spacing between them).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 12): only the label opens an object — the icon is inert, and icon+label read as two widgets instead of one row; Access opens from the whole row.
+- **Approach:** Make the whole row one click target (allocate the row, paint icon and label inside, interact over the full rect — the backstage nav-row pattern), keeping the context menu, active state and test ids.
+- **Acceptance:** Clicking anywhere on a row (icon included) opens the object (kittest); context menu, selection state and automation ids unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `fa378a5` — a nav row is one interacted rect (the backstage nav-row pattern): icon and label paint inside it, the row carries the selected widget state, and a click over the icon area opens the object (pinned by a geometric icon-position click); context menu, selection state and automation ids unchanged
+
+---
+
+### [x] L56 — Native-objects inventory renders as disabled buttons — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the native forms/reports group: `ui.add_enabled(false, egui::Button::new(name))` per entry).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 13): the read-only inventory renders every entry as a disabled button while all other entries are selectable labels — the group reads as a block of dead controls.
+- **Approach:** Render the entries in the pane's row language (icon + label like the other groups), carrying the read-only state through the group hint and muted text instead of button chrome.
+- **Acceptance:** Native entries visually match the pane's row language (kittest pin); the read-only hint stays; no affordance appears where none exists.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `fa378a5` — the native inventory renders in the pane's row language (muted label row with its kind icon, never disabled button chrome); the row is a real Label widget so the name survives the semantic tree's static-text culling (the M60/M61 note — pinned with a tall-viewport harness); the read-only state carries the group hint and no affordance appears
+
+---
+
+### [x] L57 — The nav-pane category dropdown opens a menu that does nothing — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the "All Access Objects" menu button with its single selectable entry).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 14): the category dropdown's only menu entry re-states the current selection and performs nothing — a dead-looking affordance (LESSONS #29 family) until the category model grows (L48).
+- **Approach:** Until real categories exist (L48), render the header as a plain labelled header without the empty menu, or keep the dropdown but disable its single entry with an explanatory tooltip; revisit when L48 lands.
+- **Acceptance:** No menu opens that cannot do anything (kittest pins the header form); the Access category language returns with L48's categories.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `fa378a5` — the category header is a plain strong labelled header until the category model grows (L48); no menu opens that cannot do anything (LESSONS #29 family); the Access category language returns with L48
+
+---
+
+### [x] L58 — The nav pane's "New View" button sits detached at the pane bottom — 🟢
+- **Location:** `crates/datacraft-ui/src/nav_pane.rs` (the `small_button` rendered below the scroll area).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 15): the button pins below the object list at the pane bottom regardless of any Views group state — an odd duplicate of the ribbon's Views entry point that reads as orphaned chrome.
+- **Approach:** Move the create affordance into the Views group header's context menu (where the other group actions live) or beside the group header; the ribbon split-button stays as-is.
+- **Acceptance:** The pane bottom carries no detached button; view creation remains reachable from the pane (kittest flow pins the new location).
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `fa378a5` — view creation lives in the Views group header's context menu (below the sort entries); the detached pane-bottom button is gone, and the menu entry opens the view editor (pinned via the open draft)
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -106,3 +156,8 @@
 - M113 — Sort order scrambles with NULL values and the indicator can claim unapplied sorts — done (done in `7e35031` — the total comparator `datacraft_types::sort_compare` (NULLs first ascending/last descending via the direction reverse, declaration-order family rank under mixes, non-finite floats tiered after their family; `compare` stays family-safe Option for its callers), `view_order` sorts with it; the stale-sort fallback is gone — a view_order failure clears the sort state through `SetTableSort`-None (whose clear accepts any field name), so the indicator never claims an unapplied order; semantics documented in FEATURES and a COMPATIBILITY matrix row; core fix-forward `86c6452` corrected the property's direction-aware rank assertion)
 - M114 — The AutoNumber cell's contract is invisible until a rejection — done (done in `df7de1e` — the gate variant: engine-assigned new-record cells render disabled with the rejection reason on hover (probe `datasheet.newrow.autonumber_gate`), the row hint names the contract precisely in both catalogs, and the row_edit rejection names the column; the M8 writer behaviour untouched; the trailing row sits below the a11y fold headless, so the string pin rides a crate unit test and the gate rides the probe)
 - L54 — "Felder fixieren" has no explanation and no visible frozen state — done (done in `df7de1e` — both freeze menu items carry one-line tooltips ("Keep the leading columns pinned…", "Release the pinned columns."), and the frozen state is visible without the menu: a 2 px accent boundary after the last frozen column in header and body, recorded under the `datasheet.frozen_boundary` layout probe and pinned present frozen / absent unfrozen; M39 semantics unchanged)
+- M115 — Nav-pane sort menu shows no active order and reads per-group while being global — done (done in `fa378a5` — the sort menu renders the active order as selectable state (the M79 pattern: name/type entries carry selected/unselected marks, pinned via the accesskit toggled property) and the entries name the pane-wide scope ("Sort all sections by Name/Type"); sorting behaviour unchanged; de catalog follows)
+- L55 — Nav-pane entry click target excludes the icon — done (done in `fa378a5` — a nav row is one interacted rect (the backstage nav-row pattern): icon and label paint inside it, the row carries the selected widget state, and a click over the icon area opens the object (pinned by a geometric icon-position click); context menu, selection state and automation ids unchanged)
+- L56 — Native-objects inventory renders as disabled buttons — done (done in `fa378a5` — the native inventory renders in the pane's row language (muted label row with its kind icon, never disabled button chrome); the row is a real Label widget so the name survives the semantic tree's static-text culling (the M60/M61 note — pinned with a tall-viewport harness); the read-only state carries the group hint and no affordance appears)
+- L57 — The nav-pane category dropdown opens a menu that does nothing — done (done in `fa378a5` — the category header is a plain strong labelled header until the category model grows (L48); no menu opens that cannot do anything (LESSONS #29 family); the Access category language returns with L48)
+- L58 — The nav pane's "New View" button sits detached at the pane bottom — done (done in `fa378a5` — view creation lives in the Views group header's context menu (below the sort entries); the detached pane-bottom button is gone, and the menu entry opens the view editor (pinned via the open draft))
