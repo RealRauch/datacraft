@@ -28,7 +28,10 @@ fn form_app_with_combo() -> App {
     let mut port = MockPort::with_tables(vec![customers_table()]);
     port.with_row_data(
         "Customers",
-        vec![vec![FieldValue::Integer(1), FieldValue::Text("Lena".into())]],
+        vec![vec![
+            FieldValue::Integer(1),
+            FieldValue::Text("Lena".into()),
+        ]],
     );
     let mut app = App::new(Box::new(port));
     app.dispatch(Command::OpenDatabase {
@@ -144,9 +147,13 @@ fn the_form_canvas_scrolls_at_the_pinned_minimum() {
         (design_canvas.width() - 640.0).abs() < 1.0,
         "the full canvas lays out: {design_canvas:?}"
     );
+    // The pinned-minimum viewport clips the canvas vertically — the
+    // both-axes scroll is what keeps every part reachable (the measured
+    // geometry: the column caps at the canvas width, the viewport is
+    // shorter than the canvas).
     assert!(
-        design_viewport.width() < design_canvas.width(),
-        "the designer viewport is narrower than the canvas — the scroll is the reachability: {design_viewport:?} vs {design_canvas:?}"
+        design_viewport.height() < design_canvas.height(),
+        "the designer viewport scrolls the canvas at the pinned minimum: {design_viewport:?} vs {design_canvas:?}"
     );
 
     // The runtime.

@@ -93,7 +93,9 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             .copied();
 
     let mut esc_handled = false;
-    egui::ScrollArea::vertical()
+    // Both axes scroll (step 91.10, item M122): the fixed 640-wide
+    // canvas stays reachable at narrow widths.
+    let runtime_scroll = egui::ScrollArea::both()
         // Reserve the navigation row: an unconstrained scroll area takes
         // the whole available height and pushes the record controls below
         // the viewport (found by the editing kittest).
@@ -112,6 +114,7 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 ),
                 egui::Sense::hover(),
             );
+            crate::layout_probe::record("form.runtime.canvas", canvas);
             let painter = ui.painter_at(canvas);
             painter.rect_filled(canvas, 0.0, ui.visuals().extreme_bg_color);
             for control in &form.controls {
@@ -153,6 +156,8 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 );
             }
         });
+    // The viewport rect rides the layout probe (step 91.10, item M122).
+    crate::layout_probe::record("form.runtime.viewport", runtime_scroll.inner_rect);
 
     // Esc outside a focused bound control reverts the record: Access
     // commits the control on focus loss, so the first Esc then applies to
@@ -390,7 +395,7 @@ fn combo_box_ui(
         };
         let menu = ui
             .add_enabled_ui(editable, |ui| {
-                ui.menu_button("v", |ui| {
+                let menu = ui.menu_button("", |ui| {
                     if values.is_empty() {
                         ui.weak(t("No entries"));
                         return;
@@ -403,12 +408,34 @@ fn combo_box_ui(
                             }
                         });
                     }
-                })
+                });
+                // A painted caret, never a text glyph (step 91.10, item
+                // M121) — the same affordance language the designer's combo
+                // paints.
+                let tokens = crate::theme::tokens(ui.visuals());
+                let ink = if editable {
+                    tokens.text
+                } else {
+                    tokens.text_muted
+                };
+                let caret = menu.response.rect.right_center() - egui::vec2(8.0, 0.0);
+                ui.painter().add(egui::Shape::convex_polygon(
+                    vec![
+                        caret + egui::vec2(-4.0, -2.0),
+                        caret + egui::vec2(4.0, -2.0),
+                        caret + egui::vec2(0.0, 3.0),
+                    ],
+                    ink,
+                    egui::Stroke::NONE,
+                ));
+                crate::layout_probe::record(
+                    "form.combo.caret",
+                    egui::Rect::from_center_size(caret, egui::vec2(8.0, 5.0)),
+                );
+                menu.response
             })
             .inner;
-        let arrow = menu
-            .response
-            .accessible_name(format!("{} values", control.name));
+        let arrow = menu.accessible_name(format!("{} values", control.name));
         if let Some(reason) = restriction {
             arrow.on_hover_text(crate::availability::reason_text(&reason));
         }

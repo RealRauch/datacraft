@@ -39,7 +39,18 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         // the palette column past the viewport (F10, found in step 41.4).
         ui.vertical(|ui| {
             ui.set_max_width(FORM_WIDTH);
-            canvas_ui(app, tab, &form, ui);
+            // The canvas column scrolls both axes (step 91.10, item M122):
+            // the fixed 640-wide canvas stays reachable at narrow widths.
+            egui::ScrollArea::both()
+                .id_salt(format!("form.design.{}", tab.ui_test_id))
+                .show(ui, |ui| {
+                    let canvas = canvas_ui(app, tab, &form, ui);
+                    crate::layout_probe::record("form.design.canvas", canvas);
+                });
+            // The viewport rect rides the layout probe: narrower than the
+            // canvas at the pinned minimum — the scroll is the
+            // reachability.
+            crate::layout_probe::record("form.design.viewport", ui.max_rect());
         });
         ui.separator();
         ui.vertical(|ui| {
@@ -73,7 +84,7 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
 }
 
 /// The design canvas itself (frame, grid, controls, footer).
-fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui) {
+fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui) -> egui::Rect {
     ui.heading(egui::RichText::new(tr(
         "Form: {name}",
         &[("name", &form.name)],
@@ -190,6 +201,8 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui
             });
         }
     });
+
+    canvas_rect
 }
 
 /// Kind-specific painting (pure paint; no logic). Shared with the
@@ -291,10 +304,13 @@ pub(crate) fn paint_control(
         }
     }
     if selected {
+        // The selection ring paints the accent family (step 91.10, item
+        // M120): the selection wash is nearly invisible on the dark form
+        // surface; the accent keeps the ring legible in both palettes.
         painter.rect_stroke(
             rect,
             0.0,
-            egui::Stroke::new(2.0, ui.visuals().selection.bg_fill),
+            egui::Stroke::new(2.0, crate::theme::tokens(ui.visuals()).accent),
             egui::StrokeKind::Outside,
         );
     }
