@@ -9,15 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 89 — Decisions and design review
-
-**Scope (Steps):**
-
-- **89.1 Tool windows as task panes — decision record in docs/ROADMAP.md with go/no-go and a scoped follow-up if yes (M100)**
-- **89.2 Native menu bar on macOS — decision record; if yes, existing commands only and the M99 shortcut model (L46)**
-- **89.3 Low-power/RDP rendering mode — detection decision and the mode's measurable effects (L50)**
-- **89.4 Design pass: the human's live density/typography/spacing review with per-finding items (L47)**
-- **89.5 Documentation and phase gate (M100, L46, L50, L47)**
 ### Phase 91 — Design review fixes
 
 **Scope (Steps):**
@@ -523,7 +514,7 @@
 | 89.2 | Native menu bar on macOS — decision record; if yes, existing commands only and the M99 shortcut model (L46) | ✅ |
 | 89.3 | Low-power/RDP rendering mode — detection decision and the mode's measurable effects (L50) | ✅ |
 | 89.4 | Design pass: the human's live density/typography/spacing review with per-finding items (L47) | ✅ |
-| 89.5 | Documentation and phase gate (M100, L46, L50, L47) | 🔄 |
+| 89.5 | Documentation and phase gate (M100, L46, L50, L47) | ✅ |
 | 90.1 | Per-crate READMEs for the ten published crates with cargo package --list verification and the PUBLISHING checklist (L44, Medium gate) | ⬜ |
 | 90.2 | Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate) | ⬜ |
 | 90.3 | Documentation and phase gate (L40, L44) | ⬜ |
