@@ -228,3 +228,39 @@ fn the_import_button_renders_disabled_for_a_read_only_source() {
         "the window is not in the tree:\n{dump}"
     );
 }
+
+/// A database file picked on the text-import surface answers the
+/// format-naming rejection (step 91.3, item M111): the status names the
+/// detected family and the right surface instead of the decoder's byte
+/// error.
+#[test]
+fn a_database_source_names_the_format_instead_of_a_decoder_error() {
+    let dir = std::env::temp_dir().join(format!("datacraft-import-ui-{}", id()));
+    std::fs::create_dir_all(&dir).expect("scratch dir");
+    let mut bytes = vec![0x00, 0x01, 0x00, 0x00];
+    bytes.extend_from_slice(b"Standard Jet DB");
+    bytes.resize(128, b' ');
+    let path = dir.join("wrong-surface.mdb");
+    std::fs::write(&path, &bytes).expect("write the probe file");
+
+    let mut harness = shell_harness(writable_app(&path));
+    harness.set_size(egui::vec2(1280.0, 800.0));
+    harness.run();
+    harness.get_by_label("External Data").click();
+    harness.run();
+    harness.get_by_label("Import File").click();
+    harness.run();
+    harness.get_by_label("Browse…").click();
+    harness.run();
+
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("Jet/ACE database"),
+        "the status names the detected family:\n{dump}"
+    );
+    assert!(
+        !dump.contains("Windows-1252"),
+        "no decoder byte error leaks into the UI:\n{dump}"
+    );
+    let _ = std::fs::remove_file(&path);
+}
