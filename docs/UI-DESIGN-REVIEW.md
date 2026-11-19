@@ -46,6 +46,15 @@
 | 6 | Form designer + form runtime | ⬜ | — |
 | 7 | Report designer + print preview | ⬜ | — |
 
+Remaining review order (packaged 2026-11-19): **#2 navigation pane next**, then
+#4 backstage, #5 remaining tool windows (SQL height M110 and Import File
+M111/M112/L52/L53 are already logged from out-of-sequence sessions), #6 form
+designer/runtime, #7 report designer/print preview — each unit is one live
+reviewer session against the three questions; accepted findings become
+BACKLOG items, rejected ones stay in the log. Fixes are rough-packaged as
+phase 91 (91.7 collects the remaining surfaces' findings, fine-packaged at
+89.4 close).
+
 ## Findings log
 
 > Appended in review order; one table row per finding. BACKLOG item ids are

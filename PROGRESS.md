@@ -25,6 +25,19 @@
 - **90.1 Per-crate READMEs for the ten published crates with cargo package --list verification and the PUBLISHING checklist (L44, Medium gate)**
 - **90.2 Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate)**
 - **90.3 Documentation and phase gate (L40, L44)**
+### Phase 91 — Design review fixes
+
+**Scope (Steps):**
+
+- **91.1 Version display in UI, CLI and MCP (M109)**
+- **91.2 SQL window height budget (M110)**
+- **91.3 Import File honesty: wrong-surface rejection, single path, path display (M111, M112, L53)**
+- **91.4 Status-line truncation contract (L52)**
+- **91.5 Datasheet sort: total order with defined NULL placement and honest indicator (M113)**
+- **91.6 Datasheet affordance clarity: AutoNumber hint, freeze tooltip and visible frozen state (M114, L54)**
+- **91.7 Findings from the remaining review surfaces — fine-packaged at 89.4 close**
+- **91.8 Documentation and phase gate (M109–M114, L52–L54)**
+
 
 
 
@@ -504,8 +517,16 @@
 | 89.1 | Tool windows as task panes — decision record in docs/ROADMAP.md with go/no-go and a scoped follow-up if yes (M100) | ✅ |
 | 89.2 | Native menu bar on macOS — decision record; if yes, existing commands only and the M99 shortcut model (L46) | ✅ |
 | 89.3 | Low-power/RDP rendering mode — detection decision and the mode's measurable effects (L50) | ✅ |
-| 89.4 | Design pass: the human's live density/typography/spacing review with per-finding items (L47) | ⬜ |
+| 89.4 | Design pass: the human's live density/typography/spacing review with per-finding items (L47) | 🔄 |
 | 89.5 | Documentation and phase gate (M100, L46, L50, L47) | ⬜ |
 | 90.1 | Per-crate READMEs for the ten published crates with cargo package --list verification and the PUBLISHING checklist (L44, Medium gate) | ⬜ |
 | 90.2 | Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate) | ⬜ |
 | 90.3 | Documentation and phase gate (L40, L44) | ⬜ |
+| 91.1 | Version display in UI, CLI and MCP (M109) | ⬜ |
+| 91.2 | SQL window height budget (M110) | ⬜ |
+| 91.3 | Import File honesty: wrong-surface rejection, single path, path display (M111, M112, L53) | ⬜ |
+| 91.4 | Status-line truncation contract (L52) | ⬜ |
+| 91.5 | Datasheet sort: total order with defined NULL placement and honest indicator (M113) | ⬜ |
+| 91.6 | Datasheet affordance clarity: AutoNumber hint, freeze tooltip and visible frozen state (M114, L54) | ⬜ |
+| 91.7 | Findings from the remaining review surfaces — fine-packaged at 89.4 close | ⬜ |
+| 91.8 | Documentation and phase gate (M109–M114, L52–L54) | ⬜ |
