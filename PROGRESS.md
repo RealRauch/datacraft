@@ -18,13 +18,6 @@
 - **89.3 Low-power/RDP rendering mode — detection decision and the mode's measurable effects (L50)**
 - **89.4 Design pass: the human's live density/typography/spacing review with per-finding items (L47)**
 - **89.5 Documentation and phase gate (M100, L46, L50, L47)**
-### Phase 90 — Publishing and CI hygiene
-
-**Scope (Steps):**
-
-- **90.1 Per-crate READMEs for the ten published crates with cargo package --list verification and the PUBLISHING checklist (L44, Medium gate)**
-- **90.2 Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate)**
-- **90.3 Documentation and phase gate (L40, L44)**
 ### Phase 91 — Design review fixes
 
 **Scope (Steps):**
@@ -37,6 +30,13 @@
 - **91.6 Datasheet affordance clarity: AutoNumber hint, freeze tooltip and visible frozen state (M114, L54)**
 - **91.7 Findings from the remaining review surfaces — fine-packaged at 89.4 close**
 - **91.8 Documentation and phase gate (M109–M114, L52–L54)**
+### Phase 90 — Publishing and CI hygiene
+
+**Scope (Steps):**
+
+- **90.1 Per-crate READMEs for the ten published crates with cargo package --list verification and the PUBLISHING checklist (L44, Medium gate)**
+- **90.2 Ubuntu oracle job: bounded apt-get retry with backoff against transient DNS failures, persistent failures stay red (L40, High gate)**
+- **90.3 Documentation and phase gate (L40, L44)**
 
 
 
