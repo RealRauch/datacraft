@@ -51,13 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M116 — The Save page mixes titled and untitled sections — 🟡
-- **Location:** `crates/datacraft-ui/src/backstage/save.rs` (`save_page`: the sidecar block starts with a bare field label; "Save a Copy" and "Database Password" carry `ui.heading`).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 16): the Save page has three sections, only two carry headings — the page reads unstructured and the sidecar section has no name to anchor it.
-- **Approach:** Give every section a consistent heading treatment (e.g. "Design Sidecar", "Save a Copy", "Database Password"); heading rung and spacing follow the page grammar used elsewhere in the backstage.
-- **Acceptance:** All three Save-page sections carry consistent headings (kittest pins them); en/de catalogs complete; no flow change.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] M117 — The Relationships window has no scroll area — 🟡
 - **Location:** `crates/datacraft-ui/src/relationships.rs` (window body: relationship list, create form and painted canvas render without a `ScrollArea`).
 - **Problem:** Found in the L47 design review (2026-11-19, finding 20): once the database holds more relationships/tables than fit one window height, the list and the canvas clip with no way to reach the rest — the mapper silently loses content.
@@ -154,13 +147,6 @@
 - **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
 - **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
-
-### [ ] L59 — The Info page's fact values do not align into a column — 🟢
-- **Location:** `crates/datacraft-ui/src/backstage/info.rs` (the facts and driver-fact rows: label+value horizontals).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 17): label widths differ, so values start at varying x — the page reads ragged; a property-grid alignment would match the Access Info look.
-- **Approach:** Two-column alignment: a fixed label column (or a max-label-width pass over the fact set) before the values.
-- **Acceptance:** All fact values share one left edge at both pinned window sizes (layout_probe pin); long values wrap within the value column.
-- **Steps:** none yet (from the phase 89 design review).
 
 ### [ ] L60 — The expression window's Close button sits mid-title-row — 🟢
 - **Location:** `crates/datacraft-ui/src/expression_window.rs` (the first row: the field label followed directly by Close).

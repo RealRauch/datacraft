@@ -143,6 +143,26 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `fa378a5` — view creation lives in the Views group header's context menu (below the sort entries); the detached pane-bottom button is gone, and the menu entry opens the view editor (pinned via the open draft)
 
+---
+
+### [x] M116 — The Save page mixes titled and untitled sections — 🟡
+- **Location:** `crates/datacraft-ui/src/backstage/save.rs` (`save_page`: the sidecar block starts with a bare field label; "Save a Copy" and "Database Password" carry `ui.heading`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 16): the Save page has three sections, only two carry headings — the page reads unstructured and the sidecar section has no name to anchor it.
+- **Approach:** Give every section a consistent heading treatment (e.g. "Design Sidecar", "Save a Copy", "Database Password"); heading rung and spacing follow the page grammar used elsewhere in the backstage.
+- **Acceptance:** All three Save-page sections carry consistent headings (kittest pins them); en/de catalogs complete; no flow change.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ba97071` — the sidecar section carries the "Design Sidecar" heading (de: Design-Seitendatei) like the other two Save-page sections; no flow change; pinned by the backstage kittest (all three headings present)
+
+---
+
+### [x] L59 — The Info page's fact values do not align into a column — 🟢
+- **Location:** `crates/datacraft-ui/src/backstage/info.rs` (the facts and driver-fact rows: label+value horizontals).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 17): label widths differ, so values start at varying x — the page reads ragged; a property-grid alignment would match the Access Info look.
+- **Approach:** Two-column alignment: a fixed label column (or a max-label-width pass over the fact set) before the values.
+- **Acceptance:** All fact values share one left edge at both pinned window sizes (layout_probe pin); long values wrap within the value column.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ba97071` — the Info page's fact rows align into a property grid: the widest label measures the shared column edge (strong-render slack absorbed), every value starts there; the value rects ride the `backstage.info.fact_value` layout probe, pinned equal-left at render time; driver facts, the integrity verdict and the lock-file row share the helper
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -161,3 +181,5 @@
 - L56 — Native-objects inventory renders as disabled buttons — done (done in `fa378a5` — the native inventory renders in the pane's row language (muted label row with its kind icon, never disabled button chrome); the row is a real Label widget so the name survives the semantic tree's static-text culling (the M60/M61 note — pinned with a tall-viewport harness); the read-only state carries the group hint and no affordance appears)
 - L57 — The nav-pane category dropdown opens a menu that does nothing — done (done in `fa378a5` — the category header is a plain strong labelled header until the category model grows (L48); no menu opens that cannot do anything (LESSONS #29 family); the Access category language returns with L48)
 - L58 — The nav pane's "New View" button sits detached at the pane bottom — done (done in `fa378a5` — view creation lives in the Views group header's context menu (below the sort entries); the detached pane-bottom button is gone, and the menu entry opens the view editor (pinned via the open draft))
+- M116 — The Save page mixes titled and untitled sections — done (done in `ba97071` — the sidecar section carries the "Design Sidecar" heading (de: Design-Seitendatei) like the other two Save-page sections; no flow change; pinned by the backstage kittest (all three headings present))
+- L59 — The Info page's fact values do not align into a column — done (done in `ba97071` — the Info page's fact rows align into a property grid: the widest label measures the shared column edge (strong-render slack absorbed), every value starts there; the value rects ride the `backstage.info.fact_value` layout probe, pinned equal-left at render time; driver facts, the integrity verdict and the lock-file row share the helper)
