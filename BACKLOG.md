@@ -51,13 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M124 — Form record navigation lacks first/last/new-record — 🟡
-- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (the navigation row: "< Prev" / "Record {n} of {m}" / "Next >").
-- **Problem:** Found in the L47 design review (2026-11-19, finding 31, reviewer comment: „das brauchen wir"): the form runtime navigates only prev/next — Access's record navigation includes first, last and new-record, and the datasheet's navigation row already carries the fuller set.
-- **Approach:** Extend the row to first/prev/next/last plus the new-record action (the datasheet's new-record path is the model); new-record respects the driver's insert capability and the M114 AutoNumber contract; edits flush exactly as today.
-- **Acceptance:** First/last jump and new-record insert work with the per-record edit buffer flushed (kittest flows); capability-gated like the datasheet's row actions; en/de catalog parity.
-- **Steps:** none yet (from the phase 89 design review).
-
 
 ---
 

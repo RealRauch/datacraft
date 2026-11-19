@@ -273,6 +273,16 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `3e22f1b` — the preview text font scales with the page (the body rung at the page scale) via the pure `preview_font` step (unit-pinned); item positions unchanged
 
+---
+
+### [x] M124 — Form record navigation lacks first/last/new-record — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (the navigation row: "< Prev" / "Record {n} of {m}" / "Next >").
+- **Problem:** Found in the L47 design review (2026-11-19, finding 31, reviewer comment: „das brauchen wir"): the form runtime navigates only prev/next — Access's record navigation includes first, last and new-record, and the datasheet's navigation row already carries the fuller set.
+- **Approach:** Extend the row to first/prev/next/last plus the new-record action (the datasheet's new-record path is the model); new-record respects the driver's insert capability and the M114 AutoNumber contract; edits flush exactly as today.
+- **Acceptance:** First/last jump and new-record insert work with the per-record edit buffer flushed (kittest flows); capability-gated like the datasheet's row actions; en/de catalog parity.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `07d5eb6` — the navigation row carries first/last (the same flush-then-navigate path as prev/next) and the new-record action: inserts through the normal path on the form's record source with empty cells (engine-assigned AutoNumbers per M114), capability-gated like the datasheet's row actions with the reason on hover; after the insert the cursor's survival logic pins the new last row (`follow_physical_row`), so the form sits on the new record; the immediate-write driver pins the row-set growth, the read-only source pins the disabled gate; en/de catalog parity
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -304,3 +314,4 @@
 - M122 — The fixed 640×400 form canvas clips at the pinned minimum window size — done (done in `431aa9f` — both canvases scroll both axes: the designer's canvas column wraps canvas_ui in a both-axis ScrollArea, the runtime's scroll area gains the horizontal axis (the navigation-row height budget stays); the full 640-wide canvas lays out inside the scrollable bodies; the viewports ride `form.design.viewport` / `form.runtime.viewport` and the canvases `form.design.canvas` / `form.runtime.canvas` — at the pinned minimum the designer viewport is shorter than the canvas, so the scroll is the reachability (pinned with the measured geometry))
 - M123 — The report preview paints a fixed A4 page instead of the report's page setup — done (done in `3e22f1b` — the preview canvas sizes from the report's own PageSetup at the shipped 0.9 scale via the pure `preview_page_size` helper (never a hardcoded A4); a unit test pins a non-A4 setup (letter), the rendered page rect rides the `report.preview.page` probe (pinned at the A4 default); pagination behaviour unchanged)
 - L63 — Preview text paints at 100 % on the 0.9-scaled page — done (done in `3e22f1b` — the preview text font scales with the page (the body rung at the page scale) via the pure `preview_font` step (unit-pinned); item positions unchanged)
+- M124 — Form record navigation lacks first/last/new-record — done (done in `07d5eb6` — the navigation row carries first/last (the same flush-then-navigate path as prev/next) and the new-record action: inserts through the normal path on the form's record source with empty cells (engine-assigned AutoNumbers per M114), capability-gated like the datasheet's row actions with the reason on hover; after the insert the cursor's survival logic pins the new last row (`follow_physical_row`), so the form sits on the new record; the immediate-write driver pins the row-set growth, the read-only source pins the disabled gate; en/de catalog parity)
