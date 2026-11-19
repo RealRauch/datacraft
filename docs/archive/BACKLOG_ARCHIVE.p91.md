@@ -53,6 +53,16 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `f1e5e45` — one path-field contract: labels::path_field_identity renders the chosen file name as its own strong row with the full path on hover, beside the import source field and every backstage path field (open, new-database location, save-a-copy, sidecar); fields widened (import 280→360 at the 520 default window, backstage 360→480); kittest pins all five surfaces at the default size
 
+---
+
+### [x] L52 — Status-line errors flood the bar without truncation — 🟢
+- **Location:** `crates/datacraft-ui/src/shell.rs` (the status bar's error/notice rendering, `notice_label`) and, folded 2026-11-19, `crates/datacraft-ui/src/backstage/pages.rs` (`status_line` — the same unbounded last-error/notice text at the backstage page bottoms).
+- **Problem:** Found in the L47 design review (2026-11-16, finding 5 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a long error paints the entire status bar — the click-to-open-history affordance exists, but the inline text has no ellipsis/hover contract and floods the chrome. The 2026-11-19 review pass (surfaces closed) found the same unbounded text pattern in the backstage `status_line`, so the truncation contract is folded here instead of a second item.
+- **Approach:** Truncate the inline text to the available width with an ellipsis at both call sites (ideally one shared helper); the full text rides the hover tooltip; the existing click opens the message history unchanged. Truncation is pure width math over the chrome font metrics.
+- **Acceptance:** A long error truncates with an ellipsis, hover shows the full text, click still opens the history — on the status bar and on the backstage pages; layout_probe pins the truncated rects at both pinned window sizes; the string path stays in `t()`/`tr()` where localized.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `64da362` — one shared truncation helper (shell::notice_label, crate-visible): binary-searched ellipsis clip over the label font's width math, full text above the click hint on hover, click-to-history unchanged; the status bar and the backstage status line share it; label rect recorded under the `status.notice` layout probe, pinned at both pinned window sizes
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -62,3 +72,4 @@
 - M111 — Import File accepts database files and answers with a raw decoder error — done (done in `f1e5e45` — read_csv_file sniffs the head before the decode chain (core `port::sniff_database_family`, the registry's signatures, no new dependency): Jet/ACE and SQLite files answer "this is a <family> database file, not delimited text — open it via File → Open"; the open-file dialog request carries the surface's extensions (import csv/txt/tsv, open mdb/accdb/sqlite/sqlite3/db) through the localized "Supported files" filter; wire pins over both families, kittest pin in the window flow)
 - M112 — Import errors repeat the file path twice — done (done in `f1e5e45` — one layer owns the path prefix: read_csv_file keeps its single `{path}: ` wrapper (both the read and the decode branch), and the import_file/preview_import_file handlers forward the reason untouched; the composed decode error carries the path exactly once, pinned with the precise inner location (import_surface.rs))
 - L53 — Import source-file field clips long paths at the start — done (done in `f1e5e45` — one path-field contract: labels::path_field_identity renders the chosen file name as its own strong row with the full path on hover, beside the import source field and every backstage path field (open, new-database location, save-a-copy, sidecar); fields widened (import 280→360 at the 520 default window, backstage 360→480); kittest pins all five surfaces at the default size)
+- L52 — Status-line errors flood the bar without truncation — done (done in `64da362` — one shared truncation helper (shell::notice_label, crate-visible): binary-searched ellipsis clip over the label font's width math, full text above the click hint on hover, click-to-history unchanged; the status bar and the backstage status line share it; label rect recorded under the `status.notice` layout probe, pinned at both pinned window sizes)

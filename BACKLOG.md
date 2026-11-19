@@ -176,13 +176,6 @@
 - **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
 
-### [ ] L52 — Status-line errors flood the bar without truncation — 🟢
-- **Location:** `crates/datacraft-ui/src/shell.rs` (the status bar's error/notice rendering, `notice_label`) and, folded 2026-11-19, `crates/datacraft-ui/src/backstage/pages.rs` (`status_line` — the same unbounded last-error/notice text at the backstage page bottoms).
-- **Problem:** Found in the L47 design review (2026-11-16, finding 5 in `docs/UI-DESIGN-REVIEW.md`, reviewer screenshot): a long error paints the entire status bar — the click-to-open-history affordance exists, but the inline text has no ellipsis/hover contract and floods the chrome. The 2026-11-19 review pass (surfaces closed) found the same unbounded text pattern in the backstage `status_line`, so the truncation contract is folded here instead of a second item.
-- **Approach:** Truncate the inline text to the available width with an ellipsis at both call sites (ideally one shared helper); the full text rides the hover tooltip; the existing click opens the message history unchanged. Truncation is pure width math over the chrome font metrics.
-- **Acceptance:** A long error truncates with an ellipsis, hover shows the full text, click still opens the history — on the status bar and on the backstage pages; layout_probe pins the truncated rects at both pinned window sizes; the string path stays in `t()`/`tr()` where localized.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] L54 — "Felder fixieren" has no explanation and no visible frozen state — 🟢
 - **Location:** the column context menu (Freeze Fields / Unfreeze All Fields — `crates/datacraft-ui/src/i18n/de/ui_chrome.rs`, "Freeze Fields"/"Felder fixieren" and "Unfreeze All Fields"/"Fixierung aufheben"), the grid's frozen-column rendering (`crates/datacraft-ui/src/datasheet/grid.rs`, `effective_frozen`).
 - **Problem:** Found in the L47 design review (2026-11-17, finding 9, reviewer comment): it is unclear what "Felder fixieren" does — no tooltip explains that the leading columns stay pinned during horizontal scroll, and the frozen state itself carries no visible marker in the grid beyond the layout change.
