@@ -13,7 +13,7 @@ use datacraft_ui::backstage::BackstagePage;
 use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 /// A failing read with an identifiable tail: the truncated inline text
 /// keeps the head and cuts exactly this tail off.
@@ -65,7 +65,7 @@ fn a_long_error_truncates_on_the_status_bar_at_both_pinned_sizes() {
             .map(|(_, rect)| *rect)
             .expect("the status bar records its notice rect");
         assert!(
-            rect.width() <= size.x as f32,
+            rect.width() <= size.x,
             "the notice label stays inside the window at {size:?}: {rect:?}"
         );
         let dump = tree_dump(&harness);
@@ -80,11 +80,12 @@ fn a_long_error_truncates_on_the_status_bar_at_both_pinned_sizes() {
     }
 }
 
-/// The backstage status line carries the same contract.
+/// The backstage status line carries the same contract (the open page
+/// renders it; the info page carries no status line).
 #[test]
 fn a_long_error_truncates_on_the_backstage_status_line() {
     let mut app = app_with_long_error();
-    app.backstage_page = BackstagePage::Info;
+    app.backstage_page = BackstagePage::Open;
     app.active_ribbon_tab = "file";
     let mut harness = shell_harness(app);
     harness.set_size(egui::vec2(960.0, 600.0));
@@ -103,7 +104,10 @@ fn a_long_error_truncates_on_the_backstage_status_line() {
         dump.lines().any(|line| line.ends_with("…")),
         "the shown text ends with an ellipsis:\n{dump}"
     );
-    assert!(!dump.contains("-tail"), "the tail is cut off inline:\n{dump}");
+    assert!(
+        !dump.contains("-tail"),
+        "the tail is cut off inline:\n{dump}"
+    );
 }
 
 /// Semantic tree dump: role + label + value + disabled state of every

@@ -357,26 +357,17 @@ pub(super) fn backstage_button(
 }
 
 /// Last command error/notice at the bottom of the page; a click opens the
-/// message history (step 68.3, item M76).
+/// message history (step 68.3, item M76). The inline text truncates like
+/// the status bar's (step 91.4, item L52 — one shared helper).
 pub(super) fn status_line(app: &mut App, ui: &mut egui::Ui) {
     let tokens = tokens(ui.visuals());
     ui.add_space(10.0);
     let error = app.last_error();
     let notice = app.last_notice();
     let clicked = if let Some(reason) = error {
-        ui.add(
-            egui::Label::new(egui::RichText::new(reason).color(tokens.danger))
-                .sense(egui::Sense::click()),
-        )
-        .on_hover_text(t("Click to open the message history."))
-        .clicked()
+        crate::shell::notice_label(ui, &reason, tokens.danger)
     } else if let Some(notice) = notice {
-        ui.add(
-            egui::Label::new(egui::RichText::new(notice).color(tokens.accent))
-                .sense(egui::Sense::click()),
-        )
-        .on_hover_text(t("Click to open the message history."))
-        .clicked()
+        crate::shell::notice_label(ui, &notice, tokens.accent)
     } else {
         false
     };

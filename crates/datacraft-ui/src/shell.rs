@@ -286,13 +286,60 @@ pub(crate) const LOCK_NOTICE_STATUS: &str = "Read-only — Access lock file {fil
 pub(crate) const LOCK_NOTICE_DETAIL: &str = "The database opens read-only because an Access lock file ({file}) exists — close it in Access and remove the lock file to edit it here.";
 
 /// A status message that opens the message history on click (step 68.3,
-/// item M76).
-fn notice_label(ui: &mut egui::Ui, text: &str, color: egui::Color32) -> bool {
+/// item M76): the inline text clips to the available width with an
+/// ellipsis (step 91.4, item L52) — the full text rides the hover, the
+/// click contract is unchanged. Shared by the backstage pages; the label
+/// rect rides the layout probe under the `status.notice` id.
+pub(crate) fn notice_label(ui: &mut egui::Ui, text: &str, color: egui::Color32) -> bool {
+    let shown = truncate_to_width(ui, text, ui.available_width());
+    let truncated = shown != text;
     let response = ui
-        .add(egui::Label::new(egui::RichText::new(text).color(color)).sense(egui::Sense::click()));
-    response
-        .on_hover_text(t("Click to open the message history."))
-        .clicked()
+        .add(egui::Label::new(egui::RichText::new(shown).color(color)).sense(egui::Sense::click()));
+    crate::layout_probe::record("status.notice", response.rect);
+    let hint = t("Click to open the message history.");
+    if truncated {
+        response
+            .on_hover_text(format!("{text}\n\n{hint}"))
+            .clicked()
+    } else {
+        response.on_hover_text(hint).clicked()
+    }
+}
+
+/// Pure width math over the label font (step 91.4, item L52): a fitting
+/// text passes through unchanged, otherwise the longest head that still
+/// fits with an ellipsis wins.
+fn truncate_to_width(ui: &egui::Ui, text: &str, max_width: f32) -> String {
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    let width_of = |candidate: &str| -> f32 {
+        ui.ctx().fonts_mut(|fonts| {
+            fonts
+                .layout_no_wrap(candidate.to_owned(), font.clone(), egui::Color32::WHITE)
+                .size()
+                .x
+        })
+    };
+    if width_of(text) <= max_width {
+        return text.to_owned();
+    }
+    // Binary search for the longest head that fits with the ellipsis
+    // (prefix widths grow monotonically); `low` only ever advances on a
+    // width-verified candidate.
+    let heads: Vec<char> = text.chars().collect();
+    let mut low = 0usize;
+    let mut high = heads.len();
+    while low < high {
+        let mid = (low + high).div_ceil(2);
+        let candidate: String = heads[..mid].iter().collect::<String>() + "…";
+        if width_of(&candidate) <= max_width {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    let mut shown: String = heads[..low].iter().collect();
+    shown.push('…');
+    shown
 }
 
 /// Localized status-bar line (Access convention): built UI-side from the
