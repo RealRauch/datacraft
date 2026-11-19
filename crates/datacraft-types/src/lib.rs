@@ -25,7 +25,7 @@ mod field;
 mod properties;
 mod value;
 
-pub use compare::compare;
+pub use compare::{compare, sort_compare};
 pub use date::{civil_from_days, days_from_civil, parse_date};
 pub use def::{FieldDef, TableDef, validate_object_name};
 pub use display::{display_ole_datetime, display_value, field_kind_display};

@@ -24,6 +24,15 @@ impl Core {
         let Some(db) = Core::mutable_table(self, table) else {
             return failed(FailureCode::NotFound, format!("unknown table {table:?}"));
         };
+        // The clear accepts any field name (step 91.5, item M113): a
+        // rename can leave the sort field stale, and the datasheet's
+        // self-healing clear never fails on that name.
+        if order == SortOrder::None {
+            let view = db.1;
+            view.sort_field = None;
+            view.sort_order = None;
+            return Vec::new();
+        }
         let Some(column) =
             db.0.iter()
                 .find(|f| f.name.eq_ignore_ascii_case(field))
@@ -35,13 +44,8 @@ impl Core {
             );
         };
         let view = db.1;
-        if order == SortOrder::None {
-            view.sort_field = None;
-            view.sort_order = None;
-        } else {
-            view.sort_field = Some(column.name.clone());
-            view.sort_order = Some(order);
-        }
+        view.sort_field = Some(column.name.clone());
+        view.sort_order = Some(order);
         Vec::new()
     }
 

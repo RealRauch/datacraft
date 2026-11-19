@@ -96,16 +96,21 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 )
             })
     });
-    let display = table_def
+    let (display_order, sort_stale) = table_def
         .as_ref()
-        .and_then(|table| {
+        .map(|table| {
             let sort = tab
                 .sort_field
                 .as_deref()
                 .map(|field| (field, tab.sort_order.unwrap_or(SortOrder::Ascending)));
-            datacraft_core::table_view::view_order(table, rows, sort, &tab.filters).ok()
+            datacraft_core::table_view::view_order(table, rows, sort, &tab.filters)
         })
-        .unwrap_or_else(|| (0..rows.len()).collect());
+        .map(|outcome| match outcome {
+            Ok(order) => (Some(order), false),
+            Err(_) => (None, true),
+        })
+        .unwrap_or((None, false));
+    let display = display_order.unwrap_or_else(|| (0..rows.len()).collect());
     // The edit buffer's pending view (step 85.2, item H61): staged rows
     // render their pending image, staged inserts append after them. The
     // `slots` vector maps every displayed row onto its buffer row —
@@ -335,6 +340,17 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             table: tab.object_name.clone(),
             field: field.clone(),
             order,
+        });
+    }
+    // Indicator honesty (step 91.5, item M113): a view_order failure —
+    // a stale sort field after a rename — clears the sort state, so the
+    // header never claims an order the rows do not follow. The clear
+    // command accepts the stale field name.
+    if sort_stale {
+        app.dispatch(Command::SetTableSort {
+            table: tab.object_name.clone(),
+            field: String::new(),
+            order: SortOrder::None,
         });
     }
     if let Some(column) = dialog_intent {

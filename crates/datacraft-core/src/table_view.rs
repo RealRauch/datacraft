@@ -9,7 +9,7 @@
 use std::collections::BTreeMap;
 
 use crate::qbe::SortOrder;
-use datacraft_types::compare;
+use datacraft_types::sort_compare;
 
 use crate::query_criteria::parse_predicate;
 use crate::query_engine::EngineError;
@@ -51,9 +51,11 @@ pub fn view_order(
     if let Some((field, direction)) = sort {
         let index = column_of(field)?;
         let descending = direction == SortOrder::Descending;
+        // The total comparator (step 91.5, item M113): NULLs first
+        // ascending (last descending through the direction reverse),
+        // family rank under mixes — the output order is always defined.
         order.sort_by(|&a, &b| {
-            let ordering =
-                compare(&rows[a][index], &rows[b][index]).unwrap_or(std::cmp::Ordering::Equal);
+            let ordering = sort_compare(&rows[a][index], &rows[b][index]);
             if descending {
                 ordering.reverse()
             } else {
