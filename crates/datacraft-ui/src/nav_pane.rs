@@ -33,13 +33,10 @@ pub(crate) const SECTION_MODULES: &str = "Modules";
 /// Renders the navigation pane contents (the panel itself is shown by the
 /// shell only while `nav_pane_visible`).
 pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
-    // Access category dropdown: one entry until the category model grows.
-    // A menu button (not a ComboBox) carries an accessible name.
-    ui.push_id("navpane.category", |ui| {
-        ui.menu_button(t("All Access Objects"), |ui| {
-            let _ = ui.selectable_label(true, t("All Access Objects"));
-        });
-    });
+    // Access category header (step 21.5, U9): a plain labelled header
+    // until the category model grows (L48) — a menu whose only entry
+    // restates the selection cannot do anything (LESSONS #29).
+    ui.strong(t("All Access Objects"));
 
     let snapshot = app.snapshot();
     let Some(db) = &snapshot.database else {
@@ -88,112 +85,158 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                             let is_active = active_object
                                 .as_deref()
                                 .is_some_and(|active| active.eq_ignore_ascii_case(&name));
-                            ui.horizontal(|ui| {
-                                crate::icons::icon(ui, kind.slug(), is_active);
-                                let entry = ui.selectable_label(is_active, &name);
-                                if entry.clicked() {
+                            // The whole row is the click target (step 91.7,
+                            // item L55): icon and label paint inside one
+                            // interacted rect, like the backstage nav rows.
+                            let row_height = ui
+                                .spacing()
+                                .interact_size
+                                .y
+                                .max(crate::icons::ICON_SIZE + 4.0);
+                            let (rect, _) = ui.allocate_exact_size(
+                                egui::vec2(ui.available_width(), row_height),
+                                egui::Sense::hover(),
+                            );
+                            let row_id = ui.scope_id().with(("nav.row", &name));
+                            let row = ui.interact(rect, row_id, egui::Sense::click());
+                            row.widget_info(|| {
+                                egui::WidgetInfo::selected(
+                                    egui::Role::Button,
+                                    true,
+                                    is_active,
+                                    name.clone(),
+                                )
+                            });
+                            let tokens = crate::theme::tokens(ui.visuals());
+                            if is_active {
+                                ui.painter().rect_filled(rect, 0.0, tokens.accent_faint);
+                            }
+                            let icon_ink = if is_active {
+                                tokens.accent_text
+                            } else {
+                                tokens.text_muted
+                            };
+                            let icon_rect = egui::Rect::from_min_size(
+                                rect.left_top()
+                                    + egui::vec2(4.0, (row_height - crate::icons::ICON_SIZE) / 2.0),
+                                egui::vec2(crate::icons::ICON_SIZE, crate::icons::ICON_SIZE),
+                            );
+                            crate::icons::paint(
+                                ui.painter(),
+                                icon_rect,
+                                kind.slug(),
+                                icon_ink,
+                                tokens.accent,
+                            );
+                            let font = egui::TextStyle::Body.resolve(ui.style());
+                            let text_ink = if is_active {
+                                tokens.accent_text
+                            } else {
+                                tokens.text
+                            };
+                            ui.painter().text(
+                                rect.left_top()
+                                    + egui::vec2(crate::icons::ICON_SIZE + 10.0, row_height / 2.0),
+                                egui::Align2::LEFT_CENTER,
+                                &name,
+                                font,
+                                text_ink,
+                            );
+                            if row.clicked() {
+                                open_intent = Some((kind, name.clone(), None));
+                            }
+                            row.context_menu(|ui| {
+                                let open = ui
+                                    .push_id(format!("nav.{header}.{name}.menu.open"), |ui| {
+                                        ui.button(t("Open"))
+                                    })
+                                    .inner
+                                    .clicked();
+                                if open {
                                     open_intent = Some((kind, name.clone(), None));
+                                    ui.close();
                                 }
-                                entry.context_menu(|ui| {
-                                    let open = ui
-                                        .push_id(format!("nav.{header}.{name}.menu.open"), |ui| {
-                                            ui.button(t("Open"))
+                                if kind.has_design_view() {
+                                    let design = ui
+                                        .push_id(format!("nav.{header}.{name}.menu.design"), |ui| {
+                                            ui.button(t("Design"))
                                         })
                                         .inner
                                         .clicked();
-                                    if open {
-                                        open_intent = Some((kind, name.clone(), None));
+                                    if design {
+                                        open_intent =
+                                            Some((kind, name.clone(), Some(TabMode::Design)));
                                         ui.close();
                                     }
-                                    if kind.has_design_view() {
-                                        let design = ui
-                                            .push_id(
-                                                format!("nav.{header}.{name}.menu.design"),
-                                                |ui| ui.button(t("Design")),
-                                            )
-                                            .inner
-                                            .clicked();
-                                        if design {
-                                            open_intent =
-                                                Some((kind, name.clone(), Some(TabMode::Design)));
-                                            ui.close();
-                                        }
-                                    }
-                                    if renamable(kind) {
-                                        // Tables gate on the rename
-                                        // capability (ADR-7); sidecar
-                                        // objects are always renamable.
-                                        let reason = if kind == ObjectKind::Table {
-                                            crate::availability::restricted(
-                                                app.snapshot(),
-                                                datacraft_core::availability::ids::NAV_RENAME,
-                                            )
-                                        } else {
-                                            None
-                                        };
-                                        let rename = ui
-                                            .push_id(
-                                                format!("nav.{header}.{name}.menu.rename"),
-                                                |ui| match reason {
-                                                    Some(reason) => ui
-                                                        .add_enabled(
-                                                            false,
-                                                            egui::Button::new(t("Rename")),
-                                                        )
-                                                        .on_hover_text(
-                                                            crate::availability::reason_text(
-                                                                reason,
-                                                            ),
-                                                        ),
-                                                    None => ui.button(t("Rename")),
-                                                },
-                                            )
-                                            .inner
-                                            .clicked();
-                                        if rename {
-                                            rename_intent = Some((kind, name.clone()));
-                                            ui.close();
-                                        }
-                                    }
-                                    if deletable(kind) {
-                                        // Capability-disabled for the open
-                                        // source (ADR-7): the entry renders
-                                        // muted with the reason, no click.
-                                        let reason = crate::availability::restricted(
+                                }
+                                if renamable(kind) {
+                                    // Tables gate on the rename
+                                    // capability (ADR-7); sidecar
+                                    // objects are always renamable.
+                                    let reason = if kind == ObjectKind::Table {
+                                        crate::availability::restricted(
                                             app.snapshot(),
-                                            datacraft_core::availability::ids::NAV_DELETE,
-                                        );
-                                        let remove = ui
-                                            .push_id(
-                                                format!("nav.{header}.{name}.menu.delete"),
-                                                |ui| match reason {
-                                                    Some(reason) => ui
-                                                        .add_enabled(
-                                                            false,
-                                                            egui::Button::new(tr(
-                                                                "Delete {name}",
-                                                                &[("name", &name)],
-                                                            )),
-                                                        )
-                                                        .on_hover_text(
-                                                            crate::availability::reason_text(
-                                                                reason,
-                                                            ),
-                                                        ),
-                                                    None => ui.button(tr(
-                                                        "Delete {name}",
-                                                        &[("name", &name)],
-                                                    )),
-                                                },
-                                            )
-                                            .inner
-                                            .clicked();
-                                        if remove {
-                                            delete_intent = Some((kind, name.clone()));
-                                            ui.close();
-                                        }
+                                            datacraft_core::availability::ids::NAV_RENAME,
+                                        )
+                                    } else {
+                                        None
+                                    };
+                                    let rename = ui
+                                        .push_id(format!("nav.{header}.{name}.menu.rename"), |ui| {
+                                            match reason {
+                                                Some(reason) => ui
+                                                    .add_enabled(
+                                                        false,
+                                                        egui::Button::new(t("Rename")),
+                                                    )
+                                                    .on_hover_text(
+                                                        crate::availability::reason_text(reason),
+                                                    ),
+                                                None => ui.button(t("Rename")),
+                                            }
+                                        })
+                                        .inner
+                                        .clicked();
+                                    if rename {
+                                        rename_intent = Some((kind, name.clone()));
+                                        ui.close();
                                     }
-                                });
+                                }
+                                if deletable(kind) {
+                                    // Capability-disabled for the open
+                                    // source (ADR-7): the entry renders
+                                    // muted with the reason, no click.
+                                    let reason = crate::availability::restricted(
+                                        app.snapshot(),
+                                        datacraft_core::availability::ids::NAV_DELETE,
+                                    );
+                                    let remove = ui
+                                        .push_id(format!("nav.{header}.{name}.menu.delete"), |ui| {
+                                            match reason {
+                                                Some(reason) => ui
+                                                    .add_enabled(
+                                                        false,
+                                                        egui::Button::new(tr(
+                                                            "Delete {name}",
+                                                            &[("name", &name)],
+                                                        )),
+                                                    )
+                                                    .on_hover_text(
+                                                        crate::availability::reason_text(reason),
+                                                    ),
+                                                None => ui.button(tr(
+                                                    "Delete {name}",
+                                                    &[("name", &name)],
+                                                )),
+                                            }
+                                        })
+                                        .inner
+                                        .clicked();
+                                    if remove {
+                                        delete_intent = Some((kind, name.clone()));
+                                        ui.close();
+                                    }
+                                }
                             });
                         });
                     }
@@ -201,7 +244,10 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             group.header_response.context_menu(|ui| {
                 let by_name = ui
                     .push_id(format!("nav.{header}.menu.sort_name"), |ui| {
-                        ui.button(t("Sort by Name"))
+                        ui.selectable_label(
+                            sort == NavSortOrder::Name,
+                            t("Sort all sections by Name"),
+                        )
                     })
                     .inner
                     .clicked();
@@ -211,12 +257,21 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 }
                 let by_type = ui
                     .push_id(format!("nav.{header}.menu.sort_type"), |ui| {
-                        ui.button(t("Sort by Type"))
+                        ui.selectable_label(
+                            sort == NavSortOrder::Type,
+                            t("Sort all sections by Type"),
+                        )
                     })
                     .inner
                     .clicked();
                 if by_type {
                     sort_intent = Some(NavSortOrder::Type);
+                    ui.close();
+                }
+                // View creation lives in the Views group menu (step 91.7,
+                // item L58) — the pane bottom carries no detached button.
+                if header == SECTION_VIEWS && ui.button(t("New View")).clicked() {
+                    new_view = true;
                     ui.close();
                 }
             });
@@ -297,8 +352,33 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 )
                 .default_open(true)
                 .show(ui, |ui| {
+                    // The pane's row language (step 91.7, item L56): icon
+                    // plus muted label, no button chrome — the read-only
+                    // state carries the group hint, no affordance appears.
+                    // The Label is a real widget, so the name stays in the
+                    // accessibility tree.
+                    let tokens = crate::theme::tokens(ui.visuals());
                     for object in &db.native_objects {
-                        ui.add_enabled(false, egui::Button::new(&object.name));
+                        let slug = match object.kind {
+                            datacraft_core::port::NativeObjectKind::Form => {
+                                datacraft_core::ObjectKind::Form.slug()
+                            }
+                            datacraft_core::port::NativeObjectKind::Report => {
+                                datacraft_core::ObjectKind::Report.slug()
+                            }
+                        };
+                        ui.push_id(format!("nav.native.{name}", name = object.name), |ui| {
+                            ui.horizontal(|ui| {
+                                crate::icons::icon(ui, slug, false);
+                                let width = ui.available_width();
+                                ui.add_sized(
+                                    [width, 0.0],
+                                    egui::Label::new(
+                                        egui::RichText::new(&object.name).color(tokens.text_muted),
+                                    ),
+                                );
+                            });
+                        });
                     }
                     let hint = ui.weak(t(
                         "Definitions are not decoded — these objects are listed read-only.",
@@ -319,11 +399,6 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             );
         }
     });
-    // The view entry point sits below the scrolling list (the section
-    // closure holds the ui borrow inside the scroll area).
-    if ui.small_button(t("New View")).clicked() {
-        new_view = true;
-    }
     if let Some(order) = sort_intent {
         app.nav_sort = order;
     }

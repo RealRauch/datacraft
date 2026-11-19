@@ -210,8 +210,14 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("Clear all filters", "Alle Filter löschen"),
     ("Sort Descending", "Absteigend sortieren"),
-    ("Sort by Name", "Nach Name sortieren"),
-    ("Sort by Type", "Nach Typ sortieren"),
+    (
+        "Sort all sections by Name",
+        "Alle Abschnitte nach Name sortieren",
+    ),
+    (
+        "Sort all sections by Type",
+        "Alle Abschnitte nach Typ sortieren",
+    ),
     ("Freeze Fields", "Felder fixieren"),
     ("Select Column", "Spalte auswählen"),
     ("Zoom Value", "Wert anzeigen"),

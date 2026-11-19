@@ -16,7 +16,10 @@ use egui_kittest::kittest::{NodeT, Queryable};
 fn app_with_objects() -> App {
     let mut port = MockPort::with_tables(vec![TableDef::new(
         "Customers",
-        vec![FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger))],
+        vec![FieldDef::new(
+            "Id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
     )]);
     port.with_native_objects(vec![NativeObject {
         name: "Category Picker".into(),
@@ -25,7 +28,10 @@ fn app_with_objects() -> App {
     port.with_native_views(vec![NativeView {
         name: "adults".into(),
         sql: "CREATE VIEW adults AS SELECT id FROM Customers".into(),
-        fields: vec![FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger))],
+        fields: vec![FieldDef::new(
+            "Id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
     }]);
     let mut app = App::new(Box::new(port));
     app.dispatch(Command::OpenDatabase {
@@ -37,14 +43,18 @@ fn app_with_objects() -> App {
 }
 
 fn nav_harness(app: App) -> Harness<'static, App> {
-    Harness::new_ui_state(
+    let mut harness = Harness::new_ui_state(
         move |ui, app| {
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
             datacraft_ui::nav_pane::nav_pane_ui(app, ui);
         },
         app,
-    )
+    );
+    // Tall enough that the whole scroll content is inside the viewport —
+    // egui culls off-viewport nodes from the accessibility tree.
+    harness.set_size(egui::vec2(600.0, 1600.0));
+    harness
 }
 
 fn tree_dump(harness: &Harness<'static, App>) -> String {
@@ -113,18 +123,18 @@ fn the_nav_sort_menu_names_its_scope_and_marks_the_active_order() {
     // The active order carries the selected state; the other does not.
     let name_entry = harness
         .get_all_by_label("Sort all sections by Name")
-        .find(|node| format!("{:?}", node.accesskit_node().role()) != "Label")
+        .find(|node| format!("{:?}", node.accesskit_node().role()) == "Button")
         .expect("the name entry");
     assert!(
-        name_entry.accesskit_node().is_selected() == Some(true),
+        format!("{:?}", name_entry.accesskit_node().toggled()).contains("True"),
         "the active order is marked"
     );
     let type_entry = harness
         .get_all_by_label("Sort all sections by Type")
-        .find(|node| format!("{:?}", node.accesskit_node().role()) != "Label")
+        .find(|node| format!("{:?}", node.accesskit_node().role()) == "Button")
         .expect("the type entry");
     assert!(
-        type_entry.accesskit_node().is_selected() != Some(true),
+        !format!("{:?}", type_entry.accesskit_node().toggled()).contains("True"),
         "the inactive order carries no mark"
     );
 
@@ -143,10 +153,10 @@ fn the_nav_sort_menu_names_its_scope_and_marks_the_active_order() {
     harness.run();
     let type_entry = harness
         .get_all_by_label("Sort all sections by Type")
-        .find(|node| format!("{:?}", node.accesskit_node().role()) != "Label")
+        .find(|node| format!("{:?}", node.accesskit_node().role()) == "Button")
         .expect("the type entry");
     assert!(
-        type_entry.accesskit_node().is_selected() == Some(true),
+        format!("{:?}", type_entry.accesskit_node().toggled()).contains("True"),
         "the mark follows the order"
     );
 }
@@ -158,8 +168,8 @@ fn the_whole_nav_row_opens_the_object() {
     let mut harness = nav_harness(app_with_objects());
     harness.run();
     let icon_pos = {
-        let label = harness.get_by_label("Customers");
-        egui::pos2(label.rect().left() - 10.0, label.rect().center().y)
+        let row = harness.get_by_label("Customers");
+        egui::pos2(row.rect().left() + 4.0, row.rect().center().y)
     };
     left_click_at(&mut harness, icon_pos);
     harness.run();
