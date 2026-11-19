@@ -192,13 +192,21 @@ pub(super) fn header_ui(
                     ui.close();
                 }
             }
-            if col >= frozen && ui.selectable_label(false, t("Freeze Fields")).clicked() {
+            if col >= frozen
+                && ui
+                    .selectable_label(false, t("Freeze Fields"))
+                    .on_hover_text(t(
+                        "Keep the leading columns pinned while the rest scrolls horizontally.",
+                    ))
+                    .clicked()
+            {
                 pending_freeze = Some(col + 1);
                 ui.close();
             }
             if frozen > 0
                 && ui
                     .selectable_label(false, t("Unfreeze All Fields"))
+                    .on_hover_text(t("Release the pinned columns."))
                     .clicked()
             {
                 pending_freeze = Some(0);
@@ -229,6 +237,17 @@ pub(super) fn header_ui(
             [handle_rect.left_top(), handle_rect.left_bottom()],
             egui::Stroke::new(1.0, tokens.border),
         );
+    }
+    // The frozen boundary (step 91.6, item L54): a stronger separator
+    // after the last frozen column, visible without opening the menu;
+    // its rect rides the layout probe.
+    if frozen > 0 {
+        let rect = egui::Rect::from_min_size(
+            origin + egui::vec2(SELECTOR_WIDTH + frozen_total, 0.0),
+            egui::vec2(2.0, band_h),
+        );
+        ui.painter().rect_filled(rect, 0.0, tokens.accent);
+        crate::layout_probe::record("datasheet.frozen_boundary", rect);
     }
     if let Some((col, order)) = pending_sort
         && let Some(callback) = pass.sort.as_mut()

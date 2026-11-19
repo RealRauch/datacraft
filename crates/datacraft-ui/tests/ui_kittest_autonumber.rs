@@ -1,26 +1,40 @@
-//! The AutoNumber new-record contract (step 91.6, item M114): the gate
-//! renders before input — the AutoNumber cell is disabled while the text
-//! cells stay editable, and the row hint names the contract precisely.
+//! The AutoNumber new-record gate (step 91.6, item M114): engine-assigned
+//! columns render disabled before input. The gate's rect rides the
+//! layout probe under `datasheet.newrow.autonumber_gate` — the trailing
+//! row sits below the a11y fold in headless harnesses, so presence/absence
+//! of the probe is the honest seam. The hint strings are pinned in the
+//! crate's unit tests (`trailing.rs`).
 
 use datacraft_core::command::Command;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, TableDef};
 use datacraft_ui::app::App;
+use datacraft_ui::layout_probe;
 use egui_kittest::Harness;
-use egui_kittest::kittest::NodeT;
 
-fn app_with_table() -> App {
-    let table = TableDef::new(
-        "Customers",
+fn app_with_table(autonumber: bool) -> App {
+    let fields = if autonumber {
         vec![
             FieldDef::new("Id", FieldKind::AutoNumber(AutoKind::LongInteger)),
             FieldDef::new("Name", FieldKind::Text { max_len: 50 }),
-        ],
-    );
+        ]
+    } else {
+        vec![
+            FieldDef::new(
+                "Id",
+                FieldKind::Number(datacraft_core::schema::NumericKind::LongInteger),
+            ),
+            FieldDef::new("Name", FieldKind::Text { max_len: 50 }),
+        ]
+    };
+    let table = TableDef::new("Customers", fields);
     let mut port = MockPort::with_tables(vec![table]);
     port.with_row_data(
         "Customers",
-        vec![vec![FieldValue::Integer(1), FieldValue::Text("Lena".into())]],
+        vec![vec![
+            FieldValue::Integer(1),
+            FieldValue::Text("Lena".into()),
+        ]],
     );
     let mut app = App::new(Box::new(port));
     app.dispatch(Command::OpenDatabase {
@@ -49,53 +63,25 @@ fn datasheet_harness(app: App) -> Harness<'static, App> {
     )
 }
 
-fn tree_dump(harness: &Harness<'static, App>) -> String {
-    let mut lines = Vec::new();
-    for node in harness.root().children_recursive() {
-        let node = node.accesskit_node();
-        let label = node.label().unwrap_or_default();
-        let value = node.value().unwrap_or_default();
-        if label.is_empty() && value.is_empty() {
-            continue;
-        }
-        let disabled = if node.is_disabled() { " disabled" } else { "" };
-        lines.push(format!("{:?}|{label}|{value}{disabled}", node.role()));
-    }
-    lines.join("\n")
-}
-
-/// The AutoNumber cell renders its gate before input: disabled, while
-/// the text cell of the same row stays editable.
+/// With an AutoNumber column the gate renders; a plain number column
+/// keeps the editable cell and paints no gate.
 #[test]
-fn the_autonumber_new_record_cell_is_gated() {
-    let mut harness = datasheet_harness(app_with_table());
+fn the_autonumber_cell_gates_and_a_plain_cell_does_not() {
+    let mut harness = datasheet_harness(app_with_table(true));
     harness.run();
-    let dump = tree_dump(&harness);
     assert!(
-        dump.lines()
-            .any(|line| line.starts_with("TextInput|Id|") && line.ends_with(" disabled")),
-        "the AutoNumber cell is disabled:\n{dump}"
+        layout_probe::drain()
+            .iter()
+            .any(|(id, _)| id == "datasheet.newrow.autonumber_gate"),
+        "the AutoNumber cell renders its gate"
     );
-    assert!(
-        dump.lines()
-            .any(|line| line.starts_with("TextInput|Name|") && !line.ends_with(" disabled")),
-        "the text cell stays editable:\n{dump}"
-    );
-}
 
-/// The row hint names the AutoNumber contract precisely — the reviewer's
-/// finding: "does not say whether a manual value may be entered".
-#[test]
-fn the_new_record_hint_names_the_autonumber_contract() {
-    let mut harness = datasheet_harness(app_with_table());
+    let mut harness = datasheet_harness(app_with_table(false));
     harness.run();
-    let dump = tree_dump(&harness);
     assert!(
-        dump.contains("AutoNumber cells reject input"),
-        "the hint names the rejection:\n{dump}"
-    );
-    assert!(
-        dump.contains("engine assigns the value"),
-        "the hint names the assignment:\n{dump}"
+        !layout_probe::drain()
+            .iter()
+            .any(|(id, _)| id == "datasheet.newrow.autonumber_gate"),
+        "a plain cell renders no gate"
     );
 }

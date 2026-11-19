@@ -89,6 +89,33 @@ fn new_row_ui(
         datacraft_core::availability::ids::NEW_RECORD,
     );
     let mut cells = app.new_row_cells(tab.id, columns.len());
+    // The AutoNumber gate (step 91.6, item M114): engine-assigned columns
+    // render disabled before input — the contract never surfaces as a
+    // runtime rejection after typing.
+    let autonumber: Vec<bool> = app
+        .snapshot()
+        .database
+        .as_ref()
+        .and_then(|db| {
+            db.tables
+                .iter()
+                .find(|table| table.name.eq_ignore_ascii_case(&tab.object_name))
+        })
+        .map(|table| {
+            columns
+                .iter()
+                .map(|name| {
+                    table
+                        .fields
+                        .iter()
+                        .find(|field| field.name.eq_ignore_ascii_case(name))
+                        .is_some_and(|field| {
+                            matches!(field.kind, datacraft_core::schema::FieldKind::AutoNumber(_))
+                        })
+                })
+                .collect()
+        })
+        .unwrap_or_else(|| vec![false; columns.len()]);
     let mut add = false;
     egui::ScrollArea::horizontal()
         .id_salt(format!("datasheet.newrow.{}", tab.ui_test_id))
@@ -98,21 +125,19 @@ fn new_row_ui(
                 ui.label(egui::RichText::new("*").strong());
                 for (index, cell) in cells.iter_mut().enumerate() {
                     let edit = egui::TextEdit::singleline(cell).hint_text(&columns[index]);
+                    let width = widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH);
                     if new_record_reason.is_some() || submission_open {
-                        ui.add_enabled(
-                            false,
-                            edit.desired_width(
-                                widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH),
-                            ),
+                        ui.add_enabled(false, edit.desired_width(width));
+                    } else if autonumber[index] {
+                        let response = ui
+                            .add_enabled(false, edit.desired_width(width))
+                            .on_hover_text(t("Input is rejected — the engine assigns the value."));
+                        crate::layout_probe::record(
+                            "datasheet.newrow.autonumber_gate",
+                            response.rect,
                         );
                     } else {
-                        ui.add_sized(
-                            [
-                                widths.get(index).copied().unwrap_or(DEFAULT_COLUMN_WIDTH),
-                                22.0,
-                            ],
-                            edit,
-                        );
+                        ui.add_sized([width, 22.0], edit);
                     }
                 }
             });
@@ -133,10 +158,33 @@ fn new_row_ui(
             add = true;
         }
         crate::layout_probe::record("datasheet.new_row_add", add_response.rect);
-        ui.weak(t("Empty cells are Null; AutoNumber assigns itself."));
+        ui.weak(t(
+            "Empty cells are Null; AutoNumber cells reject input — the engine assigns the value.",
+        ));
     });
     app.set_new_row_cells(tab.id, cells);
     if add {
         app.insert_new_row(tab.id, &tab.object_name);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::i18n::{Lang, lang_lock, set_lang, t};
+
+    /// The AutoNumber hint names the contract (step 91.6, item M114):
+    /// the English key resolves in both catalogs. (The trailing row sits
+    /// below the a11y fold in headless harnesses, so the string pin rides
+    /// here and the gate itself rides the layout probe.)
+    #[test]
+    fn the_autonumber_hint_names_the_contract_in_both_languages() {
+        let _guard = lang_lock();
+        const KEY: &str =
+            "Empty cells are Null; AutoNumber cells reject input — the engine assigns the value.";
+        set_lang(Lang::English);
+        assert!(t(KEY).contains("reject input"), "{}", t(KEY));
+        set_lang(Lang::German);
+        assert!(t(KEY).contains("lehnen Eingaben ab"), "{}", t(KEY));
+        set_lang(Lang::English);
     }
 }

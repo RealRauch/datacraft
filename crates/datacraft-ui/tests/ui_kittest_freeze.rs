@@ -251,6 +251,10 @@ fn the_frozen_state_is_visible_and_the_menu_explains_itself() {
     harness.get_by_label("Unfreeze All Fields").click();
     harness.run();
     assert_eq!(harness.state().frozen_columns(tab), 0);
+    // Discard the pre-unfreeze frames' records (the probe log
+    // accumulates until drained), then verify a clean frame.
+    let _ = layout_probe::drain();
+    harness.run();
     assert!(
         !layout_probe::drain()
             .iter()

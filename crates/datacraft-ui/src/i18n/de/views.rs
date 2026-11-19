@@ -61,8 +61,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("Double", "Double"),
     (
-        "Empty cells are Null; AutoNumber assigns itself.",
-        "Leere Zellen sind Null; AutoWert vergibt sich selbst.",
+        "Empty cells are Null; AutoNumber cells reject input — the engine assigns the value.",
+        "Leere Zellen sind Null; AutoWert-Zellen lehnen Eingaben ab — der Motor vergibt den Wert.",
     ),
     ("Field Name", "Feldname"),
     ("Field Properties — {field}", "Feldeigenschaften — {field}"),
@@ -72,6 +72,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Format", "Format"),
     ("GUID", "GUID"),
     ("Indexed", "Indiziert"),
+    (
+        "Input is rejected — the engine assigns the value.",
+        "Eingaben werden abgelehnt — der Motor vergibt den Wert.",
+    ),
     ("Input Mask", "Eingabemaske"),
     ("Integer", "Integer"),
     (

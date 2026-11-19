@@ -32,6 +32,14 @@ pub fn parse_field_value(field: &FieldDef, text: &str) -> Result<FieldValue, Str
             field.name
         ));
     }
+    // The AutoNumber rejection names the column (step 91.6, item M114):
+    // the contract surfaces with the precise field, not a bare kind.
+    if matches!(field.kind, FieldKind::AutoNumber(_)) {
+        return Err(format!(
+            "the {} column is AutoNumber — engine-assigned; leave the cell empty",
+            field.name
+        ));
+    }
     parse_value(&field.kind, text)
 }
 

@@ -121,6 +121,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Run", "Ausführen"),
     ("SQL", "SQL"),
     ("Save", "Speichern"),
+    (
+        "Keep the leading columns pinned while the rest scrolls horizontally.",
+        "Die führenden Spalten bleiben beim horizontalen Scrollen fixiert.",
+    ),
     ("Supported files", "Unterstützte Dateien"),
     ("Save Design", "Entwurf speichern"),
     ("Save a Copy", "Eine Kopie speichern"),
@@ -276,6 +280,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Die Datei {path} existiert bereits. Überschreiben?",
     ),
     ("Toolbox", "Toolbox"),
+    (
+        "Release the pinned columns.",
+        "Die fixierten Spalten lösen.",
+    ),
     ("Undo", "Rückgängig"),
     ("Version", "Version"),
     ("View", "Ansicht"),
