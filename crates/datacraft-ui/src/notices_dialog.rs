@@ -45,9 +45,38 @@ pub fn notices_dialog(app: &mut App, ui: &mut egui::Ui) {
                                 tokens.accent
                             };
                             ui.push_id(seq, |ui| {
-                                ui.colored_label(color, text);
+                                ui.horizontal(|ui| {
+                                    // Severity rides a painted glyph beside
+                                    // the text (step 91.9, item L61) — no
+                                    // color-only encoding, no per-entry
+                                    // separators (the list reads as a list).
+                                    let (rect, _) = ui.allocate_exact_size(
+                                        egui::vec2(12.0, 12.0),
+                                        egui::Sense::hover(),
+                                    );
+                                    let painter = ui.painter();
+                                    let glyph_id = if *severity == Severity::Error {
+                                        "notices.glyph.error"
+                                    } else {
+                                        "notices.glyph.notice"
+                                    };
+                                    if *severity == Severity::Error {
+                                        painter.add(egui::Shape::convex_polygon(
+                                            vec![
+                                                rect.left_bottom() + egui::vec2(0.0, -1.0),
+                                                rect.right_bottom() + egui::vec2(0.0, -1.0),
+                                                rect.center_top() + egui::vec2(0.0, 1.0),
+                                            ],
+                                            color,
+                                            egui::Stroke::NONE,
+                                        ));
+                                    } else {
+                                        painter.circle_filled(rect.center(), 4.0, color);
+                                    }
+                                    crate::layout_probe::record(glyph_id, rect);
+                                    ui.colored_label(color, text);
+                                });
                             });
-                            ui.separator();
                         }
                     });
             }

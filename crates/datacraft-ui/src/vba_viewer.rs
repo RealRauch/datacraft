@@ -24,7 +24,7 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         match db.vba_error.as_deref() {
             Some(reason) => {
                 ui.colored_label(
-                    egui::Color32::LIGHT_RED,
+                    crate::theme::tokens(ui.visuals()).danger,
                     tr("VBA extraction failed: {reason}", &[("reason", reason)]),
                 );
             }
@@ -84,7 +84,7 @@ pub fn vba_viewer_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             .resizable(true)
             .default_size(300.0)
             .show(ui, |ui| {
-                ui.colored_label(egui::Color32::LIGHT_RED, reason);
+                ui.colored_label(crate::theme::tokens(ui.visuals()).danger, reason);
             });
     }
     if let Some(name) = open {

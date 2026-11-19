@@ -48,9 +48,16 @@ pub fn expression_window(app: &mut App, ui: &mut egui::Ui) {
             ui.horizontal(|ui| {
                 let label = ui.label(t("Expression"));
                 editor_label = Some(label);
-                if ui.small_button(t("Close")).clicked() {
-                    close = true;
-                }
+                // Window-chrome position (step 91.9, item L60): the close
+                // button right-aligns in its row instead of sitting mid
+                // title-row.
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let close_response = ui.small_button(t("Close"));
+                    crate::layout_probe::record("expression.close", close_response.rect);
+                    if close_response.clicked() {
+                        close = true;
+                    }
+                });
             });
             let editor = ui.add(
                 egui::TextEdit::singleline(&mut text)

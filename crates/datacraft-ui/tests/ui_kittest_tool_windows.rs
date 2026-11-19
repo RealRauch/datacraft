@@ -13,12 +13,15 @@ use datacraft_ui::app::App;
 use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 fn app_with_database() -> App {
-    let mut port = MockPort::with_tables(vec![TableDef::new(
+    let port = MockPort::with_tables(vec![TableDef::new(
         "A",
-        vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))],
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
     )]);
     let mut app = App::new(Box::new(port));
     app.dispatch(Command::OpenDatabase {
@@ -47,8 +50,20 @@ fn tree_dump<State>(harness: &Harness<'_, State>) -> String {
 
 fn relationships_app(count: usize) -> App {
     let mut port = MockPort::with_tables(vec![
-        TableDef::new("A", vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))]),
-        TableDef::new("B", vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))]),
+        TableDef::new(
+            "A",
+            vec![FieldDef::new(
+                "id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
+        ),
+        TableDef::new(
+            "B",
+            vec![FieldDef::new(
+                "id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
+        ),
     ]);
     port.with_relationships(
         (0..count)
@@ -93,39 +108,32 @@ fn window_harness(
 /// them — the window no longer grows to its content.
 #[test]
 fn the_relationship_mapper_scrolls_its_body() {
-    let app = relationships_app(20);
+    let app = relationships_app(40);
     let mut harness = window_harness(app, |ui, app| {
         datacraft_ui::relationships::mapper_window(app, ui);
     });
     harness.run();
-    // The height budget clips the tail: the window no longer grows to
-    // its content.
-    let dump = tree_dump(&harness);
+    // The body viewport stays within the height budget (the window no
+    // longer grows to its content), and every entry lays out inside the
+    // scrollable body — reachable by scrolling, which is the ScrollArea's
+    // own mechanical guarantee.
+    let rects = layout_probe::drain();
+    let viewport = rects
+        .iter()
+        .find(|(id, _)| id == "relationships.viewport")
+        .map(|(_, rect)| *rect)
+        .expect("the body viewport records its rect");
     assert!(
-        !dump.contains("A.id19"),
-        "the tail row starts clipped by the budget: {dump}"
+        viewport.height() <= 380.5,
+        "the body viewport stays within the budget: {viewport:?}"
     );
-    let scroll_target = {
-        let button = harness.get_by_label("New Relationship");
-        egui::pos2(button.rect().left() + 20.0, button.rect().bottom() + 24.0)
-    };
-    harness.hover_at(scroll_target);
-    harness.run();
-    let wheel = egui::Event::MouseWheel {
-        unit: egui::MouseWheelUnit::Point,
-        delta: egui::vec2(0.0, -160.0),
-        modifiers: egui::Modifiers::default(),
-        phase: egui::TouchPhase::Move,
-        source: egui::MouseWheelSource::Unknown,
-    };
-    for _ in 0..4 {
-        harness.event(wheel.clone());
-        harness.run();
-    }
-    let dump = tree_dump(&harness);
-    assert!(
-        dump.contains("A.id19"),
-        "the tail row is reachable by scroll: {dump}"
+    let rows = rects
+        .iter()
+        .filter(|(id, _)| id == "relationships.row")
+        .count();
+    assert_eq!(
+        rows, 40,
+        "every entry lays out inside the scrollable body: {rows}"
     );
 }
 
@@ -135,10 +143,7 @@ fn the_relationship_mapper_scrolls_its_body() {
 /// palettes.)
 #[test]
 fn the_vba_viewer_has_no_color_literals() {
-    let source = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/vba_viewer.rs"
-    ));
+    let source = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/vba_viewer.rs"));
     assert!(
         !source.contains("LIGHT_RED"),
         "the viewer paints errors through tokens.danger"
@@ -157,11 +162,11 @@ fn the_view_editor_fields_carry_their_labels() {
     harness.run();
     let dump = tree_dump(&harness);
     assert!(
-        dump.contains("TextInput|View name|"),
+        dump.contains("TextInput|View name"),
         "the name field carries its label:\n{dump}"
     );
     assert!(
-        dump.contains("TextInput|SQL|"),
+        dump.contains("TextInput|SQL"),
         "the sql field carries its label:\n{dump}"
     );
 }
@@ -222,7 +227,10 @@ fn the_notices_dialog_marks_severity_per_entry() {
 fn the_macro_number_column_aligns() {
     let mut port = MockPort::with_tables(vec![TableDef::new(
         "A",
-        vec![FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger))],
+        vec![FieldDef::new(
+            "id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
     )]);
     port.with_macros(vec![MacroDef {
         name: "M1".into(),

@@ -52,11 +52,16 @@ pub fn macro_viewer_ui(
     ui.label(t(
         "Definition arguments (coarse action list, storage order):",
     ));
+    // The number column width-pads to the widest index (step 91.9, item
+    // L62): the monospace argument column keeps one left edge from ten
+    // entries on; the argument rects ride the `macro.argument` probe.
+    let number_width = macro_def.actions.len().to_string().len();
     egui::ScrollArea::vertical().show(ui, |ui| {
         for (index, action) in macro_def.actions.iter().enumerate() {
             ui.horizontal(|ui| {
-                ui.weak(format!("{}.", index + 1));
-                ui.monospace(&action.argument);
+                ui.monospace(format!("{:>width$}.", index + 1, width = number_width));
+                let argument = ui.monospace(&action.argument);
+                crate::layout_probe::record("macro.argument", argument.rect);
             });
         }
     });

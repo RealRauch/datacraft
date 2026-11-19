@@ -258,15 +258,20 @@ pub fn view_editor(app: &mut App, ui: &mut egui::Ui) {
             egui::vec2(460.0, 340.0),
         ))
         .show(ui.ctx(), |ui| {
-            ui.label(t("View name"));
-            ui.text_edit_singleline(&mut name);
-            ui.label(t("SQL"));
-            ui.add(
+            // Both fields carry their labels (step 91.9, item M119) —
+            // the established labelled_by pattern of the neighbouring
+            // windows.
+            let name_label = ui.label(t("View name"));
+            let name_field = ui.text_edit_singleline(&mut name);
+            name_field.labelled_by(name_label.id);
+            let sql_label = ui.label(t("SQL"));
+            let sql_field = ui.add(
                 egui::TextEdit::multiline(&mut sql)
                     .desired_rows(6)
                     .desired_width(f32::INFINITY)
                     .code_editor(),
             );
+            sql_field.labelled_by(sql_label.id);
             ui.horizontal(|ui| {
                 if ui.button(t("Save")).clicked() {
                     save = true;
