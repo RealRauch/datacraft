@@ -427,11 +427,7 @@ fn version_alias_v_wins_over_any_other_args() {
     let mut out: Vec<u8> = Vec::new();
     let outcome = run(
         &mut core,
-        &[
-            "--db".to_owned(),
-            "shop.mdb".to_owned(),
-            "-V".to_owned(),
-        ],
+        &["--db".to_owned(), "shop.mdb".to_owned(), "-V".to_owned()],
         &mut out,
     );
     assert_eq!(outcome, Outcome::Ok);

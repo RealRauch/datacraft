@@ -15,6 +15,7 @@ use crate::core::Core;
 /// Methods of the stub.
 const METHOD_DISPATCH: &str = "dispatch";
 const METHOD_INSPECT: &str = "inspect";
+const METHOD_VERSION: &str = "version";
 
 /// Applies one JSON-RPC request to the core and renders the response.
 pub fn handle_json(core: &mut Core, request_json: &str) -> String {
@@ -44,6 +45,12 @@ pub fn handle_json(core: &mut Core, request_json: &str) -> String {
         METHOD_INSPECT => {
             success_response(id, serde_json::to_value(core.inspect()).unwrap_or_default())
         }
+        // Server-info anchor (step 91.1, item M109): the shared product
+        // version, additive to the method set — no existing contract moves.
+        METHOD_VERSION => success_response(
+            id,
+            json!({ "name": "datacraft", "version": crate::VERSION }),
+        ),
         other => error_response(id, -32601, &format!("method {other:?} not found")),
     }
 }

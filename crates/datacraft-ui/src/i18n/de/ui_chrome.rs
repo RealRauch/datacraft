@@ -276,6 +276,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ),
     ("Toolbox", "Toolbox"),
     ("Undo", "Rückgängig"),
+    ("Version", "Version"),
     ("View", "Ansicht"),
     ("Views", "Ansichten"),
     (

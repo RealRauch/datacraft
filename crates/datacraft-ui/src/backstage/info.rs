@@ -11,6 +11,14 @@ use crate::settings::LanguageSetting;
 
 /// Info: database facts, read from the snapshot.
 pub(super) fn info_page(app: &mut App, ui: &mut egui::Ui) {
+    // The product version (step 91.1, item M109) rides above the database
+    // facts so it stays visible with and without an open database; the
+    // label goes through `t()`, the value stays locale-neutral.
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(t("Version")).strong());
+        ui.label(datacraft_core::VERSION);
+    });
+    ui.add_space(6.0);
     let Some(db) = app.snapshot().database.as_ref() else {
         ui.label(t("No database open"));
         return;

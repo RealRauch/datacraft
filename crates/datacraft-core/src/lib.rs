@@ -5,6 +5,12 @@
 //! maps to one command, every observable outcome is queryable as serializable
 //! state. See `docs/ARCHITECTURE.md` §5.
 
+/// The product version of the DataCraft crate family (step 91.1, item
+/// M109): the lockstep workspace version, one shared source every client
+/// reports — the CLI flag, the wire `version` method and the backstage
+/// Info page all print this constant.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub mod atomic_write;
 pub mod availability;
 pub mod canvas;

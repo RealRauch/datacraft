@@ -71,6 +71,12 @@ pub fn run_split(
              [--db <path>] [-p <password>]",
         );
     };
+    // Version display (step 91.1, item M109): `--version`/`-V` answers on
+    // stdout with exit 0 before any database work, wherever the flag sits.
+    if args.iter().any(|arg| arg == "--version" || arg == "-V") {
+        let _ = writeln!(out, "datacraft-cli {}", datacraft_core::VERSION);
+        return Outcome::Ok;
+    }
     let json_output = args.iter().any(|a| a == "--json");
     let password = flag_value(args, &["-p", "--password"]);
     let db_path = args
