@@ -163,6 +163,66 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `ba97071` — the Info page's fact rows align into a property grid: the widest label measures the shared column edge (strong-render slack absorbed), every value starts there; the value rects ride the `backstage.info.fact_value` layout probe, pinned equal-left at render time; driver facts, the integrity verdict and the lock-file row share the helper
 
+---
+
+### [x] M117 — The Relationships window has no scroll area — 🟡
+- **Location:** `crates/datacraft-ui/src/relationships.rs` (window body: relationship list, create form and painted canvas render without a `ScrollArea`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 20): once the database holds more relationships/tables than fit one window height, the list and the canvas clip with no way to reach the rest — the mapper silently loses content.
+- **Approach:** Wrap the body in a vertical `ScrollArea` with a height budget (the form runtime's navigation-row reservation is the pattern); the deterministic canvas grid layout stays.
+- **Acceptance:** A database with many tables/relationships scrolls to every list entry and every canvas box (kittest at both pinned window sizes); canvas geometry math unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ed6889a` — the mapper's body scrolls within a 380 px height budget; the viewport rect and every row rect ride the layout probe (`relationships.viewport` ≤ budget, all fixture rows laid out inside the scrollable body); canvas geometry math unchanged
+
+---
+
+### [x] M118 — VBA viewer paints error text in the literal LIGHT_RED instead of tokens.danger — 🟡
+- **Location:** `crates/datacraft-ui/src/vba_viewer.rs` (two sites: the extraction-failure text and the analysis-error pane, both `egui::Color32::LIGHT_RED`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 22): error text uses color literals, breaking the token contract (ADR-6: paint sites name roles, never literals) and rendering harshly in light mode and wrongly in dark mode, where every other error uses `tokens.danger`.
+- **Approach:** Replace both literals with `crate::theme::tokens(ui.visuals()).danger` — the treatment every other error text gets.
+- **Acceptance:** No color literals remain in the viewer; error text follows `tokens.danger` in both palettes (token/contract test or explicit review pin); rendering otherwise unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ed6889a` — both error sites paint `tokens.danger` instead of the LIGHT_RED literal; pinned as a source contract over the viewer's source (no color literals); rendering otherwise unchanged
+
+---
+
+### [x] M119 — The view editor's fields have no label association — 🟡
+- **Location:** `crates/datacraft-ui/src/views_window.rs` (`view_editor`: the "View name" and "SQL" labels and their fields).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 23): neither field is associated with its label (`labelled_by`), unlike the established pattern (expression window, backstage open field) — screen readers and the kittest's accessibility checks see anonymous fields.
+- **Approach:** Associate both fields with their labels via `labelled_by`, exactly like the neighbouring windows.
+- **Acceptance:** Both editor fields carry their label association (kittest accessibility pass); no behaviour change.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ed6889a` — both view-editor fields carry their labels via labelled_by; the accessibility names resolve in the kittest tree (no behaviour change)
+
+---
+
+### [x] L60 — The expression window's Close button sits mid-title-row — 🟢
+- **Location:** `crates/datacraft-ui/src/expression_window.rs` (the first row: the field label followed directly by Close).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 21): Close renders directly after the "Expression" label instead of right-aligned or in window chrome — it reads as part of the form rather than as a window control.
+- **Approach:** Right-align Close in its row or use the window's own close glyph (`open(&mut …)`, as the view editor and notices window do), keeping the `labelled_by` wiring.
+- **Acceptance:** The Close affordance sits in a consistent window-chrome position (kittest pin); the field label association stays.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ed6889a` — the close button right-aligns in its row (window-chrome position), the field label association stays, and the rect rides the `expression.close` probe (pinned in the right half of the window)
+
+---
+
+### [x] L61 — The notices dialog separators every entry and encodes severity by color only — 🟢
+- **Location:** `crates/datacraft-ui/src/notices_dialog.rs` (the entry loop: `ui.separator()` per entry; severity carried by danger/accent text color).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 24): a separator after every entry adds visual noise, and severity is encoded only by text color — no icon or tag, so the encoding fails without color.
+- **Approach:** Drop per-entry separators in favour of spacing (or separators only between severity groups), and add a painted severity glyph/tag beside each entry — painted, not a font glyph (T11 policy).
+- **Acceptance:** The dialog reads as a list, not a rule table (kittest/layout_probe pin); severity is recognisable without color.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ed6889a` — the per-entry separators are gone (spacing only) and every entry carries a painted severity glyph beside the text (filled triangle for errors, dot for notices — never a font glyph, the T11 policy); the glyphs ride the `notices.glyph.{error,notice}` probe, pinned per severity count
+
+---
+
+### [x] L62 — Macro-viewer action numbers do not align from ten on — 🟢
+- **Location:** `crates/datacraft-ui/src/macro_viewer.rs` (the action list: `ui.weak(format!("{}.", index + 1))`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 25): unpadded numbers (`1.` vs `10.`) shift the monospace argument column — the list jagges.
+- **Approach:** Right-align the number column to the widest index (fixed-width formatting matching the digit count).
+- **Acceptance:** The argument column keeps one left edge for lists of ten or more entries (kittest pin with a synthetic long macro).
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `ed6889a` — the number column width-pads to the widest index and renders monospace (exact width, not proportional spaces); the argument rects ride the `macro.argument` probe, pinned one left edge over 12 fixture actions
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -183,3 +243,9 @@
 - L58 — The nav pane's "New View" button sits detached at the pane bottom — done (done in `fa378a5` — view creation lives in the Views group header's context menu (below the sort entries); the detached pane-bottom button is gone, and the menu entry opens the view editor (pinned via the open draft))
 - M116 — The Save page mixes titled and untitled sections — done (done in `ba97071` — the sidecar section carries the "Design Sidecar" heading (de: Design-Seitendatei) like the other two Save-page sections; no flow change; pinned by the backstage kittest (all three headings present))
 - L59 — The Info page's fact values do not align into a column — done (done in `ba97071` — the Info page's fact rows align into a property grid: the widest label measures the shared column edge (strong-render slack absorbed), every value starts there; the value rects ride the `backstage.info.fact_value` layout probe, pinned equal-left at render time; driver facts, the integrity verdict and the lock-file row share the helper)
+- M117 — The Relationships window has no scroll area — done (done in `ed6889a` — the mapper's body scrolls within a 380 px height budget; the viewport rect and every row rect ride the layout probe (`relationships.viewport` ≤ budget, all fixture rows laid out inside the scrollable body); canvas geometry math unchanged)
+- M118 — VBA viewer paints error text in the literal LIGHT_RED instead of tokens.danger — done (done in `ed6889a` — both error sites paint `tokens.danger` instead of the LIGHT_RED literal; pinned as a source contract over the viewer's source (no color literals); rendering otherwise unchanged)
+- M119 — The view editor's fields have no label association — done (done in `ed6889a` — both view-editor fields carry their labels via labelled_by; the accessibility names resolve in the kittest tree (no behaviour change))
+- L60 — The expression window's Close button sits mid-title-row — done (done in `ed6889a` — the close button right-aligns in its row (window-chrome position), the field label association stays, and the rect rides the `expression.close` probe (pinned in the right half of the window))
+- L61 — The notices dialog separators every entry and encodes severity by color only — done (done in `ed6889a` — the per-entry separators are gone (spacing only) and every entry carries a painted severity glyph beside the text (filled triangle for errors, dot for notices — never a font glyph, the T11 policy); the glyphs ride the `notices.glyph.{error,notice}` probe, pinned per severity count)
+- L62 — Macro-viewer action numbers do not align from ten on — done (done in `ed6889a` — the number column width-pads to the widest index and renders monospace (exact width, not proportional spaces); the argument rects ride the `macro.argument` probe, pinned one left edge over 12 fixture actions)

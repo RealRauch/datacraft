@@ -51,27 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M117 — The Relationships window has no scroll area — 🟡
-- **Location:** `crates/datacraft-ui/src/relationships.rs` (window body: relationship list, create form and painted canvas render without a `ScrollArea`).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 20): once the database holds more relationships/tables than fit one window height, the list and the canvas clip with no way to reach the rest — the mapper silently loses content.
-- **Approach:** Wrap the body in a vertical `ScrollArea` with a height budget (the form runtime's navigation-row reservation is the pattern); the deterministic canvas grid layout stays.
-- **Acceptance:** A database with many tables/relationships scrolls to every list entry and every canvas box (kittest at both pinned window sizes); canvas geometry math unchanged.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] M118 — VBA viewer paints error text in the literal LIGHT_RED instead of tokens.danger — 🟡
-- **Location:** `crates/datacraft-ui/src/vba_viewer.rs` (two sites: the extraction-failure text and the analysis-error pane, both `egui::Color32::LIGHT_RED`).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 22): error text uses color literals, breaking the token contract (ADR-6: paint sites name roles, never literals) and rendering harshly in light mode and wrongly in dark mode, where every other error uses `tokens.danger`.
-- **Approach:** Replace both literals with `crate::theme::tokens(ui.visuals()).danger` — the treatment every other error text gets.
-- **Acceptance:** No color literals remain in the viewer; error text follows `tokens.danger` in both palettes (token/contract test or explicit review pin); rendering otherwise unchanged.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] M119 — The view editor's fields have no label association — 🟡
-- **Location:** `crates/datacraft-ui/src/views_window.rs` (`view_editor`: the "View name" and "SQL" labels and their fields).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 23): neither field is associated with its label (`labelled_by`), unlike the established pattern (expression window, backstage open field) — screen readers and the kittest's accessibility checks see anonymous fields.
-- **Approach:** Associate both fields with their labels via `labelled_by`, exactly like the neighbouring windows.
-- **Acceptance:** Both editor fields carry their label association (kittest accessibility pass); no behaviour change.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] M120 — The selected-control ring is nearly invisible in dark mode — 🟡
 - **Location:** `crates/datacraft-ui/src/form_design.rs` (`paint_control` selection ring strokes `ui.visuals().selection.bg_fill`; shared by the form and the report design canvases).
 - **Problem:** Found in the L47 design review (2026-11-19, finding 26): the ring paints the `checked` wash — dark `0x1F3A36` against the `0x252525` form surface is nearly invisible, so the designers lose their selection state in dark mode; light mode shows only a faint ring.
@@ -147,27 +126,6 @@
 - **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
 - **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
-
-### [ ] L60 — The expression window's Close button sits mid-title-row — 🟢
-- **Location:** `crates/datacraft-ui/src/expression_window.rs` (the first row: the field label followed directly by Close).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 21): Close renders directly after the "Expression" label instead of right-aligned or in window chrome — it reads as part of the form rather than as a window control.
-- **Approach:** Right-align Close in its row or use the window's own close glyph (`open(&mut …)`, as the view editor and notices window do), keeping the `labelled_by` wiring.
-- **Acceptance:** The Close affordance sits in a consistent window-chrome position (kittest pin); the field label association stays.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] L61 — The notices dialog separators every entry and encodes severity by color only — 🟢
-- **Location:** `crates/datacraft-ui/src/notices_dialog.rs` (the entry loop: `ui.separator()` per entry; severity carried by danger/accent text color).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 24): a separator after every entry adds visual noise, and severity is encoded only by text color — no icon or tag, so the encoding fails without color.
-- **Approach:** Drop per-entry separators in favour of spacing (or separators only between severity groups), and add a painted severity glyph/tag beside each entry — painted, not a font glyph (T11 policy).
-- **Acceptance:** The dialog reads as a list, not a rule table (kittest/layout_probe pin); severity is recognisable without color.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] L62 — Macro-viewer action numbers do not align from ten on — 🟢
-- **Location:** `crates/datacraft-ui/src/macro_viewer.rs` (the action list: `ui.weak(format!("{}.", index + 1))`).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 25): unpadded numbers (`1.` vs `10.`) shift the monospace argument column — the list jagges.
-- **Approach:** Right-align the number column to the widest index (fixed-width formatting matching the digit count).
-- **Acceptance:** The argument column keeps one left edge for lists of ten or more entries (kittest pin with a synthetic long macro).
-- **Steps:** none yet (from the phase 89 design review).
 
 ### [ ] L63 — Preview text paints at 100 % on the 0.9-scaled page — 🟢
 - **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: geometry scales by 0.9, glyphs render at full `TextStyle::Body` size).
