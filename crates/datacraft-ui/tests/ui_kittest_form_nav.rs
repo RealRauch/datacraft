@@ -143,7 +143,10 @@ fn the_new_record_action_respects_the_insert_capability() {
     let mut port = MockPort::with_tables(vec![customers_table()]);
     port.with_row_data(
         "Customers",
-        vec![vec![FieldValue::Integer(1), FieldValue::Text("Lena".into())]],
+        vec![vec![
+            FieldValue::Integer(1),
+            FieldValue::Text("Lena".into()),
+        ]],
     );
     let mut caps = DriverCapabilities::full();
     caps.write_rows = false;
@@ -166,9 +169,8 @@ fn the_new_record_action_respects_the_insert_capability() {
     harness.run();
     let dump = tree_dump(&harness);
     assert!(
-        dump
-            .lines()
-            .any(|line| line.starts_with("Button|New record|") && line.ends_with(" disabled")),
+        dump.lines()
+            .any(|line| line.starts_with("Button|New record") && line.ends_with(" disabled")),
         "the new-record action renders disabled on a read-only source:\n{dump}"
     );
 }

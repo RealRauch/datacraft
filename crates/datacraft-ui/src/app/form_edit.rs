@@ -327,6 +327,14 @@ impl App {
         position
     }
 
+    /// Pins the followed physical row (step 91.12, item M124): after the
+    /// new-record insert appends a row, the cursor's survival logic
+    /// follows the new last row instead of the previously visible one —
+    /// the form sits on the new record, Access-style.
+    pub(crate) fn follow_physical_row(&mut self, tab_id: TabId, physical: usize) {
+        self.form_edit.last_physical.insert(tab_id, physical);
+    }
+
     /// Whether the first `Esc` already reverted a field of this record.
     pub fn form_esc_armed(&self, tab_id: TabId) -> bool {
         self.form_edit.esc_armed.contains(&tab_id)

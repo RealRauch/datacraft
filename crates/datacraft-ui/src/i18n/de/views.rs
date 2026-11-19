@@ -69,6 +69,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Field:", "Feld:"),
     ("Form no longer exists", "Formular existiert nicht mehr"),
     ("Form: {name}", "Formular: {name}"),
+    ("First", "Erster"),
     ("Format", "Format"),
     ("GUID", "GUID"),
     ("Indexed", "Indiziert"),
@@ -83,6 +84,7 @@ pub static TABLE: &[(&str, &str)] = &[
         "Jet 3 bewahrt Makrodefinitionen in MSysAccessObjects auf; dieser Verbunddatei-Speicher wird noch nicht dekodiert, daher wird nur der Katalogname angezeigt.",
     ),
     ("Joins: {joins}", "Verknüpfungen: {joins}"),
+    ("Last", "Letzter"),
     ("Loading rows…", "Zeilen werden geladen…"),
     ("Long Integer", "Long Integer"),
     ("Long Text", "Langtext"),
@@ -124,6 +126,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Add Field", "Feld hinzufügen"),
     ("Delete", "Löschen"),
     ("New field", "Neues Feld"),
+    ("New record", "Neuer Datensatz"),
     ("No entries", "Keine Einträge"),
     ("None", "Keine"),
     (
