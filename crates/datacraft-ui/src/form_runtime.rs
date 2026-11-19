@@ -167,57 +167,7 @@ pub fn form_runtime_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         app.revert_form_record(tab.id);
     }
 
-    ui.separator();
-    ui.horizontal(|ui| {
-        // The fuller Access set (step 91.12, item M124): first/last jump
-        // the ends; the new-record action inserts through the normal path
-        // (capability-gated like the datasheet's row actions) and
-        // navigates to the new last record. Every jump flushes the
-        // per-record edit buffer exactly like prev/next.
-        if ui.button(t("First")).clicked() && record > 0 && app.flush_form_edits(tab.id) {
-            app.set_form_record(tab.id, 0);
-        }
-        if ui.button(t("< Prev")).clicked() && record > 0 && app.flush_form_edits(tab.id) {
-            app.set_form_record(tab.id, record - 1);
-        }
-        ui.label(tr(
-            "Record {current} of {total}",
-            &[
-                ("current", &(record + 1).to_string()),
-                ("total", &row_count.to_string()),
-            ],
-        ));
-        if ui.button(t("Next >")).clicked()
-            && record + 1 < row_count
-            && app.flush_form_edits(tab.id)
-        {
-            app.set_form_record(tab.id, record + 1);
-        }
-        if ui.button(t("Last")).clicked() && record + 1 < row_count && app.flush_form_edits(tab.id)
-        {
-            app.set_form_record(tab.id, row_count - 1);
-        }
-        let new_record_restriction = crate::availability::restricted(
-            app.snapshot(),
-            datacraft_core::availability::ids::NEW_RECORD,
-        )
-        .copied();
-        let new_record = match new_record_restriction {
-            Some(reason) => ui
-                .add_enabled(false, egui::Button::new(t("New record")))
-                .on_hover_text(crate::availability::reason_text(&reason)),
-            None => ui.button(t("New record")),
-        };
-        if new_record.clicked()
-            && app.flush_form_edits(tab.id)
-            && app.insert_new_row(tab.id, &form.source)
-        {
-            // The cursor's survival logic follows the new last row (the
-            // form sits on the new record, Access-style).
-            app.follow_physical_row(tab.id, row_count);
-            app.set_form_record(tab.id, row_count);
-        }
-    });
+    crate::form_nav::record_nav_ui(app, tab, &form.source, record, row_count, ui);
 }
 
 /// One control at runtime (bound fields show the record's value).

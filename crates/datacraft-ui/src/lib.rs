@@ -32,6 +32,7 @@ pub mod flows_cells;
 pub mod flows_datasheet;
 pub mod form_actions;
 pub mod form_design;
+pub mod form_nav;
 pub mod form_runtime;
 pub mod i18n;
 pub mod icons;
