@@ -379,16 +379,18 @@ fn sorted_output_is_consistent_under_null_and_family_mixes() {
             picks.push(pool[(state >> 33) as usize % pool.len()].clone());
         }
         let rows: Vec<Vec<FieldValue>> = picks.iter().map(|v| vec![v.clone()]).collect();
-        for (direction, descending) in [
-            (SortOrder::Ascending, false),
-            (SortOrder::Descending, true),
-        ] {
+        for (direction, descending) in
+            [(SortOrder::Ascending, false), (SortOrder::Descending, true)]
+        {
             let order = view_order(&table, &rows, Some(("v", direction)), &BTreeMap::new())
                 .expect("the sort resolves");
             let sorted: Vec<FieldValue> =
                 order.iter().map(|&index| rows[index][0].clone()).collect();
             // NULL placement: first ascending, last descending.
-            let nulls = sorted.iter().filter(|v| matches!(v, FieldValue::Null)).count();
+            let nulls = sorted
+                .iter()
+                .filter(|v| matches!(v, FieldValue::Null))
+                .count();
             if descending {
                 assert!(
                     sorted[sorted.len() - nulls..]
@@ -398,7 +400,9 @@ fn sorted_output_is_consistent_under_null_and_family_mixes() {
                 );
             } else {
                 assert!(
-                    sorted[..nulls].iter().all(|v| matches!(v, FieldValue::Null)),
+                    sorted[..nulls]
+                        .iter()
+                        .all(|v| matches!(v, FieldValue::Null)),
                     "seed {seed} asc: NULLs first: {sorted:?}"
                 );
             }
@@ -409,10 +413,19 @@ fn sorted_output_is_consistent_under_null_and_family_mixes() {
                     continue; // NULL placement asserted above
                 }
                 let (ra, rb) = (rank(a), rank(b));
-                assert!(
-                    ra <= rb,
-                    "seed {seed} {direction:?}: family rank order {sorted:?}"
-                );
+                // The direction reverse turns the rank order with it:
+                // ascending ranks climb, descending ranks fall.
+                if descending {
+                    assert!(
+                        ra >= rb,
+                        "seed {seed} {direction:?}: family rank order {sorted:?}"
+                    );
+                } else {
+                    assert!(
+                        ra <= rb,
+                        "seed {seed} {direction:?}: family rank order {sorted:?}"
+                    );
+                }
                 if ra == rb {
                     let ordering = datacraft_types::compare(a, b);
                     if let Some(ordering) = ordering {
