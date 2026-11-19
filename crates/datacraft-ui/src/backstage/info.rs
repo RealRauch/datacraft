@@ -23,59 +23,95 @@ pub(super) fn info_page(app: &mut App, ui: &mut egui::Ui) {
         ui.label(t("No database open"));
         return;
     };
-    let mut facts = vec![
-        (t("Database"), db.name.clone()),
-        (t("Path"), db.path.display().to_string()),
+    let mut facts: Vec<(String, String)> = vec![
+        (t("Database").to_owned(), db.name.clone()),
+        (t("Path").to_owned(), db.path.display().to_string()),
     ];
     // Server-source readiness (step 65.3, item L8): a URI session names
     // the spec it was opened with; plain path opens keep the facts list.
     if let Some(source) = &db.source {
-        facts.push((t("Source"), source.to_string()));
+        facts.push((t("Source").to_owned(), source.to_string()));
     }
     facts.extend([
-        (t("Format"), db.format.to_string()),
-        (t("Tables"), db.tables.len().to_string()),
-        (t("Relationships"), db.relationships.len().to_string()),
+        (t("Format").to_owned(), db.format.to_string()),
+        (t("Tables").to_owned(), db.tables.len().to_string()),
+        (
+            t("Relationships").to_owned(),
+            db.relationships.len().to_string(),
+        ),
     ]);
-    for (label, value) in facts {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(label).strong());
-            ui.label(value);
-        });
-    }
     // Driver facts and the health verdict (phase 73, step 73.3; M91):
     // stable machine names map to localized labels; unknown names stay
     // verbatim. A damaged file names the exact reason.
-    let tokens = crate::theme::tokens(ui.visuals());
-    for fact in &db.facts {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(fact_label(&fact.name)).strong());
-            ui.label(&fact.value);
-        });
+    let driver_facts: Vec<(String, String)> = db
+        .facts
+        .iter()
+        .map(|fact| (fact_label(&fact.name), fact.value.clone()))
+        .collect();
+    // Property-grid alignment (step 91.8, item L59): the widest label
+    // measures the shared column edge; every value starts there instead
+    // of following its own label's width. (Strong rendering widens the
+    // glyphs a little — the slack absorbs it.)
+    let label_column = facts
+        .iter()
+        .chain(driver_facts.iter())
+        .map(|(label, _)| label_width(ui, label))
+        .chain(std::iter::once(label_width(ui, t("Integrity check"))))
+        .fold(0.0_f32, f32::max)
+        + 12.0;
+    for (label, value) in facts.iter().chain(driver_facts.iter()) {
+        fact_row(ui, label_column, label, value, false);
     }
-    ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(t("Integrity check")).strong());
+    fact_row(
+        ui,
+        label_column,
+        t("Integrity check"),
         match &db.health {
-            Some(reason) => {
-                ui.colored_label(tokens.danger, reason);
-            }
-            None => {
-                ui.label(t("ok"));
-            }
-        }
-    });
+            Some(reason) => reason.as_str(),
+            None => t("ok"),
+        },
+        db.health.is_some(),
+    );
     // Access co-existence (step 53.2, item M59): a detected lock file is
     // a database fact — the name plus the full localized remedy (the
     // same key the status bar's hover text carries).
     if let Some(file) = &db.lock_file {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(t("Access lock file")).strong());
-            ui.label(file);
-        });
+        fact_row(ui, label_column, t("Access lock file"), file, false);
         ui.label(
             egui::RichText::new(tr(crate::shell::LOCK_NOTICE_DETAIL, &[("file", file)])).weak(),
         );
     }
+}
+
+/// One aligned fact row (step 91.8, item L59): the strong label, a
+/// spacer to the shared column edge, then the value; the value rect
+/// rides the layout probe under `backstage.info.fact_value`.
+fn fact_row(ui: &mut egui::Ui, label_column: f32, label: &str, value: &str, danger: bool) {
+    let tokens = crate::theme::tokens(ui.visuals());
+    ui.horizontal(|ui| {
+        let label_response = ui.label(egui::RichText::new(label).strong());
+        let gap = label_column - label_response.rect.width();
+        if gap > 0.0 {
+            ui.allocate_exact_size(egui::vec2(gap, 0.0), egui::Sense::hover());
+        }
+        let value_response = if danger {
+            ui.colored_label(tokens.danger, value)
+        } else {
+            ui.label(value)
+        };
+        crate::layout_probe::record("backstage.info.fact_value", value_response.rect);
+    });
+}
+
+/// The rendered width of one label (the column measure).
+fn label_width(ui: &egui::Ui, label: &str) -> f32 {
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    ui.ctx().fonts_mut(|fonts| {
+        fonts
+            .layout_no_wrap(label.to_owned(), font, egui::Color32::WHITE)
+            .size()
+            .x
+    })
 }
 
 /// Localized label of one driver fact; unknown facts keep their wire name

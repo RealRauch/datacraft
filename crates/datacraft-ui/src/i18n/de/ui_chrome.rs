@@ -121,6 +121,7 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Run", "Ausführen"),
     ("SQL", "SQL"),
     ("Save", "Speichern"),
+    ("Design Sidecar", "Design-Seitendatei"),
     (
         "Keep the leading columns pinned while the rest scrolls horizontally.",
         "Die führenden Spalten bleiben beim horizontalen Scrollen fixiert.",

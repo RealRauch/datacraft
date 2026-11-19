@@ -10,7 +10,7 @@ use datacraft_ui::backstage::BackstagePage;
 use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 fn app_with_database() -> App {
     let mut port = MockPort::with_tables(vec![datacraft_core::schema::TableDef::new(

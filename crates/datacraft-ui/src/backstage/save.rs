@@ -146,6 +146,9 @@ fn change_password_ui(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Comman
 
 /// Save: the sidecar path buffer and the save/load commands.
 pub(super) fn save_page(app: &mut App, ui: &mut egui::Ui, intents: &mut Vec<Command>) {
+    // The third section carries its heading like the other two (step
+    // 91.8, item M116).
+    ui.heading(t("Design Sidecar"));
     ui.label(t("path to .datacraft"));
     ui.add(
         egui::TextEdit::singleline(&mut app.sidecar_path)
