@@ -160,3 +160,33 @@ fn a_wildcard_filter_keeps_matching_rows() {
         "the non-matching row is filtered out: {dump}"
     );
 }
+
+/// A stale sort field (a rename left the sort state behind) clears
+/// itself after a frame: the header never claims an order the rows do
+/// not follow (step 91.5, item M113).
+#[test]
+fn a_renamed_sort_field_clears_the_stale_indicator() {
+    let mut app = app_with_table();
+    app.dispatch(Command::SetTableSort {
+        table: "Customers".into(),
+        field: "Name".into(),
+        order: SortOrder::Ascending,
+    });
+    assert_eq!(
+        app.snapshot().tabs[0].sort_field.as_deref(),
+        Some("Name"),
+        "the sort is set"
+    );
+    app.dispatch(Command::RenameField {
+        table: "Customers".into(),
+        field: "Name".into(),
+        new_name: "Product".into(),
+    });
+    let mut harness = datasheet_harness(app);
+    harness.run();
+    assert_eq!(
+        harness.state().snapshot().tabs[0].sort_field,
+        None,
+        "the stale sort clears itself — never indicator-without-sort"
+    );
+}

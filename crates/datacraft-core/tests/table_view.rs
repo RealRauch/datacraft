@@ -242,3 +242,194 @@ fn closing_the_database_drops_the_table_view_state() {
     assert!(tab.filters.is_empty());
     let _ = TabMode::Datasheet; // state import kept for the tab projections
 }
+
+// ---------------------------------------------------------------------------
+// total sort order (step 91.5, item M113)
+// ---------------------------------------------------------------------------
+
+/// The Access convention (step 91.5, item M113): NULLs sort first
+/// ascending and last descending — one total comparator, reversed for
+/// the descending direction.
+#[test]
+fn nulls_sort_first_ascending_and_last_descending() {
+    let table = orders_table();
+    let rows = vec![
+        vec![
+            FieldValue::Integer(1),
+            FieldValue::Text("a".into()),
+            FieldValue::Currency(150),
+        ],
+        vec![
+            FieldValue::Integer(2),
+            FieldValue::Text("b".into()),
+            FieldValue::Null,
+        ],
+        vec![
+            FieldValue::Integer(3),
+            FieldValue::Text("c".into()),
+            FieldValue::Currency(50),
+        ],
+    ];
+    let asc = view_order(
+        &table,
+        &rows,
+        Some(("total", SortOrder::Ascending)),
+        &BTreeMap::new(),
+    )
+    .expect("the sort resolves");
+    assert_eq!(asc, vec![1, 2, 0], "NULL first ascending: {asc:?}");
+    let desc = view_order(
+        &table,
+        &rows,
+        Some(("total", SortOrder::Descending)),
+        &BTreeMap::new(),
+    )
+    .expect("the sort resolves");
+    assert_eq!(desc, vec![0, 2, 1], "NULL last descending: {desc:?}");
+}
+
+/// Mixed families follow a defined rank (the `FieldValue` declaration
+/// order) instead of the inconsistent `Equal` degradation.
+#[test]
+fn mixed_families_follow_a_documented_rank() {
+    let table = TableDef::new(
+        "Mix",
+        vec![FieldDef::new("v", FieldKind::Text { max_len: 50 })],
+    );
+    let rows = vec![
+        vec![FieldValue::Text("x".into())],
+        vec![FieldValue::Integer(1)],
+        vec![FieldValue::Float(1.5)],
+    ];
+    let asc = view_order(
+        &table,
+        &rows,
+        Some(("v", SortOrder::Ascending)),
+        &BTreeMap::new(),
+    )
+    .expect("the sort resolves");
+    // Integer (1) < Float (2) < Text (3) — the documented rank.
+    assert_eq!(asc, vec![1, 2, 0], "rank order: {asc:?}");
+}
+
+/// Clearing the sort accepts a stale field name (the datasheet's
+/// self-healing path, step 91.5, item M113): a rename can leave a sort
+/// field behind, and the clear must never fail on that.
+#[test]
+fn clearing_the_sort_accepts_a_stale_field_name() {
+    let mut core = core_with_table();
+    open_table_tab(&mut core);
+    let failed = core.dispatch(Command::SetTableSort {
+        table: "Orders".into(),
+        field: "total".into(),
+        order: SortOrder::Ascending,
+    });
+    assert!(!failed.iter().any(|e| matches!(e, Event::Failed { .. })));
+    let failed = core.dispatch(Command::SetTableSort {
+        table: "Orders".into(),
+        field: "field-that-no-longer-exists".into(),
+        order: SortOrder::None,
+    });
+    assert!(
+        !failed.iter().any(|e| matches!(e, Event::Failed { .. })),
+        "the clear accepts a stale field: {failed:?}"
+    );
+    assert_eq!(core.inspect().tabs[0].sort_field, None);
+}
+
+/// Sorting stays consistent under NULL and family mixes: the sorted
+/// output places NULLs per the convention, groups the families in rank
+/// order and keeps each family internally ordered — no scrambled output
+/// from an inconsistent comparator.
+#[test]
+fn sorted_output_is_consistent_under_null_and_family_mixes() {
+    let pool = [
+        FieldValue::Null,
+        FieldValue::Integer(-3),
+        FieldValue::Integer(7),
+        FieldValue::Float(f64::NAN),
+        FieldValue::Float(2.5),
+        FieldValue::Text("alpha".into()),
+        FieldValue::Text("beta".into()),
+    ];
+    let table = TableDef::new(
+        "Mix",
+        vec![FieldDef::new("v", FieldKind::Text { max_len: 50 })],
+    );
+    // The documented family rank (the FieldValue declaration order).
+    let rank = |value: &FieldValue| match value {
+        FieldValue::Null => 0,
+        FieldValue::Boolean(_) => 1,
+        FieldValue::Integer(_) => 2,
+        FieldValue::Float(_) => 3,
+        FieldValue::Currency(_) => 4,
+        FieldValue::DateTime(_) => 5,
+        FieldValue::Decimal(_) => 6,
+        FieldValue::Text(_) => 7,
+        FieldValue::Binary(_) => 8,
+        FieldValue::Guid(_) => 9,
+        FieldValue::Complex(_) => 10,
+    };
+    // Deterministic mixes over the pool (four seeds, five rows each).
+    for seed in 0..4u64 {
+        let mut picks = Vec::new();
+        let mut state = seed.wrapping_mul(0x9E3779B97F4A7C15);
+        for _ in 0..5 {
+            state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
+            picks.push(pool[(state >> 33) as usize % pool.len()].clone());
+        }
+        let rows: Vec<Vec<FieldValue>> = picks.iter().map(|v| vec![v.clone()]).collect();
+        for (direction, descending) in [
+            (SortOrder::Ascending, false),
+            (SortOrder::Descending, true),
+        ] {
+            let order = view_order(&table, &rows, Some(("v", direction)), &BTreeMap::new())
+                .expect("the sort resolves");
+            let sorted: Vec<FieldValue> =
+                order.iter().map(|&index| rows[index][0].clone()).collect();
+            // NULL placement: first ascending, last descending.
+            let nulls = sorted.iter().filter(|v| matches!(v, FieldValue::Null)).count();
+            if descending {
+                assert!(
+                    sorted[sorted.len() - nulls..]
+                        .iter()
+                        .all(|v| matches!(v, FieldValue::Null)),
+                    "seed {seed} desc: NULLs last: {sorted:?}"
+                );
+            } else {
+                assert!(
+                    sorted[..nulls].iter().all(|v| matches!(v, FieldValue::Null)),
+                    "seed {seed} asc: NULLs first: {sorted:?}"
+                );
+            }
+            // Family groups sit in rank order, each internally ordered.
+            for pair in sorted.windows(2) {
+                let (a, b) = (&pair[0], &pair[1]);
+                if matches!(a, FieldValue::Null) || matches!(b, FieldValue::Null) {
+                    continue; // NULL placement asserted above
+                }
+                let (ra, rb) = (rank(a), rank(b));
+                assert!(
+                    ra <= rb,
+                    "seed {seed} {direction:?}: family rank order {sorted:?}"
+                );
+                if ra == rb {
+                    let ordering = datacraft_types::compare(a, b);
+                    if let Some(ordering) = ordering {
+                        if descending {
+                            assert!(
+                                ordering != std::cmp::Ordering::Less,
+                                "seed {seed} desc: within-family order {sorted:?}"
+                            );
+                        } else {
+                            assert!(
+                                ordering != std::cmp::Ordering::Greater,
+                                "seed {seed} asc: within-family order {sorted:?}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
