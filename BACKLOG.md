@@ -190,13 +190,6 @@
 - **Steps:** none yet (Medium gate; candidate for a later phase after M96/Phase 79 fixes the root README structure).
 - **Acceptance:** Every published crate packages its own README (visible in `cargo package --list`); the crates.io page states what the crate is, its feature flags and MSRV, and links the product page; PUBLISHING's checklist names the per-crate README verification; no publish metadata drift.
 
-### [ ] L47 — Design pass: density, typography, spacing on the current build — 🟢
-- **Location:** the shell surfaces (ribbon, QAT, nav pane, datasheet, backstage, tool windows, form/report designers).
-- **Problem:** M42/M78 closed concrete chrome findings, but no subjective density/typography/spacing pass has run against the current build. Without a protocol such a pass becomes an unbounded task and slips into unmeasured changes.
-- **Approach:** The human reviews the running build against Access's density conventions (information per screen, row height, label hierarchy, alignment) and writes the findings down; each accepted finding becomes its own item with location and acceptance. The review itself changes no code. Keep the existing token system; no framework or shell rewrite rides this pass.
-- **Acceptance:** A review log (screenshots before/after where applicable); every accepted finding exists as its own item; no change lands without a pin or a stated visual acceptance.
-- **Steps:** none yet (starts with the human's live review).
-
 ### [ ] L48 — Nav pane: no object search, multi-select or local groups and colours — 🟢
 - **Location:** `crates/datacraft-ui/src/nav_pane.rs` and the nav model in core (U9 added the category dropdown, context menu and sort).
 - **Problem:** The nav pane lists objects in one compact tree per category. For a database with hundreds of objects there is no list/grid overview, no local folders or colours, no multi-select/drag grouping, and no search across objects. The reference client's object explorer offers all four as local preferences (nothing that changes the database).

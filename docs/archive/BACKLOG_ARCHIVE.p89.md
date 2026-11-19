@@ -33,6 +33,16 @@
 - **Steps:** none yet.
 - **Done:** done in `ae981f3` — ROADMAP §23 decision record: minimal mode with glow adapter + SESSIONNAME probes (premise corrected: glow, not wgpu); implementation follow-up L51 filed
 
+---
+
+### [x] L47 — Design pass: density, typography, spacing on the current build — 🟢
+- **Location:** the shell surfaces (ribbon, QAT, nav pane, datasheet, backstage, tool windows, form/report designers).
+- **Problem:** M42/M78 closed concrete chrome findings, but no subjective density/typography/spacing pass has run against the current build. Without a protocol such a pass becomes an unbounded task and slips into unmeasured changes.
+- **Approach:** The human reviews the running build against Access's density conventions (information per screen, row height, label hierarchy, alignment) and writes the findings down; each accepted finding becomes its own item with location and acceptance. The review itself changes no code. Keep the existing token system; no framework or shell rewrite rides this pass.
+- **Acceptance:** A review log (screenshots before/after where applicable); every accepted finding exists as its own item; no change lands without a pin or a stated visual acceptance.
+- **Steps:** none yet (starts with the human's live review).
+- **Done:** done in `160336e` — review closed 2026-11-19: all seven surfaces reviewed, 31 findings logged (finding 10 rejected — hard cell clip is Access parity), accepted findings filed as M109–M124 and L52–L63 (folds into L52/L53), fixes fine-packaged as phase 91 steps 91.1–91.13
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -40,3 +50,4 @@
 - M100 — Tool windows as task panes — decision and scope — done (done in `5426d79` — ROADMAP §21 decision record: own minimal dock host, no new dependency; implementation follow-up M103 filed (pilot: SQL window))
 - L46 — Native menu bar on macOS — decision — done (done in `43aebbd` — ROADMAP §22 decision record: ribbon-only, no native menu bar now; re-evaluation gated on reachable macOS hardware for verification)
 - L50 — No low-power/RDP rendering mode — done (done in `ae981f3` — ROADMAP §23 decision record: minimal mode with glow adapter + SESSIONNAME probes (premise corrected: glow, not wgpu); implementation follow-up L51 filed)
+- L47 — Design pass: density, typography, spacing on the current build — done (done in `160336e` — review closed 2026-11-19: all seven surfaces reviewed, 31 findings logged (finding 10 rejected — hard cell clip is Access parity), accepted findings filed as M109–M124 and L52–L63 (folds into L52/L53), fixes fine-packaged as phase 91 steps 91.1–91.13)
