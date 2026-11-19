@@ -253,6 +253,26 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `431aa9f` — both canvases scroll both axes: the designer's canvas column wraps canvas_ui in a both-axis ScrollArea, the runtime's scroll area gains the horizontal axis (the navigation-row height budget stays); the full 640-wide canvas lays out inside the scrollable bodies; the viewports ride `form.design.viewport` / `form.runtime.viewport` and the canvases `form.design.canvas` / `form.runtime.canvas` — at the pinned minimum the designer viewport is shorter than the canvas, so the scroll is the reachability (pinned with the measured geometry)
 
+---
+
+### [x] M123 — The report preview paints a fixed A4 page instead of the report's page setup — 🟡
+- **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: hardcoded 595×842 pt canvas) versus the design canvas, which renders `report.page`.
+- **Problem:** Found in the L47 design review (2026-11-19, finding 29): the preview hardcodes A4 while `PageSetup` is sidecar-deserialized per report — a report with a different page setup previews on the wrong paper. Latent today (no UI edits the page setup), but the divergence is structural.
+- **Approach:** Size the preview canvas from `report.page`; the preview already renders in page coordinates and core pagination uses the same setup.
+- **Acceptance:** The preview canvas dimensions follow `report.page` (unit test with a non-A4 `PageSetup`); the A4 default is unchanged; pagination behaviour unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `3e22f1b` — the preview canvas sizes from the report's own PageSetup at the shipped 0.9 scale via the pure `preview_page_size` helper (never a hardcoded A4); a unit test pins a non-A4 setup (letter), the rendered page rect rides the `report.preview.page` probe (pinned at the A4 default); pagination behaviour unchanged
+
+---
+
+### [x] L63 — Preview text paints at 100 % on the 0.9-scaled page — 🟢
+- **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: geometry scales by 0.9, glyphs render at full `TextStyle::Body` size).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 30): item rects scale by 0.9 while the font renders at full size — long values can overflow their scaled rects on the preview page.
+- **Approach:** Scale the preview font with the page scale (`FontId` sized `BODY_SIZE * scale`); positions stay as they are.
+- **Acceptance:** Preview text fits its item rects at the shipped scale (kittest pin on a long-value page); item positions unchanged.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `3e22f1b` — the preview text font scales with the page (the body rung at the page scale) via the pure `preview_font` step (unit-pinned); item positions unchanged
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -282,3 +302,5 @@
 - M120 — The selected-control ring is nearly invisible in dark mode — done (done in `431aa9f` — the ring strokes the accent token at the established 2 px instead of the selection wash; shared by the form and the report canvases through the same paint fn; pinned as a source contract over form_design.rs (no selection.bg_fill), the accent token's contrast is covered by the existing theme tests)
 - M121 — The runtime combo's dropdown affordance is the literal letter "v" — done (done in `431aa9f` — the runtime combo's affordance is a painted convex-polygon caret beside an empty-label menu button (the designer's own glyph language, T11-safe); the caret rect rides the `form.combo.caret` probe (pinned present); accessible name and disabled ink unchanged)
 - M122 — The fixed 640×400 form canvas clips at the pinned minimum window size — done (done in `431aa9f` — both canvases scroll both axes: the designer's canvas column wraps canvas_ui in a both-axis ScrollArea, the runtime's scroll area gains the horizontal axis (the navigation-row height budget stays); the full 640-wide canvas lays out inside the scrollable bodies; the viewports ride `form.design.viewport` / `form.runtime.viewport` and the canvases `form.design.canvas` / `form.runtime.canvas` — at the pinned minimum the designer viewport is shorter than the canvas, so the scroll is the reachability (pinned with the measured geometry))
+- M123 — The report preview paints a fixed A4 page instead of the report's page setup — done (done in `3e22f1b` — the preview canvas sizes from the report's own PageSetup at the shipped 0.9 scale via the pure `preview_page_size` helper (never a hardcoded A4); a unit test pins a non-A4 setup (letter), the rendered page rect rides the `report.preview.page` probe (pinned at the A4 default); pagination behaviour unchanged)
+- L63 — Preview text paints at 100 % on the 0.9-scaled page — done (done in `3e22f1b` — the preview text font scales with the page (the body rung at the page scale) via the pure `preview_font` step (unit-pinned); item positions unchanged)

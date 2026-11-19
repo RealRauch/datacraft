@@ -51,13 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M123 — The report preview paints a fixed A4 page instead of the report's page setup — 🟡
-- **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: hardcoded 595×842 pt canvas) versus the design canvas, which renders `report.page`.
-- **Problem:** Found in the L47 design review (2026-11-19, finding 29): the preview hardcodes A4 while `PageSetup` is sidecar-deserialized per report — a report with a different page setup previews on the wrong paper. Latent today (no UI edits the page setup), but the divergence is structural.
-- **Approach:** Size the preview canvas from `report.page`; the preview already renders in page coordinates and core pagination uses the same setup.
-- **Acceptance:** The preview canvas dimensions follow `report.page` (unit test with a non-A4 `PageSetup`); the A4 default is unchanged; pagination behaviour unchanged.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] M124 — Form record navigation lacks first/last/new-record — 🟡
 - **Location:** `crates/datacraft-ui/src/form_runtime.rs` (the navigation row: "< Prev" / "Record {n} of {m}" / "Next >").
 - **Problem:** Found in the L47 design review (2026-11-19, finding 31, reviewer comment: „das brauchen wir"): the form runtime navigates only prev/next — Access's record navigation includes first, last and new-record, and the datasheet's navigation row already carries the fuller set.
@@ -105,13 +98,6 @@
 - **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
 - **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
 - **Steps:** none yet.
-
-### [ ] L63 — Preview text paints at 100 % on the 0.9-scaled page — 🟢
-- **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: geometry scales by 0.9, glyphs render at full `TextStyle::Body` size).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 30): item rects scale by 0.9 while the font renders at full size — long values can overflow their scaled rects on the preview page.
-- **Approach:** Scale the preview font with the page scale (`FontId` sized `BODY_SIZE * scale`); positions stay as they are.
-- **Acceptance:** Preview text fits its item rects at the shipped scale (kittest pin on a long-value page); item positions unchanged.
-- **Steps:** none yet (from the phase 89 design review).
 
 ---
 
