@@ -253,6 +253,16 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, report: &ReportDef, ui: &mut egui
 /// Renders the print preview of one report tab (step 10.5): the paginated
 /// pages from `Core::report_preview` with prev/next navigation. Pure paint.
 pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
+    let Some(report) = app
+        .snapshot()
+        .database
+        .as_ref()
+        .and_then(|db| db.reports.iter().find(|r| r.name == tab.object_name))
+        .cloned()
+    else {
+        ui.label(t("Report no longer exists"));
+        return;
+    };
     let pages = app.preview_pages(tab.id);
     if pages.is_empty() {
         ui.label(t("Preview unavailable"));
@@ -287,10 +297,13 @@ pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     ui.separator();
 
     egui::ScrollArea::vertical().show(ui, |ui| {
-        // Preview scale: 0.9 keeps an A4 page inside typical window heights.
+        // Preview scale: 0.9 keeps a page inside typical window heights.
         let scale = 0.9;
-        let size = egui::vec2(595.0 * scale, 842.0 * scale);
+        // The page geometry follows the report's own PageSetup (step
+        // 91.11, item M123) — a non-A4 setup previews on its own paper.
+        let size = preview_page_size(report.page, scale);
         let (canvas_rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+        crate::layout_probe::record("report.preview.page", canvas_rect);
         let painter = ui.painter_at(canvas_rect);
         painter.rect_filled(canvas_rect, 0.0, ui.visuals().extreme_bg_color);
         painter.rect_stroke(
@@ -299,7 +312,9 @@ pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             ui.visuals().widgets.noninteractive.fg_stroke,
             egui::StrokeKind::Inside,
         );
-        let font = egui::TextStyle::Body.resolve(ui.style());
+        // The text scales with the page (step 91.11, item L63): glyphs
+        // stay inside their scaled rects.
+        let font = preview_body_font(ui, scale);
         for item in &items {
             let rect = egui::Rect::from_min_size(
                 canvas_rect.min + egui::vec2(item.rect.x * scale, item.rect.y * scale),
@@ -314,4 +329,55 @@ pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             );
         }
     });
+}
+
+/// The scaled preview page size (step 91.11, item M123): the report's
+/// own PageSetup at the preview scale — never a hardcoded paper.
+fn preview_page_size(page: datacraft_core::report::PageSetup, scale: f32) -> egui::Vec2 {
+    egui::vec2(page.width * scale, page.height * scale)
+}
+
+/// The preview text font (step 91.11, item L63): the body rung scaled
+/// with the page, so glyphs stay inside their scaled rects.
+fn preview_body_font(ui: &egui::Ui, scale: f32) -> egui::FontId {
+    let body = egui::TextStyle::Body.resolve(ui.style());
+    preview_font(&body, scale)
+}
+
+/// The pure scale step of [`preview_body_font`] (unit-testable without a
+/// Ui).
+fn preview_font(body: &egui::FontId, scale: f32) -> egui::FontId {
+    egui::FontId::new(body.size * scale, body.family.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A non-A4 PageSetup previews on its own paper (step 91.11, item
+    /// M123): the size follows the setup, not a hardcoded A4.
+    #[test]
+    fn the_preview_size_follows_the_page_setup() {
+        let letter = datacraft_core::report::PageSetup {
+            width: 612.0,
+            height: 792.0,
+            margin_left: 36.0,
+            margin_top: 36.0,
+            margin_right: 36.0,
+            margin_bottom: 36.0,
+        };
+        let size = preview_page_size(letter, 0.9);
+        assert!((size.x - 612.0 * 0.9).abs() < 0.01, "{size:?}");
+        assert!((size.y - 792.0 * 0.9).abs() < 0.01, "{size:?}");
+    }
+
+    /// The preview text scales with the page (step 91.11, item L63):
+    /// the font is the body rung at the page scale.
+    #[test]
+    fn the_preview_font_scales_with_the_page() {
+        let body = egui::FontId::new(14.0, egui::FontFamily::Proportional);
+        let scaled = preview_font(&body, 0.9);
+        assert!((scaled.size - 12.6).abs() < 0.01, "{scaled:?}");
+        assert_eq!(scaled.family, body.family);
+    }
 }

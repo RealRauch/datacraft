@@ -5,7 +5,7 @@
 
 use datacraft_core::command::Command;
 use datacraft_core::port::MockPort;
-use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
+use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
 use datacraft_ui::app::App;
 use datacraft_ui::layout_probe;
 use eframe::egui;
@@ -14,7 +14,7 @@ use egui_kittest::Harness;
 /// App with an open report tab (the report tab's default view renders
 /// the print preview).
 fn preview_app() -> App {
-    let mut port = MockPort::with_tables(vec![TableDef::new(
+    let port = MockPort::with_tables(vec![TableDef::new(
         "Orders",
         vec![FieldDef::new("total", FieldKind::Currency)],
     )]);
