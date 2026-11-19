@@ -4,7 +4,7 @@
 //! string only where the field allows it.
 
 use datacraft_core::row_edit::{parse_field_value, row_values};
-use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind};
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, NumericKind};
 
 fn text(name: &str, required: bool, allow_zero_length: bool) -> FieldDef {
     let mut field = FieldDef::new(name, FieldKind::Text { max_len: 50 });
@@ -59,4 +59,18 @@ fn row_values_applies_the_rule_per_field() {
         values,
         vec![FieldValue::Text(String::new()), FieldValue::Null]
     );
+}
+
+/// The AutoNumber rejection names the column (step 91.6, item M114); an
+/// empty AutoNumber entry stays Null.
+#[test]
+fn an_autonumber_rejection_names_the_column() {
+    let field = FieldDef::new("Id", FieldKind::AutoNumber(AutoKind::LongInteger));
+    let reason = parse_field_value(&field, "5").expect_err("input is rejected");
+    assert!(reason.contains("Id"), "the column is named: {reason}");
+    assert!(
+        reason.contains("engine-assigned"),
+        "the contract is stated: {reason}"
+    );
+    assert_eq!(parse_field_value(&field, ""), Ok(FieldValue::Null));
 }

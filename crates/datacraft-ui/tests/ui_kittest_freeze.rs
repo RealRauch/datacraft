@@ -13,9 +13,10 @@ use datacraft_core::ids::TabId;
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, NumericKind, TableDef};
 use datacraft_ui::app::App;
+use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 
 fn wide_table() -> TableDef {
     TableDef::new(
@@ -169,4 +170,91 @@ fn freezing_pins_leading_columns_while_the_rest_scrolls() {
     harness.get_by_label("Unfreeze All Fields").click();
     harness.run();
     assert_eq!(harness.state().frozen_columns(tab), 0);
+}
+
+/// Semantic tree dump: role + label + value of every labelled node.
+fn tree_dump(harness: &Harness<'static, App>) -> String {
+    let mut lines = Vec::new();
+    for node in harness.root().children_recursive() {
+        let node = node.accesskit_node();
+        let label = node.label().unwrap_or_default();
+        let value = node.value().unwrap_or_default();
+        if label.is_empty() && value.is_empty() {
+            continue;
+        }
+        lines.push(format!("{:?}|{label}|{value}", node.role()));
+    }
+    lines.join("\n")
+}
+
+/// The frozen state is visible without opening the menu (step 91.6,
+/// item L54): a stronger boundary separator rides the layout probe at
+/// the frozen edge, and both menu items explain what freezing does.
+#[test]
+fn the_frozen_state_is_visible_and_the_menu_explains_itself() {
+    let (app, tab) = wide_table_app(4);
+    let mut harness = freeze_harness(app);
+    harness.run();
+    // Unfrozen: no boundary separator.
+    assert!(
+        !layout_probe::drain()
+            .iter()
+            .any(|(id, _)| id == "datasheet.frozen_boundary"),
+        "an unfrozen grid paints no boundary"
+    );
+
+    // Freeze the first column through the menu; the item explains the
+    // effect before the click. Unscrolled, column 0's header cell starts
+    // right of the 48 px selector — point inside it.
+    let target = egui::pos2(60.0, 16.0);
+    right_click(&mut harness, target);
+    harness.run();
+    let item = harness.get_by_label("Freeze Fields");
+    harness.hover_at(item.rect().center());
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("Keep the leading columns pinned"),
+        "the freeze item explains itself:\n{dump}"
+    );
+    harness.get_by_label("Freeze Fields").click();
+    harness.run();
+    assert_eq!(harness.state().frozen_columns(tab), 1);
+
+    // The boundary separator rides the probe at the frozen edge.
+    let boundary = layout_probe::drain()
+        .iter()
+        .find(|(id, _)| id == "datasheet.frozen_boundary")
+        .map(|(_, rect)| *rect)
+        .expect("the frozen boundary is recorded");
+    assert!(
+        boundary.width() <= 5.0,
+        "the boundary is a hairline: {boundary:?}"
+    );
+    assert!(
+        boundary.left() > 48.0,
+        "it sits right of the row selector: {boundary:?}"
+    );
+
+    // The unfreeze item carries its tooltip as well.
+    let target = egui::pos2(60.0, 16.0);
+    right_click(&mut harness, target);
+    harness.run();
+    let item = harness.get_by_label("Unfreeze All Fields");
+    harness.hover_at(item.rect().center());
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("Release the pinned columns"),
+        "the unfreeze item explains itself:\n{dump}"
+    );
+    harness.get_by_label("Unfreeze All Fields").click();
+    harness.run();
+    assert_eq!(harness.state().frozen_columns(tab), 0);
+    assert!(
+        !layout_probe::drain()
+            .iter()
+            .any(|(id, _)| id == "datasheet.frozen_boundary"),
+        "unfreezing removes the boundary"
+    );
 }
