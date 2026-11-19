@@ -223,6 +223,36 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `ed6889a` — the number column width-pads to the widest index and renders monospace (exact width, not proportional spaces); the argument rects ride the `macro.argument` probe, pinned one left edge over 12 fixture actions
 
+---
+
+### [x] M120 — The selected-control ring is nearly invisible in dark mode — 🟡
+- **Location:** `crates/datacraft-ui/src/form_design.rs` (`paint_control` selection ring strokes `ui.visuals().selection.bg_fill`; shared by the form and the report design canvases).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 26): the ring paints the `checked` wash — dark `0x1F3A36` against the `0x252525` form surface is nearly invisible, so the designers lose their selection state in dark mode; light mode shows only a faint ring.
+- **Approach:** Stroke the ring from the accent family (`accent_text`/`accent` per palette) at the established 2 px, matching the selection language used elsewhere in the app.
+- **Acceptance:** The selected control's ring is clearly visible in both palettes (contrast-checked like the theme tests; kittest/layout_probe pin); form and report canvases share the fix.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `431aa9f` — the ring strokes the accent token at the established 2 px instead of the selection wash; shared by the form and the report canvases through the same paint fn; pinned as a source contract over form_design.rs (no selection.bg_fill), the accent token's contrast is covered by the existing theme tests
+
+---
+
+### [x] M121 — The runtime combo's dropdown affordance is the literal letter "v" — 🟡
+- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (`combo_box_ui`: `ui.menu_button("v", …)`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 27): the combo's dropdown affordance renders the letter "v" as button text — it reads as text, not as a caret; the design canvas paints a proper caret polygon for the same control kind.
+- **Approach:** Paint the caret (the designer's existing convex-polygon glyph in `form_design.rs`) or an equivalent painted affordance — never a letter standing in for an icon.
+- **Acceptance:** The runtime combo shows a painted caret consistent with the designer's (kittest pins the control); no font-glyph regression under the glyph-coverage policy (T11).
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `431aa9f` — the runtime combo's affordance is a painted convex-polygon caret beside an empty-label menu button (the designer's own glyph language, T11-safe); the caret rect rides the `form.combo.caret` probe (pinned present); accessible name and disabled ink unchanged
+
+---
+
+### [x] M122 — The fixed 640×400 form canvas clips at the pinned minimum window size — 🟡
+- **Location:** `crates/datacraft-ui/src/form_design.rs` (the design canvas column, `FORM_WIDTH`/`FORM_HEIGHT`) and `crates/datacraft-ui/src/form_runtime.rs` (the runtime canvas inside a vertical-only `ScrollArea`).
+- **Problem:** Found in the L47 design review (2026-11-19, finding 28): the canvas is a fixed 640×400 surface without scroll or zoom; at the pinned 960×600 minimum with the nav pane open, the right edge clips and controls beyond are unreachable — in the designer and at runtime.
+- **Approach:** Make the whole canvas reachable at narrow widths — a scroll area covering both axes (the runtime already reserves its navigation row) or a scale-down variant; simplest sufficient solution at implementation.
+- **Acceptance:** At both pinned window sizes every part of the canvas is reachable (kittest/layout_probe pins); stored control rects and the WYSIWYG contract (ADR-1) stay untouched.
+- **Steps:** none yet (from the phase 89 design review).
+- **Done:** done in `431aa9f` — both canvases scroll both axes: the designer's canvas column wraps canvas_ui in a both-axis ScrollArea, the runtime's scroll area gains the horizontal axis (the navigation-row height budget stays); the full 640-wide canvas lays out inside the scrollable bodies; the viewports ride `form.design.viewport` / `form.runtime.viewport` and the canvases `form.design.canvas` / `form.runtime.canvas` — at the pinned minimum the designer viewport is shorter than the canvas, so the scroll is the reachability (pinned with the measured geometry)
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -249,3 +279,6 @@
 - L60 — The expression window's Close button sits mid-title-row — done (done in `ed6889a` — the close button right-aligns in its row (window-chrome position), the field label association stays, and the rect rides the `expression.close` probe (pinned in the right half of the window))
 - L61 — The notices dialog separators every entry and encodes severity by color only — done (done in `ed6889a` — the per-entry separators are gone (spacing only) and every entry carries a painted severity glyph beside the text (filled triangle for errors, dot for notices — never a font glyph, the T11 policy); the glyphs ride the `notices.glyph.{error,notice}` probe, pinned per severity count)
 - L62 — Macro-viewer action numbers do not align from ten on — done (done in `ed6889a` — the number column width-pads to the widest index and renders monospace (exact width, not proportional spaces); the argument rects ride the `macro.argument` probe, pinned one left edge over 12 fixture actions)
+- M120 — The selected-control ring is nearly invisible in dark mode — done (done in `431aa9f` — the ring strokes the accent token at the established 2 px instead of the selection wash; shared by the form and the report canvases through the same paint fn; pinned as a source contract over form_design.rs (no selection.bg_fill), the accent token's contrast is covered by the existing theme tests)
+- M121 — The runtime combo's dropdown affordance is the literal letter "v" — done (done in `431aa9f` — the runtime combo's affordance is a painted convex-polygon caret beside an empty-label menu button (the designer's own glyph language, T11-safe); the caret rect rides the `form.combo.caret` probe (pinned present); accessible name and disabled ink unchanged)
+- M122 — The fixed 640×400 form canvas clips at the pinned minimum window size — done (done in `431aa9f` — both canvases scroll both axes: the designer's canvas column wraps canvas_ui in a both-axis ScrollArea, the runtime's scroll area gains the horizontal axis (the navigation-row height budget stays); the full 640-wide canvas lays out inside the scrollable bodies; the viewports ride `form.design.viewport` / `form.runtime.viewport` and the canvases `form.design.canvas` / `form.runtime.canvas` — at the pinned minimum the designer viewport is shorter than the canvas, so the scroll is the reachability (pinned with the measured geometry))

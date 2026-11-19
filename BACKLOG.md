@@ -51,27 +51,6 @@
 - **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
 - **Steps:** none yet.
 
-### [ ] M120 — The selected-control ring is nearly invisible in dark mode — 🟡
-- **Location:** `crates/datacraft-ui/src/form_design.rs` (`paint_control` selection ring strokes `ui.visuals().selection.bg_fill`; shared by the form and the report design canvases).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 26): the ring paints the `checked` wash — dark `0x1F3A36` against the `0x252525` form surface is nearly invisible, so the designers lose their selection state in dark mode; light mode shows only a faint ring.
-- **Approach:** Stroke the ring from the accent family (`accent_text`/`accent` per palette) at the established 2 px, matching the selection language used elsewhere in the app.
-- **Acceptance:** The selected control's ring is clearly visible in both palettes (contrast-checked like the theme tests; kittest/layout_probe pin); form and report canvases share the fix.
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] M121 — The runtime combo's dropdown affordance is the literal letter "v" — 🟡
-- **Location:** `crates/datacraft-ui/src/form_runtime.rs` (`combo_box_ui`: `ui.menu_button("v", …)`).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 27): the combo's dropdown affordance renders the letter "v" as button text — it reads as text, not as a caret; the design canvas paints a proper caret polygon for the same control kind.
-- **Approach:** Paint the caret (the designer's existing convex-polygon glyph in `form_design.rs`) or an equivalent painted affordance — never a letter standing in for an icon.
-- **Acceptance:** The runtime combo shows a painted caret consistent with the designer's (kittest pins the control); no font-glyph regression under the glyph-coverage policy (T11).
-- **Steps:** none yet (from the phase 89 design review).
-
-### [ ] M122 — The fixed 640×400 form canvas clips at the pinned minimum window size — 🟡
-- **Location:** `crates/datacraft-ui/src/form_design.rs` (the design canvas column, `FORM_WIDTH`/`FORM_HEIGHT`) and `crates/datacraft-ui/src/form_runtime.rs` (the runtime canvas inside a vertical-only `ScrollArea`).
-- **Problem:** Found in the L47 design review (2026-11-19, finding 28): the canvas is a fixed 640×400 surface without scroll or zoom; at the pinned 960×600 minimum with the nav pane open, the right edge clips and controls beyond are unreachable — in the designer and at runtime.
-- **Approach:** Make the whole canvas reachable at narrow widths — a scroll area covering both axes (the runtime already reserves its navigation row) or a scale-down variant; simplest sufficient solution at implementation.
-- **Acceptance:** At both pinned window sizes every part of the canvas is reachable (kittest/layout_probe pins); stored control rects and the WYSIWYG contract (ADR-1) stay untouched.
-- **Steps:** none yet (from the phase 89 design review).
-
 ### [ ] M123 — The report preview paints a fixed A4 page instead of the report's page setup — 🟡
 - **Location:** `crates/datacraft-ui/src/report_design.rs` (`report_preview_ui`: hardcoded 595×842 pt canvas) versus the design canvas, which renders `report.page`.
 - **Problem:** Found in the L47 design review (2026-11-19, finding 29): the preview hardcodes A4 while `PageSetup` is sidecar-deserialized per report — a report with a different page setup previews on the wrong paper. Latent today (no UI edits the page setup), but the divergence is structural.

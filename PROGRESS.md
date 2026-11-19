@@ -527,7 +527,7 @@
 | 91.7 | Nav pane: sort-state honesty, whole-row click target, native-object chrome, category dropdown, New View placement (M115, L55–L58) | ✅ |
 | 91.8 | Backstage: Save-page section hierarchy, Info fact-value column (M116, L59) | ✅ |
 | 91.9 | Tool windows: Relationships scroll, Expression Close placement, VBA token errors, view-editor field labels, notices density, macro numbering (M117–M119, L60–L62) | ✅ |
-| 91.10 | Form designer/runtime: visible selection ring, runtime combo caret, canvas scroll at the pinned minimum (M120–M122) | ⬜ |
+| 91.10 | Form designer/runtime: visible selection ring, runtime combo caret, canvas scroll at the pinned minimum (M120–M122) | ✅ |
 | 91.11 | Report preview: page geometry and text scale (M123, L63) | ⬜ |
 | 91.12 | Form record navigation: first/last/new-record (M124) | ⬜ |
 | 91.13 | Documentation and phase gate (M109–M124, L52–L63) | ⬜ |
