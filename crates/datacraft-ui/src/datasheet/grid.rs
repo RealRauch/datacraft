@@ -65,6 +65,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         edit_restricted,
         pending,
         locked,
+        max_height,
     } = grid;
     let mut edit = edit;
     let frozen = frozen.min(widths.len());
@@ -142,9 +143,19 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     // M101); `selection_after_nav` applies the intent to it.
     let focus_col = selection.focus_cell().col;
     let extend_nav = nav.map(|(_, extend)| extend).unwrap_or(false);
-    let mut scroll_area = egui::ScrollArea::both()
-        .auto_shrink([false, false])
-        .id_salt(&id_salt);
+    // Height policy (step 91.2, item M110): the datasheet host fills the
+    // available height; a window embedder's bound shrinks the body to its
+    // content and caps it — the window's auto-size loop is no longer fed
+    // by the grid's all-available-space claim.
+    let mut scroll_area = match max_height {
+        Some(bound) => egui::ScrollArea::both()
+            .auto_shrink([false, true])
+            .max_height(bound)
+            .id_salt(&id_salt),
+        None => egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .id_salt(&id_salt),
+    };
     if let Some(target) = follow_target {
         let offset = ui
             .ctx()

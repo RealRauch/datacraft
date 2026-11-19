@@ -262,6 +262,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     edit_restricted,
                     pending: &pending_rows,
                     locked,
+                    max_height: None,
                 },
                 crate::datasheet::grid_ui_callbacks(
                     &mut on_select,

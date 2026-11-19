@@ -17,12 +17,18 @@ use crate::i18n::{plural, t};
 use crate::labels::value_label;
 use crate::theme::tokens;
 
+/// Height bound of the embedded result area (step 91.2, item M110): ten
+/// body rows at the shipped rung — small results keep the window at its
+/// size, larger ones scroll inside the bound.
+const RESULT_MAX_ROWS: f32 = 10.0;
+
 /// Renders the SQL window (when open).
 pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
     if !app.snapshot().sql_window_open {
         return;
     }
     let tokens = tokens(ui.visuals());
+    let metrics = GridMetrics::default();
     let mut close = false;
     let mut run = false;
     let mut text = app.sql_text().to_owned();
@@ -35,7 +41,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
     let mut widths = app.sql_column_widths(columns);
     let sorts = vec![SortOrder::None; columns];
 
-    egui::Window::new(t("SQL"))
+    let response = egui::Window::new(t("SQL"))
         .id(egui::Id::unique("datacraft.sql"))
         .default_width(720.0)
         .resizable(true)
@@ -84,7 +90,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                 crate::datasheet::grid_ui(
                     ui,
                     Grid {
-                        metrics: GridMetrics::default(),
+                        metrics,
                         columns: &result.columns,
                         body: &body,
                         cursor: 0,
@@ -101,6 +107,7 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                         edit_restricted: true,
                         pending: &[],
                         locked: false,
+                        max_height: Some(metrics.row_height * RESULT_MAX_ROWS),
                     },
                     crate::datasheet::grid_ui_callbacks(
                         &mut |_row: usize| {},
@@ -145,6 +152,11 @@ pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
                 );
             }
         });
+    // Layout probe (the H52/T10 seam): the window's outer rect — the
+    // height-budget contract (step 91.2, item M110) asserts on it.
+    if let Some(response) = &response {
+        crate::layout_probe::record("sql.window", response.response.rect);
+    }
 
     app.set_sql_column_widths(widths);
     app.set_sql_text(text);

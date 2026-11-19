@@ -92,6 +92,7 @@ pub(crate) fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::
                 edit_restricted: true,
                 pending: &[],
                 locked: false,
+                max_height: None,
             },
             crate::datasheet::grid_ui_callbacks(
                 &mut on_select,

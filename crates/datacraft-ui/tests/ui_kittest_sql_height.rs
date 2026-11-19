@@ -52,7 +52,7 @@ fn sql_harness(app: App) -> Harness<'static, App> {
         },
         app,
     );
-    harness.set_size(egui::vec2(960.0, 600.0));
+    harness.set_size(egui::vec2(1400.0, 1000.0));
     harness
 }
 
@@ -83,47 +83,66 @@ fn tree_dump<State>(harness: &Harness<'_, State>) -> String {
     lines.join("\n")
 }
 
-/// Running a small (4-row) statement keeps the window at its size — the
-/// result area takes exactly its rows, no growth toward full screen.
+/// Runs `frames` more frames and returns the window rect of the last one.
+fn run_frames(harness: &mut Harness<'static, App>, frames: usize) -> egui::Rect {
+    for _ in 0..frames {
+        harness.run();
+    }
+    sql_window_rect(&layout_probe::drain())
+}
+
+/// Running a small (4-row) statement keeps the window at its size: the
+/// result area takes exactly its rows and the window is static from there
+/// on. The discriminator is frame stability — the old bug fed egui's
+/// window size loop every frame (~68 px/frame observed), so an unbounded
+/// window never settles; the bounded one does.
 #[test]
 fn a_four_row_result_keeps_the_sql_window_at_its_size() {
     let mut harness = sql_harness(app_with_rows(4));
     harness.run();
     let before = sql_window_rect(&layout_probe::drain());
     harness.get_by_label("Run").click();
-    for _ in 0..5 {
-        harness.run();
-    }
-    let after = sql_window_rect(&layout_probe::drain());
+    let after = run_frames(&mut harness, 5);
+    let settled = run_frames(&mut harness, 10);
     assert!(
-        after.height() < 560.0,
-        "the window must not grow toward full screen: {before:?} -> {after:?}"
+        (settled.height() - after.height()).abs() < 1.0,
+        "the window must be static after the result lands: {after:?} -> {settled:?}"
     );
     assert!(
-        after.height() <= before.height() + 170.0,
-        "a 4-row result adds only its rows: {before:?} -> {after:?}"
+        settled.height() < 520.0,
+        "the window must not grow toward full screen: {before:?} -> {settled:?}"
+    );
+    assert!(
+        settled.height() <= before.height() + 170.0,
+        "a 4-row result adds only its rows: {before:?} -> {settled:?}"
     );
     harness.get_by_label_contains("4 result rows");
 }
 
-/// A large result scrolls inside the bound: the window stays at its size,
-/// the row count names the full result, and rows beyond the bound stay
-/// virtualized (not painted, not in the tree).
+/// A large result scrolls inside the bound: the window settles at its
+/// size (the static discriminator above), the row count names the full
+/// result, and rows beyond the bound stay virtualized (not painted, not
+/// in the tree).
 #[test]
 fn a_large_result_scrolls_inside_the_bounded_area() {
     let mut harness = sql_harness(app_with_rows(60));
     harness.run();
     harness.get_by_label("Run").click();
-    for _ in 0..5 {
-        harness.run();
-    }
-    let after = sql_window_rect(&layout_probe::drain());
+    let after = run_frames(&mut harness, 5);
+    let settled = run_frames(&mut harness, 10);
     assert!(
-        after.height() < 560.0,
-        "60 rows must scroll inside the bound, not grow the window: {after:?}"
+        (settled.height() - after.height()).abs() < 1.0,
+        "the window must be static after the result lands: {after:?} -> {settled:?}"
+    );
+    assert!(
+        settled.height() < 520.0,
+        "60 rows must scroll inside the bound, not grow the window: {settled:?}"
     );
     let dump = tree_dump(&harness);
-    assert!(dump.contains("60 result rows"), "the result is present:\n{dump}");
+    assert!(
+        dump.contains("60 result rows"),
+        "the result is present:\n{dump}"
+    );
     assert!(
         !dump.contains("v59"),
         "rows beyond the bound stay virtualized:\n{dump}"

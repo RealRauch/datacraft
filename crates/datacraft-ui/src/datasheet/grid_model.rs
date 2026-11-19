@@ -61,6 +61,13 @@ pub(crate) struct Grid<'a> {
     pub edit_restricted: bool,
     pub pending: &'a [PendingRow],
     pub locked: bool,
+    /// Height policy of the body scroll area (step 91.2, item M110):
+    /// `None` fills the available height (the datasheet and the tab-hosted
+    /// query/view grids); `Some(bound)` shrinks the body to its content
+    /// and caps it at `bound` — floating-window embedders pass a bound so
+    /// a small result never grows the window and a large one scrolls
+    /// inside it instead of feeding the window's size loop.
+    pub max_height: Option<f32>,
 }
 
 /// The armed in-place cell editor (step 40.4, item L23): the cell being
