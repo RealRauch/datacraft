@@ -10,6 +10,24 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- cli/core/ui: version reporting across all three clients (91, M109) —
+  the CLI answers `--version`/`-V` with `datacraft-cli <version>` on
+  stdout (exit 0, before any database work, flag position irrelevant),
+  the JSON-RPC transport gains the additive `version` method answering
+  name and version, and the backstage Info page shows the row above the
+  database facts — with and without an open database. One shared source
+  (`datacraft_core::VERSION`, the lockstep workspace version); the label
+  is localized, the value stays locale-neutral.
+- ui/core: the import surface is honest about wrong-surface files
+  (91, M111/M112/L53) — a Jet/ACE or SQLite file chosen in the Import
+  File window answers a format-naming rejection naming the right surface
+  ("open it via File → Open") instead of a decoder byte error or a
+  silently imported garbage table (Jet bytes decode as text); the
+  open-file pickers filter to their surfaces' extensions (text import:
+  csv/txt/tsv, database open: mdb/accdb/sqlite/sqlite3/db, localized
+  "Supported files"); composed import errors carry the source path
+  exactly once; every path field names the chosen file prominently with
+  the full path on hover.
 - ui/core: shell chrome keeps every action reachable at narrow widths
   (88, M98/L45/L49) - ribbon groups collapse whole trailing groups behind
   one localized overflow control when the row runs out of width (the fit
@@ -57,6 +75,34 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   including the bare wildcard's implicit Like.
 
 ### Changed
+- ui/core: the datasheet sort order is total (91, M113) — NULLs sort
+  first ascending and last descending (the Access convention), mixed
+  families follow the documented `FieldValue` declaration-order rank,
+  non-finite floats tier after their family's comparable values, and a
+  renamed-away sort field clears its state instead of claiming an order
+  the rows do not follow; the semantics are documented in FEATURES and
+  a COMPATIBILITY matrix row.
+- ui: the L47 design-review fix sweep (91 — M110/M114, L52/L54,
+  M116–M122, L56–L63, M124) — the SQL window's result area is
+  height-budgeted (a small result no longer grows the window toward
+  full screen; large results scroll inside the bound), status lines
+  truncate with an ellipsis and carry the full text on hover, the
+  AutoNumber new-record cell renders its gate before input and the
+  rejection names the column, freeze carries tooltips and a visible
+  frozen boundary, the navigation pane reads honestly (the sort menu
+  names its pane-wide scope and marks the active order, a row opens from
+  its whole rect, the native inventory renders in the pane's row
+  language, the category header is a plain label, view creation lives in
+  the Views group menu), the Save page names every section, the Info
+  values align into one column, the tool windows gain scroll (the
+  relationship mapper), token-clean errors (the VBA viewer), labelled
+  fields (the view editor), window-chrome close (the expression window),
+  painted severity glyphs (the notices dialog) and aligned macro
+  numbering, the form canvases scroll both axes with an accent selection
+  ring and a painted combo caret, the report preview follows the
+  report's PageSetup with page-scaled text, and the form navigation row
+  gains First, Last and New record (capability-gated, the edit buffer
+  flushed, the form sits on the new record).
 - ui: datasheet edits stage into a pending batch instead of writing
   immediately (85, H61) — on Jet4 and SQLite sources every cell edit,
   new record and deletion collects into a per-tab edit buffer with
