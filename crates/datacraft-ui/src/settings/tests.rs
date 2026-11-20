@@ -354,3 +354,50 @@ fn recent_modified_renders_as_an_iso_date() {
     assert_eq!(iso_date_from_unix(0), "1970-01-01");
     assert_eq!(iso_date_from_unix(1_793_664_000), "2026-11-03");
 }
+
+/// Per-surface pane geometry round-trips through `ui.json` (step 92.2,
+/// item M108).
+#[test]
+fn pane_geometry_round_trips_through_the_settings_file() {
+    let dir = temp_dir("panes");
+    let path = dir.join("ui.json");
+    let settings = Settings {
+        panes: std::iter::once((
+            "sql".to_owned(),
+            crate::panes::PaneGeometry {
+                mode: crate::panes::DockMode::Right,
+                size: 420.0,
+            },
+        ))
+        .collect(),
+        ..Settings::default()
+    };
+    settings.save(&path).expect("save");
+    assert_eq!(Settings::load(&path), settings);
+}
+
+/// Broken pane entries fall back: an unknown mode floats, a docked size
+/// clamps into its bounds, a missing size takes the mode default
+/// (step 92.2, item M108).
+#[test]
+fn unknown_pane_entries_fall_back_to_sane_values() {
+    let dir = temp_dir("panes-broken");
+    let path = dir.join("ui.json");
+    std::fs::write(
+        &path,
+        r#"{"panes":{"sql":{"mode":"sideways"},"recent":[],"x":{"mode":"right","size":9000.0}}}"#,
+    )
+    .expect("write");
+    let loaded = Settings::load(&path);
+    assert_eq!(loaded.panes["sql"].mode, crate::panes::DockMode::Float);
+    assert_eq!(
+        loaded.panes["x"].mode,
+        crate::panes::DockMode::Right,
+        "the pane key itself is opaque — values stay"
+    );
+    assert!(
+        loaded.panes["x"].size <= crate::panes::PaneGeometry::RIGHT_MAX,
+        "{:?}",
+        loaded.panes["x"]
+    );
+}

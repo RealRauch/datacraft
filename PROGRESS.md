@@ -519,8 +519,8 @@
 | 91.11 | Report preview: page geometry and text scale (M123, L63) | ✅ |
 | 91.12 | Form record navigation: first/last/new-record (M124) | ✅ |
 | 91.13 | Documentation and phase gate (M109–M124, L52–L63) | ✅ |
-| 92.1 | Platform-aware shortcut matcher and labels — macOS ⌘, redo ⌘⇧Z, help/tooltip labels (M99) | 🔄 |
-| 92.2 | Docked task-pane host — dock right/bottom/float with the SQL window as pilot, per-surface geometry persistence (M108) | ⬜ |
+| 92.1 | Platform-aware shortcut matcher and labels — macOS ⌘, redo ⌘⇧Z, help/tooltip labels (M99) | ✅ |
+| 92.2 | Docked task-pane host — dock right/bottom/float with the SQL window as pilot, per-surface geometry persistence (M108) | 🔄 |
 | 92.3 | Nav pane: search/filter across categories with a clear empty state (L48) | ⬜ |
 | 92.4 | Nav pane: multi-select with Shift/Ctrl, context menu acts on the selection (L48) | ⬜ |
 | 92.5 | Nav pane: list/grid overview, local groups and colours persisted per database in ui.json (L48) | ⬜ |
