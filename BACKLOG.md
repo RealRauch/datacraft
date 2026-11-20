@@ -50,20 +50,6 @@
 - **Rule:** codified 2026-11-10 as binding method — PLAYBOOK §5 ("split below the gate, not at it") and LESSONS #15; this item stays open as the live band list only.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
 
-### [ ] L40 — The ubuntu oracle job's mdbtools install dies on transient DNS failures — 🟢
-- **Location:** `.github/workflows/ci.yml`, the ubuntu oracle job's `sudo apt-get update && sudo apt-get install -y mdbtools` step.
-- **Problem:** The ubuntu-latest runners intermittently fail to resolve `archive.ubuntu.com`/`security.ubuntu.com`: three consecutive reruns of run 43056361337 (2026-11-11) ended with "Temporary failure resolving" and "Unable to fetch some archives" (exit 100), while the macOS oracle job passed. Each attempt burns ~7 minutes in apt retries and the red run masks whether the oracle suite itself is healthy.
-- **Approach:** wrap the install in a bounded retry (three attempts with backoff) or pre-fetch/cache the three `.deb` files; keep the failure honest — a persistent apt failure still fails after the bounded retries. `.github/workflows/*` is High-class: explicit human release required before implementation.
-- **Acceptance:** A transient DNS failure no longer reddens the ubuntu oracle job; a persistent failure still fails after the bounded retries, and the retry attempts are visible in the log.
-- **Steps:** none yet (High gate).
-
-### [ ] L44 — Every published crate inherits the root product README as its crates.io page — 🟢
-- **Location:** `Cargo.toml` `[workspace.package] readme = "README.md"` and `readme.workspace = true` in all ten crate manifests; the packaged root README is the crates.io landing text for `datacraft-types`, `-expr`, `-query`, `-core`, `-jet`, `-sqlite`, `-csv`, `-storage`, `-mcp` and `-import`.
-- **Problem:** A consumer of `datacraft-types` or `datacraft-jet` lands on a desktop-app product page that describes the Access UI and cannot be acted on from a library context; the crate's own purpose, public surface, feature flags and test seam are absent. The mismatch grows with every README shortening (M96) because less of the page will be relevant to the published crates.
-- **Approach:** A short per-crate README (crate purpose, public surface, feature flags, MSRV, license, link to the product page and the docs) and `readme = "README.md"` beside each crate; the root README stays the product entry. Creating or changing these files touches `Cargo.toml` — Medium class, release per occurrence; verify with `cargo package --list` per crate and update the PUBLISHING checklist.
-- **Steps:** none yet (Medium gate; candidate for a later phase after M96/Phase 79 fixes the root README structure).
-- **Acceptance:** Every published crate packages its own README (visible in `cargo package --list`); the crates.io page states what the crate is, its feature flags and MSRV, and links the product page; PUBLISHING's checklist names the per-crate README verification; no publish metadata drift.
-
 ### [ ] L48 — Nav pane: no object search, multi-select or local groups and colours — 🟢
 - **Location:** `crates/datacraft-ui/src/nav_pane.rs` and the nav model in core (U9 added the category dropdown, context menu and sort).
 - **Problem:** The nav pane lists objects in one compact tree per category. For a database with hundreds of objects there is no list/grid overview, no local folders or colours, no multi-select/drag grouping, and no search across objects. The reference client's object explorer offers all four as local preferences (nothing that changes the database).

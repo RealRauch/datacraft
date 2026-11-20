@@ -146,6 +146,11 @@ and fixes → patch per `docs/PUBLISHING.md`).*
   lossily, and the Import File preview names the detected encoding and
   delimiter (German and English). Existing UTF-8 comma files keep their
   byte-identical results.
+- publish: every published crate packages its own crates.io README (90,
+  L44) — a per-crate page (purpose, public surface, feature flags, MSRV,
+  license, product-page link) replaces the inherited root product README,
+  which stays the product entry; PUBLISHING's release checklist names the
+  per-crate README verification (`cargo package --list`).
 
 ## [0.2.0] — 2026-11-14
 
