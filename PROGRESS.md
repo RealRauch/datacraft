@@ -9,6 +9,18 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 92 — Open items sweep: macOS shortcuts, dock host, nav pane, render mode
+
+**Scope (Steps):**
+
+- **92.1 Platform-aware shortcut matcher and labels — macOS ⌘, redo ⌘⇧Z, help/tooltip labels (M99)**
+- **92.2 Docked task-pane host — dock right/bottom/float with the SQL window as pilot, per-surface geometry persistence (M108)**
+- **92.3 Nav pane: search/filter across categories with a clear empty state (L48)**
+- **92.4 Nav pane: multi-select with Shift/Ctrl, context menu acts on the selection (L48)**
+- **92.5 Nav pane: list/grid overview, local groups and colours persisted per database in ui.json (L48)**
+- **92.6 Low-power/RDP rendering mode — detection, override>setting>detection precedence, measurable effects, overlay (L51)**
+- **92.7 Documentation and phase gate (M99, M108, L48, L51)**
+
 
 
 
@@ -507,3 +519,10 @@
 | 91.11 | Report preview: page geometry and text scale (M123, L63) | ✅ |
 | 91.12 | Form record navigation: first/last/new-record (M124) | ✅ |
 | 91.13 | Documentation and phase gate (M109–M124, L52–L63) | ✅ |
+| 92.1 | Platform-aware shortcut matcher and labels — macOS ⌘, redo ⌘⇧Z, help/tooltip labels (M99) | 🔄 |
+| 92.2 | Docked task-pane host — dock right/bottom/float with the SQL window as pilot, per-surface geometry persistence (M108) | ⬜ |
+| 92.3 | Nav pane: search/filter across categories with a clear empty state (L48) | ⬜ |
+| 92.4 | Nav pane: multi-select with Shift/Ctrl, context menu acts on the selection (L48) | ⬜ |
+| 92.5 | Nav pane: list/grid overview, local groups and colours persisted per database in ui.json (L48) | ⬜ |
+| 92.6 | Low-power/RDP rendering mode — detection, override>setting>detection precedence, measurable effects, overlay (L51) | ⬜ |
+| 92.7 | Documentation and phase gate (M99, M108, L48, L51) | ⬜ |

@@ -216,3 +216,125 @@ fn select_tab_by_tip(app: &mut App, ctx: &egui::Context) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The command chords map the same actions where the redo chord is
+    /// Ctrl+Y (step 92.1, item M99).
+    #[test]
+    fn command_chords_map_the_same_actions_elsewhere() {
+        assert_eq!(
+            shortcut(false, true, false, egui::Key::S),
+            Some(Shortcut::SaveDesign)
+        );
+        assert_eq!(
+            shortcut(false, true, false, egui::Key::W),
+            Some(Shortcut::CloseTab)
+        );
+        assert_eq!(
+            shortcut(false, true, false, egui::Key::Z),
+            Some(Shortcut::Undo)
+        );
+        assert_eq!(
+            shortcut(false, true, false, egui::Key::Y),
+            Some(Shortcut::Redo)
+        );
+        assert_eq!(
+            shortcut(false, false, false, egui::Key::S),
+            None,
+            "the save chord needs the command modifier"
+        );
+        assert_eq!(
+            shortcut(false, false, false, egui::Key::Escape),
+            Some(Shortcut::CancelEdit)
+        );
+    }
+
+    /// macOS: ⌘S, ⌘W, ⌘Z undo, ⌘⇧Z redo; ⌘Y stays unmapped (step 92.1,
+    /// item M99).
+    #[test]
+    fn macos_maps_the_command_chords_with_the_shift_z_redo() {
+        assert_eq!(
+            shortcut(true, true, false, egui::Key::S),
+            Some(Shortcut::SaveDesign)
+        );
+        assert_eq!(
+            shortcut(true, true, false, egui::Key::W),
+            Some(Shortcut::CloseTab)
+        );
+        assert_eq!(
+            shortcut(true, true, false, egui::Key::Z),
+            Some(Shortcut::Undo)
+        );
+        assert_eq!(
+            shortcut(true, true, true, egui::Key::Z),
+            Some(Shortcut::Redo),
+            "the macOS redo chord is ⌘⇧Z"
+        );
+        assert_eq!(
+            shortcut(true, true, false, egui::Key::Y),
+            None,
+            "⌘Y stays unmapped on macOS"
+        );
+        assert_eq!(
+            shortcut(true, false, false, egui::Key::S),
+            None,
+            "the save chord needs the command modifier"
+        );
+    }
+
+    /// One label formatter for the help page and the tooltips: Ctrl+X on
+    /// Windows/Linux (identity), ⌘X on macOS, and the redo chord renders
+    /// ⌘⇧Z in both languages (step 92.1, item M99).
+    #[test]
+    fn shortcut_labels_render_the_command_form_on_macos() {
+        assert_eq!(shortcut_label_with(false, "Ctrl+S"), "Ctrl+S");
+        assert_eq!(
+            shortcut_label_with(false, "Undo the last row write (Ctrl+Z)."),
+            "Undo the last row write (Ctrl+Z)."
+        );
+        assert_eq!(shortcut_label_with(true, "Ctrl+S"), "⌘S");
+        assert_eq!(shortcut_label_with(true, "Ctrl+Z"), "⌘Z");
+        assert_eq!(shortcut_label_with(true, "Ctrl+Y"), "⌘⇧Z");
+        assert_eq!(
+            shortcut_label_with(true, "Undo the last row write (Ctrl+Z)."),
+            "Undo the last row write (⌘Z)."
+        );
+        assert_eq!(
+            shortcut_label_with(
+                true,
+                "Machen Sie die letzte Zeilenänderung rückgängig (Strg+Z)."
+            ),
+            "Machen Sie die letzte Zeilenänderung rückgängig (⌘Z)."
+        );
+        assert_eq!(
+            shortcut_label_with(
+                true,
+                "Stellen Sie die zuletzt rückgängig gemachte Zeilenänderung wieder her (Strg+Y)."
+            ),
+            "Stellen Sie die zuletzt rückgängig gemachte Zeilenänderung wieder her (⌘⇧Z)."
+        );
+    }
+
+    /// The macOS labels paint ⌘ and ⇧ through the shipped faces — the T11
+    /// coverage rule applied to the generated labels.
+    #[test]
+    fn the_shipped_font_stack_paints_the_command_and_shift_glyphs() {
+        let ctx = egui::Context::default();
+        crate::theme::fonts::install(&ctx);
+        ctx.begin_pass(egui::RawInput::default());
+        let missing = ctx.fonts_mut(|fonts| {
+            let font_id = egui::FontId::new(12.0, egui::FontFamily::Proportional);
+            ['⌘', '⇧']
+                .into_iter()
+                .filter(|c| !fonts.has_glyph(&font_id, *c))
+                .collect::<Vec<_>>()
+        });
+        assert!(
+            missing.is_empty(),
+            "the shipped stack misses shortcut glyphs: {missing:?}"
+        );
+    }
+}

@@ -112,6 +112,36 @@ fn ctrl_s_previews_and_apply_submits_one_atomic_batch() {
     );
 }
 
+/// The command modifier carries the save chord: ⌘S opens the submission
+/// preview exactly like Ctrl+S (step 92.1, item M99).
+#[test]
+fn command_s_opens_the_submission_preview() {
+    let (app, _tab) = batch_app();
+    let mut harness = batch_harness(app);
+    harness.run();
+
+    arm_editor(&mut harness, 2);
+    type_and_commit(&mut harness, "X");
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::S);
+    harness.run();
+
+    assert!(
+        harness.state().snapshot().pending_write.is_some(),
+        "⌘S opened the same submission preview"
+    );
+    let summary = harness
+        .state()
+        .snapshot()
+        .pending_write
+        .clone()
+        .expect("pending summary");
+    assert_eq!(summary.table, "Customers");
+    assert_eq!(
+        (summary.updates, summary.inserts, summary.deletes),
+        (1, 0, 0)
+    );
+}
+
 /// Escape discards the staged changes of the active record.
 #[test]
 fn escape_discards_the_staged_record() {

@@ -109,3 +109,69 @@ fn control_z_with_an_empty_history_does_nothing() {
         harness.state().last_error()
     );
 }
+
+/// The command modifier carries the chords where the redo chord is ⌘Y:
+/// ⌘Z undoes and ⌘Y redoes through the live handler (step 92.1, item
+/// M99). On macOS the ⌘Y half is unmapped — that chord's proof runs in
+/// `command_shift_z_redoes_on_macos`.
+#[test]
+#[cfg(not(target_os = "macos"))]
+fn command_z_undoes_and_command_y_redoes_the_last_row_write() {
+    let (mut app, tab) = notes_app();
+    app.dispatch(Command::InsertRow {
+        table: "Notes".into(),
+        values: vec![FieldValue::Text("first".into())],
+    });
+    let mut harness = shortcut_harness(app);
+    harness.run();
+    assert_eq!(cached_rows(&harness, tab), Some(1), "the insert is visible");
+    assert_eq!(harness.state().snapshot().undo_depth, 1);
+
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+    harness.run();
+
+    assert_eq!(
+        cached_rows(&harness, tab),
+        Some(0),
+        "⌘Z dispatches one Undo over the bus"
+    );
+    assert_eq!(harness.state().snapshot().redo_depth, 1);
+
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Y);
+    harness.run();
+
+    assert_eq!(
+        cached_rows(&harness, tab),
+        Some(1),
+        "⌘Y dispatches one Redo over the bus"
+    );
+}
+
+/// The macOS redo chord ⌘⇧Z redoes through the live handler (step 92.1,
+/// item M99); the pure matcher pins the mapping, this pins the dispatch
+/// on the macOS CI job.
+#[test]
+#[cfg(target_os = "macos")]
+fn command_shift_z_redoes_on_macos() {
+    let (mut app, tab) = notes_app();
+    app.dispatch(Command::InsertRow {
+        table: "Notes".into(),
+        values: vec![FieldValue::Text("first".into())],
+    });
+    let mut harness = shortcut_harness(app);
+    harness.run();
+    assert_eq!(cached_rows(&harness, tab), Some(1), "the insert is visible");
+
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+    harness.run();
+    assert_eq!(cached_rows(&harness, tab), Some(0), "⌘Z undoes");
+
+    harness.key_press_modifiers(egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::Z);
+    harness.run();
+
+    assert_eq!(
+        cached_rows(&harness, tab),
+        Some(1),
+        "⌘⇧Z dispatches one Redo over the bus"
+    );
+}
