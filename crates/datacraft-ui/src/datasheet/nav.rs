@@ -51,25 +51,25 @@ pub(crate) fn read_nav_intent(ui: &egui::Ui) -> Option<(NavIntent, bool)> {
     })
 }
 
-/// Ctrl+A seen this frame (the select-all intent, step 86.1, item M101),
+/// ⌘A / Ctrl+A seen this frame (the select-all intent, step 86.1, item M101),
 /// consumed so no other handler reacts to it twice.
 pub(crate) fn read_select_all(ui: &egui::Ui) -> bool {
     ui.ctx()
-        .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::A))
+        .input_mut(|input| input.consume_key(egui::Modifiers::COMMAND, egui::Key::A))
 }
 
-/// Ctrl+C seen this frame (the copy-selection intent, step 86.2, item
+/// ⌘C / Ctrl+C seen this frame (the copy-selection intent, step 86.2, item
 /// M101), consumed so no other handler reacts to it twice.
 pub(crate) fn read_copy_key(ui: &egui::Ui) -> bool {
     ui.ctx()
-        .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::C))
+        .input_mut(|input| input.consume_key(egui::Modifiers::COMMAND, egui::Key::C))
 }
 
-/// Ctrl+V seen this frame (the paste intent, step 86.2, item M101),
+/// ⌘V / Ctrl+V seen this frame (the paste intent, step 86.2, item M101),
 /// consumed so no other handler reacts to it twice.
 pub(crate) fn read_paste_key(ui: &egui::Ui) -> bool {
     ui.ctx()
-        .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::V))
+        .input_mut(|input| input.consume_key(egui::Modifiers::COMMAND, egui::Key::V))
 }
 
 /// Shift+F2 seen this frame (the value-viewer intent, step 86.4, item
@@ -79,11 +79,11 @@ pub(crate) fn read_zoom_key(ui: &egui::Ui) -> bool {
         .input_mut(|input| input.consume_key(egui::Modifiers::SHIFT, egui::Key::F2))
 }
 
-/// Ctrl+D seen this frame (the fill-down intent, step 86.3, item M101),
+/// ⌘D / Ctrl+D seen this frame (the fill-down intent, step 86.3, item M101),
 /// consumed so no other handler reacts to it twice.
 pub(crate) fn read_fill_key(ui: &egui::Ui) -> bool {
     ui.ctx()
-        .input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::D))
+        .input_mut(|input| input.consume_key(egui::Modifiers::COMMAND, egui::Key::D))
 }
 
 /// F4 seen this frame (the foreign-key follow intent, step 87.1, item

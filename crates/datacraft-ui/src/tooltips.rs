@@ -245,7 +245,9 @@ pub fn ribbon_response(
     action: &str,
 ) -> egui::Response {
     match ribbon_tooltip(tab, group, action) {
-        Some(tip) => response.on_hover_text(t(tip)),
+        // Labels render through the platform-aware shortcut formatter
+        // (⌘ on macOS, step 92.1, item M99).
+        Some(tip) => response.on_hover_text(crate::keys::shortcut_label(t(tip))),
         None => response,
     }
 }
@@ -253,7 +255,9 @@ pub fn ribbon_response(
 /// Decorates a quick access response with its entry tooltip.
 pub fn qat_response(response: egui::Response, action: &str) -> egui::Response {
     match qat_tooltip(action) {
-        Some(tip) => response.on_hover_text(t(tip)),
+        // Labels render through the platform-aware shortcut formatter
+        // (⌘ on macOS, step 92.1, item M99).
+        Some(tip) => response.on_hover_text(crate::keys::shortcut_label(t(tip))),
         None => response,
     }
 }
@@ -261,7 +265,9 @@ pub fn qat_response(response: egui::Response, action: &str) -> egui::Response {
 /// Decorates a backstage response with its control tooltip.
 pub fn backstage_response(response: egui::Response, control: &str) -> egui::Response {
     match backstage_tooltip(control) {
-        Some(tip) => response.on_hover_text(t(tip)),
+        // Labels render through the platform-aware shortcut formatter
+        // (⌘ on macOS, step 92.1, item M99).
+        Some(tip) => response.on_hover_text(crate::keys::shortcut_label(t(tip))),
         None => response,
     }
 }

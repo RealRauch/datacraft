@@ -1,11 +1,13 @@
 //! Keyboard handling (step 21.8, item U12; undo/redo keys step 68.1, M73;
-//! F1 help step 68.4, M77).
+//! F1 help step 68.4, M77; platform chords step 92.1, M99).
 //!
-//! Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y, Esc and F1 map to the same single
-//! actions as their buttons. Alt reveals ribbon key tips derived from the
-//! spec ids; only the model's Tabs and Commands phases are taken (Legacy
-//! and Backstage are out of scope). The shortcut mapping is pure and
-//! unit-tested.
+//! The shortcut modifier is the platform command key: ⌘ on macOS, Ctrl
+//! elsewhere (egui's `modifiers.command`). ⌘S/⌘W/⌘Z, Esc and F1 map to
+//! the same single actions as their buttons; the redo chord is ⌘⇧Z on
+//! macOS and Ctrl+Y elsewhere. Alt reveals ribbon key tips derived from
+//! the spec ids; only the model's Tabs and Commands phases are taken
+//! (Legacy and Backstage are out of scope). The shortcut mapping and the
+//! label formatter are pure and unit-tested.
 
 use eframe::egui;
 
@@ -14,6 +16,12 @@ use datacraft_core::keys::key_tips;
 use datacraft_core::ribbon::rendered_tabs;
 
 use crate::app::App;
+
+/// Whether the shortcut layer matches and renders the macOS form (⌘,
+/// ⌘⇧Z). Compile-time: the binary ships per-platform, so there is no
+/// runtime detection; pure callers pass the flag through `shortcut` and
+/// `shortcut_label_with` (step 92.1, item M99).
+pub const MACOS_SHORTCUTS: bool = cfg!(target_os = "macos");
 
 /// Current key-tip phase (the Tabs → Commands part of the model).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,15 +35,17 @@ pub enum KeyTipsPhase {
 /// One keyboard shortcut, mapped to the same single action as its button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Shortcut {
-    /// Ctrl+S — saves the `.datacraft` design sidecar.
+    /// ⌘S / Ctrl+S — saves the `.datacraft` design sidecar.
     SaveDesign,
-    /// Ctrl+W — closes the active tab.
+    /// ⌘W / Ctrl+W — closes the active tab.
     CloseTab,
     /// Esc — cancels the buffered edit state and closes menus.
     CancelEdit,
-    /// Ctrl+Z — undoes the last row write of the open database (step 68.1).
+    /// ⌘Z / Ctrl+Z — undoes the last row write of the open database
+    /// (step 68.1).
     Undo,
-    /// Ctrl+Y — redoes the last undone row write (step 68.1).
+    /// ⌘⇧Z (macOS) / Ctrl+Y (elsewhere) — redoes the last undone row
+    /// write (step 68.1; chords step 92.1, M99).
     Redo,
     /// F1 — opens or closes the shortcuts help page (step 68.4).
     ShortcutsHelp,
@@ -44,7 +54,9 @@ pub enum Shortcut {
 }
 
 /// Every shortcut with its display keys and action description; the help
-/// page renders exactly this table (step 68.4, item M77). The exhaustive
+/// page renders exactly this table with the keys through
+/// [`shortcut_label`] (step 68.4, item M77). The key strings are the
+/// Windows/Linux form — the one platform-neutral spelling. The exhaustive
 /// test keeps one row per variant.
 pub const SHORTCUT_ROWS: &[(Shortcut, &str, &str)] = &[
     (
@@ -72,10 +84,20 @@ pub const SHORTCUT_ROWS: &[(Shortcut, &str, &str)] = &[
     ),
 ];
 
-/// Pure shortcut mapping: Ctrl+S, Ctrl+W, Ctrl+Z, Ctrl+Y, Esc, F1 (no
-/// modifier).
-pub fn shortcut(ctrl: bool, key: egui::Key) -> Option<Shortcut> {
-    if ctrl {
+/// Pure shortcut mapping over the platform command flag: ⌘S/⌘W/⌘Z, Esc,
+/// F1, F2 — with the redo chord split per platform (⌘⇧Z on macOS, Ctrl+Y
+/// elsewhere; ⌘Y stays unmapped, step 92.1, item M99).
+pub fn shortcut(macos: bool, command: bool, shift: bool, key: egui::Key) -> Option<Shortcut> {
+    if command {
+        if macos {
+            return match key {
+                egui::Key::S => Some(Shortcut::SaveDesign),
+                egui::Key::W => Some(Shortcut::CloseTab),
+                egui::Key::Z if shift => Some(Shortcut::Redo),
+                egui::Key::Z => Some(Shortcut::Undo),
+                _ => None,
+            };
+        }
         return match key {
             egui::Key::S => Some(Shortcut::SaveDesign),
             egui::Key::W => Some(Shortcut::CloseTab),
@@ -92,6 +114,32 @@ pub fn shortcut(ctrl: bool, key: egui::Key) -> Option<Shortcut> {
     }
 }
 
+/// Renders shortcut key names through one platform-aware formatter: the
+/// Windows/Linux form is kept verbatim, macOS rewrites `Ctrl+X`/`Strg+X`
+/// to `⌘X` and the redo chord (`Ctrl+Y`/`Strg+Y`) to `⌘⇧Z` (step 92.1,
+/// item M99). The help page and the tooltip sites format at render time,
+/// so both languages carry the right form.
+pub fn shortcut_label_with(macos: bool, text: &str) -> String {
+    if !macos {
+        return text.to_owned();
+    }
+    // The redo chord is the one chord whose macOS form differs beyond the
+    // prefix — mark it first, rewrite the generic prefixes, then resolve
+    // the marker.
+    const REDO_MARK: &str = "\u{0}redo\u{0}";
+    text.replace("Ctrl+Y", REDO_MARK)
+        .replace("Strg+Y", REDO_MARK)
+        .replace("Ctrl+", "\u{2318}")
+        .replace("Strg+", "\u{2318}")
+        .replace(REDO_MARK, "\u{2318}\u{21E7}Z")
+}
+
+/// [`shortcut_label_with`] over [`MACOS_SHORTCUTS`] — the form the render
+/// sites use.
+pub fn shortcut_label(text: &str) -> String {
+    shortcut_label_with(MACOS_SHORTCUTS, text)
+}
+
 /// Applies shortcuts and key-tip phases for the current frame.
 pub fn handle(app: &mut App, ctx: &egui::Context) {
     let alt_down = ctx.input(|input| input.modifiers.alt);
@@ -103,7 +151,7 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
     }
     app.alt_down = alt_down;
 
-    let ctrl = ctx.input(|input| input.modifiers.ctrl);
+    let (command, shift) = ctx.input(|input| (input.modifiers.command, input.modifiers.shift));
     for key in [
         egui::Key::S,
         egui::Key::W,
@@ -116,7 +164,7 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
         if !ctx.input(|input| input.key_pressed(key)) {
             continue;
         }
-        match shortcut(ctrl, key) {
+        match shortcut(MACOS_SHORTCUTS, command, shift, key) {
             Some(Shortcut::SaveDesign) => {
                 // Ctrl+S on a table tab with staged edits submits the
                 // pending batch (step 85.2, item H61) — the visible
@@ -221,73 +269,10 @@ fn select_tab_by_tip(app: &mut App, ctx: &egui::Context) {
 mod tests {
     use super::*;
 
-    /// The command chords map the same actions where the redo chord is
-    /// Ctrl+Y (step 92.1, item M99).
-    #[test]
-    fn command_chords_map_the_same_actions_elsewhere() {
-        assert_eq!(
-            shortcut(false, true, false, egui::Key::S),
-            Some(Shortcut::SaveDesign)
-        );
-        assert_eq!(
-            shortcut(false, true, false, egui::Key::W),
-            Some(Shortcut::CloseTab)
-        );
-        assert_eq!(
-            shortcut(false, true, false, egui::Key::Z),
-            Some(Shortcut::Undo)
-        );
-        assert_eq!(
-            shortcut(false, true, false, egui::Key::Y),
-            Some(Shortcut::Redo)
-        );
-        assert_eq!(
-            shortcut(false, false, false, egui::Key::S),
-            None,
-            "the save chord needs the command modifier"
-        );
-        assert_eq!(
-            shortcut(false, false, false, egui::Key::Escape),
-            Some(Shortcut::CancelEdit)
-        );
-    }
-
-    /// macOS: ⌘S, ⌘W, ⌘Z undo, ⌘⇧Z redo; ⌘Y stays unmapped (step 92.1,
-    /// item M99).
-    #[test]
-    fn macos_maps_the_command_chords_with_the_shift_z_redo() {
-        assert_eq!(
-            shortcut(true, true, false, egui::Key::S),
-            Some(Shortcut::SaveDesign)
-        );
-        assert_eq!(
-            shortcut(true, true, false, egui::Key::W),
-            Some(Shortcut::CloseTab)
-        );
-        assert_eq!(
-            shortcut(true, true, false, egui::Key::Z),
-            Some(Shortcut::Undo)
-        );
-        assert_eq!(
-            shortcut(true, true, true, egui::Key::Z),
-            Some(Shortcut::Redo),
-            "the macOS redo chord is ⌘⇧Z"
-        );
-        assert_eq!(
-            shortcut(true, true, false, egui::Key::Y),
-            None,
-            "⌘Y stays unmapped on macOS"
-        );
-        assert_eq!(
-            shortcut(true, false, false, egui::Key::S),
-            None,
-            "the save chord needs the command modifier"
-        );
-    }
-
     /// One label formatter for the help page and the tooltips: Ctrl+X on
     /// Windows/Linux (identity), ⌘X on macOS, and the redo chord renders
-    /// ⌘⇧Z in both languages (step 92.1, item M99).
+    /// ⌘⇧Z in both languages (step 92.1, item M99). The chord mapping
+    /// itself is pinned in `keys_tests.rs`.
     #[test]
     fn shortcut_labels_render_the_command_form_on_macos() {
         assert_eq!(shortcut_label_with(false, "Ctrl+S"), "Ctrl+S");

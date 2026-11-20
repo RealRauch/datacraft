@@ -70,7 +70,7 @@ fn ctrl_s_previews_and_apply_submits_one_atomic_batch() {
 
     arm_editor(&mut harness, 2);
     type_and_commit(&mut harness, "X");
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::S);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::S);
     harness.run();
 
     assert!(
@@ -205,7 +205,7 @@ fn a_failed_apply_keeps_every_edit_pending() {
 
     arm_editor(&mut harness, 2);
     type_and_commit(&mut harness, "X");
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::S);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::S);
     harness.run();
     harness.get_by_label("Apply Changes").click();
     harness.run();
@@ -239,7 +239,7 @@ fn the_grid_refuses_input_while_a_submission_is_open() {
 
     arm_editor(&mut harness, 2);
     type_and_commit(&mut harness, "X");
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::S);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::S);
     harness.run();
 
     // Click into another cell twice — the editor must not arm.
@@ -315,7 +315,7 @@ fn staged_deletes_and_inserts_apply_with_the_batch() {
         "DEBUG staged buffer: {:?}",
         harness.state().staged_rows(tab)
     );
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::S);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::S);
     harness.run();
     let summary = harness
         .state()

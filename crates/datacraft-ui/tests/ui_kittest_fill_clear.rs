@@ -89,7 +89,7 @@ fn ctrl_d_fills_the_selection_from_its_top_row_staged() {
         .click_modifiers(egui::Modifiers::SHIFT);
     harness.run();
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::D);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::D);
     harness.run();
 
     let staged = harness
@@ -126,7 +126,7 @@ fn a_direct_fill_is_one_undo_step() {
         .click_modifiers(egui::Modifiers::SHIFT);
     harness.run();
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::D);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::D);
     harness.run();
 
     let rows = harness.state().rows_for(tab).expect("loaded rows");

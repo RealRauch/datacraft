@@ -70,7 +70,7 @@ fn control_z_undoes_and_control_y_redoes_the_last_row_write() {
     assert_eq!(cached_rows(&harness, tab), Some(1), "the insert is visible");
     assert_eq!(harness.state().snapshot().undo_depth, 1);
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::Z);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
     harness.run();
 
     assert_eq!(
@@ -80,7 +80,7 @@ fn control_z_undoes_and_control_y_redoes_the_last_row_write() {
     );
     assert_eq!(harness.state().snapshot().redo_depth, 1);
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::Y);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Y);
     harness.run();
 
     assert_eq!(
@@ -99,7 +99,7 @@ fn control_z_with_an_empty_history_does_nothing() {
     harness.run();
     assert_eq!(harness.state().snapshot().undo_depth, 0);
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::Z);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
     harness.run();
 
     assert_eq!(cached_rows(&harness, tab), Some(0));
@@ -166,7 +166,10 @@ fn command_shift_z_redoes_on_macos() {
     harness.run();
     assert_eq!(cached_rows(&harness, tab), Some(0), "⌘Z undoes");
 
-    harness.key_press_modifiers(egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::Z);
+    harness.key_press_modifiers(
+        egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+        egui::Key::Z,
+    );
     harness.run();
 
     assert_eq!(

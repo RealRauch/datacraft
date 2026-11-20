@@ -31,7 +31,10 @@ pub fn shortcuts_help(app: &mut App, ui: &mut egui::Ui) {
                 .spacing([18.0, 4.0])
                 .show(ui, |ui| {
                     for (_, keys, action) in SHORTCUT_ROWS {
-                        ui.strong(*keys);
+                        // The key names render through the platform-aware
+                        // formatter (⌘S on macOS, Ctrl+S elsewhere; step
+                        // 92.1, item M99).
+                        ui.strong(crate::keys::shortcut_label(keys));
                         ui.label(t(action));
                         ui.end_row();
                     }

@@ -84,7 +84,7 @@ fn ctrl_a_selects_every_loaded_cell() {
         "no selection happened yet"
     );
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::A);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
     harness.run();
     assert_eq!(harness.state().selection(tab, 6, 2), Selection::All);
 }

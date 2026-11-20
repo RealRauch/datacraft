@@ -92,7 +92,7 @@ fn ctrl_c_copies_the_selection_as_tsv() {
         .click_modifiers(egui::Modifiers::SHIFT);
     harness.run();
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::C);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::C);
     harness.run();
     assert_eq!(
         harness.state().clipboard_text().as_deref(),
@@ -121,7 +121,7 @@ fn ctrl_v_stages_a_fitting_matrix_from_the_anchor() {
     harness.get_by_label("1").click();
     harness.run();
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::V);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
     harness.run();
 
     let staged = harness
@@ -161,7 +161,7 @@ fn ctrl_v_writes_directly_without_the_batch_capability() {
     harness.get_by_label("1").click();
     harness.run();
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::V);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
     harness.run();
 
     assert!(
@@ -193,7 +193,7 @@ fn a_paste_that_does_not_fit_is_rejected_before_any_change() {
     harness.get_by_label("1").click();
     harness.run();
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::V);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
     harness.run();
 
     let error = harness.state().last_error().expect("a precise rejection");
@@ -221,7 +221,7 @@ fn a_paste_with_a_bad_value_is_rejected_before_any_change() {
     harness.get_by_label("0").click();
     harness.run();
 
-    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::V);
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::V);
     harness.run();
 
     let error = harness.state().last_error().expect("a precise rejection");
