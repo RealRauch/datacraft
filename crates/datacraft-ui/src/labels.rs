@@ -19,12 +19,24 @@ use eframe::egui;
 /// backstage path fields).
 pub fn path_field_identity(ui: &mut egui::Ui, path: &str) {
     let trimmed = path.trim();
-    let Some(name) = std::path::Path::new(trimmed).file_name() else {
+    let name = file_name_of(trimmed);
+    if name.is_empty() {
         return;
-    };
-    let name = name.to_string_lossy();
+    }
     ui.label(egui::RichText::new(name).strong())
         .on_hover_text(trimmed);
+}
+
+/// The file name of a path, splitting over **both** separators (step
+/// 91.13): `std::path::Path` splits on the host's separator only, so a
+/// Windows path shown on a Linux client keeps its full string as one
+/// component — the identity would name the whole path instead of the
+/// file. Empty when the path ends on a separator.
+fn file_name_of(path: &str) -> &str {
+    path.rsplit(['/', '\\'])
+        .next()
+        .filter(|name| !name.is_empty())
+        .unwrap_or("")
 }
 
 /// Localized name of a native query flavor (the QBE viewer's subtitle).
@@ -117,5 +129,19 @@ mod tests {
             "Tabellenerstellungsabfrage"
         );
         set_lang(Lang::English);
+    }
+
+    /// The identity splits over both separators on every host (step
+    /// 91.13): a Windows path shown on a Linux client names the file,
+    /// not the whole string.
+    #[test]
+    fn the_identity_splits_over_both_separators() {
+        assert_eq!(
+            file_name_of("C:\\Users\\someuser\\Downloads\\shop.mdb"),
+            "shop.mdb"
+        );
+        assert_eq!(file_name_of("/home/someuser/shop.mdb"), "shop.mdb");
+        assert_eq!(file_name_of("shop.mdb"), "shop.mdb");
+        assert_eq!(file_name_of("C:\\data\\dir\\"), "");
     }
 }
