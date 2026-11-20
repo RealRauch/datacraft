@@ -283,6 +283,26 @@
 - **Steps:** none yet (from the phase 89 design review).
 - **Done:** done in `07d5eb6` — the navigation row carries first/last (the same flush-then-navigate path as prev/next) and the new-record action: inserts through the normal path on the form's record source with empty cells (engine-assigned AutoNumbers per M114), capability-gated like the datasheet's row actions with the reason on hover; after the insert the cursor's survival logic pins the new last row (`follow_physical_row`), so the form sits on the new record; the immediate-write driver pins the row-set growth, the read-only source pins the disabled gate; en/de catalog parity
 
+---
+
+### [x] M101 — Datasheet lacks multi-cell selection, clipboard and fill — 🟡
+- **Location:** `crates/datacraft-ui/src/datasheet.rs` and `crates/datacraft-ui/src/datasheet/grid.rs` (single record cursor; M38 added arrow/Home/End/PgUp/PgDn).
+- **Problem:** There is no rectangle selection, Ctrl+A, copy/paste, fill or Delete-to-NULL. Access users expect all of them: a clipboard matrix from Excel, a column fill with one value, and clearing cells to NULL. Today every edit addresses one cell.
+- **Approach:** A selection model in core (anchor, rectangle over the loaded filtered rows, column selection by header); clipboard as TSV; paste validates arity and size before any write; a fill of a selected range is one undo step; Delete sets NULL where the field allows (Jet's tri-state boundary from M24 answers a precise failure). Reuse the existing hit-test and view-order math. Pending semantics coordinate with H61.
+- **Acceptance:** A pasted matrix fills the selection or is rejected before any cell changes; copy round-trips through a spreadsheet; Delete-to-NULL respects each driver's NULL support with a precise failure where it cannot; selection survives scroll, sort and filter per a documented rule; kittest pins selection, paste and fill; no unwrap/expect on the clipboard path.
+- **Steps:** none yet.
+- **Done:** delivered in Phase 86 (steps 86.1–86.4, checkpoint `e4d2504`, CI run 43752305677 green); the Phase 86 gate closed the phase without archiving the items — reconciled 2026-11-20 at Phase 90 start per the M48 precedent, closed with no code change
+
+---
+
+### [x] M102 — No cell value viewer for long text, JSON and binary values — 🟡
+- **Location:** the datasheet cell paint and edit path (`crates/datacraft-ui/src/datasheet.rs`, `datasheet/grid.rs`); no value viewer exists.
+- **Problem:** Memo, binary and JSON values are only reachable through the inline editor (or not at all for read-only cells), so a long text is shown truncated and a binary value is opaque. Access offers Zoom (Shift+F2) for exactly this; the reference client shows the whole value in a popup below the cell.
+- **Approach:** A read-only value viewer opened by Alt+click, a double-click on a non-editable cell, the context menu and Shift+F2: JSON indented only when it parses, a bounded hex view for binary, Esc or a click outside closes it. For editable long text the viewer becomes a multiline editor that writes through the normal edit path (and H61's buffer). Bounded rendering for large values; no modification on open.
+- **Acceptance:** A long memo, a JSON value and a binary value each open the viewer with the right form; invalid JSON stays raw; the hex view is bounded and names the truncation; the editor writes through the normal path; opening never modifies the database; kittest pins all three kinds.
+- **Steps:** none yet.
+- **Done:** delivered in Phase 86 (step 86.4, checkpoint `0ae1a6c`, CI run 43752305677 green); the Phase 86 gate closed the phase without archiving the item — reconciled 2026-11-20 at Phase 90 start per the M48 precedent, closed with no code change
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -315,3 +335,5 @@
 - M123 — The report preview paints a fixed A4 page instead of the report's page setup — done (done in `3e22f1b` — the preview canvas sizes from the report's own PageSetup at the shipped 0.9 scale via the pure `preview_page_size` helper (never a hardcoded A4); a unit test pins a non-A4 setup (letter), the rendered page rect rides the `report.preview.page` probe (pinned at the A4 default); pagination behaviour unchanged)
 - L63 — Preview text paints at 100 % on the 0.9-scaled page — done (done in `3e22f1b` — the preview text font scales with the page (the body rung at the page scale) via the pure `preview_font` step (unit-pinned); item positions unchanged)
 - M124 — Form record navigation lacks first/last/new-record — done (done in `07d5eb6` — the navigation row carries first/last (the same flush-then-navigate path as prev/next) and the new-record action: inserts through the normal path on the form's record source with empty cells (engine-assigned AutoNumbers per M114), capability-gated like the datasheet's row actions with the reason on hover; after the insert the cursor's survival logic pins the new last row (`follow_physical_row`), so the form sits on the new record; the immediate-write driver pins the row-set growth, the read-only source pins the disabled gate; en/de catalog parity)
+- M101 — Datasheet lacks multi-cell selection, clipboard and fill — done (delivered in Phase 86 (steps 86.1–86.4, checkpoint `e4d2504`, CI run 43752305677 green); the Phase 86 gate closed the phase without archiving the items — reconciled 2026-11-20 at Phase 90 start per the M48 precedent, closed with no code change)
+- M102 — No cell value viewer for long text, JSON and binary values — done (delivered in Phase 86 (step 86.4, checkpoint `0ae1a6c`, CI run 43752305677 green); the Phase 86 gate closed the phase without archiving the item — reconciled 2026-11-20 at Phase 90 start per the M48 precedent, closed with no code change)
