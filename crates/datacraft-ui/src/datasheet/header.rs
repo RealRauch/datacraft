@@ -313,6 +313,36 @@ fn paint_filter_glyph(painter: &egui::Painter, center: egui::Pos2, ink: egui::Co
     }
 }
 
+/// Row chrome shared by the header and body paint passes (the frozen
+/// boundary extracted for the L30 split): the stronger separator after
+/// the last frozen column (step 91.6, item L54) and the cursor-row wash
+/// with its accent marker.
+pub(super) fn paint_row_chrome(
+    painter: &egui::Painter,
+    row_rect: egui::Rect,
+    boundary_x: f32,
+    boundary: bool,
+    cursor: bool,
+    tokens: &crate::theme::Tokens,
+) {
+    if boundary {
+        painter.rect_filled(
+            egui::Rect::from_min_size(
+                row_rect.left_top() + egui::vec2(boundary_x, 0.0),
+                egui::vec2(2.0, row_rect.height()),
+            ),
+            0.0,
+            tokens.accent,
+        );
+    }
+    if cursor {
+        painter.rect_filled(row_rect, 0.0, tokens.accent_faint);
+        let marker =
+            egui::Rect::from_min_size(row_rect.left_top(), egui::vec2(3.0, row_rect.height()));
+        painter.rect_filled(marker, 0.0, tokens.accent);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

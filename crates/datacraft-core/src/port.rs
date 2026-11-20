@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::schema::{FieldValue, TableDef};
 
 mod capabilities;
+mod family;
 mod native_view;
 mod source_objects;
 mod write_op;
@@ -18,6 +19,7 @@ pub use capabilities::{DriverCapabilities, DriverId, DriverInfo, Support};
 pub use datacraft_query::native_query::{
     NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
 };
+pub use family::{DatabaseFamily, sniff_database_family};
 pub use native_view::NativeView;
 pub use source_objects::{
     NativeObject, NativeObjectKind, SourceFact, SourceFacts, SourceIndex, SourceTrigger,
@@ -42,45 +44,6 @@ pub enum DatabaseFormat {
     Sqlite,
     /// A directory of `*.csv` files (phase 30, M18; ADR-7 driver proof).
     Csv,
-}
-
-/// The coarse database family a file's magic names (step 91.3, item
-/// M111) — decided before any driver claims the file. The signatures are
-/// the same bytes the detecting registry probes (`datacraft-storage`'s
-/// `sniff`); this copy lives in core so the import surface can reject a
-/// wrong-surface file without a storage dependency.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DatabaseFamily {
-    /// The Jet/ACE family (`.mdb`/`.accdb`, Access 97–2016): every
-    /// Jet3/Jet4/ACE file starts with the `00 01 00 00` page magic.
-    Jet,
-    /// SQLite 3 (`"SQLite format 3\0"` header).
-    Sqlite,
-}
-
-impl DatabaseFamily {
-    /// The user-renderable family name (core stays locale-neutral).
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Jet => "Jet/ACE",
-            Self::Sqlite => "SQLite",
-        }
-    }
-}
-
-/// Names the database family from a file header (the first bytes of the
-/// file; more bytes are fine). `None` is not a verdict — every non-database
-/// byte stream (any text) lands here.
-pub fn sniff_database_family(head: &[u8]) -> Option<DatabaseFamily> {
-    const JET_MAGIC: [u8; 4] = [0x00, 0x01, 0x00, 0x00];
-    const SQLITE_MAGIC: &[u8; 16] = b"SQLite format 3\0";
-    if head.len() >= SQLITE_MAGIC.len() && &head[..SQLITE_MAGIC.len()] == SQLITE_MAGIC {
-        return Some(DatabaseFamily::Sqlite);
-    }
-    if head.len() >= JET_MAGIC.len() && head[..JET_MAGIC.len()] == JET_MAGIC {
-        return Some(DatabaseFamily::Jet);
-    }
-    None
 }
 
 impl DatabaseFormat {

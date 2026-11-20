@@ -418,27 +418,14 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         text,
                     );
                 }
-                // The frozen boundary (step 91.6, item L54): a stronger
-                // separator after the last frozen column.
-                if frozen > 0 {
-                    ui.painter().rect_filled(
-                        egui::Rect::from_min_size(
-                            row_rect.left_top()
-                                + egui::vec2(SELECTOR_WIDTH + frozen_total, 0.0),
-                            egui::vec2(2.0, row_rect.height()),
-                        ),
-                        0.0,
-                        tokens.accent,
-                    );
-                }
-                if is_cursor {
-                    ui.painter().rect_filled(row_rect, 0.0, tokens.accent_faint);
-                    let marker = egui::Rect::from_min_size(
-                        row_rect.left_top(),
-                        egui::vec2(3.0, row_rect.height()),
-                    );
-                    ui.painter().rect_filled(marker, 0.0, tokens.accent);
-                }
+                super::header::paint_row_chrome(
+                    ui.painter(),
+                    row_rect,
+                    SELECTOR_WIDTH + frozen_total,
+                    frozen > 0,
+                    is_cursor,
+                    tokens,
+                );
             });
         }
     });
