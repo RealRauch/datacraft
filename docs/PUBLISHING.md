@@ -115,7 +115,12 @@ is a decision, not an oversight; revisit only if a library consumer appears.
 3. `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` is clean
    (docs.rs is part of the published surface).
 4. `cargo publish --dry-run` per crate **in the order above**; every package
-   must build cleanly (`cargo package --list` shows no stray files).
+   must build cleanly (`cargo package --list` shows no stray files). The
+   listing must also show the crate's **own** `README.md`
+   (`crates/datacraft-<name>/README.md`, L44) beside the license files —
+   the crates.io page is the per-crate README (purpose, public surface,
+   features, MSRV, license, product-page link), never the root product
+   README; the root README stays the product entry.
 5. Publish in order; verify `cargo install datacraft-mcp` resolves.
 6. Push the annotated `v<version>` tag — `release.yml` builds the three
    platform archives (binaries + samples + third-party notices), runs the

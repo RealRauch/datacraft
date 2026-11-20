@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-readme.workspace = true
+readme = "README.md"
 description = "Migration tool: native Access forms and reports into DataCraft sidecar designs"
 
 [dependencies]
