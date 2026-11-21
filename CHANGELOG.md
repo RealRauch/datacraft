@@ -10,6 +10,18 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- ui: the open-items sweep (92, M99/M108/L48/L51) — platform-chord
+  keyboard shortcuts (⌘S/⌘W/⌘Z/⌘⇧Z on macOS, Ctrl+S/W/Z/Y elsewhere,
+  with the help page and tooltips rendering ⌘ through one
+  platform-aware formatter), the docked task-pane host piloted by the
+  SQL window (dock right/bottom with resizable bounds or float, per-
+  surface geometry in ui.json, the workspace never overlaps a docked
+  pane), a navigation-pane search across categories, multi-select with
+  Ctrl/Shift clicks and a selection-aware context menu, the flat Object
+  Details view beside the category tree with local groups and palette
+  colours persisted per database, and the low-power/RDP rendering mode
+  (an Options tri-state over the detection; zero animations, no blurred
+  shadows, ~30 fps interaction repaints, idle repaint at zero).
 - cli/core/ui: version reporting across all three clients (91, M109) —
   the CLI answers `--version`/`-V` with `datacraft-cli <version>` on
   stdout (exit 0, before any database work, flag position irrelevant),

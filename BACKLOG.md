@@ -23,19 +23,8 @@
 
 ## 🟡 MEDIUM
 
-### [ ] M99 — Keyboard shortcuts are Ctrl-only and mislabeled on macOS — 🟡
-- **Location:** `crates/datacraft-ui/src/keys.rs:77` (`shortcut(ctrl, key)`), `:106` (reads `input.modifiers.ctrl`), and the `SHORTCUT_ROWS` labels at `:52-62`; the help page renders those labels verbatim in `crates/datacraft-ui/src/shortcuts_help.rs`.
-- **Problem:** egui reports Cmd as `modifiers.command` (the platform command key: Cmd on macOS, Ctrl elsewhere) while `modifiers.ctrl` is the Control key. On macOS Cmd+S, Cmd+W, Cmd+Z and Cmd+Y therefore do nothing, and the help page plus every tooltip say "Ctrl+..." although macOS uses ⌘. Redo on macOS is conventionally ⌘⇧Z. The README claims macOS support, so this is a shipped-platform gap.
-- **Approach:** Match `modifiers.command` in the handler and keep the pure `shortcut()` function platform-neutral (it takes the command flag). Render key labels through one platform-aware formatter (⌘S on macOS, Ctrl+S elsewhere) used by the help page and the QAT/ribbon tooltips. Add ⌘⇧Z as the macOS redo chord, keep Ctrl+Y elsewhere.
-- **Acceptance:** Unit tests cover the matcher and both label forms; a kittest with `modifiers.command` proves Cmd+S dispatches SaveDesign; the help page and tooltips show ⌘ on macOS and Ctrl elsewhere; redo works with ⌘⇧Z on macOS and Ctrl+Y elsewhere.
-- **Steps:** none yet.
+> No open items.
 
-### [ ] M108 — Minimal docked task-pane host, pilot: SQL window — 🟡
-- **Location:** a new `crates/datacraft-ui/src/panes.rs` host module plus the pilot surface `crates/datacraft-ui/src/sql_window.rs`; geometry in `crates/datacraft-ui/src/settings.rs` (`ui.json`, ADR-5).
-- **Problem:** The tool surfaces are free-floating `egui::Window`s with no remembered placement (M100's problem). ROADMAP §21 decided (2026-11-16, human-approved) an own minimal dock host — no new dependency, craft-libs' `panes`/`docking` stay pattern-only (the `window.rs` @ `fd7f662` precedent). Numbered M108: the M100 archive note names the follow-up as "M103", which collided with the archived M103 (`BACKLOG_ARCHIVE.p87`) and was renumbered before any work started.
-- **Approach:** A host module with dock-right/dock-bottom/float states per surface, resize within the host, an i18n'd toggle reachable from the pane's title area and the context menu, and per-surface geometry persistence in `ui.json` (sane/rescue like the window geometry). Pilot: the SQL window migrates first; the remaining surfaces follow per-surface items after the pilot proves the model.
-- **Acceptance:** The SQL pane docks right/bottom and floats; geometry survives restart and is sanitized/rescued; the workspace layout never overlaps the docked pane (layout_probe rects at both pinned window sizes); kittest pins dock, float and persistence; every string goes through `t()`/`tr()`; no new dependency; the file-size gate is respected (the host splits before 500).
-- **Steps:** none yet.
 
 
 ---
@@ -49,20 +38,6 @@
 - **Steps:** rides released steps that touch band files; Phase 65 carried five forced splits (65.1 `command.rs` → `command/source.rs` and `tests/command_bus.rs`/`tests/journal.rs` → module files; 65.3 `backstage/pages.rs` → `backstage/info.rs`; 65.4 `tests/server_e2e.rs` → `server_e2e/vba.rs`). Phase 68 carried four more: 68.2 `ribbon.rs` → `ribbon/actions.rs`; 68.3 `app.rs` → `app/notices.rs` + `app/editors.rs` and `flows.rs` → `app/notices.rs`; 68.5 `ui_kittest.rs` → `tests/ui_kittest_backstage_flows.rs`. Phase 69 carried two: 69.5 `ui_layout.rs` → `tests/ui_layout_status.rs`; 69.8 `datasheet/grid.rs` → `datasheet/grid_model.rs` (split in the gate step after the 69.6 filter map). Phase 71 carried two: the `Command::View` sub-enum keeps `command.rs` at 499; 71.3 `port.rs` → `port/write_op.rs` (514 → 479). Phase 72 carried one: 72.5 `datacraft-sqlite/src/lib.rs` → `rows.rs` (528 → 454, forced by the rename path); `command.rs` stays at 499 via doc compaction (the enum cannot split without a wire-shape decision). Phase 73 carried four: 73.1 `port.rs` → `port/tests.rs` and `port_mock.rs` → `port_mock/builders.rs`; 73.2 `sqlite/lib.rs` → `lifecycle.rs`; 73.3 `i18n/de/ui_chrome.rs` → `de/dialogs.rs`; 73.4 `mapping.rs` → `values.rs` and `sqlite/lib.rs` → `rows_io.rs`. Phase 74 carried none: `jet/port_adapter.rs` entered the band at 488 (native-object cache) and stays under the gate. Phase 75 carried three: 75.1 `app.rs` (491 → 473) → `app/lifecycle.rs`; 75.2 `backstage/pages.rs` (455 → 376) → `backstage/new_database.rs`; the 75.4 gate split `i18n/de/ui_chrome.rs` (495) → `de/tooltips.rs` (386). Phase 76 carried none: the crate split moved `expr/funcs.rs` (497), `expr/format.rs` (462) and `schema/field.rs` (457) into datacraft-expr/-types unchanged, so the band list only changed paths. Phase 80 carried one: 80.2 `datacraft-csv/src/lib.rs` (488 → 366) → `table_io.rs` (proactive, the step touched the file for the shared decode path). Phase 91 carried one: 91.13 `form_runtime.rs` (534 → 484) → `form_nav.rs` (the record-navigation row, forced by the CI hygiene gate). The same gate caught two more files the phase pushed across: `port.rs` (513 → 477) → `port/family.rs` (the database-family magic) and `datasheet/grid.rs` (512 → 499) → the shared `paint_row_chrome` helper in `header.rs`.
 - **Rule:** codified 2026-11-10 as binding method — PLAYBOOK §5 ("split below the gate, not at it") and LESSONS #15; this item stays open as the live band list only.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
-
-### [ ] L48 — Nav pane: no object search, multi-select or local groups and colours — 🟢
-- **Location:** `crates/datacraft-ui/src/nav_pane.rs` and the nav model in core (U9 added the category dropdown, context menu and sort).
-- **Problem:** The nav pane lists objects in one compact tree per category. For a database with hundreds of objects there is no list/grid overview, no local folders or colours, no multi-select/drag grouping, and no search across objects. The reference client's object explorer offers all four as local preferences (nothing that changes the database).
-- **Approach:** Add a search/filter field and multi-select first (small, no schema change); list/grid and local groups/colours are UI-owned preferences stored in `ui.json` keyed by database identity, never in the sidecar. Reuse the nav sort and the existing object-kind vocabulary.
-- **Acceptance:** Typing in the search narrows the visible objects across categories with a case-insensitive match and a clear empty state; multi-select works with Shift/Ctrl and the context menu acts on the selection; groups and colours persist per database path and never touch the sidecar or the database file; behaviour doc.
-- **Steps:** none yet.
-
-### [ ] L51 — Low-power/RDP rendering mode — 🟢
-- **Location:** `crates/datacraft-ui/src/main.rs` (adapter probe in the creation callback), a new `crates/datacraft-ui/src/render_mode.rs`, `settings.rs` (setting entry), `shell.rs` (frame-statistics overlay).
-- **Problem:** Enterprise/RDP sessions rasterize and re-encode every drawn frame; egui's built-in animations multiply frames during interaction. ROADMAP §23 decided (2026-11-16, human-approved) the minimal mode and corrected the premise: the shell renders through glow (OpenGL), not wgpu — detection reads the glow adapter string plus the Windows `SESSIONNAME` heuristic (`SM_REMOTESESSION`/winapi stays banned).
-- **Approach:** Detection = `GL_RENDERER` software-adapter match + `SESSIONNAME` starting with `RDP-`, both pure Rust with zero new dependencies. An explicit `DATACRAFT_LOW_POWER=1|0` override and a settings entry win over auto-detection. Effects: `animation_duration = 0`, interaction repaints capped at ~30 fps via `request_repaint_after`, no blurred shadows, frame-statistics overlay while the mode is on. Policy switch only — no renderer or drawing-path change.
-- **Acceptance:** Detection and precedence are pure, unit-tested functions (renderer strings, env parsing, override > setting > detection); the mode pins `animation_duration = 0` and the cap in the policy model; idle repaint stays zero; the setting persists in `ui.json`; the overlay is kittest-pinned; behaviour documented; no new dependency.
-- **Steps:** none yet.
 
 ---
 
