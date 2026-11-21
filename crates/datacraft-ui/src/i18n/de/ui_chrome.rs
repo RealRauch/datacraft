@@ -463,4 +463,10 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Dock Right", "Rechts andocken"),
     ("Dock Bottom", "Unten andocken"),
     ("Float", "Schwebend"),
+    // Nav-pane search (step 92.3, item L48).
+    ("Search objects", "Objekte suchen"),
+    (
+        "No objects match {query}",
+        "Keine Objekte passen zu {query}",
+    ),
 ];

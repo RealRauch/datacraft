@@ -26,6 +26,9 @@ pub struct App {
     pub backstage_page: crate::backstage::BackstagePage,
     /// Navigation-pane group sort (step 21.5; ordering lives in core).
     pub nav_sort: datacraft_core::nav::NavSortOrder,
+    /// Navigation-pane search query (step 92.3, item L48) — session-only
+    /// presentation state, never persisted.
+    pub nav_search: String,
     /// Last viewport title sent to the window system (step 21.7, U11).
     pub(crate) window_title: String,
     /// Current ribbon key-tip phase (step 21.8, U12).

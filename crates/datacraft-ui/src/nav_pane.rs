@@ -38,27 +38,42 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     // restates the selection cannot do anything (LESSONS #29).
     ui.strong(t("All Access Objects"));
 
+    // The empty-shell early returns settle before the search field takes
+    // its mutable borrow: the field renders only where it can do
+    // something (LESSONS #29 — no dead controls).
+    {
+        let snapshot = app.snapshot();
+        let Some(db) = &snapshot.database else {
+            ui.label(t("No database open"));
+            return;
+        };
+        if db.tables.is_empty()
+            && db.forms.is_empty()
+            && db.reports.is_empty()
+            && db.queries.is_empty()
+            && db.views.is_empty()
+            && db.native_views.is_empty()
+            && db.native_objects.is_empty()
+            && db.macros.is_empty()
+            && db
+                .vba
+                .as_ref()
+                .is_none_or(|project| project.modules.is_empty())
+        {
+            ui.label(t("No objects"));
+            return;
+        }
+    }
+    // Object search (step 92.3, item L48): a UI-owned presentation filter
+    // — sections without a match hide, and a query without any match
+    // shows one localized empty state.
+    let query = crate::nav_search::search_field(app, ui);
+    let searching = !query.trim().is_empty();
+    let mut matched_any = false;
     let snapshot = app.snapshot();
     let Some(db) = &snapshot.database else {
-        ui.label(t("No database open"));
-        return;
+        return; // the guard above settled an open database
     };
-    if db.tables.is_empty()
-        && db.forms.is_empty()
-        && db.reports.is_empty()
-        && db.queries.is_empty()
-        && db.views.is_empty()
-        && db.native_views.is_empty()
-        && db.native_objects.is_empty()
-        && db.macros.is_empty()
-        && db
-            .vba
-            .as_ref()
-            .is_none_or(|project| project.modules.is_empty())
-    {
-        ui.label(t("No objects"));
-        return;
-    }
     let active_object = snapshot
         .active_tab
         .and_then(|active| active_object_name(&snapshot.tabs, active));
@@ -73,6 +88,8 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
         // Section: a collapsible group whose entries open from the context
         // menu (Open / Design / Delete); the header carries the sort menu.
         let mut section = |header: &'static str, mut entries: Vec<(String, ObjectKind)>| {
+            entries.retain(|(name, _)| crate::nav_search::matches(&query, name));
+            matched_any |= !entries.is_empty();
             if entries.is_empty() {
                 return;
             }
@@ -340,8 +357,14 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
 
         // Native Access forms/reports (phase 74, step 74.1; item M87):
         // catalog names only — read-only, no definition decoding, no tab.
-        if !db.native_objects.is_empty() {
-            let count = db.native_objects.len();
+        let native_matched: Vec<_> = db
+            .native_objects
+            .iter()
+            .filter(|object| crate::nav_search::matches(&query, &object.name))
+            .collect();
+        matched_any |= !native_matched.is_empty();
+        if !native_matched.is_empty() {
+            let count = native_matched.len();
             ui.push_id("nav.native_objects", |ui| {
                 egui::CollapsingHeader::new(
                     egui::RichText::new(tr(
@@ -358,7 +381,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                     // The Label is a real widget, so the name stays in the
                     // accessibility tree.
                     let tokens = crate::theme::tokens(ui.visuals());
-                    for object in &db.native_objects {
+                    for object in &native_matched {
                         let slug = match object.kind {
                             datacraft_core::port::NativeObjectKind::Form => {
                                 datacraft_core::ObjectKind::Form.slug()
@@ -386,6 +409,12 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                     crate::layout_probe::record("nav.native_objects_hint", hint.rect);
                 });
             });
+        }
+
+        // The empty state (step 92.3, item L48): a query that matches
+        // nothing shows one localized line instead of a bare pane.
+        if searching && !matched_any {
+            ui.label(tr("No objects match {query}", &[("query", query.trim())]));
         }
 
         // A native-query decode failure is visible at the Queries group, not

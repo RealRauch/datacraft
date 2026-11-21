@@ -50,6 +50,7 @@ impl App {
             active_ribbon_tab,
             backstage_page: crate::backstage::BackstagePage::default(),
             nav_sort: datacraft_core::nav::NavSortOrder::default(),
+            nav_search: String::new(),
             window_title: "DataCraft".to_owned(),
             keytips: None,
             alt_down: false,

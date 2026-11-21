@@ -13,7 +13,7 @@ use datacraft_ui::app::App;
 use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::Queryable;
 
 fn nav_app() -> App {
     let port = MockPort::with_tables(vec![
@@ -23,7 +23,10 @@ fn nav_app() -> App {
         ),
         TableDef::new(
             "ServiceOrders",
-            vec![FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger))],
+            vec![FieldDef::new(
+                "Id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
         ),
     ]);
     let mut app = App::new(Box::new(port));
@@ -102,7 +105,9 @@ fn a_query_without_matches_shows_the_empty_state() {
         "no object matches"
     );
     assert!(
-        harness.query_by_label_contains("No objects match").is_some(),
+        harness
+            .query_by_label_contains("No objects match")
+            .is_some(),
         "the empty state names the query"
     );
 }
