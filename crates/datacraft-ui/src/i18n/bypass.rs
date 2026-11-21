@@ -63,7 +63,25 @@ const PAINT_TOKENS: &[(&str, usize)] = &[
 /// one empty button surface whose affordance is painted separately. An
 /// entry is `(file, literal)` — the exact source text with quotes, the path
 /// `/`-separated relative to `src`.
-const ALLOWED: &[(&str, &str)] = &[];
+const ALLOWED: &[(&str, &str)] = &[
+    // The Access new-record asterisk in the datasheet's trailing row (step
+    // 11.7; `trailing.rs` is the 48.2 split) — a painted selector glyph.
+    ("datasheet/trailing.rs", "\"*\""),
+    // M121: the runtime combo paints its caret beside an empty button
+    // surface — the label deliberately carries no text.
+    ("form_runtime.rs", "\"\""),
+    // M56/M38: record-navigation prev/next arrows in the form's
+    // navigation row (prev left of next).
+    ("shell.rs", "\"\\u{25c0}\""),
+    ("shell.rs", "\"\\u{25b6}\""),
+    // Report preview page navigation (steps 10.4/91.11).
+    ("report_design.rs", "\"\\u{25c0}\""),
+    ("report_design.rs", "\"\\u{25b6}\""),
+    // U5: the Views split-button's overflow ellipsis.
+    ("ribbon/views.rs", "\"…\""),
+    // M82: the help glyph opens the shortcuts page.
+    ("ribbon.rs", "\"?\""),
+];
 
 /// True when the violation is a registered painted literal.
 fn is_allowed(violation: &Violation) -> bool {
@@ -256,6 +274,26 @@ fn comments_are_skipped_and_constructors_are_unwrapped() {
     assert_eq!(violations.len(), 1);
     assert_eq!(violations[0].token, "RichText::new(");
     assert_eq!(violations[0].literal, "\"?\"");
+}
+
+#[test]
+fn allowlisted_painted_glyphs_are_clean() {
+    let arrow = scan_file("shell.rs", "ui.small_button(\"\\u{25c0}\").clicked();\n");
+    assert_eq!(arrow.len(), 1);
+    assert!(is_allowed(&arrow[0]));
+    let asterisk = scan_file(
+        "datasheet/trailing.rs",
+        "ui.label(egui::RichText::new(\"*\").strong());\n",
+    );
+    assert_eq!(asterisk.len(), 1);
+    assert!(is_allowed(&asterisk[0]));
+    // The same glyph in an unregistered file stays a violation.
+    let misplaced = scan_file(
+        "nav_pane.rs",
+        "ui.label(egui::RichText::new(\"*\").strong());\n",
+    );
+    assert_eq!(misplaced.len(), 1);
+    assert!(!is_allowed(&misplaced[0]));
 }
 
 #[test]
