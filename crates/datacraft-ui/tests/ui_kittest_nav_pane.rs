@@ -203,10 +203,12 @@ fn native_entries_render_in_the_pane_row_language() {
     );
 }
 
-/// The category header is a plain labelled header (L57): no menu opens
-/// that cannot do anything.
+/// The category header is the pane's view menu (step 92.5, item L48 —
+/// the model the U9 note waited for): it carries both views, and the
+/// current view renders disabled — an enabled entry restating the
+/// selection cannot do anything (LESSONS #29).
 #[test]
-fn the_category_header_is_a_plain_label() {
+fn the_category_header_is_the_view_menu() {
     let mut harness = nav_harness(app_with_objects());
     harness.run();
     let dump = tree_dump(&harness);
@@ -214,11 +216,17 @@ fn the_category_header_is_a_plain_label() {
         dump.contains("All Access Objects"),
         "the header is present:\n{dump}"
     );
+    harness.get_by_label("All Access Objects").click();
+    harness.run();
+    let dump = tree_dump(&harness);
     assert!(
-        !dump
-            .lines()
-            .any(|line| line.contains("All Access Objects") && line.starts_with("Button")),
-        "the header carries no menu chrome:\n{dump}"
+        dump.contains("Object Details"),
+        "the details entry is present:\n{dump}"
+    );
+    assert!(
+        dump.lines()
+            .any(|line| line.contains("All Access Objects") && line.ends_with(" disabled")),
+        "the current view entry is disabled:\n{dump}"
     );
 }
 

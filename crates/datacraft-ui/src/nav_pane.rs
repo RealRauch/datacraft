@@ -29,14 +29,27 @@ pub(crate) const SECTION_FORMS: &str = "Forms";
 pub(crate) const SECTION_REPORTS: &str = "Reports";
 pub(crate) const SECTION_MACROS: &str = "Macros";
 pub(crate) const SECTION_MODULES: &str = "Modules";
+pub(crate) const SECTION_DETAILS: &str = "Object Details";
 
 /// Renders the navigation pane contents (the panel itself is shown by the
 /// shell only while `nav_pane_visible`).
 pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
-    // Access category header (step 21.5, U9): a plain labelled header
-    // until the category model grows (L48) — a menu whose only entry
-    // restates the selection cannot do anything (LESSONS #29).
-    ui.strong(t("All Access Objects"));
+    // View dropdown (step 92.5, item L48 — the header the U9 note left
+    // plain): the header switches between the category tree and the flat
+    // Object Details list, persisted per database. The preferences clone
+    // ends the borrow before anything paints.
+    let db_key = app
+        .snapshot()
+        .database
+        .as_ref()
+        .map(|db| crate::nav_groups::prefs_key(&db.path));
+    let prefs = db_key.as_deref().map(|key| app.nav_prefs(key));
+    let view_intent = prefs
+        .as_ref()
+        .and_then(|prefs| crate::nav_groups::view_menu(ui, prefs));
+    if db_key.is_none() {
+        ui.strong(t("All Access Objects"));
+    }
 
     // The empty-shell early returns settle before the search field takes
     // its mutable borrow: the field renders only where it can do
@@ -83,6 +96,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     let mut rename_intent: Option<(ObjectKind, String)> = None;
     let mut delete_intent: Option<(ObjectKind, String)> = None;
     let mut open_selection: Option<Vec<ObjectId>> = None;
+    let mut new_group_intent: Option<Vec<ObjectId>> = None;
     let mut sort_intent: Option<NavSortOrder> = None;
     let mut new_view = false;
     // The selection the row clicks build (step 92.4, item L48): applied
@@ -90,6 +104,11 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     let mut selection_intent: Option<(Vec<ObjectId>, Option<ObjectId>)> = None;
     let current_selection = app.nav_selection.clone();
     let current_anchor = app.nav_anchor.clone();
+    let mut groups_intent = crate::nav_groups::GroupsIntent::default();
+    let prefs_for_groups = prefs.clone().unwrap_or_default();
+    let details = prefs
+        .as_ref()
+        .is_some_and(|p| p.view == crate::nav_groups::NavView::Details);
     egui::ScrollArea::vertical().show(ui, |ui| {
         // Section: a collapsible group whose entries open from the context
         // menu (Open / Design / Delete); the header carries the sort menu.
@@ -209,6 +228,9 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                                 if let Some(ids) = menu.open_selection {
                                     open_selection = Some(ids);
                                 }
+                                if let Some(objects) = menu.new_group {
+                                    new_group_intent = Some(objects);
+                                }
                                 if menu.open {
                                     open_intent = Some((kind, name.clone(), None));
                                 }
@@ -261,66 +283,23 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             });
         };
 
-        section(
-            SECTION_TABLES,
-            db.tables
-                .iter()
-                .map(|t| (t.name.clone(), ObjectKind::Table))
-                .collect(),
-        );
-        section(
-            SECTION_QUERIES,
-            db.queries
-                .iter()
-                .map(|q| (q.name.clone(), ObjectKind::Query))
-                .collect(),
-        );
-        section(
-            SECTION_VIEWS,
-            db.views
-                .iter()
-                .map(|v| (v.name.clone(), ObjectKind::View))
-                .chain(
-                    db.native_views
-                        .iter()
-                        .map(|v| (v.name.clone(), ObjectKind::View)),
-                )
-                .collect(),
-        );
-        section(
-            SECTION_FORMS,
-            db.forms
-                .iter()
-                .map(|f| (f.name.clone(), ObjectKind::Form))
-                .collect(),
-        );
-        section(
-            SECTION_REPORTS,
-            db.reports
-                .iter()
-                .map(|r| (r.name.clone(), ObjectKind::Report))
-                .collect(),
-        );
-        section(
-            SECTION_MACROS,
-            db.macros
-                .iter()
-                .map(|m| (m.name.clone(), ObjectKind::Macro))
-                .collect(),
-        );
-        section(
-            SECTION_MODULES,
-            db.vba
-                .as_ref()
-                .map(|project| {
-                    project
-                        .modules
-                        .iter()
-                        .map(|m| (m.name.clone(), ObjectKind::Module))
-                        .collect()
-                })
-                .unwrap_or_default(),
-        );
+        // The sections come from nav_sections (the details view, step
+        // 92.5, item L48, lists every object in one flat section).
+        let sections = if details {
+            crate::nav_sections::details_sections(db)
+        } else {
+            crate::nav_sections::tree_sections(db)
+        };
+        for (header, entries) in sections {
+            section(header, entries);
+        }
+
+        // Local groups (step 92.5, item L48): the user's custom groups
+        // with their palette colours — the intents apply after the
+        // snapshot borrow ends.
+        let intent = crate::nav_groups::groups_section(ui, &prefs_for_groups, &query);
+        matched_any |= intent.matched;
+        groups_intent = intent;
 
         // Native Access forms/reports (phase 74, step 74.1; item M87):
         // catalog names only — read-only, no definition decoding, no tab.
@@ -402,6 +381,29 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     if let Some(ids) = open_selection {
         for id in ids {
             app.dispatch(Command::OpenObject(id));
+        }
+    }
+    if let Some(objects) = new_group_intent {
+        app.open_group_dialog(objects);
+    }
+    if let (Some(view), Some(key)) = (view_intent, db_key.as_deref()) {
+        app.set_nav_view(key, view);
+    }
+    if let Some((object, mode)) = groups_intent.open {
+        match mode {
+            Some(mode) => app.dispatch(Command::OpenObjectInMode { object, mode }),
+            None => app.dispatch(Command::OpenObject(object)),
+        };
+    }
+    if let (Some(key), Some((group, object))) = (&db_key, groups_intent.remove) {
+        app.remove_from_nav_group(key, &group, &object);
+    }
+    if let Some(key) = &db_key {
+        if let Some(group) = &groups_intent.delete_group {
+            app.delete_nav_group(key, group);
+        }
+        if let Some((group, colour)) = &groups_intent.colour {
+            app.set_nav_group_colour(key, group, *colour);
         }
     }
     if let Some(order) = sort_intent {

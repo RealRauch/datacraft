@@ -438,7 +438,7 @@ fn broken_nav_entries_fall_back_and_unnamed_groups_are_skipped() {
     let path = dir.join("ui.json");
     std::fs::write(
         &path,
-        r#"{"nav":{"a.mdb":{"view":"sideways","groups":[{"colour":"pink"}],"x":1},"b.mdb":{"groups":[{"name":"G","colour":"teal","objects":[{"kind":"Table","name":"T"}]}]}}}"#,
+        r#"{"nav":{"a.mdb":{"view":"sideways","groups":[{"colour":"pink"}],"x":1},"b.mdb":{"groups":[{"name":"G","colour":"teal","objects":[{"kind":"table","name":"T"}]}]}}}"#,
     )
     .expect("write");
     let loaded = Settings::load(&path);

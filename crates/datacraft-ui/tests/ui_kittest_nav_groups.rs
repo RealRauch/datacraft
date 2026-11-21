@@ -13,7 +13,7 @@ use datacraft_ui::layout_probe;
 use datacraft_ui::settings::Settings;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::Queryable;
 
 fn group_app() -> App {
     let port = MockPort::with_tables(vec![
@@ -23,7 +23,10 @@ fn group_app() -> App {
         ),
         TableDef::new(
             "ServiceOrders",
-            vec![FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger))],
+            vec![FieldDef::new(
+                "Id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
         ),
     ]);
     let mut app = App::new(Box::new(port));
@@ -120,7 +123,26 @@ fn a_group_creates_from_the_selection_and_lists_its_objects() {
         .get_by_role_and_label(egui::accesskit::Role::TextInput, "Group name")
         .set_text_value_accesskit("Mine");
     harness.run();
-    harness.get_by_label("Create").click();
+    // "Create" labels the ribbon tab too — the dialog button sits
+    // rightmost (the floating window centers in the window).
+    let create = harness
+        .get_all_by_label("Create")
+        .map(|node| node.rect())
+        .max_by(|left, right| left.min.x.total_cmp(&right.min.x))
+        .expect("the dialog button carries the label");
+    harness.hover_at(create.center());
+    harness.event(egui::Event::PointerButton {
+        pos: create.center(),
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: create.center(),
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
     harness.run();
     harness.run();
 
@@ -163,7 +185,26 @@ fn the_group_persists_per_database_in_ui_json() {
         .get_by_role_and_label(egui::accesskit::Role::TextInput, "Group name")
         .set_text_value_accesskit("Mine");
     harness.run();
-    harness.get_by_label("Create").click();
+    // "Create" labels the ribbon tab too — the dialog button sits
+    // rightmost (the floating window centers in the window).
+    let create = harness
+        .get_all_by_label("Create")
+        .map(|node| node.rect())
+        .max_by(|left, right| left.min.x.total_cmp(&right.min.x))
+        .expect("the dialog button carries the label");
+    harness.hover_at(create.center());
+    harness.event(egui::Event::PointerButton {
+        pos: create.center(),
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: create.center(),
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
     harness.run();
     harness.run();
 
@@ -209,9 +250,31 @@ fn the_details_view_lists_every_object_flat() {
 
     harness.state_mut().persist_settings().expect("save");
     let loaded = Settings::load(&path);
-    assert_eq!(loaded.nav["shop.mdb"].view, datacraft_ui::nav_groups::NavView::Details);
+    assert_eq!(
+        loaded.nav["shop.mdb"].view,
+        datacraft_ui::nav_groups::NavView::Details
+    );
 
-    harness.get_by_label("Object Details").click();
+    // "Object Details" labels both the header dropdown and the details
+    // section header — the dropdown sits topmost in the pane.
+    let dropdown = harness
+        .get_all_by_label("Object Details")
+        .map(|node| node.rect())
+        .min_by(|left, right| left.min.y.total_cmp(&right.min.y))
+        .expect("the dropdown button carries the label");
+    harness.hover_at(dropdown.center());
+    harness.event(egui::Event::PointerButton {
+        pos: dropdown.center(),
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: dropdown.center(),
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
     harness.run();
     harness.get_by_label("All Access Objects").click();
     harness.run();

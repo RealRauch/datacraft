@@ -36,6 +36,9 @@ pub struct Settings {
     /// Per-surface task-pane geometry keyed by an opaque surface id
     /// (`"sql"` today; step 92.2, item M108). Values are sane (clamped).
     pub panes: std::collections::BTreeMap<String, crate::panes::PaneGeometry>,
+    /// Navigation-pane preferences keyed by the database path (view mode
+    /// and local groups; step 92.5, item L48). Never in the sidecar.
+    pub nav: std::collections::BTreeMap<String, crate::nav_groups::NavPrefs>,
     /// Paths dropped on load because they no longer exist (not persisted;
     /// surfaced as a startup notice).
     pub pruned_recent: Vec<PathBuf>,
@@ -150,6 +153,15 @@ impl Settings {
                     )
                 })
                 .collect(),
+            nav: self
+                .nav
+                .iter()
+                .filter_map(|(key, prefs)| {
+                    serde_json::to_value(prefs)
+                        .ok()
+                        .map(|value| (key.clone(), value))
+                })
+                .collect(),
         };
         let json = serde_json::to_string_pretty(&file).map_err(std::io::Error::other)?;
         if let Some(parent) = path.parent() {
@@ -210,6 +222,17 @@ impl Settings {
                     )
                 })
                 .collect(),
+            nav: file
+                .nav
+                .into_iter()
+                .filter_map(|(key, value)| {
+                    // Per-entry tolerance: one broken database entry must
+                    // not discard the others (the settings-file rule).
+                    serde_json::from_value::<NavPrefsFile>(value)
+                        .ok()
+                        .map(|entry| (key, entry.into_prefs()))
+                })
+                .collect(),
             pruned_recent: Vec::new(),
         }
     }
@@ -234,6 +257,51 @@ struct SettingsFile {
     recent: Vec<RecentFile>,
     #[serde(default)]
     panes: std::collections::BTreeMap<String, PaneFile>,
+    #[serde(default)]
+    nav: std::collections::BTreeMap<String, serde_json::Value>,
+}
+
+/// Tolerant on-disk shape of one database's nav preferences (step 92.5,
+/// item L48): unknown values fall back per field instead of dropping the
+/// entry.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct NavPrefsFile {
+    view: Option<String>,
+    groups: Vec<NavGroupFile>,
+}
+
+impl NavPrefsFile {
+    /// Maps the tolerated values onto the in-memory preferences.
+    fn into_prefs(self) -> crate::nav_groups::NavPrefs {
+        crate::nav_groups::NavPrefs {
+            view: crate::nav_groups::NavView::from_value(self.view.as_deref()),
+            groups: self
+                .groups
+                .into_iter()
+                .filter_map(|group| {
+                    let name = group.name?;
+                    if name.trim().is_empty() {
+                        return None;
+                    }
+                    Some(crate::nav_groups::NavGroup {
+                        name,
+                        colour: crate::nav_groups::NavColour::from_value(group.colour.as_deref()),
+                        objects: group.objects,
+                    })
+                })
+                .collect(),
+        }
+    }
+}
+
+/// Tolerant on-disk shape of one group.
+#[derive(Debug, Deserialize)]
+struct NavGroupFile {
+    name: Option<String>,
+    colour: Option<String>,
+    #[serde(default)]
+    objects: Vec<datacraft_core::ObjectId>,
 }
 
 /// On-disk shape of one pane geometry (step 92.2, item M108): optional

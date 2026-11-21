@@ -26,6 +26,9 @@ pub(crate) struct RowMenuIntent {
     pub delete: bool,
     /// The collective action: open every selected object.
     pub open_selection: Option<Vec<ObjectId>>,
+    /// The collective action: create a local group from the selection
+    /// (step 92.5, item L48).
+    pub new_group: Option<Vec<ObjectId>>,
 }
 
 /// Renders the row's context menu and returns the collected intents.
@@ -53,6 +56,16 @@ pub(crate) fn row_menu(
             .clicked()
         {
             intent.open_selection = Some(selection.to_vec());
+            ui.close();
+        }
+        if ui
+            .button(tr(
+                "New group from {count} selected",
+                &[("count", &count.to_string())],
+            ))
+            .clicked()
+        {
+            intent.new_group = Some(selection.to_vec());
             ui.close();
         }
         ui.separator();

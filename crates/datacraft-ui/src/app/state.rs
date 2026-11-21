@@ -34,6 +34,8 @@ pub struct App {
     pub nav_selection: Vec<datacraft_core::ObjectId>,
     /// The range anchor of the selection (the last plain-clicked row).
     pub nav_anchor: Option<datacraft_core::ObjectId>,
+    /// The pending "new group" dialog draft (step 92.5, item L48).
+    pub group_draft: Option<crate::nav_groups::GroupDraft>,
     /// Last viewport title sent to the window system (step 21.7, U11).
     pub(crate) window_title: String,
     /// Current ribbon key-tip phase (step 21.8, U12).
