@@ -191,10 +191,21 @@ jobs:
           path: lcov.info
 
   file-size:
-    name: Hygiene gates (< 500 lines, no debt markers)
+    name: Hygiene gates (< 500 lines, no debt markers, t()-bypass)
     runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.has_workspace == 'true'
     steps:
       - uses: actions/checkout@v4
+      # The t()-bypass guard below builds datacraft-ui (eframe/egui) — the
+      # same link pressure that killed the ubuntu test job on the migrated
+      # ubuntu-26 image (H55); the df lines stay in the log as evidence.
+      - name: Disk evidence and headroom (H55)
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/share/swift /opt/hostedtoolcache/CodeQL
+          df -h /
       - name: Enforce no technical-debt markers (TODO/FIXME/HACK/XXX)
         run: |
           set -euo pipefail
@@ -218,3 +229,12 @@ jobs:
             exit 1
           fi
           echo "OK: all Rust source files are below the 500-line limit."
+      - name: Enforce the i18n t()-bypass guard on paint sites (T12)
+        run: |
+          set -euo pipefail
+          # The rule's home is the in-crate scan
+          # (crates/datacraft-ui/src/i18n/bypass.rs, item T12); this step
+          # surfaces it in the hygiene lane so a raw paint literal fails the
+          # push visibly, not only inside the test suite.
+          cargo test --locked -p datacraft-ui --lib i18n::bypass
+          echo "OK: no raw literals at egui paint calls outside the allowlist."
