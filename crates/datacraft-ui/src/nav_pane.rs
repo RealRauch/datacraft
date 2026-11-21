@@ -431,18 +431,3 @@ fn active_object_name(
         .find(|tab| tab.id == active)
         .map(|tab| tab.object_name.clone())
 }
-
-/// Macros and modules are a read-only inventory (steps 17.1/17.2): no
-/// delete affordance.
-fn deletable(kind: ObjectKind) -> bool {
-    !matches!(kind, ObjectKind::Macro | ObjectKind::Module)
-}
-
-/// Tables, queries, forms and reports rename (M81); the read-only
-/// inventories and the native view editor (M93) keep their own surface.
-fn renamable(kind: ObjectKind) -> bool {
-    matches!(
-        kind,
-        ObjectKind::Table | ObjectKind::Query | ObjectKind::Form | ObjectKind::Report
-    )
-}
