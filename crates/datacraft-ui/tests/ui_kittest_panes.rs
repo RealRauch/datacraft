@@ -12,7 +12,7 @@ use datacraft_ui::panes::{DockMode, PaneGeometry};
 use datacraft_ui::settings::Settings;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::Queryable;
 
 fn sql_app() -> App {
     let port = MockPort::with_tables(vec![datacraft_core::schema::TableDef::new(
@@ -28,6 +28,10 @@ fn sql_app() -> App {
         password: None,
         source: None,
     });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Orders",
+    )));
     app.dispatch(Command::ToggleSqlWindow);
     app
 }
@@ -37,6 +41,9 @@ fn sql_app() -> App {
 fn pane_harness(app: App) -> Harness<'static, App> {
     Harness::new_ui_state(
         move |ui, app: &mut App| {
+            // The language static is process-wide; parallel tests in this
+            // binary would race the host locale otherwise.
+            datacraft_ui::i18n::set_lang(datacraft_ui::i18n::Lang::English);
             datacraft_ui::theme::fonts::install(ui.ctx());
             datacraft_ui::theme::apply(ui.ctx());
             layout_probe::clear();
@@ -124,8 +131,10 @@ fn the_pane_mode_survives_a_restart_from_the_settings_file() {
     app.set_pane_mode("sql", DockMode::Right);
     app.persist_settings().expect("save");
 
-    let loaded = Settings::load(&path);
+    let mut loaded = Settings::load(&path);
     assert_eq!(loaded.panes["sql"].mode, DockMode::Right);
+    // Pin the language: Auto would resolve the host locale process-wide.
+    loaded.language = datacraft_ui::settings::LanguageSetting::English;
 
     let mut restarted = sql_app();
     restarted.apply_settings(loaded);

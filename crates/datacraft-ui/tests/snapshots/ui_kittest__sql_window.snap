@@ -1,12 +1,12 @@
 ---
 source: crates/datacraft-ui/tests/ui_kittest.rs
-assertion_line: 251
 expression: tree_dump(&harness)
 ---
 Window|SQL|
 Button|Hide|
 Label||Statement
 TextRun||Statement
+Button|Dock|
 Button|Close|
 MultilineTextInput||SELECT 1 AS one;
 TextRun||SELECT 1 AS one;

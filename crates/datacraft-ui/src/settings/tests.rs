@@ -385,7 +385,7 @@ fn unknown_pane_entries_fall_back_to_sane_values() {
     let path = dir.join("ui.json");
     std::fs::write(
         &path,
-        r#"{"panes":{"sql":{"mode":"sideways"},"recent":[],"x":{"mode":"right","size":9000.0}}}"#,
+        r#"{"panes":{"sql":{"mode":"sideways"},"x":{"mode":"right","size":9000.0}}}"#,
     )
     .expect("write");
     let loaded = Settings::load(&path);

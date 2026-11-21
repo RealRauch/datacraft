@@ -458,4 +458,9 @@ pub static TABLE: &[(&str, &str)] = &[
         "The view could not be run: {reason}",
         "Die Ansicht konnte nicht ausgeführt werden: {reason}",
     ),
+    // Task-pane host (step 92.2, item M108).
+    ("Dock", "Andocken"),
+    ("Dock Right", "Rechts andocken"),
+    ("Dock Bottom", "Unten andocken"),
+    ("Float", "Schwebend"),
 ];

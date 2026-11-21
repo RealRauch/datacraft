@@ -155,6 +155,27 @@ impl eframe::App for App {
                 }
             });
 
+        // Docked task panes (step 92.2, item M108): declared before the
+        // central workspace so egui reserves the edge — the workspace can
+        // never overlap the docked pane. While the pane floats, the host
+        // renders nothing and the window paints after the workspace
+        // (unchanged behavior).
+        let sql_open = self.snapshot().sql_window_open;
+        crate::panes::pane_panel(
+            self,
+            ui,
+            crate::panes::PaneSpec {
+                surface: "sql",
+                title: "SQL",
+                probe: "panes.sql_panel",
+            },
+            sql_open,
+            crate::sql_window::sql_pane_content,
+            |app| {
+                app.dispatch(Command::ToggleSqlWindow);
+            },
+        );
+
         crate::workspace::workspace_ui(self, ui);
 
         crate::relationships::mapper_window(self, ui);
