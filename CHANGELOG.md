@@ -10,6 +10,13 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- ui: the dock rollout and the details Type column (93, M125/L64) —
+  the Relationships mapper and the Expression window dock through the
+  pane host like the SQL window (dock right/bottom or float, per-surface
+  geometry in ui.json, the workspace never overlaps a docked pane, the
+  pane header localizes its title), and the Object Details list renders
+  each row's localized kind as a trailing Type column while keeping the
+  nav sort, the search narrowing and the multi-select semantics.
 - ui: the open-items sweep (92, M99/M108/L48/L51) — platform-chord
   keyboard shortcuts (⌘S/⌘W/⌘Z/⌘⇧Z on macOS, Ctrl+S/W/Z/Y elsewhere,
   with the help page and tooltips rendering ⌘ through one
