@@ -449,3 +449,24 @@ fn broken_nav_entries_fall_back_and_unnamed_groups_are_skipped() {
     assert_eq!(group.colour, crate::nav_groups::NavColour::Teal);
     assert_eq!(group.objects.len(), 1);
 }
+
+/// The low-power setting round-trips (step 92.6, item L51) — `None`
+/// means auto-detection.
+#[test]
+fn the_low_power_setting_round_trips() {
+    let dir = temp_dir("low-power");
+    let path = dir.join("ui.json");
+    let settings = Settings {
+        low_power: Some(true),
+        ..Settings::default()
+    };
+    settings.save(&path).expect("save");
+    assert_eq!(Settings::load(&path), settings);
+    let settings = Settings {
+        low_power: Some(false),
+        ..Settings::default()
+    };
+    settings.save(&path).expect("save");
+    assert_eq!(Settings::load(&path), settings);
+    assert_eq!(Settings::default().low_power, None);
+}

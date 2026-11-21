@@ -53,6 +53,7 @@ pub mod password_prompt;
 pub mod qbe;
 pub mod relationships;
 pub mod rename_dialog;
+pub mod render_mode;
 pub mod report_design;
 pub mod ribbon;
 pub mod settings;
