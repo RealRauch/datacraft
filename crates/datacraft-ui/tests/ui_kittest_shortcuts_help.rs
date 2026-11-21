@@ -80,7 +80,16 @@ fn f1_opens_the_shortcuts_page_and_close_closes_it() {
 
     let dump = tree_dump(&harness);
     assert!(dump.contains("Keyboard Shortcuts"), "{dump}");
-    for keys in ["Ctrl+S", "Ctrl+W", "Ctrl+Z", "Ctrl+Y", "Esc", "F1"] {
+    // The table renders the platform's own chord form (⌘S on macOS,
+    // Ctrl+S elsewhere — the formatter is the contract; step 92.1, M99).
+    for keys in ["Ctrl+S", "Ctrl+W", "Ctrl+Z", "Ctrl+Y"] {
+        assert!(
+            dump.contains(&datacraft_ui::keys::shortcut_label(keys)),
+            "the table lists {}: {dump}",
+            datacraft_ui::keys::shortcut_label(keys)
+        );
+    }
+    for keys in ["Esc", "F1"] {
         assert!(dump.contains(keys), "the table lists {keys}: {dump}");
     }
 
