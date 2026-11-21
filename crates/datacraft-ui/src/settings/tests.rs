@@ -401,3 +401,51 @@ fn unknown_pane_entries_fall_back_to_sane_values() {
         loaded.panes["x"]
     );
 }
+
+/// Nav preferences round-trip per database path (step 92.5, item L48).
+#[test]
+fn nav_preferences_round_trip_per_database() {
+    let dir = temp_dir("nav");
+    let path = dir.join("ui.json");
+    let settings = Settings {
+        nav: std::iter::once((
+            "shop.mdb".to_owned(),
+            crate::nav_groups::NavPrefs {
+                view: crate::nav_groups::NavView::Details,
+                groups: vec![crate::nav_groups::NavGroup {
+                    name: "Mine".to_owned(),
+                    colour: crate::nav_groups::NavColour::Teal,
+                    objects: vec![datacraft_core::ObjectId::new(
+                        datacraft_core::ObjectKind::Table,
+                        "Customers",
+                    )],
+                }],
+            },
+        ))
+        .collect(),
+        ..Settings::default()
+    };
+    settings.save(&path).expect("save");
+    assert_eq!(Settings::load(&path), settings);
+}
+
+/// Broken nav entries fall back: an unknown view stays in the tree, an
+/// unknown colour takes the default, an unnamed group is skipped
+/// (step 92.5, item L48).
+#[test]
+fn broken_nav_entries_fall_back_and_unnamed_groups_are_skipped() {
+    let dir = temp_dir("nav-broken");
+    let path = dir.join("ui.json");
+    std::fs::write(
+        &path,
+        r#"{"nav":{"a.mdb":{"view":"sideways","groups":[{"colour":"pink"}],"x":1},"b.mdb":{"groups":[{"name":"G","colour":"teal","objects":[{"kind":"Table","name":"T"}]}]}}}"#,
+    )
+    .expect("write");
+    let loaded = Settings::load(&path);
+    assert_eq!(loaded.nav["a.mdb"].view, crate::nav_groups::NavView::Tree);
+    assert!(loaded.nav["a.mdb"].groups.is_empty());
+    let group = &loaded.nav["b.mdb"].groups[0];
+    assert_eq!(group.name, "G");
+    assert_eq!(group.colour, crate::nav_groups::NavColour::Teal);
+    assert_eq!(group.objects.len(), 1);
+}
