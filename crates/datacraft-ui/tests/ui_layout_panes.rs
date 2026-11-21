@@ -119,3 +119,57 @@ fn the_bottom_docked_relationships_pane_stays_between_workspace_and_status() {
         );
     }
 }
+
+/// The docked expression pane reserves its edge: the workspace never
+/// overlaps it (step 93.2, item M125) — at both pinned window sizes.
+#[test]
+fn the_docked_expression_pane_never_overlaps_the_workspace() {
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0)] {
+        let mut app = app_with_tables();
+        app.dispatch(Command::OpenObject(ObjectId::new(
+            ObjectKind::Table,
+            "ServiceOrders",
+        )));
+        app.dispatch(Command::ToggleExpressionWindow);
+        app.set_pane_mode("expression", DockMode::Right);
+        let (rects, _dump) = shell_frame(app, size);
+        let window = panel_rect(&rects, "probe.window");
+        let pane = panel_rect(&rects, "panes.expression_panel");
+        let workspace = panel_rect(&rects, "shell.workspace_panel");
+        assert!(
+            workspace.right() <= pane.left() + 1.0,
+            "the workspace content right ({workspace:?}) crosses the docked pane ({pane:?}) at {size:?} — the pane hides workspace content (M125)"
+        );
+        assert!(
+            pane.right() <= window.right() + 1.0,
+            "the docked pane leaves the window at {size:?}: {pane:?} in {window:?}"
+        );
+    }
+}
+
+/// The bottom-docked expression pane stacks above the status bar and
+/// below the workspace (step 93.2, item M125).
+#[test]
+fn the_bottom_docked_expression_pane_stays_between_workspace_and_status() {
+    for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0)] {
+        let mut app = app_with_tables();
+        app.dispatch(Command::OpenObject(ObjectId::new(
+            ObjectKind::Table,
+            "ServiceOrders",
+        )));
+        app.dispatch(Command::ToggleExpressionWindow);
+        app.set_pane_mode("expression", DockMode::Bottom);
+        let (rects, _dump) = shell_frame(app, size);
+        let pane = panel_rect(&rects, "panes.expression_panel");
+        let workspace = panel_rect(&rects, "shell.workspace_panel");
+        let status = panel_rect(&rects, "shell.status_panel");
+        assert!(
+            workspace.bottom() <= pane.top() + 1.0,
+            "the workspace content bottom ({workspace:?}) crosses the bottom-docked pane ({pane:?}) at {size:?} (M125)"
+        );
+        assert!(
+            pane.bottom() <= status.top() + 1.0,
+            "the bottom-docked pane ({pane:?}) crosses the status bar ({status:?}) at {size:?} (M125)"
+        );
+    }
+}
