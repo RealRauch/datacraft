@@ -116,12 +116,137 @@ fn the_header_menu_docks_the_sql_pane_right_and_back_to_float() {
     );
 }
 
-/// The docked mode survives a restart: the settings file restores it and
-/// the restarted shell renders the pane docked without interaction
-/// (step 92.2, item M108).
+/// An app with two related tables and the relationships mapper open
+/// (step 93.1, item M125).
+fn relationships_app() -> App {
+    let mut port = MockPort::with_tables(vec![
+        datacraft_core::schema::TableDef::new(
+            "Customers",
+            vec![datacraft_core::schema::FieldDef::new(
+                "id",
+                datacraft_core::schema::FieldKind::Number(
+                    datacraft_core::schema::NumericKind::LongInteger,
+                ),
+            )],
+        ),
+        datacraft_core::schema::TableDef::new(
+            "Orders",
+            vec![datacraft_core::schema::FieldDef::new(
+                "customer_id",
+                datacraft_core::schema::FieldKind::Number(
+                    datacraft_core::schema::NumericKind::LongInteger,
+                ),
+            )],
+        ),
+    ]);
+    port.with_relationships(vec![datacraft_core::port::Relationship {
+        table: "Customers".into(),
+        column: "id".into(),
+        related_table: "Orders".into(),
+        related_column: "customer_id".into(),
+    }]);
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+        source: None,
+    });
+    app.dispatch(Command::ToggleRelationshipMapper);
+    app
+}
+
+/// The header menu docks the relationships pane right, back to float, and
+/// the docked size lands in the settings capture (step 93.1, item M125).
 #[test]
-fn the_pane_mode_survives_a_restart_from_the_settings_file() {
-    let dir = std::env::temp_dir().join(format!("datacraft-panes-{}", std::process::id()));
+fn the_header_menu_docks_the_relationships_pane_right_and_back_to_float() {
+    let mut harness = pane_harness(relationships_app());
+    harness.set_size(egui::vec2(1280.0, 800.0));
+    harness.run();
+
+    let rects = layout_probe::drain();
+    assert!(
+        has_id(&rects, "relationships.window") && !has_id(&rects, "panes.relationships_panel"),
+        "the pane starts floating"
+    );
+
+    harness.get_by_label("Dock").click();
+    harness.run();
+    harness.get_by_label("Dock Right").click();
+    harness.run();
+    harness.run();
+
+    let rects = layout_probe::drain();
+    assert!(
+        has_id(&rects, "panes.relationships_panel") && !has_id(&rects, "relationships.window"),
+        "docking right replaces the floating window"
+    );
+    let pane = rect_of(&rects, "panes.relationships_panel");
+    let workspace = rect_of(&rects, "shell.workspace_panel");
+    assert!(
+        workspace.right() <= pane.left() + 1.0,
+        "the workspace overlaps the docked pane: {workspace:?} vs {pane:?}"
+    );
+    let size = harness.state().pane_geometry("relationships").size;
+    assert!(
+        size >= PaneGeometry::RIGHT_MIN,
+        "the dock width is captured: {size}"
+    );
+
+    harness.get_by_label("Dock").click();
+    harness.run();
+    harness.get_by_label("Float").click();
+    harness.run();
+    harness.run();
+
+    let rects = layout_probe::drain();
+    assert!(
+        has_id(&rects, "relationships.window") && !has_id(&rects, "panes.relationships_panel"),
+        "floating restores the window"
+    );
+}
+
+/// The relationships pane's dock mode survives a restart: the settings
+/// file restores it and the restarted shell renders the pane docked
+/// without interaction (step 93.1, item M125).
+#[test]
+fn the_relationships_pane_mode_survives_a_restart_from_the_settings_file() {
+    let dir = std::env::temp_dir().join(format!(
+        "datacraft-panes-relationships-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    let path = dir.join("ui.json");
+
+    let mut app = relationships_app();
+    app.set_settings_path(Some(path.clone()));
+    app.set_pane_mode("relationships", DockMode::Right);
+    app.persist_settings().expect("save");
+
+    let mut loaded = Settings::load(&path);
+    assert_eq!(loaded.panes["relationships"].mode, DockMode::Right);
+    // Pin the language: Auto would resolve the host locale process-wide.
+    loaded.language = datacraft_ui::settings::LanguageSetting::English;
+
+    let mut restarted = relationships_app();
+    restarted.apply_settings(loaded);
+    let mut harness = pane_harness(restarted);
+    harness.set_size(egui::vec2(1280.0, 800.0));
+    harness.run();
+
+    let rects = layout_probe::drain();
+    assert!(
+        has_id(&rects, "panes.relationships_panel"),
+        "the restarted shell renders the pane docked"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The SQL pane's restart pin (step 92.2, item M108) — kept next to the
+/// relationships one so both panes stay covered by the same suite.
+#[test]
+fn the_sql_pane_mode_survives_a_restart_from_the_settings_file() {
+    let dir = std::env::temp_dir().join(format!("datacraft-panes-sql-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("temp dir");
     let path = dir.join("ui.json");
