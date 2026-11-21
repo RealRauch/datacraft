@@ -57,8 +57,12 @@ fn cached_rows(harness: &Harness<'static, App>, tab: TabId) -> Option<usize> {
     harness.state().rows_for(tab).map(Vec::len)
 }
 
-/// One insert through the bus, then Ctrl+Z undoes it and Ctrl+Y redoes it.
+/// One insert through the bus, then ⌘Z undoes it and ⌘Y redoes it — the
+/// chord form of the platforms whose redo chord is ⌘Y (step 92.1, item
+/// M99). On macOS ⌘Y stays unmapped; that platform's proof runs in the
+/// gated `command_shift_z_redoes_on_macos`.
 #[test]
+#[cfg(not(target_os = "macos"))]
 fn control_z_undoes_and_control_y_redoes_the_last_row_write() {
     let (mut app, tab) = notes_app();
     app.dispatch(Command::InsertRow {
