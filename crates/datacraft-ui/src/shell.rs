@@ -197,6 +197,24 @@ impl eframe::App for App {
             crate::relationships::close_mapper,
         );
 
+        // Dock rollout (step 93.2, item M125): the expression window is
+        // the third docked surface — same host, its own geometry.
+        let expression_open = self.snapshot().expression_window_open;
+        crate::panes::pane_panel(
+            self,
+            ui,
+            crate::panes::PaneSpec {
+                surface: "expression",
+                title: "Expression",
+                probe: "panes.expression_panel",
+            },
+            expression_open,
+            crate::expression_window::expression_pane_content,
+            |app| {
+                app.dispatch(Command::ToggleExpressionWindow);
+            },
+        );
+
         crate::workspace::workspace_ui(self, ui);
 
         crate::relationships::mapper_window(self, ui);

@@ -294,10 +294,8 @@ fn the_header_menu_docks_the_expression_pane_right_and_back_to_float() {
 /// interaction (step 93.2, item M125).
 #[test]
 fn the_expression_pane_mode_survives_a_restart_from_the_settings_file() {
-    let dir = std::env::temp_dir().join(format!(
-        "datacraft-panes-expression-{}",
-        std::process::id()
-    ));
+    let dir =
+        std::env::temp_dir().join(format!("datacraft-panes-expression-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("temp dir");
     let path = dir.join("ui.json");
