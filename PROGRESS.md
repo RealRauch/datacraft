@@ -9,14 +9,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 93 — Dock rollout and the details grid
-
-**Scope (Steps):**
-
-- **93.1 The Relationships mapper docks through the pane host (M125, M108 follow-up)**
-- **93.2 The Expression window docks through the pane host (M125)**
-- **93.3 Object Details gains its Type column — the grid overview (L64, L48 follow-up)**
-- **93.4 Documentation and phase gate (M125, L64)**
 
 
 
@@ -524,7 +516,7 @@
 | 92.5 | Nav pane: list/grid overview, local groups and colours persisted per database in ui.json (L48) | ✅ |
 | 92.6 | Low-power/RDP rendering mode — detection, override>setting>detection precedence, measurable effects, overlay (L51) | ✅ |
 | 92.7 | Documentation and phase gate (M99, M108, L48, L51) | ✅ |
-| 93.1 | The Relationships mapper docks through the pane host (M125, M108 follow-up) | 🔄 |
-| 93.2 | The Expression window docks through the pane host (M125) | ⬜ |
-| 93.3 | Object Details gains its Type column — the grid overview (L64, L48 follow-up) | ⬜ |
-| 93.4 | Documentation and phase gate (M125, L64) | ⬜ |
+| 93.1 | The Relationships mapper docks through the pane host (M125, M108 follow-up) | ✅ |
+| 93.2 | The Expression window docks through the pane host (M125) | ✅ |
+| 93.3 | Object Details gains its Type column — the grid overview (L64, L48 follow-up) | ✅ |
+| 93.4 | Documentation and phase gate (M125, L64) | ✅ |
