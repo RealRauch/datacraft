@@ -23,9 +23,21 @@
 - **Steps:** none yet.
 - **Done:** step 93.3 — done in `da1f41d` (labels::object_kind_label + the accessibility value; the German catalog gains the five singular kind labels)
 
+---
+
+### [x] R3 — Method retrospective (PLAYBOOK §8) — phases 89–93 checkpoint — 🟢
+- **Scope:** the project's first PLAYBOOK §8 retrospective — `docs/LESSONS.md` (all 32 rules) and `AGENTS.md` against the phases 89–93 window.
+- **Verdict: every rule stays** — no demotion, no drop; no PLAYBOOK/LESSONS text changed, so no sync across method copies is required.
+- **Rules that caught something in the window (evidence):** the file-size gate forced three splits in step 91.13 (`form_runtime.rs` 534 → 484, `port.rs` → `port/family.rs`, `grid.rs` → the `paint_row_chrome` helper); test-first's existing pins caught step 93.2's header extraction deterministically (the missing `ui.horizontal` row killed the window's interactions); LESSONS #28 held twice — the m99 platform pins failed on macOS CI (the Windows machine cannot see ⌘-forms; fixed in `7d5545d`/`f26b8ac`) and the phase-93 push closed the phase with the green run 44942643622; LESSONS #17 held — every structure op ran through the stepwell tools, two accidental dry-run calls were caught by reading the tool output, no drift.
+- **Central finding (LESSONS #26 applied to itself):** the i18n rule (AGENTS §6, "UI strings go through `t()`/`tr()`") is prose-only — the pane-header bypass (step 93.1) survived to acceptance review because the pilot's title is identical in German. → filed as **T12** (mechanical t()-bypass scan in the CI hygiene job).
+- **Overhead:** no rule cost more than it caught; AGENTS §3 mirrors PLAYBOOK §0.5 deliberately (AGENTS is the summary, PLAYBOOK wins on conflict) — no consolidation. The web/API-scoped LESSONS section A stayed dormant (no such surface changed in the window).
+- **Outcomes:** T12 filed; AGENTS §8 documents the transient Windows LNK1104 rerun hint (`-j 2`); the PROGRESS header declares the interval — every 5 phases, next checkpoint at phase 98.
+- **Done:** completed at the phase-93 milestone — doc checkpoint `4270869`; follow-ups: T12 (open), AGENTS §8 note and the PROGRESS retro-interval declaration ride `4270869`
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
 
 - M125 — Dock rollout: the remaining dockable tool surfaces — done (steps 93.1–93.2 — done in `366ca3b` (relationships dock) and `67b9276` (expression dock; carries the pane-header t() fix))
 - L64 — Object Details gains its Type column (the grid overview) — done (step 93.3 — done in `da1f41d` (labels::object_kind_label + the accessibility value; the German catalog gains the five singular kind labels))
+- R3 — Method retrospective (PLAYBOOK §8) — phases 89–93 checkpoint — done (completed at the phase-93 milestone — doc checkpoint `4270869`; follow-ups: T12 (open), AGENTS §8 note and the PROGRESS retro-interval declaration ride `4270869`)
