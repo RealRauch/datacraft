@@ -146,13 +146,23 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                             );
                             let row_id = ui.scope_id().with(("nav.row", &name));
                             let row = ui.interact(rect, row_id, egui::Sense::click());
+                            // The details view's trailing Type column (step
+                            // 93.3, item L64): the localized kind rides the
+                            // row's accessibility value so automation reads
+                            // name and kind without changing the label.
+                            let type_label =
+                                details.then(|| crate::labels::object_kind_label(kind));
                             row.widget_info(|| {
-                                egui::WidgetInfo::selected(
+                                let mut info = egui::WidgetInfo::selected(
                                     egui::Role::Button,
                                     true,
                                     is_active,
                                     name.clone(),
-                                )
+                                );
+                                if let Some(type_label) = &type_label {
+                                    info.current_text_value = Some((*type_label).to_owned());
+                                }
+                                info
                             });
                             crate::nav_row::paint_row(
                                 ui,
@@ -161,6 +171,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                                 &name,
                                 kind,
                                 is_active || is_selected,
+                                type_label,
                             );
                             if row.clicked() {
                                 // Multi-select semantics (step 92.4, item

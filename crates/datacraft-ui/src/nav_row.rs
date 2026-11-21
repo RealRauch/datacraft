@@ -12,7 +12,10 @@ use datacraft_core::ObjectKind;
 use crate::theme::tokens;
 
 /// Paints one nav row inside `rect`: the wash when the row is active or
-/// part of the selection, the kind icon and the label.
+/// part of the selection, the kind icon and the label. `type_label` adds
+/// the details view's trailing Type column (step 93.3, item L64) —
+/// right-aligned muted text; the localized kind also rides the row's
+/// accessibility value, which the caller sets.
 pub(crate) fn paint_row(
     ui: &egui::Ui,
     rect: egui::Rect,
@@ -20,6 +23,7 @@ pub(crate) fn paint_row(
     name: &str,
     kind: ObjectKind,
     highlighted: bool,
+    type_label: Option<&str>,
 ) {
     let tokens = tokens(ui.visuals());
     if highlighted {
@@ -51,7 +55,16 @@ pub(crate) fn paint_row(
         rect.left_top() + egui::vec2(crate::icons::ICON_SIZE + 10.0, row_height / 2.0),
         egui::Align2::LEFT_CENTER,
         name,
-        font,
+        font.clone(),
         text_ink,
     );
+    if let Some(type_label) = type_label {
+        ui.painter().text(
+            rect.right_center() - egui::vec2(8.0, 0.0),
+            egui::Align2::RIGHT_CENTER,
+            type_label,
+            font.clone(),
+            tokens.text_muted,
+        );
+    }
 }

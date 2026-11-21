@@ -6,6 +6,7 @@
 
 use datacraft_core::schema::{AutoKind, BinaryKind, FieldKind, FieldValue, NumericKind};
 
+use datacraft_core::ObjectKind;
 use datacraft_core::port::NativeQueryKind;
 
 use crate::i18n::{t, tr};
@@ -52,6 +53,21 @@ pub fn native_query_kind_label(kind: NativeQueryKind) -> &'static str {
         NativeQueryKind::DataDefinition => t("Data-definition query"),
         NativeQueryKind::Passthrough => t("Pass-through query"),
         NativeQueryKind::Union => t("Union query"),
+    }
+}
+
+/// Localized singular name of an object kind (step 93.3, item L64): the
+/// Object Details list's trailing Type column — the same display
+/// vocabulary the catalog carries for the sections' singular labels.
+pub fn object_kind_label(kind: ObjectKind) -> &'static str {
+    match kind {
+        ObjectKind::Table => t("Table"),
+        ObjectKind::Query => t("Query"),
+        ObjectKind::View => t("View"),
+        ObjectKind::Form => t("Form"),
+        ObjectKind::Report => t("Report"),
+        ObjectKind::Macro => t("Macro"),
+        ObjectKind::Module => t("Module"),
     }
 }
 

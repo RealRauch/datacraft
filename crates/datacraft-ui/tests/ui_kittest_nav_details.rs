@@ -22,7 +22,7 @@ use datacraft_ui::layout_probe;
 use datacraft_ui::nav_groups::{NavView, prefs_key};
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 /// Serializes every test in this binary: the language is process state.
 static LANG_GUARD: Mutex<()> = Mutex::new(());

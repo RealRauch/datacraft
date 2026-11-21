@@ -437,6 +437,7 @@ pub(crate) fn groups_section(ui: &mut egui::Ui, prefs: &NavPrefs, query: &str) -
                         &object.name,
                         object.kind,
                         false,
+                        None,
                     );
                     if row.clicked() {
                         intent.open = Some((object.clone(), None));
