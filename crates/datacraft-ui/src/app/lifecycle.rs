@@ -42,6 +42,16 @@ impl App {
             self.active_ribbon_tab = "home";
             self.backstage_page = BackstagePage::Home;
         }
+        // A fresh database starts with a fresh navigation selection
+        // (step 92.4, item L48) — stale rows must never survive into the
+        // next database (the H48 lesson).
+        if events
+            .iter()
+            .any(|event| matches!(event, Event::DatabaseOpened { .. } | Event::DatabaseClosed))
+        {
+            self.nav_selection.clear();
+            self.nav_anchor = None;
+        }
         if events
             .iter()
             .any(|event| matches!(event, Event::DatabaseClosed))

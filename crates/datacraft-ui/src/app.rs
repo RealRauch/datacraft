@@ -51,6 +51,8 @@ impl App {
             backstage_page: crate::backstage::BackstagePage::default(),
             nav_sort: datacraft_core::nav::NavSortOrder::default(),
             nav_search: String::new(),
+            nav_selection: Vec::new(),
+            nav_anchor: None,
             window_title: "DataCraft".to_owned(),
             keytips: None,
             alt_down: false,

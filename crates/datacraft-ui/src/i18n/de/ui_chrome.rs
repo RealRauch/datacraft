@@ -469,4 +469,9 @@ pub static TABLE: &[(&str, &str)] = &[
         "No objects match {query}",
         "Keine Objekte passen zu {query}",
     ),
+    // Nav-pane selection (step 92.4, item L48).
+    (
+        "Open {count} selected",
+        "{count} ausgewählte Objekte öffnen",
+    ),
 ];

@@ -23,11 +23,17 @@ fn multi_app() -> App {
         ),
         TableDef::new(
             "Orders",
-            vec![FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger))],
+            vec![FieldDef::new(
+                "Id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
         ),
         TableDef::new(
             "ServiceOrders",
-            vec![FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger))],
+            vec![FieldDef::new(
+                "Id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
         ),
     ]);
     let mut app = App::new(Box::new(port));
@@ -55,11 +61,25 @@ fn shell_harness(app: App) -> Harness<'static, App> {
     )
 }
 
-/// Presses and releases the primary button at the row with `modifiers`
-/// (a kittest click carries no modifiers — multi-select needs them).
+/// The rect of the leftmost node carrying `label` — the nav row. Once a
+/// table is open, the tab strip carries the same label; the nav pane
+/// always sits left of it.
+fn row_rect(harness: &Harness<'static, App>, label: &str) -> egui::Rect {
+    harness
+        .get_all_by_label(label)
+        .map(|node| node.rect())
+        .min_by(|left, right| left.min.x.total_cmp(&right.min.x))
+        .expect("a node carries the label")
+}
+
+/// Presses and releases the primary button at the row with `modifiers`.
+/// egui reads the current modifiers from `Event::ModifiersChanged`, not
+/// from the pointer event — so the modifier state is announced before
+/// the press and reset after the release.
 fn click_row(harness: &mut Harness<'static, App>, label: &str, modifiers: egui::Modifiers) {
-    let pos = harness.get_by_label(label).rect().center();
+    let pos = row_rect(harness, label).center();
     harness.hover_at(pos);
+    harness.event(egui::Event::ModifiersChanged(modifiers));
     harness.event(egui::Event::PointerButton {
         pos,
         button: egui::PointerButton::Primary,
@@ -72,13 +92,14 @@ fn click_row(harness: &mut Harness<'static, App>, label: &str, modifiers: egui::
         pressed: false,
         modifiers,
     });
+    harness.event(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
     harness.run();
     harness.run();
 }
 
 /// Right-clicks the row (the context menu opens on the next frames).
 fn right_click_row(harness: &mut Harness<'static, App>, label: &str) {
-    let pos = harness.get_by_label(label).rect().center();
+    let pos = row_rect(harness, label).center();
     harness.hover_at(pos);
     harness.event(egui::Event::PointerButton {
         pos,
@@ -140,14 +161,22 @@ fn shift_click_ranges_a_section_from_the_anchor() {
     click_row(&mut harness, "ServiceOrders", egui::Modifiers::SHIFT);
 
     right_click_row(&mut harness, "Orders");
+    // The menu label proves the selection holds both rows before it acts.
     harness.get_by_label("Open 2 selected").click();
     harness.run();
     harness.run();
 
-    assert_eq!(
-        harness.state().snapshot().tabs.len(),
-        3,
-        "the anchor tab plus the ranged pair"
+    // The already-open Orders tab is reused (step 88.3, item L49) — the
+    // ranged pair yields one new tab for ServiceOrders.
+    assert_eq!(harness.state().snapshot().tabs.len(), 2);
+    assert!(
+        harness
+            .state()
+            .snapshot()
+            .tabs
+            .iter()
+            .any(|tab| tab.object_name == "ServiceOrders"),
+        "the ranged row opened"
     );
 }
 

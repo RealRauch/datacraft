@@ -82,8 +82,14 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
     let mut open_intent: Option<(ObjectKind, String, Option<TabMode>)> = None;
     let mut rename_intent: Option<(ObjectKind, String)> = None;
     let mut delete_intent: Option<(ObjectKind, String)> = None;
+    let mut open_selection: Option<Vec<ObjectId>> = None;
     let mut sort_intent: Option<NavSortOrder> = None;
     let mut new_view = false;
+    // The selection the row clicks build (step 92.4, item L48): applied
+    // after the scroll area, like every other intent.
+    let mut selection_intent: Option<(Vec<ObjectId>, Option<ObjectId>)> = None;
+    let current_selection = app.nav_selection.clone();
+    let current_anchor = app.nav_anchor.clone();
     egui::ScrollArea::vertical().show(ui, |ui| {
         // Section: a collapsible group whose entries open from the context
         // menu (Open / Design / Delete); the header carries the sort menu.
@@ -97,11 +103,16 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             let group = egui::CollapsingHeader::new(egui::RichText::new(t(header)).strong())
                 .default_open(true)
                 .show(ui, |ui| {
-                    for (name, kind) in entries {
+                    for (index, (name, kind)) in entries.iter().enumerate() {
+                        let name = name.clone();
+                        let kind = *kind;
                         ui.push_id(format!("nav.{header}.{name}"), |ui| {
                             let is_active = active_object
                                 .as_deref()
                                 .is_some_and(|active| active.eq_ignore_ascii_case(&name));
+                            let is_selected = current_selection
+                                .iter()
+                                .any(|id| id.kind == kind && id.name.eq_ignore_ascii_case(&name));
                             // The whole row is the click target (step 91.7,
                             // item L55): icon and label paint inside one
                             // interacted rect, like the backstage nav rows.
@@ -124,135 +135,91 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                                     name.clone(),
                                 )
                             });
-                            let tokens = crate::theme::tokens(ui.visuals());
-                            if is_active {
-                                ui.painter().rect_filled(rect, 0.0, tokens.accent_faint);
-                            }
-                            let icon_ink = if is_active {
-                                tokens.accent_text
-                            } else {
-                                tokens.text_muted
-                            };
-                            let icon_rect = egui::Rect::from_min_size(
-                                rect.left_top()
-                                    + egui::vec2(4.0, (row_height - crate::icons::ICON_SIZE) / 2.0),
-                                egui::vec2(crate::icons::ICON_SIZE, crate::icons::ICON_SIZE),
-                            );
-                            crate::icons::paint(
-                                ui.painter(),
-                                icon_rect,
-                                kind.slug(),
-                                icon_ink,
-                                tokens.accent,
-                            );
-                            let font = egui::TextStyle::Body.resolve(ui.style());
-                            let text_ink = if is_active {
-                                tokens.accent_text
-                            } else {
-                                tokens.text
-                            };
-                            ui.painter().text(
-                                rect.left_top()
-                                    + egui::vec2(crate::icons::ICON_SIZE + 10.0, row_height / 2.0),
-                                egui::Align2::LEFT_CENTER,
+                            crate::nav_row::paint_row(
+                                ui,
+                                rect,
+                                row_height,
                                 &name,
-                                font,
-                                text_ink,
+                                kind,
+                                is_active || is_selected,
                             );
                             if row.clicked() {
-                                open_intent = Some((kind, name.clone(), None));
+                                // Multi-select semantics (step 92.4, item
+                                // L48): Shift ranges from the anchor within
+                                // the section's display order, Ctrl toggles
+                                // without opening, a plain click opens and
+                                // resets the selection.
+                                let (command_ctrl, shift) = ui.input(|input| {
+                                    (
+                                        input.modifiers.command || input.modifiers.ctrl,
+                                        input.modifiers.shift,
+                                    )
+                                });
+                                let clicked = ObjectId::new(kind, &name);
+                                if shift {
+                                    let ranged = current_anchor.as_ref().and_then(|anchor| {
+                                        (anchor.kind == kind).then(|| {
+                                            let anchor_index = entries
+                                                .iter()
+                                                .position(|(entry, _)| {
+                                                    entry.eq_ignore_ascii_case(&anchor.name)
+                                                })
+                                                .unwrap_or(index);
+                                            let (low, high) = if anchor_index <= index {
+                                                (anchor_index, index)
+                                            } else {
+                                                (index, anchor_index)
+                                            };
+                                            entries[low..=high]
+                                                .iter()
+                                                .map(|(entry, entry_kind)| {
+                                                    ObjectId::new(*entry_kind, entry)
+                                                })
+                                                .collect::<Vec<_>>()
+                                        })
+                                    });
+                                    selection_intent = Some((
+                                        ranged.unwrap_or_else(|| vec![clicked.clone()]),
+                                        current_anchor.clone(),
+                                    ));
+                                } else if command_ctrl {
+                                    let mut picked = current_selection.clone();
+                                    if let Some(existing) = picked
+                                        .iter()
+                                        .position(|id| id.kind == kind && id.name == name)
+                                    {
+                                        picked.remove(existing);
+                                    } else {
+                                        picked.push(clicked.clone());
+                                    }
+                                    selection_intent = Some((picked, current_anchor.clone()));
+                                } else {
+                                    open_intent = Some((kind, name.clone(), None));
+                                    selection_intent = Some((vec![clicked.clone()], Some(clicked)));
+                                }
                             }
                             row.context_menu(|ui| {
-                                let open = ui
-                                    .push_id(format!("nav.{header}.{name}.menu.open"), |ui| {
-                                        ui.button(t("Open"))
-                                    })
-                                    .inner
-                                    .clicked();
-                                if open {
+                                let multi = if is_selected && current_selection.len() > 1 {
+                                    Some(current_selection.as_slice())
+                                } else {
+                                    None
+                                };
+                                let menu =
+                                    crate::nav_menu::row_menu(app, ui, header, &name, kind, multi);
+                                if let Some(ids) = menu.open_selection {
+                                    open_selection = Some(ids);
+                                }
+                                if menu.open {
                                     open_intent = Some((kind, name.clone(), None));
-                                    ui.close();
                                 }
-                                if kind.has_design_view() {
-                                    let design = ui
-                                        .push_id(format!("nav.{header}.{name}.menu.design"), |ui| {
-                                            ui.button(t("Design"))
-                                        })
-                                        .inner
-                                        .clicked();
-                                    if design {
-                                        open_intent =
-                                            Some((kind, name.clone(), Some(TabMode::Design)));
-                                        ui.close();
-                                    }
+                                if menu.design {
+                                    open_intent = Some((kind, name.clone(), Some(TabMode::Design)));
                                 }
-                                if renamable(kind) {
-                                    // Tables gate on the rename
-                                    // capability (ADR-7); sidecar
-                                    // objects are always renamable.
-                                    let reason = if kind == ObjectKind::Table {
-                                        crate::availability::restricted(
-                                            app.snapshot(),
-                                            datacraft_core::availability::ids::NAV_RENAME,
-                                        )
-                                    } else {
-                                        None
-                                    };
-                                    let rename = ui
-                                        .push_id(format!("nav.{header}.{name}.menu.rename"), |ui| {
-                                            match reason {
-                                                Some(reason) => ui
-                                                    .add_enabled(
-                                                        false,
-                                                        egui::Button::new(t("Rename")),
-                                                    )
-                                                    .on_hover_text(
-                                                        crate::availability::reason_text(reason),
-                                                    ),
-                                                None => ui.button(t("Rename")),
-                                            }
-                                        })
-                                        .inner
-                                        .clicked();
-                                    if rename {
-                                        rename_intent = Some((kind, name.clone()));
-                                        ui.close();
-                                    }
+                                if menu.rename {
+                                    rename_intent = Some((kind, name.clone()));
                                 }
-                                if deletable(kind) {
-                                    // Capability-disabled for the open
-                                    // source (ADR-7): the entry renders
-                                    // muted with the reason, no click.
-                                    let reason = crate::availability::restricted(
-                                        app.snapshot(),
-                                        datacraft_core::availability::ids::NAV_DELETE,
-                                    );
-                                    let remove = ui
-                                        .push_id(format!("nav.{header}.{name}.menu.delete"), |ui| {
-                                            match reason {
-                                                Some(reason) => ui
-                                                    .add_enabled(
-                                                        false,
-                                                        egui::Button::new(tr(
-                                                            "Delete {name}",
-                                                            &[("name", &name)],
-                                                        )),
-                                                    )
-                                                    .on_hover_text(
-                                                        crate::availability::reason_text(reason),
-                                                    ),
-                                                None => ui.button(tr(
-                                                    "Delete {name}",
-                                                    &[("name", &name)],
-                                                )),
-                                            }
-                                        })
-                                        .inner
-                                        .clicked();
-                                    if remove {
-                                        delete_intent = Some((kind, name.clone()));
-                                        ui.close();
-                                    }
+                                if menu.delete {
+                                    delete_intent = Some((kind, name.clone()));
                                 }
                             });
                         });
@@ -428,6 +395,15 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             );
         }
     });
+    if let Some((picked, anchor)) = selection_intent {
+        app.nav_selection = picked;
+        app.nav_anchor = anchor;
+    }
+    if let Some(ids) = open_selection {
+        for id in ids {
+            app.dispatch(Command::OpenObject(id));
+        }
+    }
     if let Some(order) = sort_intent {
         app.nav_sort = order;
     }

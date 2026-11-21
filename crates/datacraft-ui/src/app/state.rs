@@ -29,6 +29,11 @@ pub struct App {
     /// Navigation-pane search query (step 92.3, item L48) — session-only
     /// presentation state, never persisted.
     pub nav_search: String,
+    /// Navigation-pane selection (step 92.4, item L48) — the rows picked
+    /// with Ctrl/Shift clicks, in click order; session-only state.
+    pub nav_selection: Vec<datacraft_core::ObjectId>,
+    /// The range anchor of the selection (the last plain-clicked row).
+    pub nav_anchor: Option<datacraft_core::ObjectId>,
     /// Last viewport title sent to the window system (step 21.7, U11).
     pub(crate) window_title: String,
     /// Current ribbon key-tip phase (step 21.8, U12).
