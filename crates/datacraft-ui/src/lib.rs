@@ -42,6 +42,7 @@ pub mod labels;
 pub mod layout_probe;
 pub mod macro_viewer;
 pub mod nav_pane;
+pub mod nav_search;
 pub mod notices_dialog;
 pub mod panes;
 pub mod password_prompt;
