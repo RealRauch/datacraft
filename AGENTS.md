@@ -157,7 +157,9 @@ Hard rules (CI-enforced):
 - UI strings go through `t()`/`tr()` in `crates/datacraft-ui/src/i18n.rs`; the
   English source string is the key, the German catalog resolves it, unknown
   keys fall back to English. Language stays UI-owned — never in core, sidecar
-  or wire.
+  or wire. The rule is mechanically guarded (T12): the paint-site scan
+  (`i18n::bypass`) fails on a raw literal at an egui paint call; painted
+  glyphs live in that scan's explicit allowlist.
 - No async runtime. Background work uses `std::thread` + channels behind core
   ports.
 - `unsafe_code = "forbid"` workspace-wide. libmdb/MDB Tools is a **test-time
