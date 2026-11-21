@@ -211,6 +211,10 @@ Hard rules (CI-enforced):
 
 - Platform: Windows, shell is **Git Bash**.
 - Toolchain is pinned in `rust-toolchain.toml` (Rust 1.98.1); MSRV is 1.98.
+- Local Windows linking can hit transient `LNK1104` (a freshly built test
+  exe or the ucrt lib locked under full parallelism); rerun with
+  `cargo test --workspace -j 2` — CI ubuntu-latest stays the binding
+  gate (retrospective checkpoint phase 93).
 - Line endings are normalized to LF via `.gitattributes`; binaries
   (`*.png`, `*.mdb`, `*.accdb`, …) stay binary.
 - `lcov.info` is generated and git-ignored; `.zcode/` holds local session
