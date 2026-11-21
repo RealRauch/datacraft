@@ -72,6 +72,10 @@ fn the_bottom_docked_sql_pane_stays_between_workspace_and_status() {
 fn the_docked_relationships_pane_never_overlaps_the_workspace() {
     for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0)] {
         let mut app = app_with_tables();
+        app.dispatch(Command::OpenObject(ObjectId::new(
+            ObjectKind::Table,
+            "ServiceOrders",
+        )));
         app.dispatch(Command::ToggleRelationshipMapper);
         app.set_pane_mode("relationships", DockMode::Right);
         let (rects, _dump) = shell_frame(app, size);
@@ -95,6 +99,10 @@ fn the_docked_relationships_pane_never_overlaps_the_workspace() {
 fn the_bottom_docked_relationships_pane_stays_between_workspace_and_status() {
     for size in [egui::vec2(1280.0, 800.0), egui::vec2(960.0, 600.0)] {
         let mut app = app_with_tables();
+        app.dispatch(Command::OpenObject(ObjectId::new(
+            ObjectKind::Table,
+            "ServiceOrders",
+        )));
         app.dispatch(Command::ToggleRelationshipMapper);
         app.set_pane_mode("relationships", DockMode::Bottom);
         let (rects, _dump) = shell_frame(app, size);

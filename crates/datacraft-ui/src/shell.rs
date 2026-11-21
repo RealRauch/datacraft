@@ -181,6 +181,22 @@ impl eframe::App for App {
             },
         );
 
+        // Dock rollout (step 93.1, item M125): the relationships mapper
+        // is the second docked surface — same host, its own geometry.
+        let relationships_open = self.snapshot().relationship_mapper_open;
+        crate::panes::pane_panel(
+            self,
+            ui,
+            crate::panes::PaneSpec {
+                surface: "relationships",
+                title: "Relationships",
+                probe: "panes.relationships_panel",
+            },
+            relationships_open,
+            crate::relationships::mapper_pane_content,
+            crate::relationships::close_mapper,
+        );
+
         crate::workspace::workspace_ui(self, ui);
 
         crate::relationships::mapper_window(self, ui);

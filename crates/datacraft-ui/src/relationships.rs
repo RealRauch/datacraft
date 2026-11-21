@@ -1,23 +1,26 @@
 //! Relationship mapper pane (step 7.1, item H25).
 //!
-//! A floating window listing the snapshot's relationships and painting
-//! the table boxes with connection lines. Pure paint: the data comes from
+//! A tool window listing the snapshot's relationships and painting the
+//! table boxes with connection lines. Pure paint: the data comes from
 //! the snapshot, and every intent dispatches exactly one command — a
 //! per-row delete and the create form's single `CreateRelationship`
 //! (step 41.1, item M45). Both write affordances render disabled with
 //! the localized reason when the driver reports less than `Support::Yes`,
-//! mirroring the dispatch gate.
+//! mirroring the dispatch gate. Since the dock rollout (step 93.1, item
+//! M125) the surface docks through the pane host right/bottom and keeps
+//! the floating window while it floats.
 
 use eframe::egui;
 
-use datacraft_core::availability::ids;
+use datacraft_core::availability::{DisabledReason, ids};
 use datacraft_core::command::Command;
 use datacraft_core::port::Relationship;
-use datacraft_core::snapshot::{FieldSnapshot, TableEntrySnapshot};
+use datacraft_core::snapshot::{DatabaseSnapshot, FieldSnapshot, TableEntrySnapshot};
 
 use crate::app::App;
 use crate::availability::restricted;
 use crate::i18n::{plural, t};
+use crate::panes::{DockMode, dock_menu};
 
 /// Box geometry for the canvas.
 const BOX_SIZE: egui::Vec2 = egui::Vec2::new(150.0, 64.0);
@@ -45,10 +48,13 @@ pub struct RelationshipDraft {
     pub related_column: String,
 }
 
-/// Renders the floating relationship mapper (when open).
+/// Renders the floating relationship mapper (when open and not docked).
 pub fn mapper_window(app: &mut App, ui: &mut egui::Ui) {
     if !app.snapshot().relationship_mapper_open {
         return;
+    }
+    if app.pane_geometry("relationships").mode != DockMode::Float {
+        return; // the dock host's panel renders the content (M125)
     }
     let snapshot = app.snapshot().clone();
     let Some(db) = snapshot.database.clone() else {
@@ -59,7 +65,7 @@ pub fn mapper_window(app: &mut App, ui: &mut egui::Ui) {
     let mut close = false;
     let mut delete: Option<Relationship> = None;
     let mut create: Option<Relationship> = None;
-    egui::Window::new(t("Relationships"))
+    let response = egui::Window::new(t("Relationships"))
         .id(egui::Id::unique("datacraft.relationships"))
         .default_width(640.0)
         .default_pos(crate::tool_window::centered_pos(
@@ -68,135 +74,204 @@ pub fn mapper_window(app: &mut App, ui: &mut egui::Ui) {
         ))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.strong(plural(
-                    db.relationships.len(),
-                    "{count} relationship",
-                    "{count} relationships",
-                ));
-                // Create affordance (step 41.1): one command per flow,
-                // capability-disabled for the open source.
-                let new_response = match create_reason {
-                    Some(reason) => ui
-                        .add_enabled(false, egui::Button::new(t("New Relationship")))
-                        .on_hover_text(crate::availability::reason_text(&reason)),
-                    None => ui.button(t("New Relationship")),
-                };
-                if new_response.clicked() {
-                    app.relationship_draft = Some(draft_from(&db.tables));
-                }
+                mapper_summary(&mut *app, &db, ui, create_reason);
+                dock_menu(&mut *app, ui, "relationships");
                 if ui.small_button(t("Close")).clicked() {
                     close = true;
                 }
             });
             ui.separator();
-
-            // The body scrolls within the height budget (step 91.9, item
-            // M117): the list, the create form and the canvas stay
-            // reachable when the database holds more than one windowful.
-            let body = egui::ScrollArea::vertical()
-                .id_salt("relationships.body")
-                .max_height(380.0)
-                .show(ui, |ui| {
-                    // Textual list with one delete affordance per row (step 41.1).
-                    for rel in &db.relationships {
-                        ui.horizontal(|ui| {
-                            let row = ui.label(format!(
-                                "{}.{}  →  {}.{}",
-                                rel.table, rel.column, rel.related_table, rel.related_column
-                            ));
-                            crate::layout_probe::record("relationships.row", row.rect);
-                            let delete_response = match delete_reason {
-                                Some(reason) => ui
-                                    .add_enabled(false, egui::Button::new(t("Delete")).small())
-                                    .on_hover_text(crate::availability::reason_text(&reason)),
-                                None => ui.small_button(t("Delete")),
-                            };
-                            if delete_response.clicked() {
-                                delete = Some(rel.clone());
-                            }
-                        });
-                    }
-                    if db.relationships.is_empty() {
-                        ui.weak(t("This database has no relationships."));
-                    }
-                    ui.separator();
-
-                    if app.relationship_draft.is_some() {
-                        create_form(app, &db.tables, ui, &mut create);
-                        ui.separator();
-                    }
-
-                    // Canvas: deterministic box layout, lines between related tables.
-                    let tables: Vec<&String> = {
-                        let mut names: Vec<&String> = db
-                            .relationships
-                            .iter()
-                            .flat_map(|r| [&r.table, &r.related_table])
-                            .collect();
-                        names.sort_by_key(|a| a.to_lowercase());
-                        names.dedup();
-                        names
-                    };
-                    let cols = PER_ROW;
-                    let rows = tables.len().div_ceil(cols).max(1);
-                    let (canvas_rect, response) = ui.allocate_exact_size(
-                        egui::vec2(
-                            cols as f32 * (BOX_SIZE.x + BOX_GAP),
-                            rows as f32 * (BOX_SIZE.y + BOX_GAP),
-                        ),
-                        egui::Sense::hover(),
-                    );
-                    let box_rect = |i: usize| -> egui::Rect {
-                        let col = i % cols;
-                        let row = i / cols;
-                        egui::Rect::from_min_size(
-                            canvas_rect.min
-                                + egui::vec2(
-                                    col as f32 * (BOX_SIZE.x + BOX_GAP),
-                                    row as f32 * (BOX_SIZE.y + BOX_GAP),
-                                ),
-                            BOX_SIZE,
-                        )
-                    };
-                    let index_of =
-                        |name: &String| tables.iter().position(|t| t.eq_ignore_ascii_case(name));
-                    let stroke = ui.visuals().widgets.noninteractive.fg_stroke;
-
-                    // Lines first (under the boxes).
-                    for rel in &db.relationships {
-                        let (Some(a), Some(b)) =
-                            (index_of(&rel.table), index_of(&rel.related_table))
-                        else {
-                            continue;
-                        };
-                        let (ra, rb) = (box_rect(a), box_rect(b));
-                        ui.painter()
-                            .line_segment([ra.center(), rb.center()], stroke);
-                    }
-                    for (i, name) in tables.iter().enumerate() {
-                        let rect = box_rect(i);
-                        ui.painter()
-                            .rect_filled(rect, 4.0, ui.visuals().extreme_bg_color);
-                        ui.painter()
-                            .rect_stroke(rect, 4.0, stroke, egui::StrokeKind::Inside);
-                        ui.painter().text(
-                            rect.left_top() + egui::vec2(6.0, 6.0),
-                            egui::Align2::LEFT_TOP,
-                            name,
-                            egui::TextStyle::Body.resolve(ui.style()),
-                            stroke.color,
-                        );
-                    }
-                    let _ = response;
-                });
-            // The viewport rect rides the layout probe (step 91.9, item
-            // M117): the body stays within the height budget.
-            crate::layout_probe::record("relationships.viewport", body.inner_rect);
+            mapper_body(
+                &mut *app,
+                &db,
+                ui,
+                delete_reason,
+                Some(380.0),
+                &mut delete,
+                &mut create,
+            );
         });
-    if close {
-        app.relationship_draft = None;
-        app.dispatch(Command::ToggleRelationshipMapper);
+    // The floating window's outer rect rides the layout probe (the seam
+    // the dock/float pins assert on).
+    if let Some(response) = &response {
+        crate::layout_probe::record("relationships.window", response.response.rect);
     }
+    if close {
+        close_mapper(app);
+    }
+    apply_intents(app, delete, create);
+}
+
+/// The docked pane content — the host header carries title, dock menu
+/// and close (step 93.1, item M125); the body fills the panel.
+pub fn mapper_pane_content(app: &mut App, ui: &mut egui::Ui) {
+    let snapshot = app.snapshot().clone();
+    let Some(db) = snapshot.database.clone() else {
+        return;
+    };
+    let create_reason = restricted(&snapshot, ids::RELATIONSHIPS_CREATE).copied();
+    let delete_reason = restricted(&snapshot, ids::RELATIONSHIPS_DELETE).copied();
+    let mut delete: Option<Relationship> = None;
+    let mut create: Option<Relationship> = None;
+    ui.horizontal(|ui| mapper_summary(app, &db, ui, create_reason));
+    ui.separator();
+    mapper_body(app, &db, ui, delete_reason, None, &mut delete, &mut create);
+    apply_intents(app, delete, create);
+}
+
+/// The mapper's close path, shared by the floating window's close button
+/// and the docked pane's header: the draft dies with the window.
+pub fn close_mapper(app: &mut App) {
+    app.relationship_draft = None;
+    app.dispatch(Command::ToggleRelationshipMapper);
+}
+
+/// The summary row's left part: the relationship count and the create
+/// affordance (step 41.1). The floating window adds dock menu and close
+/// around it; the docked pane's host header owns those (M125).
+fn mapper_summary(
+    app: &mut App,
+    db: &DatabaseSnapshot,
+    ui: &mut egui::Ui,
+    create_reason: Option<DisabledReason>,
+) {
+    ui.strong(plural(
+        db.relationships.len(),
+        "{count} relationship",
+        "{count} relationships",
+    ));
+    // Create affordance (step 41.1): one command per flow,
+    // capability-disabled for the open source.
+    let new_response = match create_reason {
+        Some(reason) => ui
+            .add_enabled(false, egui::Button::new(t("New Relationship")))
+            .on_hover_text(crate::availability::reason_text(&reason)),
+        None => ui.button(t("New Relationship")),
+    };
+    if new_response.clicked() {
+        app.relationship_draft = Some(draft_from(&db.tables));
+    }
+}
+
+/// The scrollable body: the relationship list with one delete affordance
+/// per row, the create form and the canvas. `max_height` bounds the
+/// floating window's body (step 91.9, item M117); the docked pane fills
+/// its panel instead. Both axes scroll — the fixed-width canvas stays
+/// reachable inside a narrow docked panel.
+fn mapper_body(
+    app: &mut App,
+    db: &DatabaseSnapshot,
+    ui: &mut egui::Ui,
+    delete_reason: Option<DisabledReason>,
+    max_height: Option<f32>,
+    delete: &mut Option<Relationship>,
+    create: &mut Option<Relationship>,
+) {
+    let mut area = egui::ScrollArea::both().id_salt("relationships.body");
+    if let Some(max_height) = max_height {
+        area = area.max_height(max_height);
+    } else {
+        area = area.auto_shrink(false);
+    }
+    let body = area.show(ui, |ui| {
+        // Textual list with one delete affordance per row (step 41.1).
+        for rel in &db.relationships {
+            ui.horizontal(|ui| {
+                let row = ui.label(format!(
+                    "{}.{}  →  {}.{}",
+                    rel.table, rel.column, rel.related_table, rel.related_column
+                ));
+                crate::layout_probe::record("relationships.row", row.rect);
+                let delete_response = match delete_reason {
+                    Some(reason) => ui
+                        .add_enabled(false, egui::Button::new(t("Delete")).small())
+                        .on_hover_text(crate::availability::reason_text(&reason)),
+                    None => ui.small_button(t("Delete")),
+                };
+                if delete_response.clicked() {
+                    *delete = Some(rel.clone());
+                }
+            });
+        }
+        if db.relationships.is_empty() {
+            ui.weak(t("This database has no relationships."));
+        }
+        ui.separator();
+
+        if app.relationship_draft.is_some() {
+            create_form(app, &db.tables, ui, create);
+            ui.separator();
+        }
+
+        // Canvas: deterministic box layout, lines between related tables.
+        let tables: Vec<&String> = {
+            let mut names: Vec<&String> = db
+                .relationships
+                .iter()
+                .flat_map(|r| [&r.table, &r.related_table])
+                .collect();
+            names.sort_by_key(|a| a.to_lowercase());
+            names.dedup();
+            names
+        };
+        let cols = PER_ROW;
+        let rows = tables.len().div_ceil(cols).max(1);
+        let (canvas_rect, response) = ui.allocate_exact_size(
+            egui::vec2(
+                cols as f32 * (BOX_SIZE.x + BOX_GAP),
+                rows as f32 * (BOX_SIZE.y + BOX_GAP),
+            ),
+            egui::Sense::hover(),
+        );
+        let box_rect = |i: usize| -> egui::Rect {
+            let col = i % cols;
+            let row = i / cols;
+            egui::Rect::from_min_size(
+                canvas_rect.min
+                    + egui::vec2(
+                        col as f32 * (BOX_SIZE.x + BOX_GAP),
+                        row as f32 * (BOX_SIZE.y + BOX_GAP),
+                    ),
+                BOX_SIZE,
+            )
+        };
+        let index_of = |name: &String| tables.iter().position(|t| t.eq_ignore_ascii_case(name));
+        let stroke = ui.visuals().widgets.noninteractive.fg_stroke;
+
+        // Lines first (under the boxes).
+        for rel in &db.relationships {
+            let (Some(a), Some(b)) = (index_of(&rel.table), index_of(&rel.related_table)) else {
+                continue;
+            };
+            let (ra, rb) = (box_rect(a), box_rect(b));
+            ui.painter()
+                .line_segment([ra.center(), rb.center()], stroke);
+        }
+        for (i, name) in tables.iter().enumerate() {
+            let rect = box_rect(i);
+            ui.painter()
+                .rect_filled(rect, 4.0, ui.visuals().extreme_bg_color);
+            ui.painter()
+                .rect_stroke(rect, 4.0, stroke, egui::StrokeKind::Inside);
+            ui.painter().text(
+                rect.left_top() + egui::vec2(6.0, 6.0),
+                egui::Align2::LEFT_TOP,
+                name,
+                egui::TextStyle::Body.resolve(ui.style()),
+                stroke.color,
+            );
+        }
+        let _ = response;
+    });
+    // The viewport rect rides the layout probe (step 91.9, item M117):
+    // the body stays within the height budget.
+    crate::layout_probe::record("relationships.viewport", body.inner_rect);
+}
+
+/// Applies the body's collected intents: the delete dispatches directly,
+/// the create keeps its draft on failure so the user can correct it —
+/// the precise reason surfaces through the status bar.
+fn apply_intents(app: &mut App, delete: Option<Relationship>, create: Option<Relationship>) {
     if let Some(relationship) = delete {
         app.dispatch(Command::DeleteRelationship { relationship });
     }

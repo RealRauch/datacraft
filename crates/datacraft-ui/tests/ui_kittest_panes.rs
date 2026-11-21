@@ -151,6 +151,12 @@ fn relationships_app() -> App {
         password: None,
         source: None,
     });
+    // A document tab keeps the workspace's central panel (and its probe)
+    // alive — the dock pin asserts the no-overlap against it.
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Orders",
+    )));
     app.dispatch(Command::ToggleRelationshipMapper);
     app
 }

@@ -253,11 +253,13 @@ pub fn pane_panel(
 
 /// The pane header row: title, the dock menu, close — the dock entries
 /// also ride the header's context menu. Returns the close intent.
-fn pane_header(app: &mut App, ui: &mut egui::Ui, surface: &str, title: &str) -> bool {
+fn pane_header(app: &mut App, ui: &mut egui::Ui, surface: &str, title: &'static str) -> bool {
     let mut close = false;
     let row = ui
         .horizontal(|ui| {
-            ui.strong(title);
+            // The title is the English key; the catalog resolves it (the
+            // pilot's "SQL" hid this — "Relationships" needs it, M125).
+            ui.strong(t(title));
             dock_menu(&mut *app, ui, surface);
             if ui.small_button(t("Close")).clicked() {
                 close = true;
