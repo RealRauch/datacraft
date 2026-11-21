@@ -11,13 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 94 — i18n bypass guard (T12)
-
-**Scope (Steps):**
-
-- **94.1 UI paint-site scan: t()-bypass guard over the UI crate, RED first (T12)**
-- **94.2 CI hygiene job wiring for the guard (T12, High gate: needs the human release)**
-- **94.3 Documentation and phase gate (T12)**
 
 
 
@@ -532,4 +525,4 @@
 | 93.4 | Documentation and phase gate (M125, L64) | ✅ |
 | 94.1 | UI paint-site scan: t()-bypass guard over the UI crate, RED first (T12) | ✅ |
 | 94.2 | CI hygiene job wiring for the guard (T12, High gate: needs the human release) | ✅ |
-| 94.3 | Documentation and phase gate (T12) | ⬜ |
+| 94.3 | Documentation and phase gate (T12) | ✅ |
