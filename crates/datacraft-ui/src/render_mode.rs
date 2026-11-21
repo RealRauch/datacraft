@@ -17,6 +17,11 @@
 //! RDP-session heuristic carries the detection; the matching rules are
 //! unit-tested and activate the moment a safe accessor appears.
 
+use eframe::egui;
+
+use crate::app::App;
+use crate::i18n::{t, tr};
+
 /// The rendering mode of a session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RenderMode {
@@ -43,20 +48,18 @@ pub fn detect(renderer: Option<&str>, session_name: Option<&str>) -> bool {
     ];
     let renderer_hit = renderer.is_some_and(|renderer| {
         let renderer = renderer.to_lowercase();
-        SOFTWARE_MARKERS.iter().any(|marker| renderer.contains(marker))
+        SOFTWARE_MARKERS
+            .iter()
+            .any(|marker| renderer.contains(marker))
     });
-    let session_hit = session_name
-        .is_some_and(|session| session.to_uppercase().starts_with("RDP-"));
+    let session_hit =
+        session_name.is_some_and(|session| session.to_uppercase().starts_with("RDP-"));
     renderer_hit || session_hit
 }
 
 /// Resolves the mode by precedence: override > setting > detection. An
 /// override that is neither `1` nor `0` falls through to the next source.
-pub fn resolve(
-    override_env: Option<&str>,
-    setting: Option<bool>,
-    detected: bool,
-) -> RenderMode {
+pub fn resolve(override_env: Option<&str>, setting: Option<bool>, detected: bool) -> RenderMode {
     match override_env {
         Some("1") => return RenderMode::LowPower,
         Some("0") => return RenderMode::Normal,
@@ -99,6 +102,58 @@ pub fn policy(mode: RenderMode) -> Policy {
     }
 }
 
+/// Applies the mode's frame policy for this frame (the shell calls it
+/// after the theme pass, so the policy wins). A policy switch only — no
+/// renderer or drawing-path change (step 92.6, item L51).
+pub fn apply(ctx: &egui::Context, mode: RenderMode) {
+    if mode == RenderMode::Normal {
+        return;
+    }
+    ctx.all_styles_mut(|style| {
+        // Zero animations: egui's animation clock and the scroll
+        // animation both stand still.
+        style.animation_time = 0.0;
+        style.scroll_animation = egui::style::ScrollAnimation::none();
+        style.visuals.window_shadow = egui::Shadow::NONE;
+        style.visuals.popup_shadow = egui::Shadow::NONE;
+    });
+    // Cap interaction repaints at ~30 fps. A frame without events is an
+    // idle frame — it schedules nothing, so idle repaint stays zero.
+    if ctx.input(|input| !input.events.is_empty()) {
+        ctx.request_repaint_after(std::time::Duration::from_secs_f32(INTERACTION_REPAINT_SECS));
+    }
+}
+
+/// The frame-statistics overlay of the low-power mode: the mode's name
+/// plus the last frame's duration, anchored top-right. The normal mode
+/// paints nothing.
+pub fn overlay(app: &mut App, ui: &mut egui::Ui) {
+    if app.render_mode != RenderMode::LowPower {
+        return;
+    }
+    let now = std::time::Instant::now();
+    let frame_ms = app
+        .last_frame
+        .map(|previous| now.duration_since(previous).as_secs_f32() * 1000.0);
+    app.last_frame = Some(now);
+    let text = match frame_ms {
+        Some(ms) => tr(
+            "Low-power rendering ({ms} ms)",
+            &[("ms", &format!("{ms:.0}"))],
+        ),
+        None => t("Low-power rendering").to_owned(),
+    };
+    egui::Area::new(egui::Id::unique("datacraft.render_mode.overlay"))
+        .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-8.0, 8.0))
+        .show(ui.ctx(), |ui| {
+            ui.label(
+                egui::RichText::new(text)
+                    .small()
+                    .color(crate::theme::tokens(ui.visuals()).text_muted),
+            );
+        });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,10 +173,7 @@ mod tests {
     /// Hardware adapters and local sessions stay normal.
     #[test]
     fn hardware_adapters_and_local_sessions_stay_normal() {
-        assert!(!detect(
-            Some("NVIDIA GeForce RTX 4080/PCIe/SSE2"),
-            None
-        ));
+        assert!(!detect(Some("NVIDIA GeForce RTX 4080/PCIe/SSE2"), None));
         assert!(!detect(Some("ANGLE (Intel, Mesa)"), None));
         assert!(!detect(None, Some("Console")));
         assert!(!detect(None, None));

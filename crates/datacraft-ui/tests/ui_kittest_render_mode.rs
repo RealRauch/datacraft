@@ -12,7 +12,7 @@ use datacraft_ui::app::App;
 use datacraft_ui::render_mode::RenderMode;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::Queryable;
 
 fn app() -> App {
     let port = MockPort::with_tables(vec![TableDef::new(
@@ -54,7 +54,9 @@ fn low_power_paints_the_frame_statistics_overlay() {
     harness.run();
 
     assert!(
-        harness.query_by_label_contains("Low-power rendering").is_some(),
+        harness
+            .query_by_label_contains("Low-power rendering")
+            .is_some(),
         "the overlay names the mode"
     );
 }
@@ -67,7 +69,9 @@ fn normal_paints_no_overlay() {
     harness.run();
 
     assert!(
-        harness.query_by_label_contains("Low-power rendering").is_none(),
+        harness
+            .query_by_label_contains("Low-power rendering")
+            .is_none(),
         "the overlay stays quiet in the normal mode"
     );
 }

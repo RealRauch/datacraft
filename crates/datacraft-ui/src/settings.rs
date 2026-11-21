@@ -5,7 +5,6 @@
 //! core/wire contract stay untouched. Unknown or corrupt values fall back to
 //! defaults instead of failing (WordCraft `ui.json` pattern).
 
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -14,6 +13,7 @@ use crate::appearance::Appearance;
 use crate::i18n::Lang;
 use crate::window::WindowGeometry;
 
+mod platform;
 mod recent;
 
 pub use recent::{MAX_RECENT_DATABASES, RecentDatabase, prune_notice};
@@ -39,6 +39,9 @@ pub struct Settings {
     /// Navigation-pane preferences keyed by the database path (view mode
     /// and local groups; step 92.5, item L48). Never in the sidecar.
     pub nav: std::collections::BTreeMap<String, crate::nav_groups::NavPrefs>,
+    /// The low-power rendering choice (step 92.6, item L51): `None`
+    /// follows the detection, `Some(true)`/`Some(false)` override it.
+    pub low_power: Option<bool>,
     /// Paths dropped on load because they no longer exist (not persisted;
     /// surfaced as a startup notice).
     pub pruned_recent: Vec<PathBuf>,
@@ -162,6 +165,7 @@ impl Settings {
                         .map(|value| (key.clone(), value))
                 })
                 .collect(),
+            low_power: self.low_power,
         };
         let json = serde_json::to_string_pretty(&file).map_err(std::io::Error::other)?;
         if let Some(parent) = path.parent() {
@@ -233,6 +237,7 @@ impl Settings {
                         .map(|entry| (key, entry.into_prefs()))
                 })
                 .collect(),
+            low_power: file.low_power,
             pruned_recent: Vec::new(),
         }
     }
@@ -259,6 +264,8 @@ struct SettingsFile {
     panes: std::collections::BTreeMap<String, PaneFile>,
     #[serde(default)]
     nav: std::collections::BTreeMap<String, serde_json::Value>,
+    #[serde(default)]
+    low_power: Option<bool>,
 }
 
 /// Tolerant on-disk shape of one database's nav preferences (step 92.5,
@@ -312,49 +319,6 @@ struct PaneFile {
     size: Option<f32>,
 }
 
-/// Platform conventions for the config directory (resolved without a new
-/// dependency).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Platform {
-    Windows,
-    MacOs,
-    Linux,
-}
-
-fn platform() -> Platform {
-    if cfg!(windows) {
-        Platform::Windows
-    } else if cfg!(target_os = "macos") {
-        Platform::MacOs
-    } else {
-        Platform::Linux
-    }
-}
-
-fn config_dir_on(platform: Platform, env: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
-    match platform {
-        Platform::Windows => env("APPDATA").map(PathBuf::from),
-        Platform::MacOs => env("HOME").map(|home| {
-            PathBuf::from(home)
-                .join("Library")
-                .join("Application Support")
-        }),
-        Platform::Linux => env("XDG_CONFIG_HOME")
-            .map(PathBuf::from)
-            .or_else(|| env("HOME").map(|home| PathBuf::from(home).join(".config"))),
-    }
-}
-
-fn default_path_on(platform: Platform, env: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
-    config_dir_on(platform, env).map(|dir| dir.join("datacraft").join("ui.json"))
-}
-
-/// `<config>/datacraft/ui.json` for the running platform; `None` when no
-/// config directory can be resolved (settings then stay session-only).
-pub fn default_path() -> Option<PathBuf> {
-    default_path_on(platform(), &|name| std::env::var_os(name))
-}
-
 impl crate::app::App {
     /// Attaches the UI settings file (the composition root sets this).
     pub fn set_settings_path(&mut self, path: Option<PathBuf>) {
@@ -396,6 +360,23 @@ impl crate::app::App {
     /// frame applies it as egui's theme preference.
     pub fn set_appearance_setting(&mut self, setting: Appearance) {
         self.settings.appearance = setting;
+        if let Err(reason) = self.persist_settings() {
+            self.record_error(crate::i18n::tr(
+                "Settings could not be saved: {reason}",
+                &[("reason", &reason.to_string())],
+            ));
+        }
+    }
+
+    /// Current low-power rendering choice (`None` = auto-detection).
+    pub fn low_power_setting(&self) -> Option<bool> {
+        self.settings.low_power
+    }
+
+    /// Switches the low-power rendering choice and persists it (step
+    /// 92.6, item L51). The mode itself resolves once at startup.
+    pub fn set_low_power_setting(&mut self, choice: Option<bool>) {
+        self.settings.low_power = choice;
         if let Err(reason) = self.persist_settings() {
             self.record_error(crate::i18n::tr(
                 "Settings could not be saved: {reason}",
@@ -472,6 +453,8 @@ impl crate::app::App {
         }
     }
 }
+
+pub use platform::default_path;
 
 #[cfg(test)]
 mod tests;

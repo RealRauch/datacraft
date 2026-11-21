@@ -11,6 +11,7 @@
 //! and their grids) to stay below the file-size gate.
 
 mod dialogs;
+mod panes;
 mod tooltips;
 mod ui_chrome;
 mod views;
@@ -19,6 +20,7 @@ mod views;
 static MODULES: &[&[(&str, &str)]] = &[
     dialogs::TABLE,
     tooltips::TABLE,
+    panes::TABLE,
     ui_chrome::TABLE,
     views::TABLE,
 ];

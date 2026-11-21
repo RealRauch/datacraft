@@ -54,6 +54,8 @@ impl App {
             nav_selection: Vec::new(),
             nav_anchor: None,
             group_draft: None,
+            render_mode: crate::render_mode::RenderMode::default(),
+            last_frame: None,
             window_title: "DataCraft".to_owned(),
             keytips: None,
             alt_down: false,

@@ -31,6 +31,10 @@ impl eframe::App for App {
         crate::keys::handle(self, ui.ctx());
         crate::appearance::apply(ui.ctx(), self.appearance_setting());
         crate::theme::apply(ui.ctx());
+        // The low-power policy wins over the theme defaults (step 92.6,
+        // item L51): zero animations, no blurred shadows, interaction
+        // repaints capped, idle repaints zero.
+        crate::render_mode::apply(ui.ctx(), self.render_mode);
         // The messages dialog belongs to every surface (step 68.3, M76) —
         // including the full-page backstage, whose status line links here.
         crate::busy::busy_frame(self, ui);
@@ -184,6 +188,9 @@ impl eframe::App for App {
         crate::import_window::import_window_ui(self, ui);
         crate::expression_window::expression_window(self, ui);
         crate::password_prompt::password_prompt(self, ui);
+        // The low-power overlay paints above every surface (step 92.6,
+        // item L51).
+        crate::render_mode::overlay(self, ui);
     }
 
     fn on_exit(&mut self) {

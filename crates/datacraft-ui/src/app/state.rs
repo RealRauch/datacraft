@@ -36,6 +36,11 @@ pub struct App {
     pub nav_anchor: Option<datacraft_core::ObjectId>,
     /// The pending "new group" dialog draft (step 92.5, item L48).
     pub group_draft: Option<crate::nav_groups::GroupDraft>,
+    /// The resolved rendering mode (step 92.6, item L51) — the
+    /// composition root resolves it once at startup.
+    pub render_mode: crate::render_mode::RenderMode,
+    /// The previous frame's start (the overlay's frame time).
+    pub(crate) last_frame: Option<std::time::Instant>,
     /// Last viewport title sent to the window system (step 21.7, U11).
     pub(crate) window_title: String,
     /// Current ribbon key-tip phase (step 21.8, U12).

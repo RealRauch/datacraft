@@ -1,3 +1,4 @@
+use super::platform::{Platform, config_dir_on, default_path_on};
 use super::*;
 use crate::window::WindowGeometry;
 use std::ffi::OsString;

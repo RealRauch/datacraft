@@ -56,7 +56,21 @@ fn main() -> eframe::Result {
                 datacraft_storage::detecting::DetectingPort::new().with_fallback(csv_driver),
             ));
             app.set_settings_path(settings_path);
+            let low_power_setting = settings.low_power;
             app.apply_settings(settings);
+            // The render mode resolves once at startup (step 92.6, item
+            // L51): the DATACRAFT_LOW_POWER override beats the ui.json
+            // setting, which beats the detection. The glow adapter
+            // string needs unsafe GL access (forbidden workspace-wide),
+            // so the renderer input stays None and the RDP-session
+            // heuristic carries the live detection.
+            let renderer = None;
+            let session_name = std::env::var("SESSIONNAME").ok();
+            app.render_mode = datacraft_ui::render_mode::resolve(
+                std::env::var("DATACRAFT_LOW_POWER").ok().as_deref(),
+                low_power_setting,
+                datacraft_ui::render_mode::detect(renderer, session_name.as_deref()),
+            );
             Ok(Box::new(app))
         }),
     )

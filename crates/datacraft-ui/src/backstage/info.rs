@@ -154,6 +154,29 @@ pub(super) fn options_page(app: &mut App, ui: &mut egui::Ui) {
     });
     ui.add_space(6.0);
     ui.horizontal(|ui| {
+        ui.label(t("Low-power rendering"));
+        let current = app.low_power_setting();
+        egui::ComboBox::from_id_salt("backstage.options.low_power")
+            .selected_text(match current {
+                None => t("Auto"),
+                Some(true) => t("On"),
+                Some(false) => t("Off"),
+            })
+            .show_ui(ui, |ui| {
+                for choice in [None, Some(true), Some(false)] {
+                    let label = match choice {
+                        None => t("Auto"),
+                        Some(true) => t("On"),
+                        Some(false) => t("Off"),
+                    };
+                    if ui.selectable_label(current == choice, label).clicked() {
+                        app.set_low_power_setting(choice);
+                    }
+                }
+            });
+    });
+    ui.add_space(6.0);
+    ui.horizontal(|ui| {
         ui.label(t("Appearance"));
         let current = app.appearance_setting();
         egui::ComboBox::from_id_salt("backstage.options.appearance")
