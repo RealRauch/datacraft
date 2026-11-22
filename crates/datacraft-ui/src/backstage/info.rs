@@ -81,6 +81,28 @@ pub(super) fn info_page(app: &mut App, ui: &mut egui::Ui) {
             egui::RichText::new(tr(crate::shell::LOCK_NOTICE_DETAIL, &[("file", file)])).weak(),
         );
     }
+    // Maintenance (phase 95, step 95.3; item M126): the compact affordance
+    // is capability-gated through the snapshot's availability map — a
+    // restricted source names its reason instead of offering a dead
+    // control.
+    ui.add_space(12.0);
+    let restriction =
+        crate::availability::restricted(app.snapshot(), datacraft_core::availability::ids::COMPACT)
+            .copied();
+    if let Some(reason) = &restriction {
+        ui.weak(crate::availability::reason_text(reason));
+    }
+    let compact = ui
+        .push_id("backstage.info.compact", |ui| {
+            ui.add_enabled(
+                restriction.is_none(),
+                egui::Button::new(t("Compact Database")),
+            )
+        })
+        .inner;
+    if crate::tooltips::backstage_response(compact, "backstage.info.compact").clicked() {
+        app.dispatch(datacraft_core::command::Command::CompactDatabase);
+    }
 }
 
 /// One aligned fact row (step 91.8, item L59): the strong label, a

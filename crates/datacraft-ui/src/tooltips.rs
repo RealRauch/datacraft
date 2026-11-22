@@ -158,6 +158,10 @@ const BACKSTAGE_TOOLTIPS: &[(&str, &str)] = &[
     ),
     ("backstage.save.close_database", "Close the open database."),
     (
+        "backstage.info.compact",
+        "Compact the open database into a fresh verified file.",
+    ),
+    (
         "backstage.new.back",
         "Return to the kind choice with the selection kept.",
     ),
@@ -195,6 +199,7 @@ pub const BACKSTAGE_CONTROLS: &[&str] = &[
     "backstage.save.save_design",
     "backstage.save.load_design",
     "backstage.save.close_database",
+    "backstage.info.compact",
     "backstage.new.back",
     "backstage.new.browse",
     "backstage.new.create",

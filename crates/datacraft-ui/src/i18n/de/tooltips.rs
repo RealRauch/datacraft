@@ -69,6 +69,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Schließen Sie die geöffnete Datenbank.",
     ),
     (
+        "Compact the open database into a fresh verified file.",
+        "Komprimieren Sie die geöffnete Datenbank in eine neue, verifizierte Datei.",
+    ),
+    (
         "Open the Save page for the design sidecar and copies.",
         "Öffnen Sie die Seite Speichern für die Entwurfs-Begleitdatei und Kopien.",
     ),

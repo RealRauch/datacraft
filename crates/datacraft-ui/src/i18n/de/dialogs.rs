@@ -19,6 +19,12 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Encoding", "Kodierung"),
     ("User version", "Benutzerversion"),
     ("Integrity check", "Integritätsprüfung"),
+    ("Compact Database", "Datenbank komprimieren"),
+    (
+        "the open source cannot be compacted",
+        "Die geöffnete Quelle kann nicht komprimiert werden",
+    ),
+    ("Database compacted", "Datenbank komprimiert"),
     ("Busy timeout", "Busy-Timeout"),
     ("STRICT tables", "STRICT-Tabellen"),
     ("WITHOUT ROWID tables", "WITHOUT-ROWID-Tabellen"),

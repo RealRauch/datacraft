@@ -84,7 +84,8 @@ fn the_save_page_names_every_section() {
 /// The Info page's fact values share one left edge (L59) — the ragged
 /// label widths no longer decide where the values start.
 #[test]
-fn the_info_page_aligns_fact_values_into_one_column() {    let mut app = app_with_database();
+fn the_info_page_aligns_fact_values_into_one_column() {
+    let mut app = app_with_database();
     app.backstage_page = BackstagePage::Info;
     app.active_ribbon_tab = "file";
     let mut harness = backstage_harness(app);

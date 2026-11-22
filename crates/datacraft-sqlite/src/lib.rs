@@ -124,6 +124,9 @@ impl StoragePort for SqlitePort {
         // Triggers are exposed read-only (inventory, no execute/create —
         // phase 73, step 73.2; M90).
         caps.triggers = Support::ReadOnly;
+        // Compact is Jet/ACE-only in this phase (step 95.2, M126): the
+        // SQLite backend keeps its file as-is and answers precisely.
+        caps.compact = Support::No;
         caps
     }
 
