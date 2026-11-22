@@ -11,6 +11,7 @@ use crate::port::{PortError, StoragePort};
 use crate::snapshot::UiStateSnapshot;
 use crate::state::AppState;
 
+mod export;
 mod relationships;
 mod rename;
 mod sql;
@@ -322,6 +323,7 @@ impl Core {
             Command::AnalyzeVba => self.analyze_vba_command(),
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
+            Command::ExportReportPdf { report, path } => self.export_report_pdf(&report, &path),
             Command::OpenDatabase {
                 path,
                 password,

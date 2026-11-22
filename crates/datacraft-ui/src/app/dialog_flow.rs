@@ -35,6 +35,8 @@ pub(crate) enum DialogIntent {
     StageRowDelete { tab_id: TabId, slot: usize },
     /// A confirmed deletion dispatches a prepared object command.
     DeleteObject { command: Command },
+    /// The picked path receives the report's PDF export (phase 97, M128).
+    ExportReportPdf { report: String },
 }
 
 impl App {
@@ -101,6 +103,9 @@ impl App {
             }
             (DialogIntent::DeleteObject { command }, DialogAnswer::Confirmed(true)) => {
                 self.dispatch(command);
+            }
+            (DialogIntent::ExportReportPdf { report }, DialogAnswer::Path(Some(path))) => {
+                self.dispatch(Command::ExportReportPdf { report, path });
             }
             // A user's Cancel clears the park and keeps every buffer.
             _ => {}

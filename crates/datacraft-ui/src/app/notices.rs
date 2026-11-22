@@ -164,10 +164,12 @@ pub(crate) const NOTICE_SOURCE_HEALTH: &str =
     "The database's own integrity check reported: {reason}";
 /// The open database was compacted in place (phase 95, M126).
 pub(crate) const NOTICE_DATABASE_COMPACTED: &str = "Database compacted";
+/// A report's print preview was exported (phase 97, M128).
+pub(crate) const NOTICE_REPORT_EXPORTED: &str = "Report exported to {path} ({pages} pages)";
 
 /// Every catalog key `notice_for` can store (i18n coverage test).
 #[cfg(test)]
-pub(crate) fn notice_keys() -> [&'static str; 8] {
+pub(crate) fn notice_keys() -> [&'static str; 9] {
     [
         NOTICE_COPY_SAVED,
         NOTICE_COPY_SAVED_ENCRYPTED,
@@ -177,6 +179,7 @@ pub(crate) fn notice_keys() -> [&'static str; 8] {
         NOTICE_DESIGN_LOADED,
         NOTICE_SOURCE_HEALTH,
         NOTICE_DATABASE_COMPACTED,
+        NOTICE_REPORT_EXPORTED,
     ]
 }
 
@@ -204,6 +207,13 @@ pub(crate) fn notice_for(events: &[Event]) -> Option<NoticeMessage> {
         Event::DatabaseCompacted { .. } => Some(NoticeMessage::Key {
             key: NOTICE_DATABASE_COMPACTED,
             args: Vec::new(),
+        }),
+        Event::ReportExported { path, pages, .. } => Some(NoticeMessage::Key {
+            key: NOTICE_REPORT_EXPORTED,
+            args: vec![
+                ("path".to_owned(), path.display().to_string()),
+                ("pages".to_owned(), pages.to_string()),
+            ],
         }),
         Event::DesignDocumentSaved { path } => Some(NoticeMessage::Key {
             key: NOTICE_DESIGN_SAVED,

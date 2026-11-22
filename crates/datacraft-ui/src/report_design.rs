@@ -293,6 +293,26 @@ pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             app.set_preview_page(tab.id, current + 1);
         }
         ui.weak(t("(print preview)"));
+        // PDF export (phase 97, step 97.3; item M128): the build flag gates
+        // the affordance; the picker supplies the new file path.
+        let available = app.snapshot().pdf_export;
+        if !available {
+            ui.weak(t("This build does not include the PDF writer."));
+        }
+        let export = ui.add_enabled(available, egui::Button::new(t("Export PDF…")));
+        if export
+            .on_hover_text(t("Export the report's print preview to a PDF file."))
+            .clicked()
+        {
+            app.request_dialog(
+                crate::dialogs::DialogRequest::SaveFile {
+                    suggested: format!("{}.pdf", report.name),
+                },
+                crate::app::dialog_flow::DialogIntent::ExportReportPdf {
+                    report: report.name.clone(),
+                },
+            );
+        }
     });
     ui.separator();
 

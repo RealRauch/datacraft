@@ -25,6 +25,19 @@ pub static TABLE: &[(&str, &str)] = &[
         "Die geöffnete Quelle kann nicht komprimiert werden",
     ),
     ("Database compacted", "Datenbank komprimiert"),
+    ("Export PDF…", "PDF exportieren…"),
+    (
+        "Export the report's print preview to a PDF file.",
+        "Exportiert die Druckvorschau des Berichts als PDF-Datei.",
+    ),
+    (
+        "This build does not include the PDF writer.",
+        "Dieser Build enthält keinen PDF-Writer.",
+    ),
+    (
+        "Report exported to {path} ({pages} pages)",
+        "Bericht exportiert nach {path} ({pages} Seiten)",
+    ),
     ("Busy timeout", "Busy-Timeout"),
     ("STRICT tables", "STRICT-Tabellen"),
     ("WITHOUT ROWID tables", "WITHOUT-ROWID-Tabellen"),

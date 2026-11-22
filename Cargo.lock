@@ -1051,9 +1051,11 @@ dependencies = [
  "datacraft-expr",
  "datacraft-query",
  "datacraft-types",
+ "pdf-writer",
  "proptest",
  "serde",
  "serde_json",
+ "ttf-parser",
 ]
 
 [[package]]
@@ -3087,6 +3089,18 @@ name = "parlance"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73072a9470554c8e794778acece2312661218aaabb635600957d952cf01c716e"
+
+[[package]]
+name = "pdf-writer"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5e456864a7a304047bff84977dc6fb162bd956475d40ba50b2dcecaada7f753"
+dependencies = [
+ "bitflags 2.13.2",
+ "itoa",
+ "memchr",
+ "ryu",
+]
 
 [[package]]
 name = "peniko"

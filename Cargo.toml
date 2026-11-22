@@ -50,6 +50,8 @@ proptest = "1"
 jetdb = "0.4.0"
 rusqlite = { version = "0.41.1", features = ["bundled"] }
 calamine = "0.38"
+pdf-writer = "0.15"
+ttf-parser = "0.25"
 rfd = "0.17"
 
 [profile.release]

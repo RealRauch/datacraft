@@ -21,6 +21,9 @@ published package. The notable components:
 | `sys-locale` | MIT OR Apache-2.0 | default UI language detection |
 | `csv` | Unlicense OR MIT | CSV directory driver, bundled via the composite fallback (ADR-7) |
 | `rusqlite` / `libsqlite3-sys` | MIT | SQLite backend, statically linked (`bundled` feature) |
+| `calamine` | MIT | Excel workbook read driver (`datacraft-xlsx`), bundled via the composite fallback (ADR-7) |
+| `pdf-writer` | MIT OR Apache-2.0 | PDF report export (optional core `pdf-export` feature) |
+| `ttf-parser` | MIT OR Apache-2.0 | glyph mapping for the embedded PDF font (optional `pdf-export` feature) |
 | SQLite (amalgamation bundled by `libsqlite3-sys`) | Public domain | no attribution required; upstream: https://www.sqlite.org |
 
 ## `datacraft-import` migration tool (published; not part of the server binaries)
@@ -73,3 +76,4 @@ offline by CI. Licenses and modifications:
 | `passwordV2000.mdb`, `passwordV2000-none.mdb`, `passwordV2010.accdb`, `officeAgile42.accdb` | `andipaetzold/mdb-reader@3dc637a` | MIT | none (password-protected test data, password `"password"`) |
 | `programmability.accdb` | self-created with Microsoft Access 16.0.20527.20112 by DataCraft contributors (recipe: `docs/FIXTURE-SOURCES.md`) | MIT OR Apache-2.0 (project's own) | is the original |
 | `formDesignsV2016.accdb` | self-created with Microsoft Access 16.0.20527.20112 by DataCraft contributors (`tools/fixture-build/design-fixture/`) | MIT OR Apache-2.0 (project's own) | is the original |
+| `excelFixture.{xlsx,xlsm,xls,xlsb}` | self-created with Microsoft Excel 16 by DataCraft contributors (`tools/xlsx-fixtures/build.ps1`) | MIT OR Apache-2.0 (project's own) | are the originals |

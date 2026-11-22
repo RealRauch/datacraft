@@ -49,6 +49,10 @@ pub struct UiStateSnapshot {
     pub undo_depth: usize,
     /// Row-write redo depth of the open database (step 28.1, item U14).
     pub redo_depth: usize,
+    /// Whether this build includes the PDF report writer (phase 97, step
+    /// 97.3; item M128) — the UI gates its export affordance on it.
+    #[serde(default)]
+    pub pdf_export: bool,
     /// Summary of the pending write journal (step 85.1, item H61): the
     /// batch awaiting confirmation, observed by every client. Full value
     /// images stay in the `WritePreviewed` event and the UI's edit buffer.
@@ -462,6 +466,7 @@ impl UiStateSnapshot {
             expression_window_open: state.expression_window_open,
             undo_depth: state.database.as_ref().map_or(0, |db| db.undo.len()),
             redo_depth: state.database.as_ref().map_or(0, |db| db.redo.len()),
+            pdf_export: cfg!(feature = "pdf-export"),
             pending_write: state.pending_write.as_ref().map(|pending| {
                 let count = |kind: crate::journal::ChangeKind| {
                     pending

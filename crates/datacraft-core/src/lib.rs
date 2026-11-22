@@ -36,6 +36,7 @@ pub mod macro_def;
 pub use datacraft_query::native_exec;
 pub mod nav;
 pub mod palette;
+pub mod pdf;
 pub mod port;
 mod port_mock;
 pub mod present;

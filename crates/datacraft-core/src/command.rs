@@ -245,8 +245,7 @@ pub enum Command {
     ToggleNavPane,
     /// Shows or hides the relationship mapper pane (step 7.1).
     ToggleRelationshipMapper,
-    /// Creates a referential relationship (step 32.3, M16); both sides
-    /// must exist, duplicates are refused.
+    /// Creates a referential relationship (M16); duplicates are refused.
     CreateRelationship {
         /// The relationship to create.
         relationship: crate::port::Relationship,
@@ -274,8 +273,7 @@ pub enum Command {
         /// The statement; anything but one SELECT/WITH is rejected.
         sql: String,
     },
-    /// Evaluates one expression (step 15.2, H41); with a row context it
-    /// sees the table's fields, without one an empty scope.
+    /// Evaluates one expression (H41); the optional context supplies fields.
     RunExpression {
         /// Optional row context (table + zero-based live-row index).
         context: Option<ExpressionContext>,
@@ -406,8 +404,7 @@ pub enum Command {
         /// Source table name.
         table: String,
     },
-    /// Creates an empty report with print-oriented page defaults
-    /// (step 10.4, item H31).
+    /// Creates an empty report with print-oriented page defaults (H31).
     CreateReport {
         /// Report name; rejected on duplicates.
         name: String,
@@ -474,8 +471,7 @@ pub enum Command {
         /// The grouping field, or `None` to ungroup.
         group_by: Option<String>,
     },
-    /// Loads one VBA module's extracted source (step 17.2, L5). Read-only:
-    /// the source is returned in `Event::VbaModuleLoaded`, never executed.
+    /// Loads one VBA module's extracted source (read-only, never executed).
     LoadVbaModule {
         /// Module name (case-insensitive).
         module: String,
@@ -483,16 +479,21 @@ pub enum Command {
     /// Runs the headless static VBA analysis (step 17.3, L5): call graph,
     /// embedded SQL, table/query references and unused modules.
     AnalyzeVba,
-    /// Writes the design layer (forms + queries + reports) to a
-    /// `.datacraft` sidecar file (ADR-1).
+    /// Writes the design layer (forms + queries + reports) to a `.datacraft` sidecar (ADR-1).
     SaveDesignDocument {
         /// Target file path.
         path: std::path::PathBuf,
     },
-    /// Loads forms + queries from a sidecar file (version gate enforced;
-    /// the database name must match the open database).
+    /// Loads a sidecar (version gate enforced; the database name must match).
     LoadDesignDocument {
         /// Source file path.
         path: std::path::PathBuf,
+    },
+    /// Exports one report's print preview to a new PDF file (phase 97, M128).
+    ExportReportPdf {
+        /// Report name (case-insensitive).
+        report: String,
+        /// Target file; it must not exist yet.
+        path: PathBuf,
     },
 }

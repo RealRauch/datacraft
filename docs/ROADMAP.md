@@ -431,6 +431,12 @@ Frozen scope for the first step:
   conformance claims, image embedding, and printing itself (OS-owned, as the
   matrix row states).
 
+**Status (phase 97, item M128):** delivered — `pdf-writer` + `ttf-parser`
+behind the optional core `pdf-export` feature, one export command, the
+preview affordance, CLI/MCP parity, deterministic bytes and text
+extraction verified with poppler and pypdf. The scope below is the frozen
+contract that shipped.
+
 Acceptance for the owning step: an exported fixture report shows the
 preview's page count and page breaks in a standard viewer, its text extracts
 as text, and re-exporting unchanged input is byte-identical; the page model

@@ -41,6 +41,17 @@ pub enum Event {
         /// Whether the copy is password-protected.
         encrypted: bool,
     },
+    /// One report's print preview was exported to a new PDF file (phase
+    /// 97, step 97.2; item M128). The source database and sidecar are
+    /// untouched.
+    ReportExported {
+        /// Report name as the design stores it.
+        report: String,
+        /// Filesystem path of the new file.
+        path: std::path::PathBuf,
+        /// Rendered page count (the preview's page sequence).
+        pages: usize,
+    },
     /// The open database's password was replaced in place (step 27.2,
     /// item M14).
     PasswordChanged {

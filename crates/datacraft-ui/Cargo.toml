@@ -12,7 +12,7 @@ name = "datacraft"
 path = "src/main.rs"
 
 [dependencies]
-datacraft-core = { workspace = true, features = ["sql-engine"] }
+datacraft-core = { workspace = true, features = ["sql-engine", "pdf-export"] }
 datacraft-csv = { workspace = true }
 datacraft-xlsx = { workspace = true }
 datacraft-storage = { workspace = true }

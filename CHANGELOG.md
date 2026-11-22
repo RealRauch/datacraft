@@ -10,6 +10,16 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- core/ui/cli/mcp: PDF report export (97, M128) — a report's print
+  preview exports to a new PDF file as its second render target: one PDF
+  page per preview page, the report's own page geometry, text kept as
+  text through an embedded Type0 Inter font with a ToUnicode map, and
+  byte-identical re-export (fixed metadata, stable object order). The
+  pure-Rust writer sits behind the optional core `pdf-export` feature
+  (the shipped clients enable it), the preview toolbar gains an Export
+  PDF… button with the save dialog and a completion notice, and CLI/MCP
+  dispatch the same command. An existing target is refused; the source
+  database and sidecar stay untouched.
 - xlsx/core/ui/cli/mcp: Excel workbooks as read-only sources (96, M127) —
   a new `datacraft-xlsx` driver (calamine, core-only dependency) opens
   `.xlsx`, `.xlsm`, `.xls` and `.xlsb` as a database of sheets: the first

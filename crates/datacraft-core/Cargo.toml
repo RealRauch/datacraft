@@ -16,6 +16,8 @@ datacraft-types = { workspace = true }
 csv = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+pdf-writer = { workspace = true, optional = true }
+ttf-parser = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest = { workspace = true }
@@ -27,6 +29,10 @@ default = []
 # A default-feature core stays rusqlite-free — the query layer, the
 # expression service and the type vocabulary carry no C dependency.
 sql-engine = ["datacraft-query/sql-engine"]
+# PDF report export (phase 97, item M128): the pure-Rust writer and font
+# parser stay optional, the sql-engine precedent — a default-feature core
+# carries neither. The three client roots enable this feature.
+pdf-export = ["dep:pdf-writer", "dep:ttf-parser"]
 
 [[test]]
 name = "sql_engine"
@@ -39,6 +45,10 @@ required-features = ["sql-engine"]
 [[test]]
 name = "native_views"
 required-features = ["sql-engine"]
+
+[[test]]
+name = "pdf_export"
+required-features = ["pdf-export"]
 
 [lints]
 workspace = true

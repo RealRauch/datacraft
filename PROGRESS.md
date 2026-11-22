@@ -11,14 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 97 — PDF report export over the frozen scope (roadmap §11)
-
-**Scope (Steps):**
-
-- **97.1 Renderer decision + core feature: the pure-Rust PDF writer behind an optional core feature, the sql-engine precedent (Medium gate: dependency — needs the human release)**
-- **97.2 Core: the export command over the paginated page model — deterministic (fixed metadata, stable order), text stays text, fonts reach the writer without depending on datacraft-ui**
-- **97.3 UI + wire: the export affordance at the report preview, capability-gated, CLI and MCP parity**
-- **97.4 Acceptance + documentation and phase gate: page count and breaks in a standard viewer, text extracts, byte-identical re-export, unwritable target answers precisely**
 ### Phase 98 — SQLite SQL pushdown, stage 1 (roadmap §19)
 
 **Scope (Steps):**
@@ -556,10 +548,10 @@
 | 96.3 | Composition + UI: registry registration, nav pane and datasheet through the snapshot, read-only capability honesty | ✅ |
 | 96.4 | Import File: xlsx as an import source over the M50 chain (roadmap §7 downstream) | ✅ |
 | 96.5 | Documentation and phase gate (README matrix, COMPATIBILITY evidence, FIXTURE-SOURCES provenance) | ✅ |
-| 97.1 | Renderer decision + core feature: the pure-Rust PDF writer behind an optional core feature, the sql-engine precedent (Medium gate: dependency — needs the human release) | ⬜ |
-| 97.2 | Core: the export command over the paginated page model — deterministic (fixed metadata, stable order), text stays text, fonts reach the writer without depending on datacraft-ui | ⬜ |
-| 97.3 | UI + wire: the export affordance at the report preview, capability-gated, CLI and MCP parity | ⬜ |
-| 97.4 | Acceptance + documentation and phase gate: page count and breaks in a standard viewer, text extracts, byte-identical re-export, unwritable target answers precisely | ⬜ |
+| 97.1 | Renderer decision + core feature: the pure-Rust PDF writer behind an optional core feature, the sql-engine precedent (Medium gate: dependency — needs the human release) | ✅ |
+| 97.2 | Core: the export command over the paginated page model — deterministic (fixed metadata, stable order), text stays text, fonts reach the writer without depending on datacraft-ui | ✅ |
+| 97.3 | UI + wire: the export affordance at the report preview, capability-gated, CLI and MCP parity | ✅ |
+| 97.4 | Acceptance + documentation and phase gate: page count and breaks in a standard viewer, text extracts, byte-identical re-export, unwritable target answers precisely | ✅ |
 | 98.1 | Core: read-only native SQL execution against a SQLite source — full dialect, index use, views, EXPLAIN QUERY PLAN; writes stay refused on the bus path | ⬜ |
 | 98.2 | UI: the SQL window names the dialect per source (SQLite native vs the shadow engine), EXPLAIN QUERY PLAN rendering | ⬜ |
 | 98.3 | Wire: CLI and MCP parity with contract pins; Jet/CSV sources stay on the shadow engine unchanged | ⬜ |
