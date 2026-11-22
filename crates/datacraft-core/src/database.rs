@@ -244,6 +244,39 @@ impl crate::core::Core {
         events
     }
 
+    /// Compacts the open database in place (phase 95, step 95.2; item
+    /// M126): the port reads everything, writes a verified fresh file and
+    /// swaps it at the same path; the core refreshes the session truth
+    /// (capabilities and file facts) and keeps tabs, filters and history —
+    /// the rows and their order are unchanged by compact.
+    pub(crate) fn compact_database(&mut self) -> Vec<Event> {
+        let Some(database) = self.state.database.as_ref() else {
+            return failed(FailureCode::NoDatabase, "no database is open");
+        };
+        if database.capabilities.compact != crate::port::Support::Yes {
+            return failed(
+                FailureCode::Capability(crate::availability::DisabledReason::Compact),
+                DriverCapabilities::unsupported(
+                    &database.driver,
+                    "compact this database (read-only, protected or locked sources stay as they are)",
+                ),
+            );
+        }
+        let name = database.name.clone();
+        match self.port.compact() {
+            Ok(()) => {
+                let capabilities = self.port.capabilities();
+                let facts = self.port.source_facts();
+                if let Some(database) = self.state.database.as_mut() {
+                    database.capabilities = capabilities;
+                    database.source_facts = facts;
+                }
+                vec![Event::DatabaseCompacted { name }]
+            }
+            Err(error) => failed(FailureCode::Port, error.to_string()),
+        }
+    }
+
     /// Creates a new database file (phase 29, step 29.1, item H44).
     /// Independent of the open database: creation touches neither the open
     /// state nor its tabs, and the new file stays closed until an

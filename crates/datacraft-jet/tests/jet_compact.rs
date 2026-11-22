@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use datacraft_core::port::{DatabaseFormat, PortError, StoragePort};
-use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
+use datacraft_core::schema::{AutoKind, FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_jet::port_adapter::Jet4Port;
 
 fn fixture(name: &str) -> PathBuf {
@@ -84,23 +84,35 @@ fn compacts_a_jet4_database_in_place_preserving_tables_rows_and_relationships() 
             "Orders",
             vec![
                 FieldDef::new("id", FieldKind::Number(NumericKind::LongInteger)),
-                FieldDef::new(
-                    "customer_id",
-                    FieldKind::Number(NumericKind::LongInteger),
-                ),
+                FieldDef::new("customer_id", FieldKind::Number(NumericKind::LongInteger)),
             ],
         ))
         .expect("orders");
+        port.create_table(&TableDef::new(
+            "Notes",
+            vec![
+                FieldDef::new("id", FieldKind::AutoNumber(AutoKind::LongInteger)),
+                FieldDef::new("body", FieldKind::Text { max_len: 20 }),
+            ],
+        ))
+        .expect("notes");
         port.insert_row(
             "Customers",
             &[FieldValue::Integer(1), FieldValue::Text("Ada".into())],
         )
         .expect("customer row");
+        port.insert_row("Orders", &[FieldValue::Integer(10), FieldValue::Integer(1)])
+            .expect("order row");
         port.insert_row(
-            "Orders",
-            &[FieldValue::Integer(10), FieldValue::Integer(1)],
+            "Notes",
+            &[FieldValue::Null, FieldValue::Text("first".into())],
         )
-        .expect("order row");
+        .expect("note row");
+        port.insert_row(
+            "Notes",
+            &[FieldValue::Null, FieldValue::Text("second".into())],
+        )
+        .expect("note row");
         port.create_relationship(&datacraft_core::port::Relationship {
             table: "Orders".into(),
             column: "customer_id".into(),
@@ -116,7 +128,7 @@ fn compacts_a_jet4_database_in_place_preserving_tables_rows_and_relationships() 
     let before_relationships = port.relationships().expect("relationships");
     port.compact().expect("compact");
 
-    assert_eq!(port.tables().len(), 2, "tables stay");
+    assert_eq!(port.tables().len(), 3, "tables stay");
     assert_eq!(snapshot(&port), before, "rows and order stay");
     assert_eq!(
         port.relationships().expect("relationships"),
@@ -124,8 +136,25 @@ fn compacts_a_jet4_database_in_place_preserving_tables_rows_and_relationships() 
         "relationships stay"
     );
     assert_eq!(
-        port.source_facts().health, None,
+        port.source_facts().health,
+        None,
         "the compacted file is healthy"
+    );
+
+    // AutoNumber identities stay and the counter continues after them.
+    port.insert_row(
+        "Notes",
+        &[FieldValue::Null, FieldValue::Text("third".into())],
+    )
+    .expect("write after compact");
+    let notes = snapshot(&port)
+        .into_iter()
+        .find(|(name, _)| name == "Notes")
+        .expect("notes");
+    assert_eq!(
+        notes.1.last().and_then(|row| row.first()),
+        Some(&FieldValue::Integer(3)),
+        "the AutoNumber counter continues after the restored identities"
     );
 
     // A new row still lands after the swap (the session is writable).
@@ -137,8 +166,10 @@ fn compacts_a_jet4_database_in_place_preserving_tables_rows_and_relationships() 
     port.close();
 
     let mut reopened = Jet4Port::new();
-    reopened.open(&scratch.0, None).expect("reopen the compacted file");
-    assert_eq!(reopened.tables().len(), 2);
+    reopened
+        .open(&scratch.0, None)
+        .expect("reopen the compacted file");
+    assert_eq!(reopened.tables().len(), 3);
     let customers = snapshot(&reopened)
         .into_iter()
         .find(|(name, _)| name == "Customers")
@@ -214,9 +245,12 @@ fn compact_refuses_jet3_read_only_sources() {
 fn compact_refuses_password_protected_sources() {
     let scratch = copy_of("passwordV2000.mdb", "protected");
     let mut port = Jet4Port::new();
-    port.open(&scratch.0, Some("password")).expect("open protected");
+    port.open(&scratch.0, Some("password"))
+        .expect("open protected");
     let before = std::fs::read(&scratch.0).expect("bytes");
-    let error = port.compact().expect_err("password protection is preserved by refusal");
+    let error = port
+        .compact()
+        .expect_err("password protection is preserved by refusal");
     assert!(matches!(error, PortError::Unsupported { .. }), "{error:?}");
     assert_eq!(
         std::fs::read(&scratch.0).expect("bytes"),

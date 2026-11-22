@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{
     DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, RowRange, SourceFacts,
-    StoragePort, Support,
+    StoragePort,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
@@ -101,33 +101,7 @@ impl StoragePort for Jet4Port {
     /// read-only — no writer exists for it. File creation is
     /// session-independent (Jet4 only, routed in `create_database`).
     fn capabilities(&self) -> DriverCapabilities {
-        let mut caps = DriverCapabilities::full();
-        caps.atomic_batch = true; // batches apply in one writer session
-        caps.passwords = true;
-        caps.relationships = Support::Yes;
-        caps.autonumber = Support::Yes; // LongInteger; ReplicationId answers Unsupported
-        if self.opened_format() == Some(FormatVersion::Jet3) {
-            caps.write_rows = false;
-            caps.create_table = false;
-            caps.drop_table = false;
-            caps.alter_table = false;
-            caps.atomic_batch = false;
-            caps.autonumber = Support::No;
-        }
-        if self.lock_file.is_some() {
-            // A sibling Access lock file means Access may hold the database
-            // open — read-only co-existence (step 53.1, item M59), the
-            // Jet3 read-only shape. DataCraft never creates or deletes
-            // lock files; closing Access and removing the file restores
-            // the write session on the next open.
-            caps.write_rows = false;
-            caps.create_table = false;
-            caps.drop_table = false;
-            caps.alter_table = false;
-            caps.atomic_batch = false;
-            caps.autonumber = Support::No;
-        }
-        caps
+        caps::capabilities(self)
     }
 
     fn open(&mut self, path: &Path, password: Option<&str>) -> Result<OpenedDatabase, PortError> {
@@ -310,6 +284,10 @@ impl StoragePort for Jet4Port {
         Ok(new_name.to_owned())
     }
 
+    fn compact(&mut self) -> Result<(), PortError> {
+        compact::compact(self)
+    }
+
     fn native_queries(&self) -> Result<Vec<datacraft_core::port::NativeQuery>, PortError> {
         let Some(reader) = self.reader.as_ref() else {
             return Ok(Vec::new());
@@ -439,6 +417,8 @@ impl StoragePort for Jet4Port {
     }
 }
 
+mod caps;
+mod compact;
 mod password;
 mod relationships;
 mod rows;

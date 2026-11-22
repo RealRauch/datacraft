@@ -77,7 +77,8 @@ fn a_csv_directory_drives_the_full_stack_over_the_wire() {
             "design.rename_field": "alter_tables",
             "design.drop_field": "alter_tables",
             "design.set_field_properties": "alter_tables",
-            "nav.rename": "rename_tables"
+            "nav.rename": "rename_tables",
+            "maintenance.compact": "compact"
         })
     );
 

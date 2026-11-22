@@ -40,6 +40,19 @@ const TAIL_AT: usize = 0xE00;
 /// output and fails the shape pins).
 static FRESH_TEMPLATE: &[u8] = include_bytes!("fresh_template.mdb");
 
+/// The embedded empty ACE template (phase 95, step 95.2): an empty
+/// database written by Access 2016 (`NewCurrentDatabase`, system tables
+/// only, no user tables). Provenance and the regeneration recipe live in
+/// `docs/FIXTURE-SOURCES.md` ("Empty ACE template").
+static ACE_TEMPLATE: &[u8] = include_bytes!("fresh_template.accdb");
+
+/// The empty ACE template bytes (compact's fresh-file base for ACE
+/// sources). Verbatim: the engine-written header state passes the
+/// engine's own open gates by construction.
+pub(crate) fn ace_template_bytes() -> Vec<u8> {
+    ACE_TEMPLATE.to_vec()
+}
+
 /// Writes a brand-new Jet4 database file. The file must not exist yet;
 /// `created` is accepted for call-site stability and stamps nothing — the
 /// fresh bytes are the template verbatim (see the module docs for why the
@@ -59,7 +72,7 @@ pub fn create_jet4_file(path: &Path, _created: f64) -> Result<(), StorageError> 
 /// The fresh file's bytes: the template verbatim with the tail's first
 /// word normalized (the uniform `0x0100` writer policy; the engine adopts
 /// it as its counter baseline on its own sessions — FORMAT-JET).
-fn fresh_bytes() -> Vec<u8> {
+pub(crate) fn fresh_bytes() -> Vec<u8> {
     let mut file = FRESH_TEMPLATE.to_vec();
     file[TAIL_AT..TAIL_AT + 2].copy_from_slice(&0x0100u16.to_le_bytes());
     file

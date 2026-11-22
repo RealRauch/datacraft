@@ -387,6 +387,7 @@ impl Core {
                 source,
             } => self.open_database(path, password, source),
             Command::CloseDatabase => self.close_database(),
+            Command::CompactDatabase => self.compact_database(),
             Command::CreateDatabase { path, format } => self.create_database(path, format),
             Command::CreateDatabaseFromTemplate { path, template } => {
                 self.create_database_from_template(path, template)

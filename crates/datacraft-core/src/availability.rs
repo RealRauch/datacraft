@@ -37,6 +37,9 @@ pub enum DisabledReason {
     AlterTables,
     /// The driver cannot rename tables in place (phase 72, item M81).
     RenameTables,
+    /// The driver cannot compact this source (phase 95, item M126):
+    /// read-only formats, password-protected files and locked sessions.
+    Compact,
     /// The composition cannot create new database files.
     CreateDatabase,
 }
@@ -83,6 +86,8 @@ pub mod ids {
     pub const DESIGN_DROP_FIELD: &str = "design.drop_field";
     /// Design view ▸ Required toggle (step 42.2, item L18).
     pub const DESIGN_SET_FIELD_PROPERTIES: &str = "design.set_field_properties";
+    /// Backstage Info ▸ Compact the open database (phase 95, item M126).
+    pub const COMPACT: &str = "maintenance.compact";
 }
 
 /// The availability map for one open source: disabled affordance id →
@@ -102,6 +107,9 @@ pub fn affordances(caps: &DriverCapabilities) -> BTreeMap<String, DisabledReason
     }
     if !caps.rename_table {
         map.insert(ids::NAV_RENAME.to_owned(), DisabledReason::RenameTables);
+    }
+    if caps.compact != Support::Yes {
+        map.insert(ids::COMPACT.to_owned(), DisabledReason::Compact);
     }
     if !caps.write_rows {
         map.insert(ids::NEW_RECORD.to_owned(), DisabledReason::WriteRows);

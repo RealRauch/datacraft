@@ -370,6 +370,16 @@ pub trait StoragePort {
             reason: "table renames are not supported by this backend".to_owned(),
         })
     }
+    /// Compacts the open database in place (phase 95, step 95.2; item
+    /// M126): reads everything, writes a fresh verified file of the same
+    /// family, swaps it atomically at the original path and refreshes the
+    /// session. Backends without a compact path answer a precise
+    /// `Unsupported` (the default).
+    fn compact(&mut self) -> Result<(), PortError> {
+        Err(PortError::Unsupported {
+            reason: "compacting is not supported by this backend".to_owned(),
+        })
+    }
     /// Whether the backend can apply sidecar views natively (step 71.3,
     /// item M93): SQLite compiles them to `CREATE VIEW`, while Jet/ACE/CSV
     /// rely on the shadow SQL engine and answer `false`.

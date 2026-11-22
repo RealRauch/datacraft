@@ -90,6 +90,13 @@ impl StoragePort for MockPort {
         })
     }
 
+    /// In-memory compact is a no-op success: the mock holds no pages, so
+    /// the command path and its capability gate stay testable without a
+    /// file (phase 95, step 95.2).
+    fn compact(&mut self) -> Result<(), PortError> {
+        Ok(())
+    }
+
     fn open(
         &mut self,
         path: &std::path::Path,

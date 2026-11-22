@@ -26,6 +26,13 @@ pub enum Event {
     },
     /// The open database was closed (all tabs closed first).
     DatabaseClosed,
+    /// The open database was compacted in place (phase 95, step 95.2):
+    /// a verified fresh file replaced it at the same path and the session
+    /// was refreshed. Tables, rows and tabs are unchanged.
+    DatabaseCompacted {
+        /// Database name (file stem).
+        name: String,
+    },
     /// A copy of the open database was written under a new path
     /// (step 27.2, item M14). The original stays untouched and open.
     DatabaseSavedAs {

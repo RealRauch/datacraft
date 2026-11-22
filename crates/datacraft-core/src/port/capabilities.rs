@@ -76,6 +76,9 @@ pub struct DriverCapabilities {
     /// Declared separately from `alter_table`: a backend may support the
     /// rename without field-level alterations (SQLite's current stage).
     pub rename_table: bool,
+    /// The open database can be compacted in place through a verified
+    /// fresh-file rewrite (`compact`, phase 95 / M126).
+    pub compact: Support,
     /// A batch via `write_row_ops` applies atomically — either every
     /// operation lands or none does.
     pub atomic_batch: bool,
@@ -114,6 +117,7 @@ impl DriverCapabilities {
             create_database: false,
             alter_table: false,
             rename_table: false,
+            compact: Support::No,
             atomic_batch: false,
             passwords: false,
             autonumber: Support::No,
@@ -141,6 +145,7 @@ impl DriverCapabilities {
             create_database: true,
             alter_table: true,
             rename_table: true,
+            compact: Support::Yes,
             atomic_batch: false,
             passwords: true,
             autonumber: Support::No,

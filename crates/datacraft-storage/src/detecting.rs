@@ -247,6 +247,11 @@ impl StoragePort for DetectingPort {
             .rename_table(table, new_name)
     }
 
+    /// Compact delegates to the open session (phase 95, step 95.2).
+    fn compact(&mut self) -> Result<(), PortError> {
+        self.session.as_mut().ok_or_else(no_database)?.compact()
+    }
+
     fn write_row_ops(&mut self, table: &str, ops: &[RowWriteOp]) -> Result<(), PortError> {
         self.session
             .as_mut()

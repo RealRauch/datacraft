@@ -25,8 +25,7 @@ pub use source::{SourceSpec, effective_path};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Command {
-    /// Opens the database file at `path` (closes nothing implicitly —
-    /// rejected while another database is open).
+    /// Opens the database file at `path`; rejected while another database is open.
     OpenDatabase {
         /// Filesystem path of the `.mdb`/`.accdb` file.
         path: PathBuf,
@@ -41,8 +40,10 @@ pub enum Command {
     },
     /// Closes the open database and all of its tabs.
     CloseDatabase,
-    /// Creates a brand-new, empty database file (phase 29, H44). The file
-    /// must not exist; dispatch `OpenDatabase` to open it afterwards.
+    /// Compacts the open database in place (phase 95, step 95.2; M126):
+    /// a verified fresh file replaces it atomically at the same path.
+    CompactDatabase,
+    /// Creates a brand-new, empty database file (H44); the file must not exist.
     CreateDatabase {
         /// Filesystem path of the new file.
         path: PathBuf,

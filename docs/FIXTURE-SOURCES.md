@@ -332,3 +332,19 @@ Consequences:
    hand-edited fixture fails the build instead of poisoning the oracle.
 4. Rule: fixtures are never opened in writer-capable applications; any
    manual byte experiment runs on a copy.
+
+## 7. Embedded engine templates
+
+These are **not** `fixtures/` entries: they are build assets embedded in
+`datacraft-jet` and never opened by the test suites as evidence.
+
+| Asset | Phase | Provenance | sha256 |
+|---|---|---|---|
+| `crates/datacraft-jet/src/jet/fresh_template.mdb` | 29.1/49.2 (H44/M63) | engine-written fresh database from `tools/dao-oracle/oracle.ps1 new-db` (2026-11-06), the documented black-box product of the DAO engine | pinned by the create-shape suites (bytes), provenance in FORMAT-JET "Fresh-create template" |
+| `crates/datacraft-jet/src/jet/fresh_template.accdb` | 95.2 (M126) | empty Access 2016 database written with Access COM (`NewCurrentDatabase`, `tools/fixture-build/make-ace-template.ps1`, 2026-11-22); system tables only, verified zero user tables | `e8547717b8ce288017cfe50b60b636bc16e5b8692e979797f4e11e8c6138c40a` |
+
+Regeneration of the ACE template requires Windows + Access (the same
+gate as `build.ps1`): run `tools/fixture-build/make-ace-template.ps1`,
+confirm the script's zero-user-table check passes, copy the printed
+sha256 into this table, and commit the new bytes together with the
+updated hash. The file is never edited in place.

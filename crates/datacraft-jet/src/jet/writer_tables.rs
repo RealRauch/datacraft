@@ -399,15 +399,33 @@ impl Jet4Writer {
         Ok(())
     }
 
-    /// Writes a TDEF page around a pre-encoded block.
+    /// Writes a TDEF block, chaining further pages when a wide table's
+    /// definition exceeds one page (the reader follows the next-page
+    /// pointer at offset 4; docs/FORMAT-JET.md "Pages").
     fn write_fresh_tdef_page(&mut self, page_no: u32, block: &[u8]) -> Result<(), StorageError> {
-        let base = self.header.page_offset(page_no)? as usize;
-        self.file[base] = PAGE_TYPE_TDEF;
-        self.file[base + 1] = 0x01;
-        let free = self.header.page_size as u32 - 8 - block.len() as u32;
-        self.file[base + 2..base + 4].copy_from_slice(&(free as u16).to_le_bytes());
-        self.file[base + 4..base + 8].copy_from_slice(&0u32.to_le_bytes()); // no chain
-        self.file[base + 8..base + 8 + block.len()].copy_from_slice(block);
-        Ok(())
+        let capacity = self.header.page_size - 8;
+        let mut page = page_no;
+        let mut remaining = block;
+        loop {
+            let take = remaining.len().min(capacity);
+            let (chunk, rest) = remaining.split_at(take);
+            let next = if rest.is_empty() {
+                0
+            } else {
+                self.append_page()?
+            };
+            let base = self.header.page_offset(page)? as usize;
+            self.file[base] = PAGE_TYPE_TDEF;
+            self.file[base + 1] = 0x01;
+            let free = capacity - chunk.len();
+            self.file[base + 2..base + 4].copy_from_slice(&(free as u16).to_le_bytes());
+            self.file[base + 4..base + 8].copy_from_slice(&next.to_le_bytes());
+            self.file[base + 8..base + 8 + chunk.len()].copy_from_slice(chunk);
+            if next == 0 {
+                return Ok(());
+            }
+            page = next;
+            remaining = rest;
+        }
     }
 }
