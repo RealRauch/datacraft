@@ -4,7 +4,7 @@
 > Progress file — updated after every step.
 > Legend: ⬜ open · 🔄 in progress · ✅ done · ⛔ blocked
 > Method retrospective (PLAYBOOK §8): every 5 phases — checkpointed at
-> phase 93 (R3), next at phase 98.
+> phase 98 (AGENTS §11), next at phase 103.
 
 > **Structure (archive pattern):** This file contains the **full progress table**
 > and detail blocks **only for active/open phases**. Detail blocks of completed phases
