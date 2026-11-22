@@ -40,9 +40,11 @@ the versions it compiles against exist on the registry:
    refactor of its signatures is a minor bump pre-1.0.
 7. `datacraft-sqlite` — SQLite backend (rusqlite, statically bundled).
 8. `datacraft-csv` — CSV directory driver (ADR-7 out-of-tree proof).
-9. `datacraft-storage` — driver composite (format-detecting registry plus the
-   samples generator) for consumers that want the shipped backends bundled.
-10. `datacraft-mcp` — headless stdio JSON-RPC 2.0 endpoint
+9. `datacraft-xlsx` — Excel workbook read driver (ADR-7; calamine, values
+   only, read-only).
+10. `datacraft-storage` — driver composite (format-detecting registry plus the
+    samples generator) for consumers that want the shipped backends bundled.
+11. `datacraft-mcp` — headless stdio JSON-RPC 2.0 endpoint
     (`cargo install datacraft-mcp`).
 
 **Testing surface:** `datacraft_core::port::MockPort` is public on purpose —

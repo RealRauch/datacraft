@@ -11,15 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 96 — Excel read driver .xlsx/.xlsm/.xls/.xlsb (roadmap §7, read-only first)
-
-**Scope (Steps):**
-
-- **96.1 Driver crate skeleton: datacraft-xlsx (ADR-7, core-only dependency), calamine pin in workspace deps, sniff, DatabaseFormat variant (Medium gate: new crate + dependency — needs the human release per occurrence)**
-- **96.2 Read path: sheets as tables, typed cell values, the record's format-matrix boundaries (.xlsm values, .xls values, .xlsb values), fixtures pinned (Medium gate: fixtures)**
-- **96.3 Composition + UI: registry registration, nav pane and datasheet through the snapshot, read-only capability honesty**
-- **96.4 Import File: xlsx as an import source over the M50 chain (roadmap §7 downstream)**
-- **96.5 Documentation and phase gate (README matrix, COMPATIBILITY evidence, FIXTURE-SOURCES provenance)**
 ### Phase 97 — PDF report export over the frozen scope (roadmap §11)
 
 **Scope (Steps):**
@@ -560,11 +551,11 @@
 | 95.3 | UI: health facts and the Compact affordance on the backstage/Info, capability-gated, localized | ✅ |
 | 95.4 | Wire: compact and health through CLI and MCP with contract pins — all four clients | ✅ |
 | 95.5 | Documentation and phase gate (roadmap §10 — README matrix, COMPATIBILITY evidence, CHANGELOG) | ✅ |
-| 96.1 | Driver crate skeleton: datacraft-xlsx (ADR-7, core-only dependency), calamine pin in workspace deps, sniff, DatabaseFormat variant (Medium gate: new crate + dependency — needs the human release per occurrence) | 🔄 |
-| 96.2 | Read path: sheets as tables, typed cell values, the record's format-matrix boundaries (.xlsm values, .xls values, .xlsb values), fixtures pinned (Medium gate: fixtures) | ⬜ |
-| 96.3 | Composition + UI: registry registration, nav pane and datasheet through the snapshot, read-only capability honesty | ⬜ |
-| 96.4 | Import File: xlsx as an import source over the M50 chain (roadmap §7 downstream) | ⬜ |
-| 96.5 | Documentation and phase gate (README matrix, COMPATIBILITY evidence, FIXTURE-SOURCES provenance) | ⬜ |
+| 96.1 | Driver crate skeleton: datacraft-xlsx (ADR-7, core-only dependency), calamine pin in workspace deps, sniff, DatabaseFormat variant (Medium gate: new crate + dependency — needs the human release per occurrence) | ✅ |
+| 96.2 | Read path: sheets as tables, typed cell values, the record's format-matrix boundaries (.xlsm values, .xls values, .xlsb values), fixtures pinned (Medium gate: fixtures) | ✅ |
+| 96.3 | Composition + UI: registry registration, nav pane and datasheet through the snapshot, read-only capability honesty | ✅ |
+| 96.4 | Import File: xlsx as an import source over the M50 chain (roadmap §7 downstream) | ✅ |
+| 96.5 | Documentation and phase gate (README matrix, COMPATIBILITY evidence, FIXTURE-SOURCES provenance) | ✅ |
 | 97.1 | Renderer decision + core feature: the pure-Rust PDF writer behind an optional core feature, the sql-engine precedent (Medium gate: dependency — needs the human release) | ⬜ |
 | 97.2 | Core: the export command over the paginated page model — deterministic (fixed metadata, stable order), text stays text, fonts reach the writer without depending on datacraft-ui | ⬜ |
 | 97.3 | UI + wire: the export affordance at the report preview, capability-gated, CLI and MCP parity | ⬜ |

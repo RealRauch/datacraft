@@ -94,8 +94,9 @@ The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
   on pixels.
 ## What works today
 
-DataCraft reads Jet3/Jet4 `.mdb`, ACE `.accdb`, SQLite files and CSV
-directories, and writes verified Jet4/ACE and SQLite table and row paths.
+DataCraft reads Jet3/Jet4 `.mdb`, ACE `.accdb`, SQLite files, CSV
+directories and Excel workbooks, and writes verified Jet4/ACE and SQLite
+table and row paths.
 Around that engine sit the Access-style shell (ribbon, navigation pane,
 datasheet, design view, QBE grid, form/report canvas), the expression and
 query engines, native-query execution, macro/VBA extraction with static
@@ -104,8 +105,9 @@ command bus.
 
 - **Formats:** Jet3/Jet4 read; Jet4 and ACE write (tables, rows, schema,
   indexes, relationships); SQLite read/write; CSV directories
-  read/write; ACE complex values; RC4 passwords; Access lock-file
-  co-existence.
+  read/write; Excel workbooks read-only (`.xlsx`/`.xlsm`/`.xls`/`.xlsb`,
+  sheets as tables, values only); ACE complex values; RC4 passwords;
+  Access lock-file co-existence.
 - **Workbench:** datasheet with in-cell editing (edits stage into a
   pending batch and apply as one atomic write on Ctrl+S on Jet4 and
   SQLite; read-only sources and drivers without atomic batches keep the
@@ -118,7 +120,7 @@ command bus.
   the `datacraft-mcp` stdio endpoint; journaled writes and inspectable
   snapshots.
 - **Data:** blank Jet4/SQLite databases, shipped templates and samples,
-  CSV import, and the `datacraft-import` Access migration tool.
+  CSV and Excel import, and the `datacraft-import` Access migration tool.
 - **Maintenance:** a read-only health check at open (page-0 facts and a
   bounded page-type scan for Jet/ACE; the file's own `quick_check` for
   SQLite) and **Compact**, which rewrites the open Jet4/ACE database into
@@ -150,6 +152,7 @@ lanes and CI runs — is in
 | **Access co-existence** | ✅ a sibling lock file (`.ldb`/`.laccdb`) opens the session read-only and is named in the snapshot, the status bar and the Info page | ⬜ read-only while the lock file exists | DataCraft never creates or deletes lock files; detection is existence-only (M59) |
 | **SQLite** | ✅ catalog, rows, foreign keys; native views read-only; index/trigger inventory; file facts and bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX`, foreign-key create/delete | schema alteration after create remains unsupported; `WITHOUT ROWID` rowid writes answer `Unsupported`; native view/trigger definitions are never created or executed |
 | **CSV directories** | ✅ catalog, rows | ✅ create/drop table, insert/update/delete (one atomic rewrite per call) | column kinds inferred at open; values read as text; no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
+| **Excel workbooks** | ✅ `.xlsx`/`.xlsm`/`.xls`/`.xlsb` — sheets as tables, typed cells, formula cells as their saved cached value | ⬜ read-only | macros are never read, executed or modified; ODF and password-protected workbooks answer a precise refusal; multi-sheet import uses the first data sheet |
 | **Maintenance** | ✅ Jet/ACE health facts and a bounded page sanity scan at open; SQLite facts + `quick_check` | ✅ Compact rewrites the open Jet4/ACE database into a fresh verified file and swaps it atomically at the same path | SQLite/CSV stay as-is (precise refusal); Jet3 is read-only; password-protected and Access-locked sessions refuse without touching the file |
 | **Form runtime (ADR-8)** | ✅ bound text/checkbox/combo editing with per-record commit, button actions, form-scoped filters | ✅ row writes through the driver (capability-gated) | no macro/VBA actions (ADR-2); design data lives in the sidecar; filters are session state, never written into Jet/ACE |
 | **Design layer (ADR-1)** | sidecar forms, queries, reports and views; native saved queries read-only; native Access forms/reports listed read-only | ✅ sidecar save/load; sibling auto-load; ⬜ native form/report writes | native form/report definitions are neither decoded nor written; the sidecar is versioned and database-name checked |
@@ -172,6 +175,7 @@ database does not modify it.
 | jet | `datacraft-jet` | clean-room Jet3/Jet4 read, Jet4/ACE write |
 | sqlite | `datacraft-sqlite` | SQLite backend (bundled rusqlite) |
 | csv | `datacraft-csv` | CSV directory driver (ADR-7) |
+| xlsx | `datacraft-xlsx` | Excel workbook read driver (ADR-7) |
 | storage | `datacraft-storage` | driver composite and sample generator |
 | ui | `datacraft-ui` | eframe/egui desktop shell |
 | cli | `datacraft-cli` | headless command-bus CLI |

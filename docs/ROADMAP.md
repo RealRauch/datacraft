@@ -261,6 +261,12 @@ above. Its `gridcraft-xlsx` crate is **not** usable as a dependency here
 (couples to gridcraft-core/model/formula/math; conflicts with the ADR-7
 rule that out-of-tree drivers depend only on `datacraft-core`).
 
+**Status (phase 96, item M127):** the read driver is delivered — `.xlsx`,
+`.xlsm`, `.xls` and `.xlsb` open as read-only sources, sheets are tables,
+values are typed, the registry composes it at the binary roots, and the
+Import File chain consumes it. Write support stays the separate later
+decision this record names.
+
 **Downstream:** once the read driver exists it feeds M50 (Import File —
 "ADR-7 driver model makes later sources additive") and a future
 table-export command. Release gates per PLAYBOOK §0.5: new crate + calamine

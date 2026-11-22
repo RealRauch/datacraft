@@ -225,3 +225,86 @@ mod tests {
         assert_eq!(caps.relationships, Support::No);
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+    use datacraft_core::schema::{FieldDef, FieldKind, NumericKind};
+
+    fn fixture() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("fixtures")
+            .join("excelFixture.xlsx")
+    }
+
+    #[test]
+    fn open_close_and_path_round_trip() {
+        let mut port = ExcelPort::new();
+        assert!(port.path().is_none());
+        port.open(&fixture(), None).expect("opens");
+        assert_eq!(port.path(), Some(fixture().as_path()));
+        port.close();
+        assert!(port.path().is_none());
+        assert!(port.tables().is_empty());
+        assert!(matches!(
+            port.read_rows("Items", RowRange { start: 0, len: 1 }),
+            Err(PortError::TableNotFound(_))
+        ));
+    }
+
+    #[test]
+    fn every_write_call_refuses_precisely() {
+        let mut port = ExcelPort::new();
+        port.open(&fixture(), None).expect("opens");
+        let definition = TableDef::new(
+            "New",
+            vec![FieldDef::new(
+                "id",
+                FieldKind::Number(NumericKind::LongInteger),
+            )],
+        );
+        assert!(matches!(
+            port.create_table(&definition),
+            Err(PortError::Unsupported { .. })
+        ));
+        assert!(matches!(
+            port.drop_table("Items"),
+            Err(PortError::Unsupported { .. })
+        ));
+        assert!(matches!(
+            port.update_row("Items", 0, &[]),
+            Err(PortError::Unsupported { .. })
+        ));
+        assert!(matches!(
+            port.delete_row("Items", 0),
+            Err(PortError::Unsupported { .. })
+        ));
+    }
+
+    #[test]
+    fn the_inventories_are_empty() {
+        let mut port = ExcelPort::new();
+        port.open(&fixture(), None).expect("opens");
+        assert!(port.relationships().expect("relationships").is_empty());
+        assert!(port.indexes().expect("indexes").is_empty());
+        assert!(port.triggers().expect("triggers").is_empty());
+        assert!(port.native_objects().expect("objects").is_empty());
+        assert!(port.native_views().expect("views").is_empty());
+        assert!(port.native_queries().expect("queries").is_empty());
+    }
+
+    #[test]
+    fn a_malformed_workbook_answers_an_open_failure() {
+        let path = std::env::temp_dir().join(format!(
+            "datacraft-xlsx-malformed-{}.xlsx",
+            std::process::id()
+        ));
+        std::fs::write(&path, b"not a workbook").expect("write probe");
+        let mut port = ExcelPort::new();
+        let error = port.open(&path, None).expect_err("malformed");
+        let _ = std::fs::remove_file(&path);
+        assert!(matches!(error, PortError::OpenFailed { .. }), "{error:?}");
+    }
+}

@@ -7,7 +7,6 @@ use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, Table
 
 use crate::Sheet;
 
-
 /// Reads one sheet into a table definition plus domain rows; a sheet
 /// without any used cell is not a table (`None`).
 pub(crate) fn read_sheet(
@@ -230,5 +229,152 @@ mod tests {
             infer_kind(&rows[3..4], 0),
             FieldKind::Boolean { tri_state: false }
         );
+    }
+}
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+    use calamine::{CellErrorType, Range};
+
+    fn range(rows: &[&[Data]]) -> Range<Data> {
+        let height = rows.len().max(1);
+        let width = rows.iter().map(|row| row.len()).max().unwrap_or(1).max(1);
+        let mut range = Range::new((0, 0), (height as u32 - 1, width as u32 - 1));
+        for (row_index, row) in rows.iter().enumerate() {
+            for (column, cell) in row.iter().enumerate() {
+                range.set_value((row_index as u32, column as u32), cell.clone());
+            }
+        }
+        range
+    }
+
+    #[test]
+    fn empty_and_headerless_sheets_are_not_tables() {
+        assert!(
+            read_sheet("Empty", &Range::new((0, 0), (2, 2)))
+                .expect("reads")
+                .is_none()
+        );
+        assert!(
+            read_sheet("NoHeader", &range(&[&[], &[Data::Int(1)]]))
+                .expect("reads")
+                .is_none(),
+            "a first row without cells names no column"
+        );
+    }
+
+    #[test]
+    fn trailing_empty_rows_are_trimmed() {
+        let sheet = read_sheet(
+            "Items",
+            &range(&[
+                &[Data::String("Name".into())],
+                &[Data::String("Ada".into())],
+                &[],
+                &[],
+            ]),
+        )
+        .expect("reads")
+        .expect("table");
+        assert_eq!(sheet.rows.len(), 1);
+        assert_eq!(sheet.rows[0][0], FieldValue::Text("Ada".into()));
+    }
+
+    #[test]
+    fn header_names_cover_empty_numeric_and_duplicate_cells() {
+        let names = column_names(
+            &[Data::String(" Name ".into()), Data::Empty, Data::Float(3.0)],
+            3,
+            "S",
+        )
+        .expect("names");
+        assert_eq!(names, vec!["Name", "Column2", "3"]);
+        let error = column_names(
+            &[Data::String("Name".into()), Data::String("name".into())],
+            2,
+            "S",
+        )
+        .expect_err("duplicates are refused");
+        assert!(error.to_string().contains("duplicate column name"));
+    }
+
+    #[test]
+    fn inference_covers_memo_boolean_iso_and_error_cells() {
+        let long = "x".repeat(300);
+        let long_rows: Vec<Vec<Data>> = vec![vec![Data::String(long)]];
+        let long_refs: Vec<&[Data]> = long_rows.iter().map(Vec::as_slice).collect();
+        assert_eq!(infer_kind(&long_refs, 0), FieldKind::Memo);
+
+        let iso: Vec<Vec<Data>> = vec![vec![Data::DateTimeIso("2024-01-15".into())]];
+        let iso_refs: Vec<&[Data]> = iso.iter().map(Vec::as_slice).collect();
+        assert_eq!(infer_kind(&iso_refs, 0), FieldKind::Text { max_len: 255 });
+
+        let errors: Vec<Vec<Data>> = vec![vec![Data::Error(CellErrorType::Div0)]];
+        let error_refs: Vec<&[Data]> = errors.iter().map(Vec::as_slice).collect();
+        assert_eq!(infer_kind(&error_refs, 0), FieldKind::Text { max_len: 255 });
+
+        let empty: Vec<Vec<Data>> = vec![vec![Data::Empty]];
+        let empty_refs: Vec<&[Data]> = empty.iter().map(Vec::as_slice).collect();
+        assert_eq!(
+            infer_kind(&empty_refs, 0),
+            FieldKind::Text { max_len: 255 },
+            "an all-empty column stays text"
+        );
+    }
+
+    #[test]
+    fn conversion_refuses_kind_mismatches_and_maps_the_rest() {
+        let integer = FieldKind::Number(NumericKind::LongInteger);
+        assert_eq!(
+            convert_cell(&Data::Float(4.0), &integer).expect("integral float"),
+            FieldValue::Integer(4)
+        );
+        assert!(convert_cell(&Data::String("x".into()), &integer).is_err());
+        assert!(convert_cell(&Data::Int(1), &FieldKind::DateTime).is_err());
+        assert!(convert_cell(&Data::Int(1), &FieldKind::Boolean { tri_state: false }).is_err());
+        assert!(convert_cell(&Data::Int(1), &FieldKind::Currency).is_err());
+        assert_eq!(
+            convert_cell(
+                &Data::Error(CellErrorType::Div0),
+                &FieldKind::Text { max_len: 255 }
+            )
+            .expect("error cell as text"),
+            FieldValue::Text("#DIV/0!".into())
+        );
+    }
+
+    #[test]
+    fn cell_text_covers_every_cell_variant() {
+        assert_eq!(cell_text(&Data::Empty), "");
+        assert_eq!(cell_text(&Data::String("x".into())), "x");
+        assert_eq!(cell_text(&Data::Int(-2)), "-2");
+        assert_eq!(cell_text(&Data::Float(1.5)), "1.5");
+        assert_eq!(cell_text(&Data::Bool(true)), "Yes");
+        assert!(
+            cell_text(&Data::DateTime(calamine::ExcelDateTime::new(
+                45_306.0,
+                calamine::ExcelDateTimeType::DateTime,
+                false
+            )))
+            .starts_with("2024-01-15")
+        );
+        assert_eq!(cell_text(&Data::DateTimeIso("D".into())), "D");
+        assert_eq!(cell_text(&Data::DurationIso("T".into())), "T");
+        assert_eq!(cell_text(&Data::Error(CellErrorType::NA)), "#N/A");
+    }
+
+    #[test]
+    fn a_row_shorter_than_the_header_reads_empty_cells_as_null() {
+        let sheet = read_sheet(
+            "Items",
+            &range(&[
+                &[Data::String("A".into()), Data::String("B".into())],
+                &[Data::String("only".into())],
+            ]),
+        )
+        .expect("reads")
+        .expect("table");
+        assert_eq!(sheet.rows[0][1], FieldValue::Null);
     }
 }

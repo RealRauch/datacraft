@@ -28,3 +28,37 @@ pub(crate) fn open_error(path: &Path, error: &calamine::Error) -> PortError {
         detail: format!("{}: {text}", path.display()),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_password_protected_workbook_is_an_unsupported_boundary() {
+        let error = calamine::Error::Xlsx(calamine::XlsxError::Password);
+        let mapped = open_error(std::path::Path::new("book.xlsx"), &error);
+        assert!(
+            matches!(mapped, PortError::Unsupported { .. }),
+            "{mapped:?}"
+        );
+        assert!(mapped.to_string().contains("password"));
+    }
+
+    #[test]
+    fn every_other_open_error_names_the_file() {
+        let error = calamine::Error::Msg("boom");
+        let mapped = open_error(std::path::Path::new("book.xlsx"), &error);
+        match mapped {
+            PortError::OpenFailed { detail } => {
+                assert!(detail.contains("book.xlsx"), "{detail}");
+                assert!(detail.contains("boom"), "{detail}");
+            }
+            other => panic!("expected OpenFailed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_write_refusal_names_the_surface() {
+        assert!(read_only("insert rows").to_string().contains("insert rows"));
+    }
+}

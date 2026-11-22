@@ -105,3 +105,66 @@ mod tests {
         assert_eq!(ole_datetime_text(0.0), "1899-12-30");
     }
 }
+
+#[cfg(test)]
+mod coverage_tests {
+    use super::*;
+    use datacraft_core::import::ImportReader;
+
+    fn fixture() -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("fixtures")
+            .join("excelFixture.xlsx")
+    }
+
+    #[test]
+    fn supports_only_the_excel_families() {
+        for name in ["a.xlsx", "a.XLSM", "a.xls", "a.xlsb"] {
+            assert!(ExcelImport.supports(std::path::Path::new(name)), "{name}");
+        }
+        for name in ["a.csv", "a.ods", "a", "a.mdb"] {
+            assert!(!ExcelImport.supports(std::path::Path::new(name)), "{name}");
+        }
+    }
+
+    #[test]
+    fn reads_the_first_sheet_as_canonical_import_text() {
+        let table = ExcelImport.read(&fixture()).expect("reads");
+        assert_eq!(table.fields.len(), 6);
+        assert_eq!(table.rows.len(), 2);
+        assert_eq!(table.rows[0][0], "Ada");
+        assert_eq!(table.rows[0][1], "3");
+        assert_eq!(table.rows[0][3], "2024-01-15");
+        assert_eq!(table.rows[0][4], "true");
+        assert_eq!(table.rows[0][5], "");
+        assert_eq!(table.rows[1][5], "hello");
+    }
+
+    #[test]
+    fn a_missing_workbook_is_a_locatable_error() {
+        let error = ExcelImport
+            .read(std::path::Path::new("/definitely/not/here.xlsx"))
+            .expect_err("missing");
+        assert!(error.contains("here.xlsx"), "{error}");
+    }
+
+    #[test]
+    fn import_text_covers_the_value_families() {
+        assert_eq!(import_text(&FieldValue::Null), "");
+        assert_eq!(import_text(&FieldValue::Integer(-2)), "-2");
+        assert_eq!(import_text(&FieldValue::Float(1.25)), "1.25");
+        assert_eq!(import_text(&FieldValue::Boolean(false)), "false");
+        assert_eq!(import_text(&FieldValue::DateTime(45_306.0)), "2024-01-15");
+        assert_eq!(import_text(&FieldValue::Text("x".into())), "x");
+        assert_eq!(import_text(&FieldValue::Currency(150)), "0.015");
+    }
+
+    #[test]
+    fn the_civil_calendar_handles_epoch_and_leap_days() {
+        assert_eq!(civil_from_ole_days(0), (1899, 12, 30));
+        assert_eq!(civil_from_ole_days(45_282), (2023, 12, 22));
+        assert_eq!(civil_from_ole_days(-1), (1899, 12, 29));
+    }
+}

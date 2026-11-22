@@ -10,6 +10,19 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- xlsx/core/ui/cli/mcp: Excel workbooks as read-only sources (96, M127) —
+  a new `datacraft-xlsx` driver (calamine, core-only dependency) opens
+  `.xlsx`, `.xlsm`, `.xls` and `.xlsb` as a database of sheets: the first
+  row names the columns, kinds are inferred conservatively and every cell
+  maps onto the domain values (empty → Null, formulas → their cached
+  value, macros never read); all four families deliver identical kinds
+  and values. The composite registry now carries multiple out-of-tree
+  fallbacks, the snapshot disables every write affordance with the
+  localized reason, and the datasheet renders the sheets like tables.
+  Import File accepts Excel workbooks through a core-owned reader seam
+  (preview and the ordinary create/insert chain). ODF and
+  password-protected workbooks refuse precisely; fixtures are built by
+  the new `tools/xlsx-fixtures/build.ps1` and pinned.
 - jet/ace/core/ui/cli/mcp: maintenance — health facts and Compact (95,
   M126) — every Jet/ACE open now carries page-0 facts (version, page
   size/count, byte size, code page, encryption, password) and a bounded
