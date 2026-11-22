@@ -4,13 +4,13 @@
 //! layout probe under `backstage.info.fact_value`).
 
 use datacraft_core::command::Command;
-use datacraft_core::port::MockPort;
+use datacraft_core::port::{DriverCapabilities, MockPort, Support};
 use datacraft_ui::app::App;
 use datacraft_ui::backstage::BackstagePage;
 use datacraft_ui::layout_probe;
 use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::NodeT;
+use egui_kittest::kittest::{NodeT, Queryable};
 
 fn app_with_database() -> App {
     let mut port = MockPort::with_tables(vec![datacraft_core::schema::TableDef::new(
@@ -84,8 +84,7 @@ fn the_save_page_names_every_section() {
 /// The Info page's fact values share one left edge (L59) — the ragged
 /// label widths no longer decide where the values start.
 #[test]
-fn the_info_page_aligns_fact_values_into_one_column() {
-    let mut app = app_with_database();
+fn the_info_page_aligns_fact_values_into_one_column() {    let mut app = app_with_database();
     app.backstage_page = BackstagePage::Info;
     app.active_ribbon_tab = "file";
     let mut harness = backstage_harness(app);
@@ -103,5 +102,59 @@ fn the_info_page_aligns_fact_values_into_one_column() {
     assert!(
         rects.iter().all(|rect| (rect.left() - first).abs() < 0.5),
         "every value starts at the same column edge: {rects:?}"
+    );
+}
+
+/// The Info page carries the Compact affordance (phase 95, step 95.3):
+/// one click dispatches the command and the status notice reports the
+/// completion.
+#[test]
+fn the_info_page_offers_compact_and_reports_completion() {
+    let mut app = app_with_database();
+    app.backstage_page = BackstagePage::Info;
+    app.active_ribbon_tab = "file";
+    let mut harness = backstage_harness(app);
+    harness.run();
+    harness.get_by_label("Compact Database").click();
+    harness.run();
+    let entries: Vec<String> = harness
+        .state()
+        .notice_entries()
+        .map(|entry| entry.text())
+        .collect();
+    assert!(
+        entries.iter().any(|entry| entry == "Database compacted"),
+        "the completion reaches the notice history: {entries:?}"
+    );
+}
+
+/// Without the capability the button renders disabled and the localized
+/// reason is visible — never a silently dead control (phase 95, step 95.3).
+#[test]
+fn the_compact_affordance_is_disabled_with_the_reason() {
+    let mut port = MockPort::new();
+    port.with_capabilities(DriverCapabilities {
+        compact: Support::No,
+        ..DriverCapabilities::full()
+    });
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+        source: None,
+    });
+    app.backstage_page = BackstagePage::Info;
+    app.active_ribbon_tab = "file";
+    let mut harness = backstage_harness(app);
+    harness.run();
+    let dump = tree_dump(&harness);
+    assert!(
+        dump.contains("the open source cannot be compacted"),
+        "the reason is rendered: {dump}"
+    );
+    let button = harness.get_by_label("Compact Database");
+    assert!(
+        button.accesskit_node().is_disabled(),
+        "the affordance is honest about the restriction"
     );
 }
