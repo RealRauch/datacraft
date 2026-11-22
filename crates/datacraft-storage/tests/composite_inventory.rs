@@ -58,4 +58,28 @@ fn the_composite_forwards_facts_and_the_file_inventory() {
     assert!(port.indexes().expect("indexes").len() >= 1);
     assert_eq!(port.triggers().expect("triggers").len(), 1);
     assert!(port.native_objects().expect("native objects").is_empty());
+    assert!(
+        port.supports_native_views(),
+        "the SQLite session's native-view capability must survive the composite"
+    );
+}
+
+#[test]
+fn the_composite_forwards_the_native_view_write_path() {
+    let path = scratch_path("native-view");
+    let conn = rusqlite::Connection::open(&path).expect("create scratch database");
+    conn.execute_batch("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT);")
+        .expect("schema");
+    drop(conn);
+    let scratch = Scratch(path);
+
+    let mut port = DetectingPort::new();
+    port.open(&scratch.0, None).expect("composite opens SQLite");
+    port.create_native_view("named_items", "SELECT name FROM items")
+        .expect("native view creation must reach the session");
+    let views = port.native_views().expect("inventory");
+    assert_eq!(views.len(), 1, "the created view is in the inventory");
+    port.drop_native_view("named_items")
+        .expect("native view drop must reach the session");
+    assert!(port.native_views().expect("inventory").is_empty());
 }
