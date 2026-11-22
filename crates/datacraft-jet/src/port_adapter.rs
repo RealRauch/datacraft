@@ -21,8 +21,8 @@
 use std::path::{Path, PathBuf};
 
 use datacraft_core::port::{
-    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, RowRange, StoragePort,
-    Support,
+    DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, RowRange, SourceFacts,
+    StoragePort, Support,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
@@ -58,6 +58,8 @@ pub struct Jet4Port {
     /// Access may hold the database open, so the session downgrades to
     /// read-only. DataCraft never creates or deletes lock files.
     lock_file: Option<PathBuf>,
+    /// File facts and the bounded health verdict (phase 95, step 95.1).
+    facts: SourceFacts,
 }
 
 impl Jet4Port {
@@ -87,22 +89,6 @@ impl Jet4Port {
             ),
         }
     }
-}
-
-/// The Access lock-file co-existence boundary (step 53.1, item M59): a
-/// sibling `.ldb` (Jet) or `.laccdb` (ACE) means Access may hold the
-/// database open. Detection is existence-only — the lock protocol's
-/// contents are clean-room-unclear and out of scope (M59); DataCraft
-/// never creates or deletes lock files.
-fn detect_lock_file(path: &Path) -> Option<PathBuf> {
-    let extension = path.extension()?.to_str()?.to_ascii_lowercase();
-    let lock_extension = match extension.as_str() {
-        "mdb" => "ldb",
-        "accdb" => "laccdb",
-        _ => return None,
-    };
-    let lock = path.with_extension(lock_extension);
-    lock.exists().then_some(lock)
 }
 
 impl StoragePort for Jet4Port {
@@ -182,7 +168,8 @@ impl StoragePort for Jet4Port {
         self.vba_error = vba_error;
         self.reader = Some(reader);
         self.path = Some(path.to_path_buf());
-        self.lock_file = detect_lock_file(path);
+        self.lock_file = crate::port_lock::detect_lock_file(path);
+        self.facts = crate::port_health::inspect(self.reader.as_ref().expect("just assigned"));
         Ok(OpenedDatabase {
             name,
             format,
@@ -206,6 +193,7 @@ impl StoragePort for Jet4Port {
         self.vba_error = None;
         self.path = None;
         self.lock_file = None;
+        self.facts = SourceFacts::default();
     }
 
     fn create_database(&mut self, path: &Path, format: DatabaseFormat) -> Result<(), PortError> {
@@ -250,6 +238,10 @@ impl StoragePort for Jet4Port {
 
     fn tables(&self) -> Vec<TableDef> {
         self.tables.clone()
+    }
+
+    fn source_facts(&self) -> SourceFacts {
+        self.facts.clone()
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {

@@ -10,6 +10,8 @@ pub mod jet;
 pub(crate) mod mapping;
 pub mod port_adapter;
 pub(crate) mod port_errors;
+pub(crate) mod port_health;
+pub(crate) mod port_lock;
 pub(crate) mod port_native;
 pub(crate) mod port_objects;
 pub(crate) mod port_schema;

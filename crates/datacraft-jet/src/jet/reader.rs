@@ -30,6 +30,9 @@ pub struct Jet4TableReader {
     pub(crate) file: Vec<u8>,
     /// Page encryption of the file (non-zero database key).
     encryption: Option<crate::jet::crypto::PageEncryption>,
+    /// Page-0 facts decoded from the raw (still encrypted) region before
+    /// the in-place decryption (phase 95, step 95.1).
+    header_info: Option<crate::jet::crypto::HeaderInfo>,
 }
 
 impl Jet4TableReader {
@@ -47,11 +50,15 @@ impl Jet4TableReader {
         password: Option<&str>,
     ) -> Result<Self, StorageError> {
         let header = FileHeader::decode(&file, file.len() as u64)?;
+        // Read the region facts before the in-place decryption consumes
+        // the raw bytes (a second decode afterwards would double-decrypt).
+        let header_info = crate::jet::crypto::decode_header_region(&file, &header).ok();
         let encryption = crate::jet::crypto::decrypt_file(&mut file, &header, password)?;
         Ok(Self {
             header,
             file,
             encryption,
+            header_info,
         })
     }
 
@@ -66,7 +73,13 @@ impl Jet4TableReader {
             header,
             file,
             encryption,
+            header_info: None,
         })
+    }
+
+    /// Page-0 header facts read before decryption, when available.
+    pub fn header_info(&self) -> Option<&crate::jet::crypto::HeaderInfo> {
+        self.header_info.as_ref()
     }
 
     /// Page encryption state for the writer's re-encryption pass.

@@ -564,7 +564,7 @@
 | 94.1 | UI paint-site scan: t()-bypass guard over the UI crate, RED first (T12) | ✅ |
 | 94.2 | CI hygiene job wiring for the guard (T12, High gate: needs the human release) | ✅ |
 | 94.3 | Documentation and phase gate (T12) | ✅ |
-| 95.1 | Core: pre-open health check — header/region/page sanity at open, read-only, health facts in the snapshot (roadmap §10 row 3) | ⬜ |
+| 95.1 | Core: pre-open health check — header/region/page sanity at open, read-only, health facts in the snapshot (roadmap §10 row 3) | 🔄 |
 | 95.2 | Core: compact — read everything, write a fresh verified Jet4/ACE file, atomic swap, the sidecar follows the path; Jet/ACE-scoped (roadmap §10 row 1) | ⬜ |
 | 95.3 | UI: health facts and the Compact affordance on the backstage/Info, capability-gated, localized | ⬜ |
 | 95.4 | Wire: compact and health through CLI and MCP with contract pins — all four clients | ⬜ |

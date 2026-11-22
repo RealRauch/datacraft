@@ -9,8 +9,9 @@
 use std::path::Path;
 
 use datacraft_core::port::{
-    DatabaseFormat, DriverCapabilities, DriverId, DriverInfo, OpenedDatabase, PortError,
-    Relationship, RowRange, SchemaChange, StoragePort,
+    DatabaseFormat, DriverCapabilities, DriverId, DriverInfo, NativeObject, NativeView,
+    OpenedDatabase, PortError, Relationship, RelationshipGroup, RowRange, RowWriteOp, SchemaChange,
+    SourceFacts, SourceIndex, SourceTrigger, StoragePort,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
@@ -172,6 +173,85 @@ impl StoragePort for DetectingPort {
         self.session
             .as_ref()
             .map_or_else(Vec::new, |session| session.tables())
+    }
+
+    /// The session's file facts and health verdict (phase 95, step 95.1;
+    /// F13 — before this delegation the snapshot lost them).
+    fn source_facts(&self) -> SourceFacts {
+        self.session
+            .as_ref()
+            .map_or_else(SourceFacts::default, |session| session.source_facts())
+    }
+
+    /// File-owned views of the session (F13: the inventory must reach the
+    /// snapshot; the SQLite backend reports them, the composite forwards).
+    fn native_views(&self) -> Result<Vec<NativeView>, PortError> {
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.native_views())
+    }
+
+    /// Index inventory of the session (F13).
+    fn indexes(&self) -> Result<Vec<SourceIndex>, PortError> {
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.indexes())
+    }
+
+    /// Trigger inventory of the session (F13).
+    fn triggers(&self) -> Result<Vec<SourceTrigger>, PortError> {
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.triggers())
+    }
+
+    /// Native Access form/report inventory of the session (F13).
+    fn native_objects(&self) -> Result<Vec<NativeObject>, PortError> {
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.native_objects())
+    }
+
+    /// Composite relationship groupings of the session (F13).
+    fn relationship_groups(&self) -> Option<Vec<RelationshipGroup>> {
+        self.session
+            .as_ref()
+            .and_then(|session| session.relationship_groups())
+    }
+
+    /// Whether the session applies sidecar views natively (F13).
+    fn supports_native_views(&self) -> bool {
+        self.session
+            .as_ref()
+            .is_some_and(|session| session.supports_native_views())
+    }
+
+    fn create_native_view(&mut self, name: &str, sql: &str) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .create_native_view(name, sql)
+    }
+
+    fn drop_native_view(&mut self, name: &str) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .drop_native_view(name)
+    }
+
+    fn rename_table(&mut self, table: &str, new_name: &str) -> Result<String, PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .rename_table(table, new_name)
+    }
+
+    fn write_row_ops(&mut self, table: &str, ops: &[RowWriteOp]) -> Result<(), PortError> {
+        self.session
+            .as_mut()
+            .ok_or_else(no_database)?
+            .write_row_ops(table, ops)
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {

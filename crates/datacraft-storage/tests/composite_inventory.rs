@@ -9,6 +9,8 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use datacraft_core::command::Command;
+use datacraft_core::core::Core;
 use datacraft_core::port::StoragePort;
 use datacraft_storage::detecting::DetectingPort;
 
@@ -55,7 +57,7 @@ fn the_composite_forwards_facts_and_the_file_inventory() {
         facts.facts
     );
     assert!(port.native_views().expect("views").len() == 1);
-    assert!(port.indexes().expect("indexes").len() >= 1);
+    assert!(!port.indexes().expect("indexes").is_empty());
     assert_eq!(port.triggers().expect("triggers").len(), 1);
     assert!(port.native_objects().expect("native objects").is_empty());
     assert!(
@@ -82,4 +84,36 @@ fn the_composite_forwards_the_native_view_write_path() {
     port.drop_native_view("named_items")
         .expect("native view drop must reach the session");
     assert!(port.native_views().expect("inventory").is_empty());
+}
+
+#[test]
+fn jet_health_facts_reach_the_snapshot_through_the_composite() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("testV2000.mdb");
+    let mut core = Core::new(Box::new(DetectingPort::new()));
+    let events = core.dispatch(Command::OpenDatabase {
+        path,
+        password: None,
+        source: None,
+    });
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, datacraft_core::event::Event::Failed { .. })),
+        "the fixture opens: {events:?}"
+    );
+    let database = core.inspect().database.expect("open database");
+    assert_eq!(database.driver.as_str(), "jet");
+    assert_eq!(database.health, None, "a healthy file has no finding");
+    assert!(
+        database
+            .facts
+            .iter()
+            .any(|fact| fact.name == "jet_version" && fact.value == "Jet4"),
+        "the Jet facts reach the snapshot: {:?}",
+        database.facts
+    );
 }
