@@ -257,3 +257,16 @@ Hard rules (CI-enforced):
 - Never put UI logic, locale or filesystem paths into `datacraft-core`.
 - Never claim compatibility beyond the verified matrix in `README.md` and
   its evidence rows in `docs/COMPATIBILITY.md`.
+
+## 11. Method retrospective log (PLAYBOOK §8)
+
+- **Phase 98 checkpoint (2026-11-22) — outcome: all rules stay.**
+  Reviewed: release gates (the per-occurrence pauses caught the new
+  crates, dependencies and fixtures before they entered the tree),
+  test-first (the composite-inventory gap only surfaced because the tests
+  ran through the real composition), the <500-line gate (forced six
+  splits across phases 95–98 — caps/compact, core/sql, command doc trims,
+  and the four xlsx modules — the cost stayed local and the gate stayed
+  green), and the stepwell/archive discipline (no drift; docs_validate
+  clean at every step). No rule was demoted or dropped; no new rule is
+  proposed. Next checkpoint: phase 103.

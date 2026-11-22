@@ -127,7 +127,16 @@ impl StoragePort for SqlitePort {
         // Compact is Jet/ACE-only in this phase (step 95.2, M126): the
         // SQLite backend keeps its file as-is and answers precisely.
         caps.compact = Support::No;
+        // Read-only native SQL pushdown (phase 98, step 98.1; M129).
+        caps.native_sql = Support::Yes;
         caps
+    }
+
+    /// Read-only native SQL against this file (phase 98, step 98.1;
+    /// item M129) — the SQL window's pushdown path.
+    fn run_native_sql(&self, sql: &str) -> Result<datacraft_core::sql_types::SqlResult, PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        sql::run(conn, sql)
     }
 
     /// SQLite applies sidecar views natively (step 71.3, item M93).
@@ -416,6 +425,7 @@ mod relationships;
 mod rows;
 mod rows_io;
 mod source_objects;
+mod sql;
 mod values;
 mod view_inventory;
 

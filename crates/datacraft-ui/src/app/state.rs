@@ -90,6 +90,8 @@ pub struct App {
     /// SQL window editor text (presentation state; the statement runs
     /// through the command bus).
     pub(super) sql_text: String,
+    /// The SQL window's query-plan toggle (native sources only).
+    pub(super) sql_explain: bool,
     /// Reason of the last failed SQL run (the window renders it).
     pub(super) sql_error: Option<String>,
     /// Import File window buffers (presentation state; the source and the

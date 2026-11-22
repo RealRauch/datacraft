@@ -89,6 +89,7 @@ impl App {
             filter_dialog: HashMap::new(),
             design_rename: HashMap::new(),
             sql_text: "SELECT 1 AS one;".to_owned(),
+            sql_explain: false,
             import_source: String::new(),
             import_table: String::new(),
             sql_error: None,
@@ -192,9 +193,15 @@ impl App {
 
     /// Runs the editor's statement through the bus and caches the outcome.
     pub fn run_sql(&mut self) {
-        let events = self.dispatch(Command::RunSql {
-            sql: self.sql_text.clone(),
-        });
+        // Dialect-aware statement (phase 98, step 98.2; M129): the plan
+        // prefix only on a native source, never over an explicit EXPLAIN.
+        let native = self
+            .snapshot()
+            .database
+            .as_ref()
+            .is_some_and(|db| db.sql_dialect == datacraft_core::port::SqlDialect::Native);
+        let sql = crate::sql_window::sql_statement(&self.sql_text, self.sql_explain, native);
+        let events = self.dispatch(Command::RunSql { sql });
         self.sql_error = events.iter().find_map(|event| match event {
             Event::Failed { code, reason } => {
                 Some(crate::failure_text::failure_text(*code, reason))

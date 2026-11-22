@@ -25,6 +25,18 @@ use crate::theme::tokens;
 /// size, larger ones scroll inside the bound.
 const RESULT_MAX_ROWS: f32 = 10.0;
 
+/// The statement `Run` dispatches (phase 98, step 98.2; item M129): the
+/// plan prefix applies only to a native source and only when the user did
+/// not already write an explicit `EXPLAIN`.
+pub fn sql_statement(text: &str, explain: bool, native: bool) -> String {
+    let trimmed = text.trim();
+    if explain && native && !trimmed.to_ascii_uppercase().starts_with("EXPLAIN") {
+        format!("EXPLAIN QUERY PLAN {trimmed}")
+    } else {
+        text.to_owned()
+    }
+}
+
 /// Renders the floating SQL window (when open and not docked).
 pub fn sql_window(app: &mut App, ui: &mut egui::Ui) {
     if !app.snapshot().sql_window_open {
@@ -92,15 +104,38 @@ fn sql_body(app: &mut App, ui: &mut egui::Ui) {
             .desired_width(f32::INFINITY)
             .hint_text("SELECT … FROM …"),
     );
+    let dialect = app
+        .snapshot()
+        .database
+        .as_ref()
+        .map(|database| database.sql_dialect);
+    let native = dialect == Some(datacraft_core::port::SqlDialect::Native);
     ui.horizontal(|ui| {
         if ui.button(t("Run")).clicked() {
             run = true;
         }
-        ui.weak(t("one SELECT/WITH statement · read-only"));
+        ui.weak(match dialect {
+            Some(datacraft_core::port::SqlDialect::Native) => t("native SQLite · read-only"),
+            _ => t("one SELECT/WITH statement · read-only"),
+        });
+        let mut explain = app.sql_explain();
+        if ui
+            .add_enabled(native, egui::Checkbox::new(&mut explain, t("Query plan")))
+            .changed()
+        {
+            app.set_sql_explain(explain);
+        }
     });
-    ui.weak(t(
-        "SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, integer overflow promotes to REAL",
-    ));
+    if native {
+        // The plan and the full dialect run on the file itself (phase 98).
+        ui.weak(t(
+            "Native SQLite dialect: indexes, views and EXPLAIN QUERY PLAN run on the file itself.",
+        ));
+    } else {
+        ui.weak(t(
+            "SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, integer overflow promotes to REAL",
+        ));
+    }
     if let Some(reason) = &error {
         ui.colored_label(tokens.danger, reason);
     }
@@ -185,5 +220,32 @@ fn sql_body(app: &mut App, ui: &mut egui::Ui) {
     app.set_sql_text(text);
     if run {
         app.run_sql();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sql_statement;
+
+    #[test]
+    fn the_plan_prefix_applies_only_to_native_sources_and_plain_statements() {
+        assert_eq!(
+            sql_statement("SELECT * FROM items", true, true),
+            "EXPLAIN QUERY PLAN SELECT * FROM items"
+        );
+        assert_eq!(
+            sql_statement("SELECT * FROM items", true, false),
+            "SELECT * FROM items",
+            "the shadow engine has no plan surface"
+        );
+        assert_eq!(
+            sql_statement("SELECT * FROM items", false, true),
+            "SELECT * FROM items"
+        );
+        assert_eq!(
+            sql_statement("EXPLAIN SELECT * FROM items", true, true),
+            "EXPLAIN SELECT * FROM items",
+            "an explicit EXPLAIN is never double-prefixed"
+        );
     }
 }

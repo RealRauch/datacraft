@@ -17,6 +17,16 @@ impl App {
         self.sql_text = text.into();
     }
 
+    /// Whether the SQL window asks for a query plan (native sources only).
+    pub fn sql_explain(&self) -> bool {
+        self.sql_explain
+    }
+
+    /// Sets the query-plan toggle.
+    pub fn set_sql_explain(&mut self, explain: bool) {
+        self.sql_explain = explain;
+    }
+
     /// Expression window editor text.
     pub fn expression_text(&self) -> &str {
         &self.expression_text

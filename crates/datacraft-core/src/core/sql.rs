@@ -1,17 +1,37 @@
 //! SQL-window data seam (step 13.3, item H37; split from `core.rs` for the
-//! file-size gate): the shadow engine materializes the loaded tables and
-//! file-owned views into a throwaway database. Source reads never write.
+//! file-size gate).
+//!
+//! Two surfaces behind one command (phase 98, item M129): a driver that
+//! declares `native_sql` executes the statement itself (SQLite — full
+//! dialect, real indexes, native views); every other source materializes
+//! its tables into the throwaway shadow engine. Neither path writes the
+//! source.
 
 use crate::core::{Core, failed};
 use crate::event::Event;
 use crate::failure::FailureCode;
 
 impl Core {
-    /// Runs one gated SQL statement over the loaded tables in a throwaway
-    /// in-memory database (step 13.3, H37) — the data seam of the SQL
-    /// window. Sources are read through the port and never written.
-    #[cfg(feature = "sql-engine")]
+    /// Runs one SQL statement over the open source: natively when the
+    /// driver declares it, otherwise through the shadow engine over the
+    /// rows read through the port. Sources are never written.
     pub fn run_sql(&self, sql: &str) -> Result<crate::sql_types::SqlResult, String> {
+        let Some(db) = &self.state.database else {
+            return Err("no database is open".to_owned());
+        };
+        if db.capabilities.native_sql == crate::port::Support::Yes {
+            return self
+                .port
+                .run_native_sql(sql)
+                .map_err(|error| error.to_string());
+        }
+        self.run_sql_shadow(sql)
+    }
+
+    /// The shadow path: materialize the loaded tables and file-owned views
+    /// into a throwaway database (step 13.3, H37).
+    #[cfg(feature = "sql-engine")]
+    fn run_sql_shadow(&self, sql: &str) -> Result<crate::sql_types::SqlResult, String> {
         let Some(db) = &self.state.database else {
             return Err("no database is open".to_owned());
         };
@@ -50,12 +70,13 @@ impl Core {
         crate::sql_engine::run_sql(sql, &sources)
     }
 
-    /// Without the `sql-engine` feature the engine is not compiled in; the
-    /// command still dispatches and answers a precise failure (step 31.2).
+    /// Without the `sql-engine` feature the shadow engine is not compiled
+    /// in; native drivers still answer through their own engine.
     #[cfg(not(feature = "sql-engine"))]
-    pub fn run_sql(&self, _sql: &str) -> Result<crate::sql_types::SqlResult, String> {
+    fn run_sql_shadow(&self, _sql: &str) -> Result<crate::sql_types::SqlResult, String> {
         Err(
-            "the SQL engine is not part of this build (enable the datacraft-core `sql-engine` feature)"
+            "the shadow SQL engine is not part of this build (enable the datacraft-core \
+             `sql-engine` feature); this source's driver has no native SQL engine"
                 .to_owned(),
         )
     }
@@ -66,6 +87,30 @@ impl Core {
     }
 
     pub(crate) fn run_sql_command(&mut self, sql: &str) -> Vec<Event> {
+        // Native pushdown keeps its typed failures: a write refusal is a
+        // capability boundary, a malformed statement a parse failure.
+        if self
+            .state
+            .database
+            .as_ref()
+            .is_some_and(|db| db.capabilities.native_sql == crate::port::Support::Yes)
+        {
+            return match self.port.run_native_sql(sql) {
+                Ok(result) => {
+                    let rows = result.rows.len();
+                    self.state.sql_result = Some(result);
+                    vec![Event::SqlRan { rows }]
+                }
+                Err(crate::port::PortError::Unsupported { reason }) => {
+                    self.state.sql_result = None;
+                    failed(FailureCode::Unsupported, reason)
+                }
+                Err(error) => {
+                    self.state.sql_result = None;
+                    failed(FailureCode::Parse, error.to_string())
+                }
+            };
+        }
         match self.run_sql(sql) {
             Ok(result) => {
                 let rows = result.rows.len();

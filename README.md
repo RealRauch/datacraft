@@ -113,7 +113,8 @@ command bus.
   SQLite; read-only sources and drivers without atomic batches keep the
   immediate per-cell writes), sort/filter/freeze and undo/redo; table
   design with the property sheet; QBE builder; form and report
-  designers with a runtime; relationship mapper; SQL window.
+  designers with a runtime; relationship mapper; SQL window (names its
+  dialect, query-plan view on SQLite).
 - **Programmability:** native saved queries (qualified dialect), macro
   inventory, VBA extraction, viewer and static analysis — no execution.
 - **Export:** a report's print preview exports to a new PDF file — the
@@ -155,6 +156,7 @@ lanes and CI runs — is in
 | **Access co-existence** | ✅ a sibling lock file (`.ldb`/`.laccdb`) opens the session read-only and is named in the snapshot, the status bar and the Info page | ⬜ read-only while the lock file exists | DataCraft never creates or deletes lock files; detection is existence-only (M59) |
 | **SQLite** | ✅ catalog, rows, foreign keys; native views read-only; index/trigger inventory; file facts and bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX`, foreign-key create/delete | schema alteration after create remains unsupported; `WITHOUT ROWID` rowid writes answer `Unsupported`; native view/trigger definitions are never created or executed |
 | **CSV directories** | ✅ catalog, rows | ✅ create/drop table, insert/update/delete (one atomic rewrite per call) | column kinds inferred at open; values read as text; no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
+| **SQL window** | ✅ read-only SQL over every source: on SQLite the statement runs natively (full dialect including window functions, real indexes, native views, `EXPLAIN QUERY PLAN`); Jet/ACE/CSV materialize into the shadow engine | ⬜ writes stay on the command bus — a write statement answers a precise capability refusal on every source | the dialect is named in the snapshot and the window; the shadow engine has no plan surface |
 | **Excel workbooks** | ✅ `.xlsx`/`.xlsm`/`.xls`/`.xlsb` — sheets as tables, typed cells, formula cells as their saved cached value | ⬜ read-only | macros are never read, executed or modified; ODF and password-protected workbooks answer a precise refusal; multi-sheet import uses the first data sheet |
 | **Report export (PDF)** | ✅ one command renders a report's print preview (page sequence, group bands and aggregates) to a new PDF; fixed metadata and stable order make re-export byte-identical; text stays selectable through an embedded Type0 font | ⬜ `pdf-export` core feature (enabled by the shipped clients); no interactive/scripted PDFs, PDF/A or PDF/UA claims, image embedding or printing | an existing target is refused; a build without the feature answers precisely; the source database and sidecar stay untouched |
 | **Maintenance** | ✅ Jet/ACE health facts and a bounded page sanity scan at open; SQLite facts + `quick_check` | ✅ Compact rewrites the open Jet4/ACE database into a fresh verified file and swaps it atomically at the same path | SQLite/CSV stay as-is (precise refusal); Jet3 is read-only; password-protected and Access-locked sessions refuse without touching the file |

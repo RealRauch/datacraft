@@ -11,14 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 98 — SQLite SQL pushdown, stage 1 (roadmap §19)
-
-**Scope (Steps):**
-
-- **98.1 Core: read-only native SQL execution against a SQLite source — full dialect, index use, views, EXPLAIN QUERY PLAN; writes stay refused on the bus path**
-- **98.2 UI: the SQL window names the dialect per source (SQLite native vs the shadow engine), EXPLAIN QUERY PLAN rendering**
-- **98.3 Wire: CLI and MCP parity with contract pins; Jet/CSV sources stay on the shadow engine unchanged**
-- **98.4 Documentation and phase gate (README SQL row, COMPATIBILITY evidence); the phase-98 method retrospective checkpoint (PLAYBOOK §8) rides the gate**
 
 
 
@@ -552,7 +544,7 @@
 | 97.2 | Core: the export command over the paginated page model — deterministic (fixed metadata, stable order), text stays text, fonts reach the writer without depending on datacraft-ui | ✅ |
 | 97.3 | UI + wire: the export affordance at the report preview, capability-gated, CLI and MCP parity | ✅ |
 | 97.4 | Acceptance + documentation and phase gate: page count and breaks in a standard viewer, text extracts, byte-identical re-export, unwritable target answers precisely | ✅ |
-| 98.1 | Core: read-only native SQL execution against a SQLite source — full dialect, index use, views, EXPLAIN QUERY PLAN; writes stay refused on the bus path | ⬜ |
-| 98.2 | UI: the SQL window names the dialect per source (SQLite native vs the shadow engine), EXPLAIN QUERY PLAN rendering | ⬜ |
-| 98.3 | Wire: CLI and MCP parity with contract pins; Jet/CSV sources stay on the shadow engine unchanged | ⬜ |
-| 98.4 | Documentation and phase gate (README SQL row, COMPATIBILITY evidence); the phase-98 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ⬜ |
+| 98.1 | Core: read-only native SQL execution against a SQLite source — full dialect, index use, views, EXPLAIN QUERY PLAN; writes stay refused on the bus path | ✅ |
+| 98.2 | UI: the SQL window names the dialect per source (SQLite native vs the shadow engine), EXPLAIN QUERY PLAN rendering | ✅ |
+| 98.3 | Wire: CLI and MCP parity with contract pins; Jet/CSV sources stay on the shadow engine unchanged | ✅ |
+| 98.4 | Documentation and phase gate (README SQL row, COMPATIBILITY evidence); the phase-98 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ✅ |

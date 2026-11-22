@@ -11,6 +11,7 @@ use crate::schema::{FieldValue, TableDef};
 
 mod capabilities;
 mod family;
+mod format;
 mod native_view;
 mod source_objects;
 mod write_op;
@@ -20,61 +21,11 @@ pub use datacraft_query::native_query::{
     NativeJoin, NativeJoinKind, NativeOrder, NativeQuery, NativeQueryColumn, NativeQueryKind,
 };
 pub use family::{DatabaseFamily, sniff_database_family};
+pub use format::{DatabaseFormat, SqlDialect};
 pub use native_view::NativeView;
 pub use source_objects::{
     NativeObject, NativeObjectKind, SourceFact, SourceFacts, SourceIndex, SourceTrigger,
 };
-
-/// Binary format family of an opened database (domain vocabulary; the
-/// backends map their physical version detection onto it).
-///
-/// `#[non_exhaustive]` (M32): ADR-7's server path adds format families;
-/// clients match with a wildcard arm.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum DatabaseFormat {
-    /// Jet 3.x (Access 97 and earlier).
-    Jet3,
-    /// Jet 4.x (Access 2000–2003).
-    Jet4,
-    /// ACE (Access 2007 and later, `.accdb`).
-    Ace,
-    /// SQLite 3 (`.sqlite`, `.db`) — the non-Jet source family (H35).
-    Sqlite,
-    /// A directory of `*.csv` files (phase 30, M18; ADR-7 driver proof).
-    Csv,
-    /// An Excel workbook (`.xlsx`, `.xlsm`, `.xls`, `.xlsb`) read as a
-    /// database of sheets (phase 96, M127; roadmap §7). Read-only.
-    Excel,
-}
-
-impl DatabaseFormat {
-    /// The canonical extension of a family this build can create — without
-    /// the dot (step 75.3, item L43). The creation pickers suggest it and
-    /// the create commands compare against it.
-    pub fn create_extension(self) -> Option<&'static str> {
-        match self {
-            Self::Jet4 => Some("mdb"),
-            Self::Sqlite => Some("sqlite"),
-            Self::Jet3 | Self::Ace | Self::Csv | Self::Excel => None,
-        }
-    }
-
-    /// The suffix conflict of a creation path (step 75.3, item L43): the
-    /// extension of the *other* creatable family, compared
-    /// case-insensitively. `None` accepts matching, unknown and missing
-    /// extensions — the create command carries the format explicitly, so
-    /// only a known extension of the other family is a contradiction.
-    pub fn creation_suffix_conflict(self, path: &std::path::Path) -> Option<&'static str> {
-        let extension = path.extension()?.to_str()?;
-        [Self::Jet4, Self::Sqlite]
-            .into_iter()
-            .filter(|family| *family != self)
-            .filter_map(Self::create_extension)
-            .find(|candidate| extension.eq_ignore_ascii_case(candidate))
-    }
-}
 
 /// Errors a storage backend reports through the port.
 ///
@@ -122,6 +73,11 @@ pub enum PortError {
         /// Filesystem path of the database.
         path: String,
     },
+    /// A native SQL statement failed to parse or execute.
+    QueryFailed {
+        /// Concrete, locatable detail from the engine.
+        detail: String,
+    },
 }
 
 impl std::fmt::Display for PortError {
@@ -146,6 +102,7 @@ impl std::fmt::Display for PortError {
             Self::WrongPassword { path } => {
                 write!(f, "{path}: the database password is wrong")
             }
+            Self::QueryFailed { detail } => write!(f, "query failed: {detail}"),
         }
     }
 }
@@ -381,6 +338,17 @@ pub trait StoragePort {
     fn compact(&mut self) -> Result<(), PortError> {
         Err(PortError::Unsupported {
             reason: "compacting is not supported by this backend".to_owned(),
+        })
+    }
+    /// Executes one read-only SQL statement natively against the open
+    /// source (phase 98, step 98.1; item M129). The statement is the
+    /// user's; writes stay on the command bus and answer precisely.
+    /// Backends without a native engine answer `Unsupported` (the
+    /// default) and keep `RunSql` on the shadow engine.
+    fn run_native_sql(&self, sql: &str) -> Result<crate::sql_types::SqlResult, PortError> {
+        let _ = sql;
+        Err(PortError::Unsupported {
+            reason: "native SQL execution is not supported by this backend".to_owned(),
         })
     }
     /// Whether the backend can apply sidecar views natively (step 71.3,

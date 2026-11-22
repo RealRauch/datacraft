@@ -15,6 +15,7 @@ datacraft-jet = { workspace = true }
 datacraft-sqlite = { workspace = true }
 
 [dev-dependencies]
+datacraft-core = { workspace = true, features = ["sql-engine"] }
 rusqlite = { workspace = true }
 
 [lints]

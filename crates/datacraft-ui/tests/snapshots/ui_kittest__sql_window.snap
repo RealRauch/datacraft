@@ -13,6 +13,7 @@ TextRun||SELECT 1 AS one;
 Button|Run|
 Label||one SELECT/WITH statement · read-only
 TextRun||one SELECT/WITH statement · read-only
+CheckBox|Query plan| disabled
 Label||SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, integer overflow promotes to REAL
 TextRun||SQLite semantics: Currency materializes unscaled, LIKE uses % wildcards, text literals never match numeric columns, 
 TextRun||integer overflow promotes to REAL

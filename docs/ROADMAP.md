@@ -759,6 +759,11 @@ own items:
 | 2 — Write parity | SQLite `alter_table` (ADD/RENAME natively, DROP via rebuild), `atomic_batch` via one transaction, index management (list/create/drop). | The capability flags flip to an honest `Yes`. |
 | 3 — Conversion & templates | Cross-format conversion Jet4/ACE ↔ SQLite (schema, data, relationships; the sidecar follows the name), SQLite templates alongside the Jet4 ones. | The Jet writer is the conversion target and matures through real use. |
 
+**Status (phase 98, item M129):** stage 1 is delivered — read-only native
+SQL on SQLite (full dialect, indexes, native views, `EXPLAIN QUERY PLAN`),
+the dialect named in the snapshot and the window, and CLI/MCP parity;
+writes stay on the command bus. Stages 2–3 remain open.
+
 **Out of scope, stated plainly:** SQLCipher/encryption (a new C dependency,
 contrary to the pure-Rust stance); trigger creation or any trigger logic
 (inventory only — writing into a foreign database fires its triggers, which

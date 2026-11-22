@@ -79,6 +79,10 @@ pub struct DriverCapabilities {
     /// The open database can be compacted in place through a verified
     /// fresh-file rewrite (`compact`, phase 95 / M126).
     pub compact: Support,
+    /// The driver executes read-only SQL natively against the source
+    /// (`run_native_sql`, phase 98 / M129). `No` keeps `RunSql` on the
+    /// shadow engine.
+    pub native_sql: Support,
     /// A batch via `write_row_ops` applies atomically — either every
     /// operation lands or none does.
     pub atomic_batch: bool,
@@ -118,6 +122,7 @@ impl DriverCapabilities {
             alter_table: false,
             rename_table: false,
             compact: Support::No,
+            native_sql: Support::No,
             atomic_batch: false,
             passwords: false,
             autonumber: Support::No,
@@ -146,6 +151,7 @@ impl DriverCapabilities {
             alter_table: true,
             rename_table: true,
             compact: Support::Yes,
+            native_sql: Support::No,
             atomic_batch: false,
             passwords: true,
             autonumber: Support::No,

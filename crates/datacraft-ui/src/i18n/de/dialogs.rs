@@ -38,6 +38,15 @@ pub static TABLE: &[(&str, &str)] = &[
         "Report exported to {path} ({pages} pages)",
         "Bericht exportiert nach {path} ({pages} Seiten)",
     ),
+    (
+        "native SQLite · read-only",
+        "natives SQLite · schreibgeschützt",
+    ),
+    ("Query plan", "Abfrageplan"),
+    (
+        "Native SQLite dialect: indexes, views and EXPLAIN QUERY PLAN run on the file itself.",
+        "Natives SQLite-Dialekt: Indizes, Views und EXPLAIN QUERY PLAN laufen direkt auf der Datei.",
+    ),
     ("Busy timeout", "Busy-Timeout"),
     ("STRICT tables", "STRICT-Tabellen"),
     ("WITHOUT ROWID tables", "WITHOUT-ROWID-Tabellen"),

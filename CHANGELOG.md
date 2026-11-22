@@ -10,6 +10,15 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- core/sqlite/ui/cli/mcp: SQLite SQL pushdown (98, M129) — the SQL window
+  now executes statements natively on a SQLite source: full dialect
+  (window functions, CTEs), real indexes, native views, typed results and
+  EXPLAIN QUERY PLAN. The port keeps it read-only through the engine's
+  own statement flag, so every write form (including `WITH … DELETE` and
+  PRAGMA writes) answers a precise capability refusal; Jet/ACE/CSV stay
+  on the shadow engine unchanged. The snapshot names the dialect and the
+  SQL window shows it plus a Query plan toggle that renders SQLite's
+  plan in the result grid; CLI and MCP dispatch the same command.
 - core/ui/cli/mcp: PDF report export (97, M128) — a report's print
   preview exports to a new PDF file as its second render target: one PDF
   page per preview page, the report's own page geometry, text kept as

@@ -268,6 +268,14 @@ impl StoragePort for DetectingPort {
             .rename_table(table, new_name)
     }
 
+    /// Native SQL delegates to the open session (phase 98, step 98.1).
+    fn run_native_sql(&self, sql: &str) -> Result<datacraft_core::sql_types::SqlResult, PortError> {
+        self.session
+            .as_ref()
+            .ok_or_else(no_database)?
+            .run_native_sql(sql)
+    }
+
     /// Compact delegates to the open session (phase 95, step 95.2).
     fn compact(&mut self) -> Result<(), PortError> {
         self.session.as_mut().ok_or_else(no_database)?.compact()

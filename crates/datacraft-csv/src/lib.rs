@@ -77,6 +77,7 @@ impl StoragePort for CsvPort {
             alter_table: false,
             rename_table: false,
             compact: Support::No,
+            native_sql: Support::No,
             atomic_batch: true,
             passwords: false,
             autonumber: Support::No,
