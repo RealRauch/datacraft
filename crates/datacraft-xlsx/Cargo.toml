@@ -1,0 +1,17 @@
+[package]
+name = "datacraft-xlsx"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme = "README.md"
+description = "Excel workbook read driver for the DataCraft engine (ADR-7, xlsx/xlsm/xls/xlsb)"
+
+[dependencies]
+datacraft-core = { workspace = true }
+calamine = { workspace = true }
+
+[lints]
+workspace = true

@@ -44,8 +44,8 @@ impl Core {
         if table.trim().is_empty() {
             return failed(FailureCode::InvalidInput, "the target table name is empty");
         }
-        let (parsed, _dialect) = match crate::import::read_csv_file(source) {
-            Ok(parsed) => parsed,
+        let parsed = match self.read_import_source(source) {
+            Ok((parsed, _dialect)) => parsed,
             // The file layer owns the path prefix (step 91.3, item M112)
             // — one prefix, never two.
             Err(reason) => return failed(FailureCode::Io, reason),
@@ -86,7 +86,7 @@ impl Core {
                 "no database is open — open a database first",
             );
         }
-        let (parsed, dialect) = match crate::import::read_csv_file(source) {
+        let (parsed, dialect) = match self.read_import_source(source) {
             Ok(parsed) => parsed,
             // The file layer owns the path prefix (step 91.3, item M112)
             // — one prefix, never two.
@@ -109,8 +109,23 @@ impl Core {
                 .take(crate::import::PREVIEW_ROWS)
                 .collect(),
             total_rows,
-            dialect: Some(dialect),
+            dialect,
         });
         Vec::new()
+    }
+
+    /// Reads one import source through the registered out-of-tree reader
+    /// (phase 96, M127) or the CSV path — the single seam every import
+    /// client shares. The dialect is `None` for non-CSV readers.
+    fn read_import_source(
+        &self,
+        source: &Path,
+    ) -> Result<(crate::import::ImportTable, Option<crate::import::Dialect>), String> {
+        for reader in &self.import_readers {
+            if reader.supports(source) {
+                return reader.read(source).map(|table| (table, None));
+            }
+        }
+        crate::import::read_csv_file(source).map(|(table, dialect)| (table, Some(dialect)))
     }
 }

@@ -131,11 +131,11 @@ fn the_composite_debug_names_the_session_and_fallback() {
     let plain = DetectingPort::new();
     let debug = format!("{plain:?}");
     assert!(debug.contains("DetectingPort"), "{debug}");
-    assert!(debug.contains("fallback: false"), "{debug}");
+    assert!(debug.contains("fallbacks: 0"), "{debug}");
 
     let with_fallback = DetectingPort::new().with_fallback(picky_factory);
     assert!(
-        format!("{with_fallback:?}").contains("fallback: true"),
+        format!("{with_fallback:?}").contains("fallbacks: 1"),
         "{with_fallback:?}"
     );
 
@@ -193,7 +193,7 @@ fn an_unknown_file_names_the_family_hint_and_the_fallback_reason() {
         "the family hint survives: {message}"
     );
     assert!(
-        message.contains("the registered fallback declined it too"),
+        message.contains("declined it"),
         "the combined message marks the fallback verdict: {message}"
     );
     assert!(

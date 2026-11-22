@@ -23,11 +23,12 @@ use datacraft_sqlite::SqlitePort;
 pub struct DetectingPort {
     /// The open session, whatever driver claimed the file.
     session: Option<Box<dyn StoragePort>>,
-    /// Out-of-tree driver factory (ADR-7): consulted when no built-in
-    /// probe claims the path, and for `create_database` formats the
-    /// built-ins don't serve. The driver answers for itself or fails
-    /// the open precisely.
-    fallback: Option<Box<dyn Fn() -> Box<dyn StoragePort> + Send + Sync>>,
+    /// Out-of-tree driver factories (ADR-7): consulted in registration
+    /// order when no built-in probe claims the path, and for
+    /// `create_database` formats the built-ins don't serve. Each driver
+    /// answers for itself or fails the open precisely; the next one is
+    /// tried after a refusal.
+    fallbacks: Vec<Box<dyn Fn() -> Box<dyn StoragePort> + Send + Sync>>,
 }
 
 impl std::fmt::Debug for DetectingPort {
@@ -37,7 +38,7 @@ impl std::fmt::Debug for DetectingPort {
                 "session",
                 &self.session.as_ref().map(|session| session.driver_id()),
             )
-            .field("fallback", &self.fallback.is_some())
+            .field("fallbacks", &self.fallbacks.len())
             .finish()
     }
 }
@@ -55,7 +56,7 @@ impl DetectingPort {
         mut self,
         factory: impl Fn() -> Box<dyn StoragePort> + Send + Sync + 'static,
     ) -> Self {
-        self.fallback = Some(Box::new(factory));
+        self.fallbacks.push(Box::new(factory));
         self
     }
 }
@@ -94,7 +95,7 @@ impl StoragePort for DetectingPort {
                 capabilities: sqlite.capabilities(),
             },
         ];
-        if let Some(factory) = &self.fallback {
+        for factory in &self.fallbacks {
             let driver = factory();
             inventory.push(DriverInfo {
                 id: driver.driver_id(),
@@ -109,23 +110,32 @@ impl StoragePort for DetectingPort {
         let mut driver = match probe(path) {
             Ok(driver) => driver,
             Err(error) => {
-                let Some(factory) = &self.fallback else {
-                    return Err(error);
-                };
-                let mut fallback = factory();
-                let opened = fallback.open(path, password).map_err(|fallback_error| {
-                    // L9: an unknown file reaches the fallback only after the
-                    // sniff declined it — when the fallback declines too, the
-                    // user still needs the family hint, so the sniff's precise
-                    // reason stays and the fallback's verdict is appended.
-                    PortError::OpenFailed {
-                        detail: format!(
-                            "{error} — the registered fallback declined it too: {fallback_error}"
-                        ),
+                // L9: an unknown file reaches the fallbacks only after the
+                // sniff declined it — when every fallback declines too, the
+                // user still needs the family hint, so the sniff's precise
+                // reason stays and each fallback's verdict is appended.
+                let mut verdicts = Vec::new();
+                for factory in &self.fallbacks {
+                    let mut fallback = factory();
+                    match fallback.open(path, password) {
+                        Ok(opened) => {
+                            self.session = Some(fallback);
+                            return Ok(opened);
+                        }
+                        Err(fallback_error) => {
+                            verdicts.push(format!(
+                                "the {} driver declined it: {fallback_error}",
+                                fallback.driver_id()
+                            ));
+                        }
                     }
-                })?;
-                self.session = Some(fallback);
-                return Ok(opened);
+                }
+                if verdicts.is_empty() {
+                    return Err(error);
+                }
+                return Err(PortError::OpenFailed {
+                    detail: format!("{error} — {}", verdicts.join("; ")),
+                });
             }
         };
         let opened = driver.open(path, password)?;
@@ -143,15 +153,26 @@ impl StoragePort for DetectingPort {
         match format {
             DatabaseFormat::Jet4 => Jet4Port::new().create_database(path, format),
             DatabaseFormat::Sqlite => SqlitePort::new().create_database(path, format),
-            other => match &self.fallback {
-                Some(factory) => factory().create_database(path, other),
-                None => Err(PortError::Unsupported {
-                    reason: format!(
-                        "creating a {other:?} database file is not supported — create a \
-                         Jet4 or SQLite database"
-                    ),
-                }),
-            },
+            other => {
+                let mut verdicts = Vec::new();
+                for factory in &self.fallbacks {
+                    match factory().create_database(path, other) {
+                        Ok(()) => return Ok(()),
+                        Err(fallback_error) => verdicts.push(fallback_error.to_string()),
+                    }
+                }
+                if verdicts.is_empty() {
+                    return Err(PortError::Unsupported {
+                        reason: format!(
+                            "creating a {other:?} database file is not supported — create a \
+                             Jet4 or SQLite database"
+                        ),
+                    });
+                }
+                Err(PortError::Unsupported {
+                    reason: verdicts.join("; "),
+                })
+            }
         }
     }
 

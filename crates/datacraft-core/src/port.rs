@@ -44,6 +44,9 @@ pub enum DatabaseFormat {
     Sqlite,
     /// A directory of `*.csv` files (phase 30, M18; ADR-7 driver proof).
     Csv,
+    /// An Excel workbook (`.xlsx`, `.xlsm`, `.xls`, `.xlsb`) read as a
+    /// database of sheets (phase 96, M127; roadmap §7). Read-only.
+    Excel,
 }
 
 impl DatabaseFormat {
@@ -54,7 +57,7 @@ impl DatabaseFormat {
         match self {
             Self::Jet4 => Some("mdb"),
             Self::Sqlite => Some("sqlite"),
-            Self::Jet3 | Self::Ace | Self::Csv => None,
+            Self::Jet3 | Self::Ace | Self::Csv | Self::Excel => None,
         }
     }
 

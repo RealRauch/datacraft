@@ -560,7 +560,7 @@
 | 95.3 | UI: health facts and the Compact affordance on the backstage/Info, capability-gated, localized | ✅ |
 | 95.4 | Wire: compact and health through CLI and MCP with contract pins — all four clients | ✅ |
 | 95.5 | Documentation and phase gate (roadmap §10 — README matrix, COMPATIBILITY evidence, CHANGELOG) | ✅ |
-| 96.1 | Driver crate skeleton: datacraft-xlsx (ADR-7, core-only dependency), calamine pin in workspace deps, sniff, DatabaseFormat variant (Medium gate: new crate + dependency — needs the human release per occurrence) | ⬜ |
+| 96.1 | Driver crate skeleton: datacraft-xlsx (ADR-7, core-only dependency), calamine pin in workspace deps, sniff, DatabaseFormat variant (Medium gate: new crate + dependency — needs the human release per occurrence) | 🔄 |
 | 96.2 | Read path: sheets as tables, typed cell values, the record's format-matrix boundaries (.xlsm values, .xls values, .xlsb values), fixtures pinned (Medium gate: fixtures) | ⬜ |
 | 96.3 | Composition + UI: registry registration, nav pane and datasheet through the snapshot, read-only capability honesty | ⬜ |
 | 96.4 | Import File: xlsx as an import source over the M50 chain (roadmap §7 downstream) | ⬜ |

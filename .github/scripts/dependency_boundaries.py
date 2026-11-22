@@ -25,7 +25,7 @@ from pathlib import Path
 # AGENTS §1: the binary composition roots are the only crates allowed to
 # name the composite or the out-of-tree driver.
 COMPOSITION_ROOTS = {"datacraft-ui", "datacraft-cli", "datacraft-mcp"}
-GATED_DEPS = {"datacraft-storage", "datacraft-csv"}
+GATED_DEPS = {"datacraft-storage", "datacraft-csv", "datacraft-xlsx"}
 
 
 def read_graph(root: Path) -> dict[str, list[str]]:

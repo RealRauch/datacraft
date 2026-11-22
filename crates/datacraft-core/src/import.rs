@@ -16,13 +16,31 @@ pub mod dialect;
 
 pub use dialect::{CsvEncoding, Dialect, decode_csv_text, delimiter_label, detect_delimiter};
 
+/// Backwards-compatible name of [`ImportTable`] (the CSV path's original
+/// vocabulary; callers and tests keep compiling).
+pub type CsvTable = ImportTable;
+
+/// One out-of-tree import source reader (phase 96, item M127): the
+/// composition root registers the Excel driver, so the core never depends
+/// on a format crate. `supports` is a cheap path check; `read` answers the
+/// canonical text table or a locatable reason.
+pub trait ImportReader: Send + Sync {
+    /// Whether this reader claims the path.
+    fn supports(&self, path: &std::path::Path) -> bool;
+    /// Reads the source into the shared import shape.
+    fn read(&self, path: &std::path::Path) -> Result<ImportTable, String>;
+}
+
 /// Maximum Short Text length of every CSV column (the L7 constant).
 pub const MAX_TEXT_LEN: u16 = 255;
 
-/// One parsed CSV source: the typed field definitions (header + inferred
-/// kinds) and the raw text rows (without the header).
+/// One parsed import source: the field definitions (header + inferred
+/// kinds) and the raw text rows (without the header). CSV parses directly
+/// into this shape; an out-of-tree reader (the Excel driver) renders its
+/// typed cells into the same canonical text so the M50 chain, its preview
+/// and its per-row coercion stay one path.
 #[derive(Debug)]
-pub struct CsvTable {
+pub struct ImportTable {
     /// The inferred field definitions in column order.
     pub fields: Vec<FieldDef>,
     /// The data rows as raw text cells (no header).
@@ -60,7 +78,7 @@ pub const PREVIEW_ROWS: usize = 8;
 /// and reported in the dialect. Ragged rows and undecodable bytes fail
 /// with a locatable reason (LESSONS #4). The source file is only ever
 /// read.
-pub fn read_csv_file(path: &Path) -> Result<(CsvTable, Dialect), String> {
+pub fn read_csv_file(path: &Path) -> Result<(ImportTable, Dialect), String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
     // Wrong-surface honesty (step 91.3, item M111): a database file is
     // healthy — it belongs to File → Open, not to the text import. The
@@ -80,7 +98,7 @@ pub fn read_csv_file(path: &Path) -> Result<(CsvTable, Dialect), String> {
 /// Parses one CSV text into a [`CsvTable`] with the sniffed delimiter:
 /// the header row names the fields, the L7 inference types them, every
 /// data row stays text.
-pub fn read_csv_text(text: &str) -> Result<CsvTable, String> {
+pub fn read_csv_text(text: &str) -> Result<ImportTable, String> {
     let delimiter = detect_delimiter(text);
     parse_csv_text(text, delimiter)
 }
@@ -88,7 +106,7 @@ pub fn read_csv_text(text: &str) -> Result<CsvTable, String> {
 /// Parses one CSV text with an explicit delimiter into a [`CsvTable`]:
 /// the header row names the fields, the L7 inference types them, every
 /// data row stays text.
-pub fn parse_csv_text(text: &str, delimiter: u8) -> Result<CsvTable, String> {
+pub fn parse_csv_text(text: &str, delimiter: u8) -> Result<ImportTable, String> {
     let records = parse_records(text, delimiter)?;
     let header = records
         .first()
@@ -100,7 +118,7 @@ pub fn parse_csv_text(text: &str, delimiter: u8) -> Result<CsvTable, String> {
         .zip(kinds)
         .map(|(name, kind)| FieldDef::new(name.clone(), kind))
         .collect();
-    Ok(CsvTable {
+    Ok(ImportTable {
         fields,
         rows: records.into_iter().skip(1).collect(),
     })

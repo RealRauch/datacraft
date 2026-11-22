@@ -12,6 +12,7 @@ description = "Headless stdio JSON-RPC 2.0 endpoint of the DataCraft command bus
 [dependencies]
 datacraft-core = { workspace = true, features = ["sql-engine"] }
 datacraft-csv = { workspace = true }
+datacraft-xlsx = { workspace = true }
 datacraft-storage = { workspace = true }
 
 [dev-dependencies]

@@ -60,3 +60,12 @@ ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668  test2V1997.mdb
 # tools/fixture-build/design-fixture/ for the generator and the SaveAsText
 # exports)
 36515a11303fb845921ff15c94974ab08d2799d0aecd11817380e77a17813e75  formDesignsV2016.accdb
+
+# source: tools/xlsx-fixtures/build.ps1 (Excel 16 COM, 2026-11-22, item M127):
+# two sheets (Items: text/integer/float/date/boolean/empty; Summary: formula
+# with cached value), saved as OpenXML, macro-enabled OpenXML, BIFF8 and
+# binary OpenXML. Regeneration changes Excel's timestamps → new hashes.
+777149a9c7b479780d614aeafc0ac1cb6725c7e44fdc99d758729c9139a1f866  excelFixture.xlsx
+c3a61b19c15d4cfd08cd339951ee0528c23e996870eb362fd15783cdf9624aee  excelFixture.xlsm
+345639aabe7f12ec812fb4bb39f61e29fbdf726b674a057222ebe510f7cef219  excelFixture.xls
+976cf0949061647a4cefbbd6dda2355c3ebb2f729742dce7164c262ce4fbbe70  excelFixture.xlsb

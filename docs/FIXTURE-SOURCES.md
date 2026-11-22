@@ -348,3 +348,22 @@ gate as `build.ps1`): run `tools/fixture-build/make-ace-template.ps1`,
 confirm the script's zero-user-table check passes, copy the printed
 sha256 into this table, and commit the new bytes together with the
 updated hash. The file is never edited in place.
+
+## 8. Excel fixtures (phase 96, item M127)
+
+`fixtures/excelFixture.{xlsx,xlsm,xls,xlsb}` are one workbook saved in the
+four families by `tools/xlsx-fixtures/build.ps1` (Excel 16 COM,
+2026-11-22): two sheets — `Items` (Name, Qty, Price, Added, Active, Note;
+the first row's Note is empty) and `Summary` (Region, Total; the last
+Total is a formula with a saved cached value). Regeneration changes the
+timestamps Excel writes, so every run yields new hashes: run the script,
+confirm its printed sha256 set, and update `fixtures/manifest` and this
+section together. The fixtures are immutable evidence — never open them
+in Excel or another writer-capable tool; experiment on a copy.
+
+| File | sha256 |
+|---|---|
+| `excelFixture.xlsx` | `777149a9c7b479780d614aeafc0ac1cb6725c7e44fdc99d758729c9139a1f866` |
+| `excelFixture.xlsm` | `c3a61b19c15d4cfd08cd339951ee0528c23e996870eb362fd15783cdf9624aee` |
+| `excelFixture.xls` | `345639aabe7f12ec812fb4bb39f61e29fbdf726b674a057222ebe510f7cef219` |
+| `excelFixture.xlsb` | `976cf0949061647a4cefbbd6dda2355c3ebb2f729742dce7164c262ce4fbbe70` |

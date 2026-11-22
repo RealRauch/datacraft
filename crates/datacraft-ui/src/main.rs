@@ -15,6 +15,12 @@ fn csv_driver() -> Box<dyn StoragePort> {
     Box::new(datacraft_csv::CsvPort::new())
 }
 
+/// The Excel read driver (phase 96, M127): an out-of-tree driver like CSV,
+/// composed at the roots only.
+fn xlsx_driver() -> Box<dyn StoragePort> {
+    Box::new(datacraft_xlsx::ExcelPort::new())
+}
+
 /// Embedded 64 px brand render (assets/app-icon, Crafting Apps office-symbol
 /// grammar — see `assets/app-icon/README.md`).
 const ICON_PNG: &[u8] = include_bytes!("../../../assets/app-icon/datacraft-64.png");
@@ -53,8 +59,11 @@ fn main() -> eframe::Result {
         Box::new(move |cc| {
             datacraft_ui::theme::fonts::install(&cc.egui_ctx);
             let mut app = App::new(Box::new(
-                datacraft_storage::detecting::DetectingPort::new().with_fallback(csv_driver),
+                datacraft_storage::detecting::DetectingPort::new()
+                    .with_fallback(csv_driver)
+                    .with_fallback(xlsx_driver),
             ));
+            app.register_import_reader(Box::new(datacraft_xlsx::ExcelImport));
             app.set_settings_path(settings_path);
             let low_power_setting = settings.low_power;
             app.apply_settings(settings);

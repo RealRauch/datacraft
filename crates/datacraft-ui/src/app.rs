@@ -35,6 +35,15 @@ pub use state::App;
 impl App {
     /// Creates the app over the given storage backend (the binary's
     /// composition root injects the real Jet4 port, BACKLOG H21).
+    /// Registers one out-of-tree import-source reader (phase 96, M127):
+    /// the binary root owns the format crate, the core stays neutral.
+    pub fn register_import_reader(
+        &mut self,
+        reader: Box<dyn datacraft_core::import::ImportReader>,
+    ) {
+        self.core.register_import_reader(reader);
+    }
+
     pub fn new(port: Box<dyn StoragePort>) -> Self {
         let core = Core::new(port);
         let snapshot = core.inspect();

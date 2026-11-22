@@ -14,9 +14,9 @@ use crate::app::App;
 use crate::i18n::{t, tr};
 use crate::labels::{field_kind_label, path_field_identity};
 
-/// The source picker's filter (step 91.3, item M111): the text/CSV
-/// suffixes the import surface actually decodes.
-const SOURCE_EXTENSIONS: &[&str] = &["csv", "txt", "tsv"];
+/// The source picker's filter (step 91.3, item M111; phase 96, M127):
+/// the delimited-text and Excel suffixes the import surface decodes.
+const SOURCE_EXTENSIONS: &[&str] = &["csv", "txt", "tsv", "xlsx", "xlsm", "xls", "xlsb"];
 
 /// Renders the Import File window, when open (the shell calls this beside
 /// the other windows).

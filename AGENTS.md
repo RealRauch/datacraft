@@ -22,17 +22,19 @@ boundary guard `.github/scripts/dependency_boundaries.py` fails the push on a
 violated direction or a cycle; never cyclic):
 
 ```text
-datacraft-ui  ──► datacraft-core, datacraft-storage, datacraft-csv
+datacraft-ui  ──► datacraft-core, datacraft-storage, datacraft-csv, datacraft-xlsx
                                           (egui shell, binary `datacraft`)
-datacraft-cli ──► datacraft-core, datacraft-storage, datacraft-csv
+datacraft-cli ──► datacraft-core, datacraft-storage, datacraft-csv, datacraft-xlsx
                                           (headless CLI binary)
-datacraft-mcp ──► datacraft-core, datacraft-storage, datacraft-csv
+datacraft-mcp ──► datacraft-core, datacraft-storage, datacraft-csv, datacraft-xlsx
                                           (headless stdio JSON-RPC binary)
 datacraft-storage ──► datacraft-jet, datacraft-sqlite
                                           (composite: detection + samples)
 datacraft-jet ──► datacraft-core          (clean-room pure-Rust Jet/ACE backend)
 datacraft-sqlite ──► datacraft-core       (SQLite backend, rusqlite bundled)
 datacraft-csv ──► datacraft-core          (CSV directory driver, ADR-7)
+datacraft-xlsx ──► datacraft-core         (Excel workbook read driver, ADR-7;
+                                           .xlsx/.xlsm/.xls/.xlsb, values only)
 datacraft-import ──► datacraft-core       (optional Access migration tool;
                                            the only jetdb consumer)
 datacraft-core ──► datacraft-query, datacraft-expr, datacraft-types
@@ -56,8 +58,8 @@ is not part of the UI/CLI/MCP composition and is the only crate allowed to
 depend on jetdb; the engine stays clean-room.
 
 Binary targets are the only composition roots allowed to name
-`datacraft-storage` and `datacraft-csv` (`crates/*/src/main.rs`,
-`crates/datacraft-ui/src/bin/*`).
+`datacraft-storage`, `datacraft-csv` and `datacraft-xlsx`
+(`crates/*/src/main.rs`, `crates/datacraft-ui/src/bin/*`).
 Library and UI code reaches storage exclusively through core commands.
 
 ## 2. Start every session in this order

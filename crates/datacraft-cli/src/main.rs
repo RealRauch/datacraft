@@ -14,8 +14,19 @@ fn csv_driver() -> Box<dyn StoragePort> {
     Box::new(datacraft_csv::CsvPort::new())
 }
 
+/// The Excel read driver (phase 96, M127): an out-of-tree driver like CSV,
+/// composed at the roots only.
+fn xlsx_driver() -> Box<dyn StoragePort> {
+    Box::new(datacraft_xlsx::ExcelPort::new())
+}
+
 fn main() {
-    let mut core = Core::new(Box::new(DetectingPort::new().with_fallback(csv_driver)));
+    let mut core = Core::new(Box::new(
+        DetectingPort::new()
+            .with_fallback(csv_driver)
+            .with_fallback(xlsx_driver),
+    ));
+    core.register_import_reader(Box::new(datacraft_xlsx::ExcelImport));
     let args: Vec<String> = std::env::args().skip(1).collect();
     let stdout = std::io::stdout();
     let stderr = std::io::stderr();

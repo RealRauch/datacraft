@@ -32,8 +32,8 @@ pub static TABLE: &[(&str, &str)] = &[
         "Erstellen Sie einen neuen Bericht und öffnen Sie den Berichtsentwurf.",
     ),
     (
-        "Import a CSV file as a new table of the open database.",
-        "Importieren Sie eine CSV-Datei als neue Tabelle der geöffneten Datenbank.",
+        "Import a CSV or Excel file as a new table of the open database.",
+        "Importieren Sie eine CSV- oder Excel-Datei als neue Tabelle der geöffneten Datenbank.",
     ),
     (
         "Show or hide the relationship mapper.",

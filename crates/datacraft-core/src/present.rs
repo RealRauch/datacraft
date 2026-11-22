@@ -41,6 +41,7 @@ impl std::fmt::Display for DatabaseFormat {
             Self::Ace => write!(f, "ACE"),
             Self::Sqlite => write!(f, "SQLite"),
             Self::Csv => write!(f, "CSV"),
+            Self::Excel => write!(f, "Excel"),
         }
     }
 }

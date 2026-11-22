@@ -60,7 +60,7 @@ const RIBBON_TOOLTIPS: &[(&str, &str, &str, &str)] = &[
         "external_data",
         "import",
         "import_file",
-        "Import a CSV file as a new table of the open database.",
+        "Import a CSV or Excel file as a new table of the open database.",
     ),
     (
         "database_tools",
