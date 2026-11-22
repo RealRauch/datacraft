@@ -10,6 +10,23 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 and fixes → patch per `docs/PUBLISHING.md`).*
 
 ### Added
+- jet/ace/core/ui/cli/mcp: maintenance — health facts and Compact (95,
+  M126) — every Jet/ACE open now carries page-0 facts (version, page
+  size/count, byte size, code page, encryption, password) and a bounded
+  page-type scan whose damage findings fill the snapshot's `health`
+  without blocking the open; `CompactDatabase` rewrites the open Jet4/ACE
+  database from the embedded engine-written template, restores rows with
+  their AutoNumber identities and user relationships, verifies the fresh
+  file against the source, swaps it atomically at the same path and
+  refreshes the session (identical input → identical bytes; real Access
+  opens both the compacted `.mdb` and `.accdb`). The Info page renders
+  the facts and a capability-gated Compact button with a localized reason
+  and a completion notice; CLI and MCP dispatch the same command. Jet3,
+  password-protected, Office-encrypted and Access-locked sessions refuse
+  precisely; SQLite/CSV declare the capability as unavailable. Also fixes
+  the detecting composite dropping the session's file facts, view/index/
+  trigger/native-object inventory, relationship groups and the native
+  view path (F15).
 - ui: the dock rollout and the details Type column (93, M125/L64) —
   the Relationships mapper and the Expression window dock through the
   pane host like the SQL window (dock right/bottom or float, per-surface

@@ -10,7 +10,7 @@ navigation pane, tabbed documents, datasheet and design views, the QBE query
 builder and a form/report canvas. It reads Jet3/Jet4 `.mdb`, ACE `.accdb`,
 SQLite databases and CSV directories, and writes Jet4/ACE and SQLite on
 verified table/row paths (the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-12) states
+[compatibility matrix](#compatibility-matrix-verified-2026-11-22) states
 exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
@@ -38,7 +38,7 @@ macOS and Linux.*
 
 > [!NOTE]
 > **DataCraft is pre-1.0; expect breaking changes.** The verified
-> compatibility claims are in the [matrix below](#compatibility-matrix-verified-2026-11-12);
+> compatibility claims are in the [matrix below](#compatibility-matrix-verified-2026-11-22);
 > current work lives in [PROGRESS.md](PROGRESS.md) and
 > [BACKLOG.md](BACKLOG.md). DataCraft is an independent clean-room
 > project, not affiliated with Microsoft.
@@ -79,7 +79,7 @@ The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
   canvas — in an original visual language of its own.
 - **Your files.** Verified read paths for Jet3/Jet4 `.mdb`, ACE `.accdb`,
   SQLite and CSV, verified Jet4/ACE and SQLite writes, pure Rust. The
-  [matrix](#compatibility-matrix-verified-2026-11-12) names every covered and
+  [matrix](#compatibility-matrix-verified-2026-11-22) names every covered and
   unsupported path — no blanket "bit-for-bit" claim.
 - **Clean-room.** Format knowledge comes from public specifications and our
   own black-box observation; MDB Tools is a test-time oracle, never linked
@@ -119,15 +119,21 @@ command bus.
   snapshots.
 - **Data:** blank Jet4/SQLite databases, shipped templates and samples,
   CSV import, and the `datacraft-import` Access migration tool.
+- **Maintenance:** a read-only health check at open (page-0 facts and a
+  bounded page-type scan for Jet/ACE; the file's own `quick_check` for
+  SQLite) and **Compact**, which rewrites the open Jet4/ACE database into
+  a fresh verified file and swaps it atomically at the same path.
+  SQLite/CSV, Jet3, password-protected and locked sessions answer a
+  precise reason instead of pretending.
 
 The full inventory — every capability with its phase provenance and known
 limits — is in [docs/FEATURES.md](docs/FEATURES.md). The format claims are
-in the [compatibility matrix](#compatibility-matrix-verified-2026-11-12);
+in the [compatibility matrix](#compatibility-matrix-verified-2026-11-22);
 the honest phase-by-phase picture is in
 [docs/ROADMAP.md](docs/ROADMAP.md), and the format facts are catalogued in
 [docs/FORMAT-JET.md](docs/FORMAT-JET.md).
 
-## Compatibility matrix (verified 2026-11-12)
+## Compatibility matrix (verified 2026-11-22)
 
 **Read** means decode through the `StoragePort`; **write** means the path
 is exercised against a real file. Writes are verified as Access-readable
@@ -144,6 +150,7 @@ lanes and CI runs — is in
 | **Access co-existence** | ✅ a sibling lock file (`.ldb`/`.laccdb`) opens the session read-only and is named in the snapshot, the status bar and the Info page | ⬜ read-only while the lock file exists | DataCraft never creates or deletes lock files; detection is existence-only (M59) |
 | **SQLite** | ✅ catalog, rows, foreign keys; native views read-only; index/trigger inventory; file facts and bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX`, foreign-key create/delete | schema alteration after create remains unsupported; `WITHOUT ROWID` rowid writes answer `Unsupported`; native view/trigger definitions are never created or executed |
 | **CSV directories** | ✅ catalog, rows | ✅ create/drop table, insert/update/delete (one atomic rewrite per call) | column kinds inferred at open; values read as text; no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
+| **Maintenance** | ✅ Jet/ACE health facts and a bounded page sanity scan at open; SQLite facts + `quick_check` | ✅ Compact rewrites the open Jet4/ACE database into a fresh verified file and swaps it atomically at the same path | SQLite/CSV stay as-is (precise refusal); Jet3 is read-only; password-protected and Access-locked sessions refuse without touching the file |
 | **Form runtime (ADR-8)** | ✅ bound text/checkbox/combo editing with per-record commit, button actions, form-scoped filters | ✅ row writes through the driver (capability-gated) | no macro/VBA actions (ADR-2); design data lives in the sidecar; filters are session state, never written into Jet/ACE |
 | **Design layer (ADR-1)** | sidecar forms, queries, reports and views; native saved queries read-only; native Access forms/reports listed read-only | ✅ sidecar save/load; sibling auto-load; ⬜ native form/report writes | native form/report definitions are neither decoded nor written; the sidecar is versioned and database-name checked |
 | **Samples & templates** | ✅ every shipped sample opens with its expected tables/rows | ✅ `CreateDatabase` (Jet4 + SQLite), `CreateDatabaseFromTemplate` | Jet3/ACE files are never created; the Jet engine accepts the shipped and template-created databases (DAO oracle + real-Access walkthrough); field properties persist in the sidecar |
@@ -208,7 +215,7 @@ changelog. Compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
 interpreter or runtime**; VBA is extracted, displayed and statically
 analyzed only (ADR-2). The verified claim set is the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-12).
+[compatibility matrix](#compatibility-matrix-verified-2026-11-22).
 ## Contributing
 
 The working agreement is [`AGENTS.md`](AGENTS.md); the practical entry —

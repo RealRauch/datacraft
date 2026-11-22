@@ -11,15 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 95 — Compact & Repair: pre-open health check and the compact command (roadmap §10, salvage stays a later phase)
-
-**Scope (Steps):**
-
-- **95.1 Core: pre-open health check — header/region/page sanity at open, read-only, health facts in the snapshot (roadmap §10 row 3)**
-- **95.2 Core: compact — read everything, write a fresh verified Jet4/ACE file, atomic swap, the sidecar follows the path; Jet/ACE-scoped (roadmap §10 row 1)**
-- **95.3 UI: health facts and the Compact affordance on the backstage/Info, capability-gated, localized**
-- **95.4 Wire: compact and health through CLI and MCP with contract pins — all four clients**
-- **95.5 Documentation and phase gate (roadmap §10 — README matrix, COMPATIBILITY evidence, CHANGELOG)**
 ### Phase 96 — Excel read driver .xlsx/.xlsm/.xls/.xlsb (roadmap §7, read-only first)
 
 **Scope (Steps):**
@@ -564,11 +555,11 @@
 | 94.1 | UI paint-site scan: t()-bypass guard over the UI crate, RED first (T12) | ✅ |
 | 94.2 | CI hygiene job wiring for the guard (T12, High gate: needs the human release) | ✅ |
 | 94.3 | Documentation and phase gate (T12) | ✅ |
-| 95.1 | Core: pre-open health check — header/region/page sanity at open, read-only, health facts in the snapshot (roadmap §10 row 3) | 🔄 |
-| 95.2 | Core: compact — read everything, write a fresh verified Jet4/ACE file, atomic swap, the sidecar follows the path; Jet/ACE-scoped (roadmap §10 row 1) | ⬜ |
-| 95.3 | UI: health facts and the Compact affordance on the backstage/Info, capability-gated, localized | ⬜ |
-| 95.4 | Wire: compact and health through CLI and MCP with contract pins — all four clients | ⬜ |
-| 95.5 | Documentation and phase gate (roadmap §10 — README matrix, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
+| 95.1 | Core: pre-open health check — header/region/page sanity at open, read-only, health facts in the snapshot (roadmap §10 row 3) | ✅ |
+| 95.2 | Core: compact — read everything, write a fresh verified Jet4/ACE file, atomic swap, the sidecar follows the path; Jet/ACE-scoped (roadmap §10 row 1) | ✅ |
+| 95.3 | UI: health facts and the Compact affordance on the backstage/Info, capability-gated, localized | ✅ |
+| 95.4 | Wire: compact and health through CLI and MCP with contract pins — all four clients | ✅ |
+| 95.5 | Documentation and phase gate (roadmap §10 — README matrix, COMPATIBILITY evidence, CHANGELOG) | ✅ |
 | 96.1 | Driver crate skeleton: datacraft-xlsx (ADR-7, core-only dependency), calamine pin in workspace deps, sniff, DatabaseFormat variant (Medium gate: new crate + dependency — needs the human release per occurrence) | ⬜ |
 | 96.2 | Read path: sheets as tables, typed cell values, the record's format-matrix boundaries (.xlsm values, .xls values, .xlsb values), fixtures pinned (Medium gate: fixtures) | ⬜ |
 | 96.3 | Composition + UI: registry registration, nav pane and datasheet through the snapshot, read-only capability honesty | ⬜ |

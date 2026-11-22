@@ -311,8 +311,18 @@ multi-page trees beyond the parent field stay unobservable).
 
 - Pages are 0-indexed regions of `page_size` bytes; page N at offset `N * page_size`.
 - The **first byte of every page except page 0** is the page type:
-  `0x01` data, `0x02` table definition (TDEF), `0x03` intermediate index,
-  `0x04` leaf index, `0x05` usage bitmaps, `0x08` unknown.
+  `0x00` unused, `0x01` data, `0x02` table definition (TDEF), `0x03`
+  intermediate index, `0x04` leaf index, `0x05` usage bitmaps. The pinned
+  Access-written fixtures additionally carry `0x08` and `0x09` (Access
+  storage / long-value page kinds); DataCraft never decodes those bodies
+  and the health scan (phase 95, M126) accepts exactly the observed set
+  `0x00`–`0x05`, `0x08`, `0x09` — anything else is reported as damage.
+- **TDEF chains (writer):** a TDEF block larger than `page_size - 8`
+  (wide tables; the pinned fixture's 89-column table) is split across
+  pages: every page carries its chunk at offset 8 and the next TDEF page
+  in the dword at offset 4 (`0` ends the chain). The reader concatenates
+  the chunks before parsing; the writer allocates the chain when the
+  block does not fit (phase 95, step 95.2).
 - `MSysObjects` (the catalog) has its TDEF always at **page 2** (catalog
   enumeration lands in step 2.4).
 - A table's **name lives only in the catalog** (`MSysObjects.Name`); the TDEF
