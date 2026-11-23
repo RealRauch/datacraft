@@ -181,6 +181,21 @@ platform archives plus `checksums-sha256.txt` landed on the draft, which
 was published after review at
 <https://github.com/RealRauch/datacraft/releases/tag/v0.2.0>.
 
+**v0.2.2 (2026-11-23):** the eleven-crate family published in the order
+above, including the new `datacraft-xlsx` (first publication). 0.2.1 was
+attempted first and aborted: `datacraft-mcp`'s verification failed because
+the `pdf-export` feature embedded the Inter font from outside the
+`datacraft-core` tarball; the ten already-uploaded 0.2.1 versions were
+yanked, the font plus its OFL text moved into `crates/datacraft-core/assets/`,
+and 0.2.2 shipped the fix. CI run 45228569850 (release commit `7562a34`) was
+green on ubuntu, windows and macOS; the MCP preflight (`cargo publish
+--dry-run -p datacraft-mcp`) passed before its upload; `cargo install
+datacraft-mcp --version 0.2.2` resolved and its JSON-RPC `version` answered
+`0.2.2`. The annotated `v0.2.2` tag triggered release run 45231742970
+(green): three platform archives plus `checksums-sha256.txt` landed on the
+draft at <https://github.com/RealRauch/datacraft/releases/tag/v0.2.2>,
+awaiting the maintainer's review.
+
 ## History rewrite (pre-public, M34)
 
 Executed 2026-11-03 with `git filter-repo --invert-paths` (step 37.5) on the

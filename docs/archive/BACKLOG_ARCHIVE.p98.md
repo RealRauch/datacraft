@@ -39,6 +39,15 @@
 - **Acceptance:** Native SQLite statements that the shadow engine cannot run (full dialect, index use, native views, EXPLAIN) execute read-only through the bus and all four clients; any write statement is refused precisely on the bus path; Jet/CSV results are byte-for-byte unchanged; the dialect is named in the snapshot/UI.
 - **Done:** phase 98 (8c26031)
 
+---
+
+### [x] F16 — Inline fix (release): the PDF font lived outside the datacraft-core package — 0.2.1 aborted — 🟢
+- **Location:** `crates/datacraft-core/src/pdf.rs` (font include) and the release publish order.
+- **Problem:** The 0.2.1 release of `datacraft-core` embedded `Inter-Regular.ttf` from the repository-root `assets/fonts/` — outside the crate package. A consumer enabling the `pdf-export` feature (here `datacraft-mcp`) therefore failed its registry verification with a missing-file compile error, after ten 0.2.1 crates were already uploaded.
+- **Fix:** the font and its OFL license text now travel inside `crates/datacraft-core/assets/fonts/`; 0.2.2 re-published the whole family, the ten partial 0.2.1 versions are yanked, and the release procedure now runs a dependent `cargo publish --dry-run` (the MCP preflight) before the final upload.
+- **Evidence:** 0.2.2 CI run 45228569850 green, publish script log with the MCP preflight and all eleven `INDEX_OK` lines, `cargo install datacraft-mcp --version 0.2.2` answering `version: 0.2.2`, release run 45231742970 green with the three archives.
+- **Done:** 7562a34 (0.2.2 fix); partial 0.2.1 yanked
+
 ## ✅ Done Index
 
 > One-liner per completed item (details above).
@@ -47,3 +56,4 @@
 - M127 — Excel read driver .xlsx/.xlsm/.xls/.xlsb (phase 96, roadmap §7) — done (phase 96 (756aa9b, 7d1aa37, 62b3d4a))
 - M128 — PDF report export over the frozen scope (phase 97, roadmap §11) — done (phase 97 (cd71681))
 - M129 — SQLite SQL pushdown, stage 1 (phase 98, roadmap §19) — done (phase 98 (8c26031))
+- F16 — Inline fix (release): the PDF font lived outside the datacraft-core package — 0.2.1 aborted — done (7562a34 (0.2.2 fix); partial 0.2.1 yanked)
