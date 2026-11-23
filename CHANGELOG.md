@@ -4,7 +4,17 @@ All notable, user-visible changes of the DataCraft crate family. The family
 versions in lockstep (see `docs/PUBLISHING.md`); entries are
 crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [0.2.1] — 2026-11-23
+## [0.2.2] — 2026-11-23
+
+> Release note: 0.2.1 was published incompletely — `datacraft-mcp` could not
+> build against the registry tarball because the PDF font lived outside the
+> `datacraft-core` package. The 0.2.1 versions are yanked; use 0.2.2.
+
+### Fixed
+- core: the PDF export font now travels inside the `datacraft-core` crate
+  (`assets/fonts/` with its OFL text), so a consumer enabling the
+  `pdf-export` feature builds from the published tarball; the dependent
+  `datacraft-mcp` release resolves again.
 
 ### Added
 - core/sqlite/ui/cli/mcp: SQLite SQL pushdown (98, M129) — the SQL window

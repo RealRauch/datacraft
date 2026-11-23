@@ -32,11 +32,11 @@ published package. The notable components:
 | --- | --- | --- |
 | `jetdb` 0.4 | MIT OR Apache-2.0 | pure-Rust reader for `.mdb`/`.accdb`, used only by `datacraft-import` (ADR-9); no FFI/COM; never linked into `datacraft`, `datacraft-cli`, `datacraft-mcp` or the engine crates |
 
-## Fonts embedded in the `datacraft` binary
+## Fonts embedded in the `datacraft` binary and `datacraft-core`
 
 | Font | License | License text |
 | --- | --- | --- |
-| Inter | SIL Open Font License 1.1 | `assets/fonts/LICENSE-Inter.txt` |
+| Inter | SIL Open Font License 1.1 | `assets/fonts/LICENSE-Inter.txt`; bundled copies in `crates/datacraft-core/assets/fonts/` for the PDF export |
 | JetBrains Mono | SIL Open Font License 1.1 | `assets/fonts/LICENSE-JetBrainsMono.txt` |
 
 Both fonts are embedded unmodified and remain under their original licenses.

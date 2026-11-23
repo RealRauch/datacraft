@@ -19,10 +19,10 @@ use crate::report::ReportDef;
 use crate::report_preview::PreviewItem;
 use crate::report_preview::PreviewPage;
 
-/// The embedded preview face (the shipped UI body font; SIL OFL, see
-/// `THIRD-PARTY-NOTICES.md`).
+/// The embedded preview face (the shipped UI body font; SIL OFL, the
+/// license text travels beside it in `assets/fonts/`).
 #[cfg(feature = "pdf-export")]
-const FONT: &[u8] = include_bytes!("../../../assets/fonts/Inter-Regular.ttf");
+const FONT: &[u8] = include_bytes!("../assets/fonts/Inter-Regular.ttf");
 
 /// Preview body size in points (the UI's body rung at 100 % scale).
 #[cfg(feature = "pdf-export")]
