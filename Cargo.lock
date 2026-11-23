@@ -1030,7 +1030,7 @@ checksum = "f27ae1dd37df86211c42e150270f82743308803d90a6f6e6651cd730d5e1732f"
 
 [[package]]
 name = "datacraft-cli"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -1045,7 +1045,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "csv",
  "datacraft-expr",
@@ -1060,7 +1060,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-csv"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "csv",
  "datacraft-core",
@@ -1068,14 +1068,14 @@ dependencies = [
 
 [[package]]
 name = "datacraft-expr"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "datacraft-types",
 ]
 
 [[package]]
 name = "datacraft-import"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "datacraft-core",
  "jetdb",
@@ -1085,7 +1085,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-jet"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "datacraft-core",
  "serde",
@@ -1093,7 +1093,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-mcp"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -1107,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-query"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "datacraft-expr",
  "datacraft-types",
@@ -1117,7 +1117,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-sqlite"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "datacraft-core",
  "rusqlite",
@@ -1125,7 +1125,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-storage"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "datacraft-core",
  "datacraft-jet",
@@ -1135,14 +1135,14 @@ dependencies = [
 
 [[package]]
 name = "datacraft-types"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "datacraft-ui"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "arboard",
  "datacraft-core",
@@ -1162,7 +1162,7 @@ dependencies = [
 
 [[package]]
 name = "datacraft-xlsx"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "calamine",
  "datacraft-core",

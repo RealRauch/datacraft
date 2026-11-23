@@ -4,10 +4,7 @@ All notable, user-visible changes of the DataCraft crate family. The family
 versions in lockstep (see `docs/PUBLISHING.md`); entries are
 crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [Unreleased]
-
-*Next version: reassessed at every phase close (breaking → minor, additions
-and fixes → patch per `docs/PUBLISHING.md`).*
+## [0.2.1] — 2026-11-23
 
 ### Added
 - core/sqlite/ui/cli/mcp: SQLite SQL pushdown (98, M129) — the SQL window

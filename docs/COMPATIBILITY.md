@@ -5,7 +5,7 @@
 > evidence column; this file is the full claim set with every suite,
 > oracle lane and CI run named.
 
-## Verified matrix (2026-11-22)
+## Verified matrix (2026-11-23)
 
 Every compatibility claim below names its evidence; unsupported paths are
 stated in the same row. Re-verified 2026-11-10 for the v0.1.1 release:

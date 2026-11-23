@@ -10,7 +10,7 @@ navigation pane, tabbed documents, datasheet and design views, the QBE query
 builder and a form/report canvas. It reads Jet3/Jet4 `.mdb`, ACE `.accdb`,
 SQLite databases and CSV directories, and writes Jet4/ACE and SQLite on
 verified table/row paths (the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-22) states
+[compatibility matrix](#compatibility-matrix-verified-2026-11-23) states
 exactly what is covered), runs natively on macOS, Windows and Linux, and is
 designed to be operated by humans **and** AI agents through the same command
 API.
@@ -38,7 +38,7 @@ macOS and Linux.*
 
 > [!NOTE]
 > **DataCraft is pre-1.0; expect breaking changes.** The verified
-> compatibility claims are in the [matrix below](#compatibility-matrix-verified-2026-11-22);
+> compatibility claims are in the [matrix below](#compatibility-matrix-verified-2026-11-23);
 > current work lives in [PROGRESS.md](PROGRESS.md) and
 > [BACKLOG.md](BACKLOG.md). DataCraft is an independent clean-room
 > project, not affiliated with Microsoft.
@@ -79,7 +79,7 @@ The libmdb oracle cross-check additionally runs in CI (ubuntu and macOS, with
   canvas — in an original visual language of its own.
 - **Your files.** Verified read paths for Jet3/Jet4 `.mdb`, ACE `.accdb`,
   SQLite and CSV, verified Jet4/ACE and SQLite writes, pure Rust. The
-  [matrix](#compatibility-matrix-verified-2026-11-22) names every covered and
+  [matrix](#compatibility-matrix-verified-2026-11-23) names every covered and
   unsupported path — no blanket "bit-for-bit" claim.
 - **Clean-room.** Format knowledge comes from public specifications and our
   own black-box observation; MDB Tools is a test-time oracle, never linked
@@ -134,12 +134,12 @@ command bus.
 
 The full inventory — every capability with its phase provenance and known
 limits — is in [docs/FEATURES.md](docs/FEATURES.md). The format claims are
-in the [compatibility matrix](#compatibility-matrix-verified-2026-11-22);
+in the [compatibility matrix](#compatibility-matrix-verified-2026-11-23);
 the honest phase-by-phase picture is in
 [docs/ROADMAP.md](docs/ROADMAP.md), and the format facts are catalogued in
 [docs/FORMAT-JET.md](docs/FORMAT-JET.md).
 
-## Compatibility matrix (verified 2026-11-22)
+## Compatibility matrix (verified 2026-11-23)
 
 **Read** means decode through the `StoragePort`; **write** means the path
 is exercised against a real file. Writes are verified as Access-readable
@@ -225,7 +225,7 @@ changelog. Compatibility is bought ring by ring — expression service →
 query engine → macros → forms runtime. DataCraft implements **no VBA
 interpreter or runtime**; VBA is extracted, displayed and statically
 analyzed only (ADR-2). The verified claim set is the
-[compatibility matrix](#compatibility-matrix-verified-2026-11-22).
+[compatibility matrix](#compatibility-matrix-verified-2026-11-23).
 ## Contributing
 
 The working agreement is [`AGENTS.md`](AGENTS.md); the practical entry —
