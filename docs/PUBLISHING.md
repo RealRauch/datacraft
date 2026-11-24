@@ -193,8 +193,8 @@ green on ubuntu, windows and macOS; the MCP preflight (`cargo publish
 datacraft-mcp --version 0.2.2` resolved and its JSON-RPC `version` answered
 `0.2.2`. The annotated `v0.2.2` tag triggered release run 45231742970
 (green): three platform archives plus `checksums-sha256.txt` landed on the
-draft at <https://github.com/RealRauch/datacraft/releases/tag/v0.2.2>,
-awaiting the maintainer's review.
+draft at <https://github.com/RealRauch/datacraft/releases/tag/v0.2.2>;
+published on 2026-11-24 after the maintainer's review (marked Latest).
 
 ## History rewrite (pre-public, M34)
 

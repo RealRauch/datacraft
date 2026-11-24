@@ -518,8 +518,8 @@ the owning phase starts.
   `cargo install datacraft-mcp` resolves the published 0.1.3. v0.2.0
   followed on 2026-11-14 (ten crates, tag and published GitHub release);
   v0.2.2 on 2026-11-23 completes phases 95-98 — eleven crates including
-  the new `datacraft-xlsx`, release run 45231742970 green, draft awaiting
-  review. 0.2.1 was published partially and yanked after the PDF font
+  the new `datacraft-xlsx`, release run 45231742970 green, published on
+  2026-11-24 (Latest). 0.2.1 was published partially and yanked after the PDF font
   packaging failure (fixed in 0.2.2).
 - **Hygiene (2026-11-06):** §5 M4 corrected from ✅ to ⬜ — the
   designer/preview phases landed, the events/requery runtime of §2 Ring 4
