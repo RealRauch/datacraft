@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-23T19:05)
+# BACKLOG.md — Open items (As of: 2026-11-24T21:36)
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -23,7 +23,35 @@
 
 ## 🟡 MEDIUM
 
-> No open items.
+### [ ] M130 — Export matrix: CSV and JSON table export (phase 99, roadmap §11) — 🟡
+- **Location:** `crates/datacraft-core/src/command.rs` + a core export module, `crates/datacraft-ui/src/datasheet.rs`/`nav_*`, CLI/MCP tests.
+- **Problem:** The export matrix (roadmap §11) names CSV and JSON as the first two targets, but no export command exists — a table can only leave the application by writing rows through a driver, never as a file.
+- **Approach:** One `ExportTable` command naming table, format (CSV, JSON with schema) and target path; deterministic new-file write (fixed key order, no timestamps, existing target refused), source database untouched; UI affordance at the datasheet/nav pane with the save dialog; CLI/MCP parity.
+- **Acceptance:** A populated table exports to CSV and to a JSON document carrying schema + rows; re-export is byte-identical; an existing target, an unknown table and an unwritable path answer precisely; the source database stays byte-identical; all four clients pin it.
+
+### [ ] M131 — Remote Stage 0: read-only linked-table inventory (phase 100, roadmap §9) — 🟡
+- **Location:** `crates/datacraft-jet/src/jet/catalog.rs` + a link-record decoder, `crates/datacraft-core/src/snapshot.rs`, `crates/datacraft-ui/src/nav_*`.
+- **Problem:** Linked tables in Jet/ACE files are silently invisible — the catalog reads only Id/Name/Type/Flags and skips non-TDEF rows, so migration cannot see which objects point at external databases (roadmap §9 Stage 0).
+- **Approach:** Decode MSysObjects link records read-only (Type 4 ODBC-linked, Type 6 Access-file-linked; CONNECT, DATABASE, foreign name, flags), carry the inventory in the snapshot, surface it read-only in the UI with localized labels; never dial out, never execute, never write.
+- **Acceptance:** A linked-table fixture reports each link's kind, target database/connect string and foreign name; opening the file performs no network or external access; every client sees the inventory; a link-free file reports an empty list; all strings go through t().
+
+### [ ] M132 — Datasheet completeness: filter-by-value, find/replace, column order, Null marker, windowed reads (phase 101, roadmap §16 stage 1) — 🟡
+- **Location:** `crates/datacraft-core/src/table_view.rs` + datasheet state, `crates/datacraft-ui/src/datasheet/*`, port row-window reads.
+- **Problem:** Roadmap §16 stage 1 leaves the datasheet short of the user's Excel bar: filters are criteria strings only, there is no find/replace or column reordering, Null cells are blank rather than marked, and every tab caches a full-table read.
+- **Approach:** Filter-by-value model and dialog (distinct values, bounded, deterministic order, applied through the existing criteria path); find/replace that uses the 85 edit buffer for replacements; column drag-reorder and a visual Null marker as presentation state; windowed row reads in core behind the port with bounded caches and scroll-follow.
+- **Acceptance:** A value list filters the view without typing criteria; find/replace works over the visible rows and stages replacements through the batch; reordering columns persists per tab session; Null cells are visibly distinct in both palettes; a large table opens without reading every row up front and scrolling stays responsive; all four clients still see the same snapshot state.
+
+### [ ] M133 — Designer parity: property sheet, resize, z-order, zoom, drag-drop binding (phase 102, roadmap §16 stage 2) — 🟡
+- **Location:** `crates/datacraft-core/src/form.rs`/`forms.rs` (control properties, geometry), `crates/datacraft-ui/src/form_design.rs`/`report_design.rs`, sidecar schema.
+- **Problem:** The designers are move-only: no control property sheet, no resize handles, no z-order/tab order, a hard-coded preview zoom and click-to-add binding — roadmaps §16 stage 2's parity gap.
+- **Approach:** Persist a control property set in the sidecar (name, geometry, style-relevant properties) with core-owned validation and one command per edit; resize handles and z-order/tab-order operations in core geometry; preview zoom as a per-surface setting; drag-and-drop field binding from the field list.
+- **Acceptance:** Every placed control exposes its editable properties in both designers; resize and z-order changes survive save/reload; preview zoom persists; dragging a field from the list binds it; invalid geometry/properties fail precisely and leave the design unchanged; kittest pins cover each affordance.
+
+### [ ] M134 — Migration readiness report and benchmark instrument (phase 103, roadmap §14/§18) — 🟡
+- **Location:** `crates/datacraft-core/src/vba_analysis.rs` (precedent), a new readiness module, UI report surface, `tools/dao-oracle/`, `docs/BENCHMARKS.md`.
+- **Problem:** Roadmap §14 freezes an app-level migration readiness report that aggregates per-object evidence, and §18 freezes a benchmark methodology/harness — neither exists, so migration effort and performance claims have no instrument.
+- **Approach:** One read-only `AnalyzeApp` command aggregating ring coverage per form/report/query, VBA module/transpilation estimate, the phase-100 link inventory, unsupported features and an effort summary; a UI/wire surface; a benchmark harness in `tools/dao-oracle` plus `docs/BENCHMARKS.md` (generator recipe, method controls, measured results, honest gaps).
+- **Acceptance:** The report lists every object with its ring status and unsupported reasons and is read-only by construction; all four clients can request it; the benchmark harness produces family-A numbers against DAO and the documented method, with results and the remaining gaps recorded in `docs/BENCHMARKS.md`; the phase-103 method retrospective (PLAYBOOK §8) rides the gate.
 
 
 

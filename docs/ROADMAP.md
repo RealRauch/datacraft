@@ -330,7 +330,7 @@ created only when the owning phase starts.
 | Stage | Content | Basis |
 |-------|---------|-------|
 | 0 — Link inventory (read-only) | Decode MSysObjects link records (Type 4 ODBC-linked, Type 6 Access-file-linked: CONNECT, DATABASE, foreign name, flags) and surface them in catalog/UI metadata. Today they are silently invisible — the catalog reads only Id/Name/Type/Flags and non-TDEF rows are skipped. Pure Jet-format work; no network, nothing executed. | Phase 17 macro-inventory precedent: read and display, never execute |
-| 1 — SourceSpec + first driver | L8 lands with the first server driver (PostgreSQL, read-only): additive `SourceSpec { Path, Uri }` on the open commands, snapshot gains a source display, the sidecar stays Path-only (ADR-1 rule kept), credentials via UI prompt / headless env — never persisted in the sidecar. | ADR-7 documented future path; BACKLOG L8 |
+| 1 — SourceSpec + first driver | `SourceSpec { Path, Uri }` landed in phase 65 (L8): `file://` resolution, the snapshot's source display and the Path-only sidecar. The first server driver (PostgreSQL, read-only) remains open — credentials via UI prompt / headless env, never persisted in the sidecar. | ADR-7 documented future path |
 | 2 — MySQL/MariaDB (read-only) | Second driver family; same shape, same capability honesty. | — |
 | 3 — Linked-table resolution | Linked tables inside an open Jet/ACE file resolve to Stage-1/2 sources; reads materialize into the query-engine path; writes stay out of scope initially. Resolution is an explicit user action — opening a database never dials out (ADR-2 analog: a file must not trigger side effects). | "SQL over all sources" materialization precedent (in-memory SQLite) |
 
@@ -362,8 +362,9 @@ rustls features. Connection failures surface as precise, locatable errors.
 
 **Decision (2026-11-06, human-approved):** DataCraft ships a maintenance
 track: Compact & Repair as a first-class command, a read-only salvage reader
-for damaged files, and a pre-open health check. Today none of these exist —
-no command touches maintenance.
+for damaged files, and a pre-open health check. Health facts and compact
+shipped in phase 95 (item M126); the read-only salvage reader remains the
+open part of this track.
 
 **Rationale:** compact is cheap here — a verified Jet4/ACE writer already
 exists, so compact = read everything, write a fresh file, swap atomically
@@ -393,7 +394,7 @@ same capability-honesty style.
 | CSV | first | the `csv` crate already writes (the datacraft-csv driver uses it for its atomic rewrite); the export command is a new core command, distinct from the CSV *driver* (a directory of tables) |
 | JSON (tables + schema) | early | agent-first surface for MCP consumers; pure data, no styling |
 | xlsx / .ods | after the §7/§8 read drivers | writer candidates are already named there (rust_xlsxwriter, spreadsheet-ods); same deterministic-write rule |
-| PDF from report preview | later (scope below) | the print preview already paginates in core; PDF is a renderer question, not a core one |
+| PDF from report preview | ✅ delivered (phase 97, M128; scope below) | the print preview already paginates in core; PDF is a renderer question, not a core one |
 | Print | later | OS print dialog is UI-owned; core stays headless |
 
 Exports are explicit user actions producing new files; the source database
@@ -543,10 +544,10 @@ ladder's Stage-0 sweep.
 
 | Stage | Content | Basis |
 |-------|---------|-------|
-| 0 — Feedback & honesty sweep | Ctrl+Z/Ctrl+Y (the undo/redo commands exist — only the keys are missing), tooltips for every ribbon/backstage control (17 hover sites today), a busy/progress affordance, a notice/error history (today: one transient status-bar line), localized failure reasons (I6 — delivered 2026-11-08), a shortcuts help page, and the deferred M42 subjective polish pass on the token system | ✅ delivered 2026-11-11 (phase 68, steps 68.1–68.5/68.7): keys, registry tooltips, bounded history, F1 page, deferred busy overlay; the M42 polish step stays open until the human's live review (M78) |
-| 1 — Datasheet completeness | filter-by-value dialog (a value list, not the raw criteria string — M62 documents that dialect today), multi-select + cell copy/paste, find/replace, column drag-reorder, a visual Null marker, and windowed row reads in core (today: full-scan cache per tab) | M54: the user's stated bar is "wie z. B. in Excel" |
+| 0 — Feedback & honesty sweep | Ctrl+Z/Ctrl+Y (the undo/redo commands exist — only the keys are missing), tooltips for every ribbon/backstage control (17 hover sites today), a busy/progress affordance, a notice/error history (today: one transient status-bar line), localized failure reasons (I6 — delivered 2026-11-08), a shortcuts help page, and the deferred M42 subjective polish pass on the token system | ✅ delivered 2026-11-11 (phase 68, steps 68.1–68.5/68.7): keys, registry tooltips, bounded history, F1 page, deferred busy overlay; the deferred M42 polish pass followed as M78 (2026-11-09) |
+| 1 — Datasheet completeness | filter-by-value dialog (a value list, not the raw criteria string — M62 documents that dialect today), find/replace, column drag-reorder, a visual Null marker, and windowed row reads in core (today: full-scan cache per tab). Multi-select, clipboard copy/paste and the value viewer shipped in phase 86 (M101/M102) | M54: the user's stated bar is "wie z. B. in Excel" |
 | 2 — Designer parity | control property sheet (today only table-design fields have one), resize handles (move-only today), z-order/tab order, preview zoom (hard-coded 0.9), drag-drop field binding (click-to-add today) | ADR-1's WYSIWYG contract (M57 was its first breach) |
-| 3 — Discoverability & onboarding | nav-pane search/filter, the category model (the "All Access Objects" menu is a stub), object counts per group, nav-pane drag-drop, teaching empty states ("what can I do next"), QAT customization | the M52–M58 walkthroughs: users must find affordances unaided today |
+| 3 — Discoverability & onboarding | object counts per group, nav-pane drag-drop, teaching empty states ("what can I do next"), QAT customization. Nav-pane search (92.3), the category dropdown (91.7), multi-select (92.4) and local groups/colours (92.5) are delivered | the M52–M58 walkthroughs: users must find affordances unaided today |
 | 4 — Power users & agents | command palette (Ctrl+K) projecting the core ribbon spec — the spec already lives in core, so the palette is a UI projection of the same list; full Alt key-tip phases (Legacy/Backstage currently out of scope); ribbon collapse | the command-bus principle: every UI action is already a named Command |
 
 ### Control capabilities as of v0.1.0 (2026-11-08)
@@ -719,7 +720,7 @@ never a marketing surface.
 | Insert throughput (single rows + journal batch) | Jet writer vs DAO `AddNew`/`Execute` | undecided — that is what the measurement is for |
 | RAM footprint (large database open) | host process memory | likely DataCraft |
 | Datasheet scroll at 1M rows | our frame time vs the 60 FPS design target; the Access side as task time | measured against our own design target, not a direct duel |
-| Compact | DAO `CompactDatabase` vs — | honest gap: §10 compact does not exist yet |
+| Compact | DAO `CompactDatabase` vs `CompactDatabase` | DataCraft compact exists since phase 95; the measurement is still open |
 
 **Method controls.** The Access build number, Windows build, hardware and
 power plan travel with every number; Name AutoCorrect is off; the
@@ -877,7 +878,8 @@ clean-room claim must extend to the migration path.
   first-cut limitation, and byte-identical Access round-trips (the sidecar is
   an approximate redesign, ADR-1).
 
-Cross-reference: the backlog item is M88; the feasibility evidence is
+Cross-reference: M88 (Route B) is delivered in phase 78 and archived; Route A
+starts only on the trigger above. The feasibility evidence is
 `docs/FORMAT-JET.md` "M88 feasibility — jetdb against the committed exports".
 
 ## 21. Tool windows as task panes — decision record

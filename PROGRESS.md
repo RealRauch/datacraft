@@ -11,6 +11,54 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 99 — Export matrix: CSV and JSON (roadmap §11)
+
+**Scope (Steps):**
+
+- **99.1 Core: ExportTable command — CSV and the JSON schema+rows document, deterministic new-file write, source untouched (roadmap §11)**
+- **99.2 UI: export affordance at the datasheet/nav pane with format and path dialog**
+- **99.3 Wire: CLI and MCP parity with contract pins and precise refusals**
+- **99.4 Documentation and phase gate (README export row, COMPATIBILITY evidence, CHANGELOG)**
+### Phase 100 — Remote Stage 0: linked-table inventory (roadmap §9)
+
+**Scope (Steps):**
+
+- **100.1 Jet: linked-table record decode — MSysObjects types 4/6, CONNECT/DATABASE, foreign name and flags, read-only (roadmap §9 stage 0)**
+- **100.2 Core: link inventory in the snapshot, capability honesty — no execution, no network, never written**
+- **100.3 UI: read-only linked-table surface with localized labels**
+- **100.4 Wire pins, documentation and phase gate (README, COMPATIBILITY, FORMAT-JET, CHANGELOG)**
+### Phase 101 — Datasheet completeness (roadmap §16 stage 1)
+
+**Scope (Steps):**
+
+- **101.1 Core: filter-by-value model — bounded distinct values, deterministic order, applied through the existing criteria path**
+- **101.2 UI: the filter-by-value dialog at the column header**
+- **101.3 UI/core: find/replace over the visible rows, replacements staged through the edit buffer**
+- **101.4 UI: column drag-reorder and the visual Null marker in both palettes**
+- **101.5 Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item**
+- **101.6 Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG)**
+### Phase 102 — Designer parity (roadmap §16 stage 2)
+
+**Scope (Steps):**
+
+- **102.1 Core: control property model with sidecar persistence and one command per edit, precise validation**
+- **102.2 Core/UI: resize handles through the shared geometry rules**
+- **102.3 UI/core: z-order and tab-order surface in both designers**
+- **102.4 UI: preview zoom control and drag-and-drop field binding**
+- **102.5 Documentation and phase gate (README designer row, COMPATIBILITY evidence, CHANGELOG)**
+### Phase 103 — Migration readiness and benchmark instrument (roadmap §14/§18)
+
+**Scope (Steps):**
+
+- **103.1 Core: AnalyzeApp readiness report — ring coverage per object, VBA estimate, link inventory, unsupported list, effort summary**
+- **103.2 UI and wire: read-only report surface with CLI/MCP parity**
+- **103.3 Benchmarks: harness in tools/dao-oracle plus docs/BENCHMARKS.md (method, measurements, honest gaps)**
+- **103.4 Documentation and phase gate; the phase-103 method retrospective checkpoint (PLAYBOOK §8) rides the gate**
+
+
+
+
+
 
 
 
@@ -548,3 +596,26 @@
 | 98.2 | UI: the SQL window names the dialect per source (SQLite native vs the shadow engine), EXPLAIN QUERY PLAN rendering | ✅ |
 | 98.3 | Wire: CLI and MCP parity with contract pins; Jet/CSV sources stay on the shadow engine unchanged | ✅ |
 | 98.4 | Documentation and phase gate (README SQL row, COMPATIBILITY evidence); the phase-98 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ✅ |
+| 99.1 | Core: ExportTable command — CSV and the JSON schema+rows document, deterministic new-file write, source untouched (roadmap §11) | ⬜ |
+| 99.2 | UI: export affordance at the datasheet/nav pane with format and path dialog | ⬜ |
+| 99.3 | Wire: CLI and MCP parity with contract pins and precise refusals | ⬜ |
+| 99.4 | Documentation and phase gate (README export row, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
+| 100.1 | Jet: linked-table record decode — MSysObjects types 4/6, CONNECT/DATABASE, foreign name and flags, read-only (roadmap §9 stage 0) | ⬜ |
+| 100.2 | Core: link inventory in the snapshot, capability honesty — no execution, no network, never written | ⬜ |
+| 100.3 | UI: read-only linked-table surface with localized labels | ⬜ |
+| 100.4 | Wire pins, documentation and phase gate (README, COMPATIBILITY, FORMAT-JET, CHANGELOG) | ⬜ |
+| 101.1 | Core: filter-by-value model — bounded distinct values, deterministic order, applied through the existing criteria path | ⬜ |
+| 101.2 | UI: the filter-by-value dialog at the column header | ⬜ |
+| 101.3 | UI/core: find/replace over the visible rows, replacements staged through the edit buffer | ⬜ |
+| 101.4 | UI: column drag-reorder and the visual Null marker in both palettes | ⬜ |
+| 101.5 | Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item | ⬜ |
+| 101.6 | Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
+| 102.1 | Core: control property model with sidecar persistence and one command per edit, precise validation | ⬜ |
+| 102.2 | Core/UI: resize handles through the shared geometry rules | ⬜ |
+| 102.3 | UI/core: z-order and tab-order surface in both designers | ⬜ |
+| 102.4 | UI: preview zoom control and drag-and-drop field binding | ⬜ |
+| 102.5 | Documentation and phase gate (README designer row, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
+| 103.1 | Core: AnalyzeApp readiness report — ring coverage per object, VBA estimate, link inventory, unsupported list, effort summary | ⬜ |
+| 103.2 | UI and wire: read-only report surface with CLI/MCP parity | ⬜ |
+| 103.3 | Benchmarks: harness in tools/dao-oracle plus docs/BENCHMARKS.md (method, measurements, honest gaps) | ⬜ |
+| 103.4 | Documentation and phase gate; the phase-103 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ⬜ |
