@@ -7,14 +7,21 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 ## [Unreleased]
 
 ### Added
+- core/ui: windowed datasheet reads (101.5, M132) — the port gains
+  `row_count` (jet from the TDEF counter, sqlite via `COUNT(*)`, csv and
+  xlsx from their parsed tables; a backend without a cheap count answers
+  a precise `Unsupported`), and a table above 1000 rows opens from a
+  bounded 200-row window cache: the count sizes the list, scrolling loads
+  the next window, "Load all rows" upgrades explicitly, and a filter, a
+  sort or a staged batch upgrades on its own. The wire is unchanged — the
+  snapshot never carried row data.
 - ui/core: datasheet completeness (101.1–101.4, M132) — filter by value
   from the column's own list (bounded, ordered, blank entry where blanks
   exist, refused precisely when the list changed), find and replace over
   the visible rows (text columns, staged into the batch on atomic drivers
   and one `UpdateCells` command otherwise), movable columns in the header
   menu with every render and edit path following the display order, and a
-  visible `(NULL)` marker. Windowed row reads (101.5) are not part of this
-  entry — they need a row-count port contract (M136).
+  visible `(NULL)` marker.
 - jet/core/ui/cli/mcp: linked-table inventory (100, M131; roadmap §9 stage
   0) — a Jet/ACE file's `MSysObjects` link records (`Type` 4 ODBC, `Type`
   6 Access-file) decode into a read-only inventory: local name, kind,

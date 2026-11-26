@@ -23,12 +23,6 @@
 
 ## 🟡 MEDIUM
 
-### [ ] M132 — Datasheet completeness: filter-by-value, find/replace, column order, Null marker, windowed reads (phase 101, roadmap §16 stage 1) — 🟡
-- **Location:** `crates/datacraft-core/src/table_view.rs` + datasheet state, `crates/datacraft-ui/src/datasheet/*`, port row-window reads.
-- **Problem:** Roadmap §16 stage 1 leaves the datasheet short of the user's Excel bar: filters are criteria strings only, there is no find/replace or column reordering, Null cells are blank rather than marked, and every tab caches a full-table read.
-- **Approach:** Filter-by-value model and dialog (distinct values, bounded, deterministic order, applied through the existing criteria path); find/replace that uses the 85 edit buffer for replacements; column drag-reorder and a visual Null marker as presentation state; windowed row reads in core behind the port with bounded caches and scroll-follow.
-- **Acceptance:** A value list filters the view without typing criteria; find/replace works over the visible rows and stages replacements through the batch; reordering columns persists per tab session; Null cells are visibly distinct in both palettes; a large table opens without reading every row up front and scrolling stays responsive; all four clients still see the same snapshot state.
-
 ### [ ] M133 — Designer parity: property sheet, resize, z-order, zoom, drag-drop binding (phase 102, roadmap §16 stage 2) — 🟡
 - **Location:** `crates/datacraft-core/src/form.rs`/`forms.rs` (control properties, geometry), `crates/datacraft-ui/src/form_design.rs`/`report_design.rs`, sidecar schema.
 - **Problem:** The designers are move-only: no control property sheet, no resize handles, no z-order/tab order, a hard-coded preview zoom and click-to-add binding — roadmaps §16 stage 2's parity gap.
@@ -46,12 +40,6 @@
 - **Problem:** A fixed-point decimal is a scale-scaled integer (field kind `Number(Decimal { precision, scale })`), but `display_value` prints the raw scaled integer: a value of 25.50 at scale 2 shows as `2550` in the datasheet and in the CSV driver's cells. Phase 99's export module works around it with its own exact decimal text (`export::decimal_text`), so the workaround exists twice-ish and the datasheet still lies.
 - **Approach:** Make the decimal rendering scale-aware where the field kind is in reach — a kind-aware sibling of `display_value` (or an extra parameter) that divides by 10^scale and keeps the declared trailing zeros; scale 0 stays byte-identical to today. Then let the export module delegate instead of carrying its own copy. `row_edit` parses through `parse_scaled`, so the write path is unaffected.
 - **Acceptance:** A scale-2 decimal shows `25.50` in the datasheet, the CSV driver's rewrite and the CSV/JSON export; scale-0 decimals render unchanged; a test pins each path and the export's own helper either disappears or delegates.
-
-### [ ] M136 — Windowed datasheet reads need a row-count port contract — 🟡
-- **Location:** `crates/datacraft-core/src/port.rs` (`StoragePort`), the five backends (`jet`, `sqlite`, `csv`, `xlsx`, `mock`), `crates/datacraft-ui/src/app/grid_state.rs` (row cache), `crates/datacraft-ui/src/datasheet.rs`.
-- **Problem:** The datasheet caches the whole table on tab appearance (`app.rows`), so a large table reads every row before it paints — step 101.5's windowing needs a total row count to size the scrollbar, and the port has no such accessor (a `RowRange` beyond the end only surfaces through an `OutOfRange` error).
-- **Approach (Medium gate — a port-contract change):** add `fn row_count(&self, table: &str) -> Result<usize, PortError>` with a precise default (`Unsupported`) and a real implementation per backend; then a bounded window cache in the app (`BTreeMap<start, Vec<Row>>` with an LRU cap), window loads on scroll, and the filters/sorts either stay whole-table (documented bound) or move into the port. Find/replace, staging and selection keep addressing cache rows, so the windowed source must stay transparent to them.
-- **Acceptance:** a table far larger than the window opens without reading every row; scrolling stays responsive with a bounded cache; filters, sorts, find/replace and staged edits behave identically to the full cache; the wire surfaces stay unchanged (the snapshot never carried row data).
 
 
 

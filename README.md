@@ -114,7 +114,9 @@ command bus.
   immediate per-cell writes), sort/filter/freeze and undo/redo; filter by
   value from the column's own list (bounded, ordered, with the blank
   entry), find and replace over the visible rows, movable columns and a
-  visible `(NULL)` marker; table design with the property sheet; QBE
+  visible `(NULL)` marker, and large tables open from a bounded window
+  cache (scrolling loads windows, "Load all rows" upgrades); table design
+  with the property sheet; QBE
   builder; form and report designers with a runtime; relationship mapper;
   SQL window (names its dialect, query-plan view on SQLite).
 - **Programmability:** native saved queries (qualified dialect), macro

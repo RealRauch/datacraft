@@ -139,3 +139,18 @@ fn an_empty_needle_finds_nothing() {
     let matches = find_matches(&table, &rows, &order, &request("   ")).expect("runs");
     assert!(matches.is_empty(), "a blank needle is not a match");
 }
+
+#[test]
+fn a_needle_longer_than_the_cell_finds_nothing() {
+    let table = customers();
+    let rows = rows();
+    let order: Vec<usize> = (0..rows.len()).collect();
+    let matches = find_matches(
+        &table,
+        &rows,
+        &order,
+        &request("Ada Lovelace and then some more text"),
+    )
+    .expect("runs");
+    assert!(matches.is_empty(), "{matches:?}");
+}

@@ -61,3 +61,10 @@ fn an_unknown_table_is_refused_precisely() {
     assert!(core.row_count("Missing").is_err());
     assert!(core.read_row_window("Missing", 0, 10).is_err());
 }
+
+#[test]
+fn an_unopened_core_refuses_both_calls() {
+    let core = Core::new(Box::new(MockPort::new()));
+    assert!(core.row_count("Customers").is_err());
+    assert!(core.read_row_window("Customers", 0, 10).is_err());
+}
