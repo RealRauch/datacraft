@@ -324,6 +324,11 @@ impl Core {
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
             Command::ExportReportPdf { report, path } => self.export_report_pdf(&report, &path),
+            Command::ExportTable {
+                table,
+                format,
+                path,
+            } => self.export_table(&table, format, &path),
             Command::OpenDatabase {
                 path,
                 password,

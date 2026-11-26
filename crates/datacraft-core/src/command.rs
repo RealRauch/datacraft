@@ -41,7 +41,7 @@ pub enum Command {
     /// Closes the open database and all of its tabs.
     CloseDatabase,
     /// Compacts the open database in place (phase 95, step 95.2; M126):
-    /// a verified fresh file replaces it atomically at the same path.
+    /// the verified fresh file replaces it atomically at the same path.
     CompactDatabase,
     /// Creates a brand-new, empty database file (H44); the file must not exist.
     CreateDatabase {
@@ -152,8 +152,7 @@ pub enum Command {
         row: usize,
     },
     /// Replaces individual cells across rows (step 86.3, M101): one
-    /// history entry, every edit validated before the first write
-    /// (`Null` = clear, M24).
+    /// history entry, every edit validated first (`Null` = clear, M24).
     UpdateCells {
         /// Target table name (case-insensitive).
         table: String,
@@ -303,8 +302,7 @@ pub enum Command {
         /// Target query name (case-insensitive).
         query: String,
     },
-    /// Sorts a table's datasheet view (step 44.5, M54); `None` clears.
-    /// The field is whitelisted against the schema (LESSONS #5).
+    /// Sorts a datasheet view (44.5, M54); the field is whitelisted (LESSONS #5).
     SetTableSort {
         /// Target table name (case-insensitive).
         table: String,
@@ -313,8 +311,7 @@ pub enum Command {
         /// Sort direction; `None` clears the sort.
         order: SortOrder,
     },
-    /// Filters a table's datasheet view by one column's criteria (step
-    /// 44.5, M54): parsed eagerly, `None` clears; filters AND together.
+    /// Filters a datasheet column by criteria (step 44.5, M54); filters AND.
     SetTableFilter {
         /// Target table name (case-insensitive).
         table: String,
@@ -323,8 +320,7 @@ pub enum Command {
         /// Criteria text, engine dialect; `None` clears the field.
         criteria: Option<String>,
     },
-    /// Clears every column filter of a table's datasheet view
-    /// (step 44.5, item M54) — the status bar chip's one-click clear.
+    /// Clears every column filter of a datasheet (step 44.5, M54).
     ClearTableFilters {
         /// Target table name (case-insensitive).
         table: String,
@@ -349,8 +345,7 @@ pub enum Command {
         /// Form name (case-insensitive).
         name: String,
     },
-    /// Places a control on a form (rect snapped to the form grid at
-    /// dispatch, bounds-checked against the canvas).
+    /// Places a control on a form (rect snapped and bounds-checked).
     AddFormControl {
         /// Target form name (case-insensitive).
         form: String,
@@ -367,8 +362,7 @@ pub enum Command {
         rect: Rect,
     },
     /// Sets the content property a placed control carries (step 63.1,
-    /// H56): label text, button caption, bound field or embedded form —
-    /// one per kind; an empty value clears a binding.
+    /// H56): label, caption, bound field or embedded form; empty clears.
     SetFormControlContent {
         /// Target form name (case-insensitive).
         form: String,
@@ -388,16 +382,14 @@ pub enum Command {
         /// Control name (case-insensitive).
         control: String,
     },
-    /// Adds a record-source field from the designer's field list as a
-    /// bound control at the next free slot (step 11.6).
+    /// Adds a record-source field as a bound control at the next free slot (11.6).
     AddFormField {
         /// Target form name (case-insensitive).
         form: String,
         /// Source field name (case-insensitive).
         field: String,
     },
-    /// Assigns a form's source table (whitelisted; existing bindings
-    /// re-validated).
+    /// Assigns a form's source table (whitelisted; bindings re-validated).
     SetFormSource {
         /// Target form name (case-insensitive).
         form: String,
@@ -431,8 +423,7 @@ pub enum Command {
         rect: Rect,
     },
     /// Sets the content property a placed report control carries (step
-    /// 63.1, H56): label text, button caption, bound field (or a
-    /// `=expression`) or embedded form; an empty value clears a binding.
+    /// 63.1, H56): label, caption, bound field or `=expression`; empty clears.
     SetReportControlContent {
         /// Target report name (case-insensitive).
         report: String,
@@ -463,8 +454,8 @@ pub enum Command {
         /// Source table name.
         table: String,
     },
-    /// Sets or clears a report's grouping field (step 15.2, H41): the
-    /// field must exist in the source; `None` clears the grouping.
+    /// Sets or clears a report's grouping field (step 15.2, H41); it must
+    /// exist in the source.
     SetReportGrouping {
         /// Target report name (case-insensitive).
         report: String,
@@ -476,8 +467,8 @@ pub enum Command {
         /// Module name (case-insensitive).
         module: String,
     },
-    /// Runs the headless static VBA analysis (step 17.3, L5): call graph,
-    /// embedded SQL, table/query references and unused modules.
+    /// Runs the static VBA analysis (step 17.3, L5): call graph, SQL,
+    /// table/query references and unused modules.
     AnalyzeVba,
     /// Writes the design layer (forms + queries + reports) to a `.datacraft` sidecar (ADR-1).
     SaveDesignDocument {
@@ -493,6 +484,15 @@ pub enum Command {
     ExportReportPdf {
         /// Report name (case-insensitive).
         report: String,
+        /// Target file; it must not exist yet.
+        path: PathBuf,
+    },
+    /// Exports one table to a new CSV or JSON file (phase 99, M130).
+    ExportTable {
+        /// Table name (case-insensitive).
+        table: String,
+        /// Output format of the document.
+        format: crate::export::ExportFormat,
         /// Target file; it must not exist yet.
         path: PathBuf,
     },

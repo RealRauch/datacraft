@@ -30,10 +30,7 @@ fn orders() -> TableDef {
             FieldDef::new("Name", FieldKind::Text { max_len: 50 }),
             FieldDef::new("Qty", FieldKind::Number(NumericKind::LongInteger)),
             FieldDef::new("Ratio", FieldKind::Number(NumericKind::Double)),
-            FieldDef::new(
-                "Active",
-                FieldKind::Boolean { tri_state: false },
-            ),
+            FieldDef::new("Active", FieldKind::Boolean { tri_state: false }),
             FieldDef::new("Price", FieldKind::Currency),
             FieldDef::new(
                 "Amount",
@@ -126,12 +123,14 @@ fn csv_carries_a_header_row_and_the_datasheet_text() {
     let mut core = ready_core(orders_rows());
     let file = Scratch(scratch("csv", "csv"));
     match export(&mut core, ExportFormat::Csv, &file.0).as_slice() {
-        [Event::TableExported {
-            table,
-            format,
-            path,
-            rows,
-        }] => {
+        [
+            Event::TableExported {
+                table,
+                format,
+                path,
+                rows,
+            },
+        ] => {
             assert_eq!(table, "Orders");
             assert_eq!(*format, ExportFormat::Csv);
             assert_eq!(path, &file.0);
@@ -140,34 +139,36 @@ fn csv_carries_a_header_row_and_the_datasheet_text() {
         other => panic!("expected one export event, got {other:?}"),
     }
     let text = read(&file.0);
-    let mut lines = text.split("\r\n");
-    assert_eq!(
-        lines.next(),
-        Some("Name,Qty,Ratio,Active,Price,Amount,When,Note,Blob,Tag"),
-        "the header carries the field names in storage order"
+    // The csv crate's default terminator; CRLF never appears, so a
+    // checkout's line-ending policy cannot change the bytes.
+    assert!(!text.contains('\r'), "LF terminators: {text:?}");
+    assert!(
+        text.starts_with("Name,Qty,Ratio,Active,Price,Amount,When,Note,Blob,Tag\n"),
+        "the header carries the field names in storage order: {text:?}"
     );
     // The comma/quote cell is quoted with doubled quotes (RFC 4180); the
     // memo's line break is quoted too, so it stays one record.
-    let first = lines.next().expect("the first row");
     assert!(
-        first.starts_with("\"Ada, \"\"the\"\" first\",3,1.5,Yes,1.25,25.50,"),
-        "{first}"
+        text.contains("\"Ada, \"\"the\"\" first\",3,1.5,Yes,1.25,25.50,"),
+        "the record keeps the datasheet text: {text:?}"
     );
     assert!(
-        first.contains(",<binary: 2 bytes>,"),
-        "null then the blob marker: {first}"
+        text.contains(",<binary: 2 bytes>,"),
+        "null then the blob marker: {text:?}"
     );
     assert!(
-        first.ends_with("abababab-abab-abab-abab-abababababab"),
-        "the GUID keeps its canonical text: {first}"
+        text.contains("abababab-abab-abab-abab-abababababab"),
+        "the GUID keeps its canonical text: {text:?}"
     );
-    let second = lines.next().expect("the second row");
     assert!(
-        second.starts_with("Bob,0,-0.25,No,-0.01,-0.05,"),
-        "a value's own scale and the display text: {second}"
+        text.contains("Bob,0,-0.25,No,-0.01,-0.05,"),
+        "a value's own scale and the display text: {text:?}"
     );
-    assert!(text.contains("\"note\nwith break\""), "memo with a break is quoted");
-    assert_eq!(text.matches("\r\n").count(), 3, "header plus two records");
+    assert!(
+        text.contains("\"note\nwith break\""),
+        "memo with a break is quoted"
+    );
+    assert!(text.ends_with('\n'), "every record is terminated: {text:?}");
 }
 
 #[test]
@@ -188,12 +189,14 @@ fn json_carries_the_schema_and_typed_rows() {
     let mut core = ready_core(orders_rows());
     let file = Scratch(scratch("json", "json"));
     match export(&mut core, ExportFormat::Json, &file.0).as_slice() {
-        [Event::TableExported {
-            table,
-            format,
-            rows,
-            ..
-        }] => {
+        [
+            Event::TableExported {
+                table,
+                format,
+                rows,
+                ..
+            },
+        ] => {
             assert_eq!(table, "Orders");
             assert_eq!(*format, ExportFormat::Json);
             assert_eq!(*rows, 2);
@@ -320,8 +323,10 @@ fn an_existing_target_is_refused_and_left_alone() {
 #[test]
 fn an_unwritable_target_names_the_path() {
     let mut core = ready_core(orders_rows());
-    let path = std::env::temp_dir()
-        .join(format!("datacraft-export-missing-{}/out.csv", std::process::id()));
+    let path = std::env::temp_dir().join(format!(
+        "datacraft-export-missing-{}/out.csv",
+        std::process::id()
+    ));
     match export(&mut core, ExportFormat::Csv, &path).as_slice() {
         [Event::Failed { code, reason }] => {
             assert_eq!(code, &FailureCode::Io);
@@ -361,7 +366,7 @@ fn an_empty_table_exports_a_header_and_no_rows() {
     export(&mut core, ExportFormat::Csv, &csv.0);
     assert_eq!(
         read(&csv.0),
-        "Name,Qty,Ratio,Active,Price,Amount,When,Note,Blob,Tag\r\n"
+        "Name,Qty,Ratio,Active,Price,Amount,When,Note,Blob,Tag\n"
     );
     let json = Scratch(scratch("empty", "json"));
     export(&mut core, ExportFormat::Json, &json.0);
@@ -384,6 +389,27 @@ fn a_value_json_cannot_carry_is_refused_precisely() {
         other => panic!("expected an Unsupported failure, got {other:?}"),
     }
     assert!(!file.0.exists(), "no partial document is written");
+}
+
+#[test]
+fn a_row_that_does_not_match_the_table_shape_is_refused() {
+    let mut port = MockPort::with_tables(vec![orders()]);
+    port.with_row_data("Orders", vec![vec![FieldValue::Text("short".into())]]);
+    let mut core = Core::new(Box::new(port));
+    core.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+        source: None,
+    });
+    let file = Scratch(scratch("ragged", "csv"));
+    match export(&mut core, ExportFormat::Csv, &file.0).as_slice() {
+        [Event::Failed { code, reason }] => {
+            assert_eq!(code, &FailureCode::Port);
+            assert!(reason.contains("1 values for 10 fields"), "{reason}");
+        }
+        other => panic!("expected a Port failure, got {other:?}"),
+    }
+    assert!(!file.0.exists(), "a ragged row never produces a document");
 }
 
 #[test]

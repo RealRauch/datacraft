@@ -20,6 +20,7 @@ pub mod core;
 mod database;
 pub mod edit_buffer;
 pub mod event;
+pub mod export;
 pub use datacraft_expr as expr;
 pub mod failure;
 pub mod field_expressions;

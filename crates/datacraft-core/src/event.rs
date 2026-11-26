@@ -52,6 +52,18 @@ pub enum Event {
         /// Rendered page count (the preview's page sequence).
         pages: usize,
     },
+    /// One table was exported to a new CSV or JSON file (phase 99, step
+    /// 99.1; item M130). The source database is untouched.
+    TableExported {
+        /// Table name as the database stores it.
+        table: String,
+        /// Output format of the document.
+        format: crate::export::ExportFormat,
+        /// Filesystem path of the new file.
+        path: std::path::PathBuf,
+        /// Number of exported rows (the header is not a row).
+        rows: usize,
+    },
     /// The open database's password was replaced in place (step 27.2,
     /// item M14).
     PasswordChanged {
