@@ -1383,3 +1383,32 @@ Oracle: `fixtures/programmability.accdb` extracts 8 modules with source
 class, form and report kinds plus Windows-1252 umlauts and repeated
 long-identifier copy tokens); the jackcess ACE templates carry an empty
 project (0 modules).
+
+## Linked tables — MSysObjects link records (2026-11-26, phase 100, item M131)
+
+A linked table is a catalog row without a TDEF page: `Type` 4 (ODBC)
+or `Type` 6 (linked into another Access database). The catalog
+enumeration only followed TDEF-backed rows, so these records were
+invisible. Decoding them is pure catalog work — no connection, no
+resolution, nothing executed (roadmap §9 stage 0).
+
+Observed columns of the link row (all files, Jet4/ACE):
+
+| Column | `Type` 6 (Access file) | `Type` 4 (ODBC) |
+|---|---|---|
+| `Name` | local table name | local table name |
+| `Database` | external file path, text | `NULL` |
+| `Connect` | `NULL` | connect string, text (semantics below) |
+| `ForeignName` | table name in the external file | table name on the server, e.g. `dbo.Ordrar` |
+| `Flags` | `2097152` (`0x200000`) | `537919488` (`0x20100000`) |
+| `Id` | negative (engine-assigned, e.g. `-2147483638`) | positive, in the user range |
+
+Evidence — three fixtures, two independent writers:
+
+- `linkerTestV2007.accdb` (jackcess): `Table2` → `Z:\jackcess_test\linkeeTest.accdb`, `ForeignName` `Table1`, flags `2097152`.
+- `linkedTablesV2007.accdb` (self-built, `tools/fixture-build/links.ps1`): `Remote_Link` → scratch path, `ForeignName` `Remote`, flags `2097152`.
+- `odbcLinkerTestV2007.accdb` (jackcess): `Ordrar`, `CONNECT` `DSN=Magnapinna;Description=Safexit;UID=safexit;PWD=DummyPassword;APP=Microsoft Office;DATABASE=safexit`, `ForeignName` `dbo.Ordrar`, flags `537919488`.
+
+**Connect string.** A semicolon-separated list of `KEY=value` fragments. Access stores the credentials it was given in plain text (`PWD`, occasionally `PASSWORD`), so the inventory replaces the value of every such fragment with `***` at the port boundary — the rest of the string (DSN, UID, APP, DATABASE) stays readable. Nothing in the snapshot, the nav pane, a CLI reply or a log ever carries the secret.
+
+**Boundary.** The target is data, never a dependency: the path is not checked, the DSN is not dialled, and a link whose target is gone still reports its record. `Present` maps the row onto the one-line target the nav pane shows (`DATABASE` path, or the connect string's first fragment). Reduced catalogs without the link columns report no links; the columns are optional by design (synthetic writer templates and the hand-built test catalogs both occur).

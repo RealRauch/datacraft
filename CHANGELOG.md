@@ -7,6 +7,19 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 ## [Unreleased]
 
 ### Added
+- jet/core/ui/cli/mcp: linked-table inventory (100, M131; roadmap §9 stage
+  0) — a Jet/ACE file's `MSysObjects` link records (`Type` 4 ODBC, `Type`
+  6 Access-file) decode into a read-only inventory: local name, kind,
+  external database path or connect string, foreign name and flags. The
+  port boundary redacts `PWD`/`PASSWORD` values, so no snapshot, CLI reply,
+  log or suite output carries the secret. The nav pane gains a counted
+  `Linked tables` group with the one-line target and a boundary hint, the
+  search matches the target, and the snapshot (CLI `--json`, MCP `inspect`)
+  carries the same records. Nothing resolves or dials: opening a link
+  answers a precise `Unsupported`, a link never enters the table catalog,
+  and the file stays byte-identical. Three fixtures pin the shape (two
+  pristine jackcess files plus a self-built Access fixture); the storage
+  composite now forwards the inventory like every other session surface.
 - core/ui/cli/mcp: table export to CSV and JSON (99, M130) — one
   `ExportTable` command writes a whole table to a new file: CSV with a
   header row and the datasheet text (RFC 4180 quoting, LF terminators, a

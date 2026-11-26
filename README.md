@@ -117,6 +117,10 @@ command bus.
   dialect, query-plan view on SQLite).
 - **Programmability:** native saved queries (qualified dialect), macro
   inventory, VBA extraction, viewer and static analysis — no execution.
+- **Linked tables:** a Jet/ACE file's link records are listed read-only —
+  ODBC and Access-file links with their target, foreign name and flags,
+  connect strings with credentials redacted; nothing is resolved, dialled
+  or written.
 - **Export:** a report's print preview exports to a new PDF file — the
   preview's page sequence, selectable text in the shipped Inter face,
   byte-identical re-export, an existing target refused. A table exports
@@ -157,6 +161,7 @@ lanes and CI runs — is in
 | **Jet4 `.mdb`** | ✅ tables, catalog, rows, OLE/memo, relationships, native queries, index metadata, RC4 passwords | ✅ create/alter/drop table, insert/update/delete, indexes, relationships, journaled batches, AutoNumber; engine-accepted and user-verified in real Access (2026-11-07) | writer verified on Jet4 only; index leaves are maintained but never split (M15); engine-refused files recover through the create-path re-encode (49.4, M67); unsupported `MSysQueries` constructs surface as `native_queries_error` |
 | **ACE `.accdb`** | ✅ 2007/2010/2016 tables, complex values, named macros, VBA project | ✅ create/alter/drop table, insert/update/delete, indexes, relationships on 2007/2010 | no external ACE oracle; the write reference is decode∘op∘decode against the pinned bytes; Office-encrypted files answer `Unsupported` |
 | **Access co-existence** | ✅ a sibling lock file (`.ldb`/`.laccdb`) opens the session read-only and is named in the snapshot, the status bar and the Info page | ⬜ read-only while the lock file exists | DataCraft never creates or deletes lock files; detection is existence-only (M59) |
+| **Linked-table inventory** | ✅ a Jet/ACE file's `MSysObjects` link records are listed read-only: ODBC (`Type` 4) and Access-file (`Type` 6) links with local name, external database or connect string, foreign name and flags; connect strings arrive with `PWD`/`PASSWORD` redacted, in the nav pane, the CLI and the MCP snapshot | ⬜ no resolution, no connection, nothing written — opening a link answers a precise refusal | the target is never dialled or checked, so a link whose target is gone still reports its record; the inventory is the whole of roadmap §9 stage 0 (server drivers are later stages) |
 | **SQLite** | ✅ catalog, rows, foreign keys; native views read-only; index/trigger inventory; file facts and bounded `quick_check` | ✅ create/drop table, insert/update/delete, `CREATE [UNIQUE] INDEX`, foreign-key create/delete | schema alteration after create remains unsupported; `WITHOUT ROWID` rowid writes answer `Unsupported`; native view/trigger definitions are never created or executed |
 | **CSV directories** | ✅ catalog, rows | ✅ create/drop table, insert/update/delete (one atomic rewrite per call) | column kinds inferred at open; values read as text; no schema alteration, relationships, native queries, macros or VBA; no engine-assigned AutoNumbers |
 | **SQL window** | ✅ read-only SQL over every source: on SQLite the statement runs natively (full dialect including window functions, real indexes, native views, `EXPLAIN QUERY PLAN`); Jet/ACE/CSV materialize into the shadow engine | ⬜ writes stay on the command bus — a write statement answers a precise capability refusal on every source | the dialect is named in the snapshot and the window; the shadow engine has no plan surface |
