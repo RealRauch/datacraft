@@ -596,7 +596,7 @@
 | 98.2 | UI: the SQL window names the dialect per source (SQLite native vs the shadow engine), EXPLAIN QUERY PLAN rendering | ✅ |
 | 98.3 | Wire: CLI and MCP parity with contract pins; Jet/CSV sources stay on the shadow engine unchanged | ✅ |
 | 98.4 | Documentation and phase gate (README SQL row, COMPATIBILITY evidence); the phase-98 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ✅ |
-| 99.1 | Core: ExportTable command — CSV and the JSON schema+rows document, deterministic new-file write, source untouched (roadmap §11) | ⬜ |
+| 99.1 | Core: ExportTable command — CSV and the JSON schema+rows document, deterministic new-file write, source untouched (roadmap §11) | 🔄 |
 | 99.2 | UI: export affordance at the datasheet/nav pane with format and path dialog | ⬜ |
 | 99.3 | Wire: CLI and MCP parity with contract pins and precise refusals | ⬜ |
 | 99.4 | Documentation and phase gate (README export row, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
