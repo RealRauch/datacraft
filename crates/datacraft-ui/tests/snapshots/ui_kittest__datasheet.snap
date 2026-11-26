@@ -11,6 +11,8 @@ Button|Back| disabled
 Button|Forward| disabled
 Label||1 row
 TextRun||1 row
+Button|Export CSV…|
+Button|Export JSON…|
 Label||*
 TextRun||*
 Button|Add record|
