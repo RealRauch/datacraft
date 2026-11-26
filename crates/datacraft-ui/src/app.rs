@@ -56,6 +56,7 @@ impl App {
             pending_dialog: None,
             value_filter: None,
             find_replace: None,
+            column_order: std::collections::HashMap::new(),
             open_path: String::new(),
             active_object_kind: None,
             active_ribbon_tab,

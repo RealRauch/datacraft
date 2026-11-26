@@ -40,6 +40,9 @@ pub(super) struct HeaderPass<'a> {
     pub filter_dialog: Option<&'a mut dyn FnMut(usize)>,
     /// Opens the column's value list (phase 101, step 101.2; item M132).
     pub value_list: Option<&'a mut dyn FnMut(usize)>,
+    /// Moves a column one display position (phase 101, step 101.4; M132):
+    /// `(column, right)` — the menu's accessible twin of the drag.
+    pub move_column: Option<&'a mut dyn FnMut(usize, bool)>,
     /// The filter builder window (step 87.4, item M104): opens the
     /// tab-wide structured draft over the live criteria.
     pub filter_builder: Option<&'a mut dyn FnMut()>,
@@ -82,6 +85,7 @@ pub(super) fn header_ui(
     let mut pending_freeze: Option<usize> = None;
     let mut pending_filter_dialog: Option<usize> = None;
     let mut pending_value_list: Option<usize> = None;
+    let mut pending_move: Option<(usize, bool)> = None;
     let mut pending_select_column: Option<(usize, bool)> = None;
     // The band is viewport-bounded, never content-sized: a content-sized
     // band would widen the container ui and defeat the body's horizontal
@@ -203,6 +207,21 @@ pub(super) fn header_ui(
                     ui.close();
                 }
             }
+            // Column order (phase 101, step 101.4; item M132): the drag
+            // gesture's keyboard/agent twin.
+            if pass.move_column.is_some() {
+                ui.separator();
+                if col > 0 && ui.selectable_label(false, t("Move Column Left")).clicked() {
+                    pending_move = Some((col, false));
+                    ui.close();
+                }
+                if col + 1 < columns.len()
+                    && ui.selectable_label(false, t("Move Column Right")).clicked()
+                {
+                    pending_move = Some((col, true));
+                    ui.close();
+                }
+            }
             if col >= frozen
                 && ui
                     .selectable_label(false, t("Freeze Fields"))
@@ -284,6 +303,11 @@ pub(super) fn header_ui(
         && let Some(callback) = pass.value_list.as_mut()
     {
         callback(column);
+    }
+    if let Some((column, right)) = pending_move
+        && let Some(callback) = pass.move_column.as_mut()
+    {
+        callback(column, right);
     }
     if pending_filter_builder && let Some(callback) = pass.filter_builder.as_mut() {
         callback();

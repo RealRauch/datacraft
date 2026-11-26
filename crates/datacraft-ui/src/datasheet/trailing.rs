@@ -47,7 +47,9 @@ pub(super) fn trailing_ui(
     widths: &[f32],
     ui: &mut egui::Ui,
 ) {
-    ui.horizontal(|ui| {
+    // The row wraps instead of forcing the pane wider than its viewport
+    // (phase 101: export and find entries joined it).
+    ui.horizontal_wrapped(|ui| {
         let back = ui
             .add_enabled(app.fk_back_len(tab.id) > 0, egui::Button::new(t("Back")))
             .on_hover_text(t("Back to the previous table and filter"));

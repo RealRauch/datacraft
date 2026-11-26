@@ -112,6 +112,7 @@ pub(crate) fn query_results_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::
                 None,
                 None,
                 None,
+                None,
             ),
         );
     }

@@ -80,6 +80,9 @@ pub struct App {
     /// The find/replace window's draft (phase 101, step 101.3; M132) —
     /// an open window when `Some`.
     pub find_replace: Option<crate::find_replace::FindReplaceDraft>,
+    /// Display order of the datasheet columns per table tab (phase 101,
+    /// step 101.4; M132): display position → storage column index.
+    pub(crate) column_order: HashMap<TabId, Vec<usize>>,
     /// Buffered rename text per design tab (step 24.3, M9).
     pub(super) design_rename: HashMap<TabId, String>,
     /// Current record cursor per table/query tab (the status bar's

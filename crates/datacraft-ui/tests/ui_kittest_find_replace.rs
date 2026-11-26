@@ -89,20 +89,59 @@ fn replace_all_stages_every_match_once() {
     harness.run();
     harness.get_by_label("Replace All").click();
     harness.run();
-    // One cell staged; the grid paints the pending image.
+    // The mock has no atomic batches: the replacement lands through one
+    // UpdateCells dispatch and the grid paints the new value.
+    assert!(
+        harness.query_by_label_contains("Grace Lovelace").is_some(),
+        "the datasheet renders the replaced cell"
+    );
+    assert!(
+        harness.state().staged_rows(tab_id).is_none(),
+        "an immediate driver stages nothing"
+    );
+}
+
+/// A mock that reports atomic batches: Replace All stages instead of
+/// writing, so Ctrl+S applies one batch.
+fn batch_app() -> App {
+    let mut port = MockPort::with_tables(vec![customers()]);
+    port.with_row_data("Customers", sample_rows());
+    let mut capabilities = datacraft_core::port::DriverCapabilities::full();
+    capabilities.atomic_batch = true;
+    capabilities.passwords = false;
+    port.with_capabilities(capabilities);
+    let mut app = App::new(Box::new(port));
+    app.dispatch(Command::OpenDatabase {
+        path: "shop.mdb".into(),
+        password: None,
+        source: None,
+    });
+    app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Customers",
+    )));
+    app
+}
+
+#[test]
+fn replace_all_stages_into_the_batch_of_an_atomic_driver() {
+    let mut app = batch_app();
+    app.find_replace = Some(draft("ada", "Grace"));
+    let mut harness = datasheet_harness(app);
+    harness.run();
+    harness.get_by_label("Replace All").click();
+    harness.run();
+    let tab_id = harness.state().snapshot().tabs[0].id;
     let buffer = harness
         .state()
         .staged_rows(tab_id)
         .expect("the batch carries the replacement");
-    assert_eq!(buffer.row_count(), 3);
     let image = buffer.row_image(0).expect("the staged row");
     assert_eq!(image[0], FieldValue::Text("Grace Lovelace".into()));
     assert!(
-        harness.query_by_label_contains("Grace Lovelace").is_some(),
-        "the datasheet renders the staged image"
+        harness.state().snapshot().pending_write.is_none(),
+        "staging is not a write"
     );
-    // Nothing was written: the database has no pending journal.
-    assert!(harness.state().snapshot().pending_write.is_none());
 }
 
 #[test]
@@ -149,15 +188,15 @@ fn a_filtered_out_row_never_takes_part() {
         .clone()
         .expect("the window stays");
     assert_eq!(draft.staged, Some(1), "{draft:?}");
+    // The row was replaced and now falls outside the filter (it no longer
+    // reads "Grace Hopper"), so the grid shows no row — the cache proves
+    // the write.
     let tab_id = harness.state().snapshot().tabs[0].id;
-    let buffer = harness.state().staged_rows(tab_id).expect("a batch");
+    let rows = harness.state().rows_for(tab_id).cloned().expect("rows");
+    assert_eq!(rows[1][0], FieldValue::Text("Ada Hopper".into()));
     assert_eq!(
-        buffer.row_image(1).expect("row 1")[0],
-        FieldValue::Text("Ada Hopper".into())
-    );
-    // The filtered-out Ada row is untouched — its image is the cache row.
-    assert_eq!(
-        buffer.row_image(0).expect("row 0")[0],
-        FieldValue::Text("Ada Lovelace".into())
+        rows[0][0],
+        FieldValue::Text("Ada Lovelace".into()),
+        "the filtered-out Ada row keeps its text"
     );
 }

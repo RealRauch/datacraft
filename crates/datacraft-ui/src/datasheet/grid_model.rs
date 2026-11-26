@@ -151,6 +151,8 @@ pub(crate) struct GridCallbacks<'a> {
     pub on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
     /// Opens the column's value list (phase 101, step 101.2; item M132).
     pub on_value_list: Option<&'a mut dyn FnMut(usize)>,
+    /// Moves a column one display position (phase 101, step 101.4; M132).
+    pub on_move_column: Option<&'a mut dyn FnMut(usize, bool)>,
     /// The follow intent (step 87.1, item M103): the displayed (row,
     /// col) and the context menu's target index — F4 reports index 0.
     pub on_follow: Option<&'a mut dyn FnMut(usize, usize, usize)>,
@@ -180,6 +182,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
     on_edit: Option<&'a mut dyn FnMut(EditIntent)>,
     on_filter_dialog: Option<&'a mut dyn FnMut(usize)>,
     on_value_list: Option<&'a mut dyn FnMut(usize)>,
+    on_move_column: Option<&'a mut dyn FnMut(usize, bool)>,
     on_follow: Option<&'a mut dyn FnMut(usize, usize, usize)>,
     on_follow_menu: Option<&'a mut dyn FnMut(usize, usize)>,
     filter_builder: Option<&'a mut dyn FnMut()>,
@@ -199,6 +202,7 @@ pub(crate) fn grid_ui_callbacks<'a>(
         on_edit,
         on_filter_dialog,
         on_value_list,
+        on_move_column,
         on_follow,
         on_follow_menu,
         filter_builder,

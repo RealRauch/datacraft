@@ -280,3 +280,16 @@ fn replace_all(cell: &str, needle: &str, replacement: &str, match_case: bool) ->
     out.push_str(rest);
     out
 }
+
+/// Moves one column within a display order (phase 101, step 101.4; item
+/// M132): `order` maps display position → storage column index. An
+/// out-of-range move answers the order unchanged.
+pub fn move_column(order: &[usize], from: usize, to: usize) -> Vec<usize> {
+    let mut moved = order.to_vec();
+    if from >= moved.len() || to >= moved.len() {
+        return moved;
+    }
+    let column = moved.remove(from);
+    moved.insert(to, column);
+    moved
+}

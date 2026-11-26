@@ -150,6 +150,10 @@ fn freezing_pins_leading_columns_while_the_rest_scrolls() {
     let frozen_before = harness.get_by_label("0").rect();
     let scrolled_before = harness.get_by_label("b0").rect();
     // Another scroll: the frozen column stays pinned, the rest moves on.
+    // The wheel acts under the pointer, and the menu interaction left it
+    // over the (now closed) menu area — park it over the grid again.
+    harness.hover_at(egui::pos2(200.0, 49.0));
+    harness.run();
     harness.event(wheel_right.clone());
     harness.run();
     harness.run();

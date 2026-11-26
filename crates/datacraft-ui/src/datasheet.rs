@@ -130,24 +130,48 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             buffer.row_state(*slot) == datacraft_core::edit_buffer::RowState::Inserted
         }));
     }
+    // The column display order (phase 101, step 101.4; M132): a
+    // permutation of the storage columns, applied once here so every
+    // consumer below (headers, widths, sort marks, follow labels, cells)
+    // works in display positions.
+    let order = app.column_order(tab.id, columns.len());
+    // Every consumer below works in display positions: the column names
+    // are permuted here, once.
+    let columns: Vec<String> = order
+        .iter()
+        .map(|&storage| columns[storage].clone())
+        .collect();
+    let cells = |values: &[datacraft_core::schema::FieldValue]| -> Vec<String> {
+        order
+            .iter()
+            .map(|&storage| {
+                let value = values.get(storage);
+                match value {
+                    // The visible Null marker (phase 101, step 101.4;
+                    // M132): an empty cell cannot be told from a blank
+                    // string, so the grid paints the localized marker.
+                    Some(datacraft_core::schema::FieldValue::Null) | None => t("(NULL)").to_owned(),
+                    Some(value) => value_label(value),
+                }
+            })
+            .collect()
+    };
     let body: Vec<Vec<String>> = staged
         .map(|buffer| {
             slots
                 .iter()
                 .map(|&slot| {
-                    buffer
+                    let values = buffer
                         .row_image(slot)
-                        .unwrap_or_else(|| rows.get(slot).map(Vec::as_slice).unwrap_or(&[]))
-                        .iter()
-                        .map(value_label)
-                        .collect()
+                        .unwrap_or_else(|| rows.get(slot).map(Vec::as_slice).unwrap_or(&[]));
+                    cells(values)
                 })
                 .collect()
         })
         .unwrap_or_else(|| {
             display
                 .iter()
-                .map(|&cache_row| rows[cache_row].iter().map(value_label).collect())
+                .map(|&cache_row| cells(&rows[cache_row]))
                 .collect()
         });
     // Amber-marker positions per displayed row (step 85.2, item H61).
@@ -177,7 +201,11 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             }
         })
         .collect();
-    let mut widths = app.column_widths(tab.id, columns.len());
+    let stored_widths = app.column_widths(tab.id, order.len());
+    let mut widths: Vec<f32> = order
+        .iter()
+        .map(|&storage| stored_widths[storage])
+        .collect();
     let frozen = datacraft_core::grid::effective_frozen(app.frozen_columns(tab.id), columns.len());
     let delete_reason = crate::availability::restricted(
         app.snapshot(),
@@ -224,6 +252,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut sort_intent: Option<(usize, SortOrder)> = None;
     let mut dialog_intent: Option<usize> = None;
     let mut value_list_intent: Option<usize> = None;
+    let mut move_intent: Option<(usize, bool)> = None;
     let mut follow_intent: Option<(usize, usize, usize)> = None;
     let mut follow_menu_intent: Option<(usize, usize)> = None;
     let mut builder_open_intent = false;
@@ -250,6 +279,10 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         // The column's value list (phase 101, step 101.2; item M132).
         let mut on_value_list = |column: usize| {
             value_list_intent = Some(column);
+        };
+        // The header menu's column moves (phase 101, step 101.4; M132).
+        let mut on_move_column = |column: usize, right: bool| {
+            move_intent = Some((column, right));
         };
         // The grid's row viewport reserves the trailing panels' height
         // budget (step 48.2, item M61): without it the grid consumes the
@@ -296,6 +329,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut on_edit),
                     Some(&mut on_filter_dialog),
                     Some(&mut on_value_list),
+                    Some(&mut on_move_column),
                     Some(&mut |row: usize, col: usize, index: usize| {
                         follow_intent = Some((row, col, index));
                     }),
@@ -379,6 +413,15 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             field: name.clone(),
         });
     }
+    // A column move (phase 101, step 101.4; M132): display positions.
+    if let Some((column, right)) = move_intent {
+        let target = if right {
+            column + 1
+        } else {
+            column.saturating_sub(1)
+        };
+        app.move_column(tab.id, columns.len(), column, target);
+    }
     // The menu is open (step 87.2, item M103): queue its count reads —
     // duplicates answer from the map, one bounded read runs per frame.
     // A closed menu clears the marker, so the context stops cloning.
@@ -447,7 +490,13 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             intent,
         );
     }
-    app.set_column_widths(tab.id, widths.clone());
+    // Widths live in storage order; the display pass hands them back in
+    // its own order (phase 101, step 101.4; M132).
+    let mut storage_widths = widths.clone();
+    for (display, &storage) in order.iter().enumerate() {
+        storage_widths[storage] = widths[display];
+    }
+    app.set_column_widths(tab.id, storage_widths);
     if let Some(row) = selected {
         app.set_record_cursor(tab.id, row, row_count);
     }

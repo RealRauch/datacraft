@@ -88,3 +88,11 @@ pub(super) const FIND_REPLACE: &[(&str, &str)] = &[
         "Durchsucht die sichtbaren Zeilen und merkt Ersetzungen vor.",
     ),
 ];
+
+/// German catalog: the datasheet column order and the Null marker
+/// (phase 101, step 101.4; item M132).
+pub(super) const COLUMN_ORDER: &[(&str, &str)] = &[
+    ("(NULL)", "(NULL)"),
+    ("Move Column Left", "Spalte nach links"),
+    ("Move Column Right", "Spalte nach rechts"),
+];

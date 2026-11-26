@@ -196,6 +196,26 @@ fn stage_replacements(
     };
     let order = visible_order(&table, &rows, tab)?;
     let matches = find_matches(&table, &rows, &order, request)?;
+    if !app.batch_writes() {
+        // A driver without atomic batches writes immediately: one
+        // `UpdateCells` command carries the whole replacement set (one
+        // history entry) instead of staging into a buffer nothing would
+        // apply.
+        let edits: Vec<datacraft_core::command::CellEdit> = matches
+            .into_iter()
+            .map(|found| datacraft_core::command::CellEdit {
+                row: found.row,
+                col: found.column,
+                value: FieldValue::Text(found.replaced),
+            })
+            .collect();
+        let count = edits.len();
+        app.dispatch(datacraft_core::command::Command::UpdateCells {
+            table: table.name,
+            edits,
+        });
+        return Ok(count);
+    }
     let mut staged = 0;
     for found in matches {
         let Some(mut image) = app.row_image(tab.id, found.row) else {

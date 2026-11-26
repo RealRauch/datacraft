@@ -75,15 +75,18 @@ impl App {
         {
             return;
         }
+        // `col` is the display position the grid paints; the value lives
+        // at the storage column (phase 101, step 101.4; M132).
+        let storage = self.storage_column(tab_id, col);
         let staged = self
             .staged_rows(tab_id)
             .and_then(|buffer| buffer.row_image(slot))
-            .and_then(|values| values.get(col))
+            .and_then(|values| values.get(storage))
             .map(crate::labels::value_label);
         let buffer = staged.unwrap_or_else(|| {
             self.rows_for(tab_id)
                 .and_then(|rows| rows.get(slot))
-                .and_then(|values| values.get(col))
+                .and_then(|values| values.get(storage))
                 .map(crate::labels::value_label)
                 .unwrap_or_default()
         });
@@ -98,6 +101,10 @@ impl App {
     /// armed with the buffer intact and reports the precise reason; a
     /// failed staging reports and closes the editor.
     pub fn commit_cell_edit(&mut self, tab_id: TabId, table: &str, row: usize, col: usize) {
+        // The display position maps onto the storage column (phase 101,
+        // step 101.4; M132) — identity without a reorder. Read before the
+        // buffer borrow below.
+        let col = self.storage_column(tab_id, col);
         let Some((_, _, buffer)) = self.cell_edit_parts(tab_id) else {
             return;
         };
