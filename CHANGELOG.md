@@ -7,6 +7,19 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 ## [Unreleased]
 
 ### Added
+- core/ui: designer parity (phase 102, M133; roadmap §16 stage 2) — both
+  designers gain the missing interaction vocabulary. A placed control's
+  property sheet edits its name, visibility, enabled state, weight and
+  alignment (one command per edit, precise validation that leaves the
+  design unchanged on failure) and persists the set in the sidecar; older
+  sidecars load the defaults. Eight resize handles resize through the
+  shared core geometry (grid snap, one-grid minimum, canvas/page clamp,
+  one rect command per gesture). Bring to Front/Send to Back and Move
+  Up/Move Down edit the paint order and the persisted tab order
+  independently, each one command. Dragging a field from the palette
+  binds it at the drop point (the click keeps the next-free-slot rule),
+  and the print preview's fixed 0.9 zoom became a per-surface setting
+  (50–200 %, persisted in `ui.json`).
 - core/ui: windowed datasheet reads (101.5, M132) — the port gains
   `row_count` (jet from the TDEF counter, sqlite via `COUNT(*)`, csv and
   xlsx from their parsed tables; a backend without a cheap count answers

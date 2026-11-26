@@ -47,6 +47,13 @@
             "y": 16.0,
             "width": 120.0,
             "height": 24.0
+          },
+          "properties": {
+            "visible": true,
+            "enabled": true,
+            "bold": false,
+            "align": "left",
+            "tab_index": 0
           }
         },
         {
@@ -62,6 +69,13 @@
             "y": 48.0,
             "width": 200.0,
             "height": 24.0
+          },
+          "properties": {
+            "visible": true,
+            "enabled": true,
+            "bold": false,
+            "align": "left",
+            "tab_index": 0
           }
         },
         {
@@ -77,6 +91,13 @@
             "y": 80.0,
             "width": 24.0,
             "height": 24.0
+          },
+          "properties": {
+            "visible": true,
+            "enabled": true,
+            "bold": false,
+            "align": "left",
+            "tab_index": 0
           }
         }
       ]

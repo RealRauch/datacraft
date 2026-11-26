@@ -587,8 +587,8 @@
 | 102.1 | Core: control property model with sidecar persistence and one command per edit, precise validation | ✅ |
 | 102.2 | Core/UI: resize handles through the shared geometry rules | 🔄 |
 | 102.3 | UI/core: z-order and tab-order surface in both designers | ✅ |
-| 102.4 | UI: preview zoom control and drag-and-drop field binding | 🔄 |
-| 102.5 | Documentation and phase gate (README designer row, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
+| 102.4 | UI: preview zoom control and drag-and-drop field binding | ✅ |
+| 102.5 | Documentation and phase gate (README designer row, COMPATIBILITY evidence, CHANGELOG) | ✅ |
 | 103.1 | Core: AnalyzeApp readiness report — ring coverage per object, VBA estimate, link inventory, unsupported list, effort summary | ⬜ |
 | 103.2 | UI and wire: read-only report surface with CLI/MCP parity | ⬜ |
 | 103.3 | Benchmarks: harness in tools/dao-oracle plus docs/BENCHMARKS.md (method, measurements, honest gaps) | ⬜ |

@@ -117,7 +117,7 @@ command bus.
   visible `(NULL)` marker, and large tables open from a bounded window
   cache (scrolling loads windows, "Load all rows" upgrades); table design
   with the property sheet; QBE
-  builder; form and report designers with a runtime; relationship mapper;
+  builder; form and report designers with a runtime (control property sheet, resize handles, z-order and tab order, drag-and-drop field binding, preview zoom); relationship mapper;
   SQL window (names its dialect, query-plan view on SQLite).
 - **Programmability:** native saved queries (qualified dialect), macro
   inventory, VBA extraction, viewer and static analysis — no execution.
