@@ -8,6 +8,7 @@
 //! preview text matches the datasheet.
 
 use crate::canvas::Rect;
+use crate::form::{ControlDef, TextAlign};
 use crate::report::ReportDef;
 use crate::schema::{FieldValue, TableDef};
 
@@ -29,6 +30,33 @@ pub struct PreviewItem {
     pub text: String,
     /// Page placement (design coordinates, points).
     pub rect: Rect,
+    /// Bold text (phase 102): the control's `Bold` property.
+    pub bold: bool,
+    /// Horizontal alignment inside the rect (phase 102).
+    pub align: TextAlign,
+}
+
+impl PreviewItem {
+    /// Builds a render item from a placed control: placement plus the
+    /// phase-102 presentation properties.
+    pub(crate) fn from_control(control: &ControlDef, text: String) -> Self {
+        Self {
+            text,
+            rect: control.rect,
+            bold: control.properties.bold,
+            align: control.properties.align,
+        }
+    }
+
+    /// A style-free item (the rendered group-key band carries no control).
+    pub(crate) fn plain(text: String, rect: Rect) -> Self {
+        Self {
+            text,
+            rect,
+            bold: false,
+            align: TextAlign::Left,
+        }
+    }
 }
 
 /// One preview page: the design template filled with one band's values.

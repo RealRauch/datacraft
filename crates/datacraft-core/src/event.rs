@@ -260,7 +260,6 @@ pub enum Event {
         /// Canonical control name.
         control: String,
     },
-    /// A control was moved/resized.
     /// The one content property of a placed form control changed
     /// (step 63.1, item H56).
     ControlContentSet {
@@ -282,9 +281,18 @@ pub enum Event {
         /// Canonical form name.
         form: String,
     },
+    /// A control was moved/resized.
     ControlRectSet {
         /// Canonical form name.
         form: String,
+        /// Canonical control name.
+        control: String,
+    },
+    /// One property of a placed control changed (phase 102, item M133);
+    /// `control` carries the canonical (possibly new) name.
+    ControlPropertiesSet {
+        /// Owning design object (Form or Report).
+        object: crate::ObjectId,
         /// Canonical control name.
         control: String,
     },
@@ -340,7 +348,6 @@ pub enum Event {
         /// Canonical control name.
         control: String,
     },
-    /// A report control was moved/resized.
     /// The one content property of a placed report control changed
     /// (step 63.1, item H56).
     ReportControlContentSet {
@@ -349,6 +356,7 @@ pub enum Event {
         /// Control name.
         control: String,
     },
+    /// A report control was moved/resized.
     ReportControlRectSet {
         /// Canonical report name.
         report: String,

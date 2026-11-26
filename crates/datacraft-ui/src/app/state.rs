@@ -65,6 +65,9 @@ pub struct App {
     /// Content drafts of the designer's control panel, keyed by tab and
     /// control (step 63.2, item H56); cleared on apply and selection.
     pub(crate) control_content_drafts: HashMap<(TabId, String), String>,
+    /// Buffered control name of the property sheet per design tab
+    /// (phase 102, item M133); re-seeds when the selection changes.
+    pub(crate) property_drafts: HashMap<TabId, crate::control_properties::PropertyDraft>,
     /// Drag accumulation per (tab, control): (dx, dy), present while dragging.
     pub(super) drags: HashMap<(TabId, String), (f32, f32)>,
     /// Current runtime record index per form tab.

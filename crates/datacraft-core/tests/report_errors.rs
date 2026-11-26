@@ -56,6 +56,7 @@ fn report_commands_without_a_database_fail_precisely() {
                     width: 10.0,
                     height: 10.0,
                 },
+                properties: datacraft_core::form::ControlProperties::default(),
             },
         },
         Command::SetReportControlRect {

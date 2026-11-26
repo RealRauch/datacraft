@@ -79,6 +79,7 @@ impl App {
             rename_draft: None,
             form_selection: HashMap::new(),
             control_content_drafts: HashMap::new(),
+            property_drafts: HashMap::new(),
             preview_page: HashMap::new(),
             previews: HashMap::new(),
             record_cursor: HashMap::new(),
@@ -342,6 +343,47 @@ impl App {
             .as_ref()
             .map(|db| db.reports.as_slice())
             .unwrap_or(&[])
+    }
+
+    /// The property sheet's name draft of one control (phase 102): seeds
+    /// from the control and re-seeds when the selection changes.
+    pub(crate) fn property_draft(
+        &mut self,
+        tab_id: TabId,
+        control: &datacraft_core::form::ControlDef,
+    ) -> crate::control_properties::PropertyDraft {
+        let entry = self.property_drafts.entry(tab_id).or_insert_with(|| {
+            crate::control_properties::PropertyDraft {
+                control: control.name.clone(),
+                name: control.name.clone(),
+            }
+        });
+        if entry.control != control.name {
+            entry.control = control.name.clone();
+            entry.name = control.name.clone();
+        }
+        entry.clone()
+    }
+
+    /// Buffers the property sheet's name field.
+    pub(crate) fn set_property_draft(
+        &mut self,
+        tab_id: TabId,
+        control: &datacraft_core::form::ControlDef,
+        name: String,
+    ) {
+        self.property_drafts.insert(
+            tab_id,
+            crate::control_properties::PropertyDraft {
+                control: control.name.clone(),
+                name,
+            },
+        );
+    }
+
+    /// Clears the property sheet's name draft (after an apply).
+    pub(crate) fn clear_property_draft(&mut self, tab_id: TabId) {
+        self.property_drafts.remove(&tab_id);
     }
 
     /// Accumulates drag motion for a control (starting a gesture lazily).

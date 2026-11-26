@@ -8,6 +8,7 @@ use crate::event::Event;
 use crate::failure::FailureCode;
 
 mod controls;
+mod design;
 
 impl crate::core::Core {
     pub(crate) fn create_form(&mut self, name: &str) -> Vec<Event> {

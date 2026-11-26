@@ -36,6 +36,7 @@ fn label(name: &str, text: &str) -> datacraft_core::form::ControlDef {
             width: 200.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -51,6 +52,7 @@ fn bound(name: &str, field: &str) -> datacraft_core::form::ControlDef {
             width: 200.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -218,6 +220,7 @@ fn unbound_combo_and_check_controls_render_empty() {
                 width: 40.0,
                 height: 12.0,
             },
+            properties: datacraft_core::form::ControlProperties::default(),
         });
     }
     let pages = paginate(&report, None, &[]).expect("renders");

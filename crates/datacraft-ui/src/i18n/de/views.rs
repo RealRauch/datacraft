@@ -260,4 +260,22 @@ pub static TABLE: &[(&str, &str)] = &[
         "{name}  ({kind}, {lines} lines)",
         "{name}  ({kind}, {lines} Zeilen)",
     ),
+    // Control property sheet (phase 102, item M133).
+    ("Alignment", "Ausrichtung"),
+    ("Bold", "Fett"),
+    ("Center", "Zentriert"),
+    ("Enabled", "Aktiviert"),
+    ("Left", "Links"),
+    ("Name", "Name"),
+    (
+        "Name, visibility, enabled state, weight and alignment persist in the sidecar.",
+        "Name, Sichtbarkeit, Aktivierung, Schriftstärke und Ausrichtung werden im Sidecar gespeichert.",
+    ),
+    (
+        "Position {x}, {y} — size {width} x {height}",
+        "Position {x}, {y} — Größe {width} x {height}",
+    ),
+    ("Properties", "Eigenschaften"),
+    ("Right", "Rechts"),
+    ("Visible", "Sichtbar"),
 ];

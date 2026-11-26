@@ -7,6 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::ObjectId;
 use crate::canvas::Rect;
 
 /// One control kind (the Access toolbox palette).
@@ -75,6 +76,48 @@ impl Default for CanvasSize {
     }
 }
 
+/// Horizontal text alignment inside a control's rect (phase 102, M133).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TextAlign {
+    /// Flush left (the Access default).
+    #[default]
+    Left,
+    /// Centered.
+    Center,
+    /// Flush right.
+    Right,
+}
+
+/// Editable presentation properties of a placed control (phase 102, item
+/// M133): the sidecar property sheet beside name and geometry. The core
+/// owns the defaults and validates every edit; the designers, the form
+/// runtime and the print preview honour them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ControlProperties {
+    /// Whether the control renders; a hidden control still occupies its
+    /// rect in the designer and renders nothing at runtime or in print.
+    pub visible: bool,
+    /// Whether a runtime control accepts input (labels ignore it).
+    pub enabled: bool,
+    /// Bold text rendering (the SemiBold face).
+    pub bold: bool,
+    /// Horizontal text alignment.
+    pub align: TextAlign,
+}
+
+impl Default for ControlProperties {
+    fn default() -> Self {
+        Self {
+            visible: true,
+            enabled: true,
+            bold: false,
+            align: TextAlign::Left,
+        }
+    }
+}
+
 /// One placed control.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControlDef {
@@ -84,6 +127,9 @@ pub struct ControlDef {
     pub kind: ControlKind,
     /// Canvas placement (snapped).
     pub rect: Rect,
+    /// Presentation properties (phase 102); older sidecars default them.
+    #[serde(default)]
+    pub properties: ControlProperties,
 }
 
 /// Design document of one form.
@@ -186,4 +232,46 @@ pub struct FormFilter {
     pub form: String,
     /// Access-compatible WHERE predicate.
     pub criteria: Option<String>,
+}
+
+/// One placed-control edit (phase 102, item M133). Both designers carry
+/// the shared [`ControlDef`], so one payload addresses the owning object
+/// (`Form` or `Report`) and the control. Exactly one property changes per
+/// command — the panel and the direct-manipulation surfaces never batch.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SetControlProperties {
+    /// Owning design object (Form or Report).
+    pub object: ObjectId,
+    /// Control name (case-insensitive); after a rename this is the old one.
+    pub control: String,
+    /// The single property edit.
+    pub property: ControlProperty,
+}
+
+/// The editable properties of a placed control (phase 102). Geometry has
+/// its own canvas commands and the kind-specific data keeps its own
+/// vocabulary; this set is presentation-only.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "snake_case")]
+pub enum ControlProperty {
+    /// Renames the control (trimmed, non-empty, unique in its object).
+    Name(String),
+    /// Shows or hides the control.
+    Visible(bool),
+    /// Enables or disables runtime input.
+    Enabled(bool),
+    /// Toggles bold text.
+    Bold(bool),
+    /// Sets the text alignment.
+    Align(TextAlign),
+}
+
+/// Placed-control design edits (phase 102, item M133): the vocabulary
+/// behind `Command::Design`. Nested like `Command::View` so the top-level
+/// command enum stays below the file-size gate as designer features grow.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "snake_case")]
+pub enum DesignCommand {
+    /// Sets one property of a placed form or report control.
+    SetControlProperties(SetControlProperties),
 }

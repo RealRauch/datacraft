@@ -267,6 +267,7 @@ fn report_with_bands(core: &mut Core) {
                     width: 100.0,
                     height: 20.0,
                 },
+                properties: datacraft_core::form::ControlProperties::default(),
             },
         },
         Command::AddReportControl {
@@ -282,6 +283,7 @@ fn report_with_bands(core: &mut Core) {
                     width: 100.0,
                     height: 20.0,
                 },
+                properties: datacraft_core::form::ControlProperties::default(),
             },
         },
     ] {
@@ -401,6 +403,7 @@ fn broken_band_expressions_fail_the_preview() {
                 width: 100.0,
                 height: 20.0,
             },
+            properties: datacraft_core::form::ControlProperties::default(),
         },
     });
     let error = core

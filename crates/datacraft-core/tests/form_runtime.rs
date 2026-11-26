@@ -57,6 +57,7 @@ fn text_box(name: &str, bound: Option<&str>) -> ControlDef {
             width: 120.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 

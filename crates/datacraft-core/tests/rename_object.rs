@@ -83,6 +83,7 @@ fn control(name: &str, kind: ControlKind) -> ControlDef {
             width: 120.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 

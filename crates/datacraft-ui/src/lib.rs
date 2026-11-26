@@ -22,6 +22,7 @@ pub mod clipboard;
 pub mod column_order;
 pub mod combo_source;
 pub mod control_content;
+pub mod control_properties;
 pub mod datasheet;
 pub mod design;
 pub mod designer_palette;

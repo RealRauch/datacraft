@@ -60,6 +60,7 @@ fn form_app(atomic_batch: bool) -> App {
                 width: 160.0,
                 height: 24.0,
             },
+            properties: datacraft_core::form::ControlProperties::default(),
         },
     });
     app.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(

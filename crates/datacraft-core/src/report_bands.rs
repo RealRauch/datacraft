@@ -52,10 +52,7 @@ fn ungrouped(
             let mut items = Vec::new();
             for control in &report.controls {
                 if let Some(text) = render_control(control, source, row, aggregate_rows)? {
-                    items.push(PreviewItem {
-                        text,
-                        rect: control.rect,
-                    });
+                    items.push(PreviewItem::from_control(control, text));
                 }
             }
             Ok(PreviewPage {
@@ -106,10 +103,7 @@ fn flush(
         let mut items = Vec::new();
         for control in &report.controls {
             if let Some(text) = render_control(control, source, Some(*row), &one)? {
-                items.push(PreviewItem {
-                    text,
-                    rect: control.rect,
-                });
+                items.push(PreviewItem::from_control(control, text));
             }
         }
         pages.push(PreviewPage {
@@ -141,10 +135,7 @@ fn flush(
         if let Some(text) =
             render_control(control, source, group.first().copied(), group.as_slice())?
         {
-            items.push(PreviewItem {
-                text,
-                rect: control.rect,
-            });
+            items.push(PreviewItem::from_control(control, text));
         }
     }
     pages.push(PreviewPage {
@@ -184,10 +175,7 @@ fn header_page(report: &ReportDef, key: &str) -> PreviewPage {
     };
     PreviewPage {
         band: Band::GroupHeader,
-        items: vec![PreviewItem {
-            text: key.to_owned(),
-            rect,
-        }],
+        items: vec![PreviewItem::plain(key.to_owned(), rect)],
     }
 }
 
@@ -201,6 +189,11 @@ fn render_control(
     row: Option<&Vec<FieldValue>>,
     aggregate_rows: &[&Vec<FieldValue>],
 ) -> Result<Option<String>, String> {
+    // A hidden control renders nothing (phase 102): the print preview
+    // honours the same property the designer shows.
+    if !control.properties.visible {
+        return Ok(None);
+    }
     let text = match &control.kind {
         ControlKind::Label { text } => Some(text.clone()),
         ControlKind::Button { caption, .. } => Some(caption.clone()),
@@ -304,6 +297,7 @@ mod tests {
                 width: 100.0,
                 height: 20.0,
             },
+            properties: crate::form::ControlProperties::default(),
         }
     }
 

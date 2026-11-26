@@ -79,6 +79,17 @@ pub fn form_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 crate::combo_source::combo_source_ui(app, tab.id, &form.name, control, ui);
                 crate::button_action::button_action_ui(app, tab.id, &form.name, control, ui);
             }
+            // The full property sheet (phase 102, item M133).
+            let selection = app.form_selection(tab.id);
+            crate::control_properties::control_properties_ui(
+                app,
+                tab.id,
+                ObjectKind::Form,
+                &form.name,
+                &form.controls,
+                selection,
+                ui,
+            );
         });
     });
 }
@@ -206,7 +217,10 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui
 }
 
 /// Kind-specific painting (pure paint; no logic). Shared with the
-/// report design view (same palette, step 10.4).
+/// report design view (same palette, step 10.4). The phase-102 control
+/// properties drive the result: a hidden control paints a selectable
+/// placeholder, a disabled one weak text, bold and alignment apply to
+/// every text the control renders.
 pub(crate) fn paint_control(
     ui: &egui::Ui,
     painter: &egui::Painter,
@@ -215,29 +229,31 @@ pub(crate) fn paint_control(
     stroke: egui::Stroke,
     selected: bool,
 ) {
-    let font = egui::TextStyle::Body.resolve(ui.style());
-    let font = std::rc::Rc::new(font);
+    let properties = control.properties;
+    if !properties.visible {
+        paint_hidden(ui, painter, rect, control);
+        paint_selection(ui, painter, rect, selected);
+        return;
+    }
+    let weak = ui.visuals().weak_text_color();
+    let color = if properties.enabled {
+        stroke.color
+    } else {
+        weak
+    };
+    let font = std::rc::Rc::new(control_font(ui, properties.bold));
+    let align = properties.align;
     match &control.kind {
         datacraft_core::form::ControlKind::Label { text } => {
-            painter.text(
-                rect.left_top() + egui::vec2(2.0, 2.0),
-                egui::Align2::LEFT_TOP,
-                text,
-                (*font).clone(),
-                stroke.color,
-            );
+            let (pos, anchor) = text_anchor(rect, align, false);
+            painter.text(pos, anchor, text, (*font).clone(), color);
         }
         datacraft_core::form::ControlKind::TextBox { bound_field } => {
             painter.rect_filled(rect, 2.0, ui.visuals().extreme_bg_color);
             painter.rect_stroke(rect, 2.0, stroke, egui::StrokeKind::Inside);
             if let Some(field) = bound_field {
-                painter.text(
-                    rect.left_center() + egui::vec2(4.0, 0.0),
-                    egui::Align2::LEFT_CENTER,
-                    format!("{{{field}}}"),
-                    (*font).clone(),
-                    ui.visuals().weak_text_color(),
-                );
+                let (pos, anchor) = text_anchor(rect, align, true);
+                painter.text(pos, anchor, format!("{{{field}}}"), (*font).clone(), weak);
             }
         }
         datacraft_core::form::ControlKind::CheckBox { bound_field } => {
@@ -252,7 +268,7 @@ pub(crate) fn paint_control(
                     egui::Align2::LEFT_CENTER,
                     field,
                     (*font).clone(),
-                    stroke.color,
+                    color,
                 );
             }
         }
@@ -272,46 +288,106 @@ pub(crate) fn paint_control(
                 egui::Stroke::NONE,
             ));
             if let Some(field) = bound_field {
-                painter.text(
-                    rect.left_center() + egui::vec2(4.0, 0.0),
-                    egui::Align2::LEFT_CENTER,
-                    format!("{{{field}}}"),
-                    (*font).clone(),
-                    ui.visuals().weak_text_color(),
-                );
+                let (pos, anchor) = text_anchor(rect, align, true);
+                painter.text(pos, anchor, format!("{{{field}}}"), (*font).clone(), weak);
             }
         }
         datacraft_core::form::ControlKind::Button { caption, .. } => {
             painter.rect_filled(rect, 4.0, ui.visuals().widgets.inactive.bg_fill);
             painter.rect_stroke(rect, 4.0, stroke, egui::StrokeKind::Inside);
-            painter.text(
-                rect.center(),
-                egui::Align2::CENTER_CENTER,
-                caption,
-                (*font).clone(),
-                stroke.color,
-            );
+            let (pos, anchor) = text_anchor(rect, align, true);
+            painter.text(pos, anchor, caption, (*font).clone(), color);
         }
         datacraft_core::form::ControlKind::SubForm { form } => {
             painter.rect_stroke(rect, 0.0, stroke, egui::StrokeKind::Inside);
+            let (pos, anchor) = text_anchor(rect, align, false);
             painter.text(
-                rect.left_top() + egui::vec2(4.0, 2.0),
-                egui::Align2::LEFT_TOP,
+                pos,
+                anchor,
                 tr("subform: {form}", &[("form", form)]),
                 (*font).clone(),
-                ui.visuals().weak_text_color(),
+                weak,
             );
         }
     }
+    paint_selection(ui, painter, rect, selected);
+}
+
+/// A hidden control stays selectable in the designer: a faint outline and
+/// the control name, nothing a runtime or print would show.
+fn paint_hidden(
+    ui: &egui::Ui,
+    painter: &egui::Painter,
+    rect: egui::Rect,
+    control: &datacraft_core::form::ControlDef,
+) {
+    let weak = egui::Stroke::new(1.0, ui.visuals().weak_text_color());
+    painter.rect_stroke(rect, 2.0, weak, egui::StrokeKind::Inside);
+    let font = egui::TextStyle::Small.resolve(ui.style());
+    painter.text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        &control.name,
+        font,
+        ui.visuals().weak_text_color(),
+    );
+}
+
+/// The selection ring paints the accent family (step 91.10, item M120):
+/// the selection wash is nearly invisible on the dark form surface; the
+/// accent keeps the ring legible in both palettes.
+fn paint_selection(ui: &egui::Ui, painter: &egui::Painter, rect: egui::Rect, selected: bool) {
     if selected {
-        // The selection ring paints the accent family (step 91.10, item
-        // M120): the selection wash is nearly invisible on the dark form
-        // surface; the accent keeps the ring legible in both palettes.
         painter.rect_stroke(
             rect,
             0.0,
             egui::Stroke::new(2.0, crate::theme::tokens(ui.visuals()).accent),
             egui::StrokeKind::Outside,
         );
+    }
+}
+
+/// The body rung in the requested weight (phase 102): bold uses the
+/// bundled SemiBold face, whose glyph chain falls back to Inter Regular.
+fn control_font(ui: &egui::Ui, bold: bool) -> egui::FontId {
+    let body = egui::TextStyle::Body.resolve(ui.style());
+    if bold {
+        egui::FontId::new(
+            body.size,
+            egui::FontFamily::Name(crate::theme::fonts::FAMILY_SEMIBOLD.into()),
+        )
+    } else {
+        body
+    }
+}
+
+/// Text anchor inside a control rect (phase 102): the alignment property
+/// decides the horizontal edge, `center` the vertical one.
+fn text_anchor(
+    rect: egui::Rect,
+    align: datacraft_core::form::TextAlign,
+    center: bool,
+) -> (egui::Pos2, egui::Align2) {
+    use datacraft_core::form::TextAlign;
+    let pad = egui::vec2(2.0, 2.0);
+    match (align, center) {
+        (TextAlign::Left, false) => (rect.left_top() + pad, egui::Align2::LEFT_TOP),
+        (TextAlign::Left, true) => (
+            rect.left_center() + egui::vec2(pad.x, 0.0),
+            egui::Align2::LEFT_CENTER,
+        ),
+        (TextAlign::Center, false) => (
+            rect.center_top() + egui::vec2(0.0, pad.y),
+            egui::Align2::CENTER_TOP,
+        ),
+        (TextAlign::Center, true) => (rect.center(), egui::Align2::CENTER_CENTER),
+        (TextAlign::Right, false) => (
+            rect.right_top() + egui::vec2(-pad.x, pad.y),
+            egui::Align2::RIGHT_TOP,
+        ),
+        (TextAlign::Right, true) => (
+            rect.right_center() - egui::vec2(pad.x, 0.0),
+            egui::Align2::RIGHT_CENTER,
+        ),
     }
 }

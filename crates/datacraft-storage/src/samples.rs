@@ -141,6 +141,7 @@ fn write_demo_sidecar(path: &Path, database_name: &str) -> Result<(), String> {
                 width: 120.0,
                 height: 24.0,
             },
+            properties: datacraft_core::form::ControlProperties::default(),
         },
         datacraft_core::form::ControlDef {
             name: "ModelBox".to_owned(),
@@ -153,6 +154,7 @@ fn write_demo_sidecar(path: &Path, database_name: &str) -> Result<(), String> {
                 width: 200.0,
                 height: 24.0,
             },
+            properties: datacraft_core::form::ControlProperties::default(),
         },
         datacraft_core::form::ControlDef {
             name: "InStockBox".to_owned(),
@@ -165,6 +167,7 @@ fn write_demo_sidecar(path: &Path, database_name: &str) -> Result<(), String> {
                 width: 24.0,
                 height: 24.0,
             },
+            properties: datacraft_core::form::ControlProperties::default(),
         },
     ];
     let query = datacraft_core::qbe::QueryDef {

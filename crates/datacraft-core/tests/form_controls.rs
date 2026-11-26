@@ -37,6 +37,7 @@ fn label(name: &str, text: &str, x: f32, y: f32) -> ControlDef {
             width: 100.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -218,6 +219,7 @@ fn controls_survive_the_sidecar_round_trip() {
             width: 160.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     });
     let mut doc = SchemaDocument::new("shop");
     doc.forms.push(form.clone());

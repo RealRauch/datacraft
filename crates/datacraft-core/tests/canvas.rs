@@ -212,6 +212,7 @@ fn the_sidecar_persists_forms() {
             width: 120.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     });
 
     let mut doc = SchemaDocument::new("shop");

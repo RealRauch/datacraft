@@ -41,6 +41,7 @@ fn text_box(name: &str, bound: &str, x: f32) -> ControlDef {
             width: 180.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -58,6 +59,7 @@ fn combo_box(name: &str, bound: &str, row_source: &str, display_field: &str) -> 
             width: 180.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -74,6 +76,7 @@ fn button(name: &str, caption: &str, action: Option<ButtonAction>, x: f32) -> Co
             width: 96.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -89,6 +92,7 @@ fn check_box(name: &str, bound: &str) -> ControlDef {
             width: 20.0,
             height: 20.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 

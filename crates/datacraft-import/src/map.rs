@@ -280,6 +280,7 @@ fn map_control(control: &RawControl, report: &mut ObjectReport) -> Option<Contro
         name: control.name.clone(),
         kind,
         rect,
+        properties: datacraft_core::form::ControlProperties::default(),
     })
 }
 

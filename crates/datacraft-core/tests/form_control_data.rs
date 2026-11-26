@@ -37,6 +37,7 @@ fn combo(name: &str) -> ControlDef {
             width: 160.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -52,6 +53,7 @@ fn label(name: &str) -> ControlDef {
             width: 80.0,
             height: 20.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 

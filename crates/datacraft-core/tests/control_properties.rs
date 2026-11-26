@@ -12,7 +12,8 @@ use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::form::{
-    ControlDef, ControlKind, ControlProperties, ControlProperty, SetControlProperties, TextAlign,
+    ControlDef, ControlKind, ControlProperties, ControlProperty, DesignCommand,
+    SetControlProperties, TextAlign,
 };
 use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, TableDef};
@@ -73,11 +74,13 @@ fn failed_code(events: &[Event]) -> datacraft_core::failure::FailureCode {
 }
 
 fn set(core: &mut Core, control: &str, property: ControlProperty) -> Vec<Event> {
-    core.dispatch(Command::SetControlProperties(SetControlProperties {
-        object: ObjectId::new(ObjectKind::Form, "Card"),
-        control: control.to_owned(),
-        property,
-    }))
+    core.dispatch(Command::Design(DesignCommand::SetControlProperties(
+        SetControlProperties {
+            object: ObjectId::new(ObjectKind::Form, "Card"),
+            control: control.to_owned(),
+            property,
+        },
+    )))
 }
 
 #[test]
@@ -159,7 +162,10 @@ fn renaming_a_control_keeps_the_namespace_unique() {
 
     // A duplicate (case-insensitive) is refused and changes nothing.
     let events = set(&mut core, "second", ControlProperty::Name("title".into()));
-    assert_eq!(failed_code(&events), datacraft_core::failure::FailureCode::Duplicate);
+    assert_eq!(
+        failed_code(&events),
+        datacraft_core::failure::FailureCode::Duplicate
+    );
     assert!(failed_reason(&events).to_lowercase().contains("title"));
     assert_eq!(
         form_control(&core, "Card", "second").name,
@@ -193,7 +199,11 @@ fn a_surrounding_whitespace_name_is_trimmed() {
         form: "Card".into(),
         control: label("title", "Customers"),
     });
-    set(&mut core, "title", ControlProperty::Name("  Heading  ".into()));
+    set(
+        &mut core,
+        "title",
+        ControlProperty::Name("  Heading  ".into()),
+    );
     let names: Vec<String> = core.inspect().database.unwrap().forms[0]
         .controls
         .iter()
@@ -217,11 +227,13 @@ fn report_controls_share_the_property_command() {
         report: "Weekly".into(),
         control: label("Heading", "Sales"),
     });
-    let events = core.dispatch(Command::SetControlProperties(SetControlProperties {
-        object: ObjectId::new(ObjectKind::Report, "Weekly"),
-        control: "Heading".into(),
-        property: ControlProperty::Align(TextAlign::Center),
-    }));
+    let events = core.dispatch(Command::Design(DesignCommand::SetControlProperties(
+        SetControlProperties {
+            object: ObjectId::new(ObjectKind::Report, "Weekly"),
+            control: "Heading".into(),
+            property: ControlProperty::Align(TextAlign::Center),
+        },
+    )));
     assert_eq!(
         events,
         vec![Event::ControlPropertiesSet {
@@ -239,11 +251,13 @@ fn report_controls_share_the_property_command() {
 #[test]
 fn other_object_kinds_answer_precisely() {
     let mut core = opened_with_form();
-    let events = core.dispatch(Command::SetControlProperties(SetControlProperties {
-        object: ObjectId::new(ObjectKind::Table, "Card"),
-        control: "title".into(),
-        property: ControlProperty::Bold(true),
-    }));
+    let events = core.dispatch(Command::Design(DesignCommand::SetControlProperties(
+        SetControlProperties {
+            object: ObjectId::new(ObjectKind::Table, "Card"),
+            control: "title".into(),
+            property: ControlProperty::Bold(true),
+        },
+    )));
     assert_eq!(
         failed_code(&events),
         datacraft_core::failure::FailureCode::InvalidInput
@@ -262,21 +276,21 @@ fn unknown_objects_and_controls_answer_not_found() {
         form: "Card".into(),
         control: label("title", "Customers"),
     });
-    let reason = failed_reason(&core.dispatch(Command::SetControlProperties(
-        SetControlProperties {
+    let reason = failed_reason(&core.dispatch(Command::Design(
+        DesignCommand::SetControlProperties(SetControlProperties {
             object: ObjectId::new(ObjectKind::Form, "Ghost"),
             control: "title".into(),
             property: ControlProperty::Bold(true),
-        },
+        }),
     )));
     assert!(reason.to_lowercase().contains("ghost"), "{reason}");
 
-    let reason = failed_reason(&core.dispatch(Command::SetControlProperties(
-        SetControlProperties {
+    let reason = failed_reason(&core.dispatch(Command::Design(
+        DesignCommand::SetControlProperties(SetControlProperties {
             object: ObjectId::new(ObjectKind::Form, "Card"),
             control: "ghost".into(),
             property: ControlProperty::Bold(true),
-        },
+        }),
     )));
     assert!(reason.to_lowercase().contains("ghost"), "{reason}");
 }
@@ -284,11 +298,13 @@ fn unknown_objects_and_controls_answer_not_found() {
 #[test]
 fn every_property_edit_requires_an_open_database() {
     let mut core = Core::new(Box::new(MockPort::new()));
-    let events = core.dispatch(Command::SetControlProperties(SetControlProperties {
-        object: ObjectId::new(ObjectKind::Form, "Card"),
-        control: "title".into(),
-        property: ControlProperty::Bold(true),
-    }));
+    let events = core.dispatch(Command::Design(DesignCommand::SetControlProperties(
+        SetControlProperties {
+            object: ObjectId::new(ObjectKind::Form, "Card"),
+            control: "title".into(),
+            property: ControlProperty::Bold(true),
+        },
+    )));
     assert_eq!(
         failed_code(&events),
         datacraft_core::failure::FailureCode::NoDatabase
@@ -391,7 +407,11 @@ fn the_preview_carries_the_style_and_omits_hidden_controls() {
 
     let pages = core.report_preview("Weekly").expect("preview");
     let items = &pages[0].items;
-    assert_eq!(items.len(), 1, "the hidden control renders nothing: {items:?}");
+    assert_eq!(
+        items.len(),
+        1,
+        "the hidden control renders nothing: {items:?}"
+    );
     assert_eq!(items[0].text, "Sales");
     assert!(items[0].bold);
     assert_eq!(items[0].align, TextAlign::Center);

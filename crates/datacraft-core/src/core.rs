@@ -336,6 +336,7 @@ impl Core {
             } => self.set_control_content(&form, &control, &value),
             Command::SetFormControlData(data) => self.set_control_data(&data),
             Command::SetFormFilter(filter) => self.set_form_filter(&filter),
+            Command::Design(action) => self.design_command(action),
             Command::SetFormControlRect {
                 form,
                 control,

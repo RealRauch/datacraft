@@ -68,8 +68,9 @@ const ALLOWED: &[(&str, &str)] = &[
     // 11.7; `trailing.rs` is the 48.2 split) — a painted selector glyph.
     ("datasheet/trailing.rs", "\"*\""),
     // M121: the runtime combo paints its caret beside an empty button
-    // surface — the label deliberately carries no text.
-    ("form_runtime.rs", "\"\""),
+    // surface — the label deliberately carries no text (`control.rs` is
+    // the phase-102 split of `form_runtime.rs`).
+    ("form_runtime/control.rs", "\"\""),
     // M56/M38: record-navigation prev/next arrows in the form's
     // navigation row (prev left of next).
     ("shell.rs", "\"\\u{25c0}\""),

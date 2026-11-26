@@ -45,6 +45,7 @@ fn label(name: &str, text: &str, x: f32, y: f32) -> ControlDef {
             width: 100.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     }
 }
 
@@ -140,6 +141,7 @@ fn report_source_whitelists_and_revalidates_bindings() {
             width: 100.0,
             height: 24.0,
         },
+        properties: datacraft_core::form::ControlProperties::default(),
     };
     let reason = failed_reason(&core.dispatch(Command::AddReportControl {
         report: "Weekly".into(),

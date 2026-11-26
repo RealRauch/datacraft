@@ -584,7 +584,7 @@
 | 101.4 | UI: column drag-reorder and the visual Null marker in both palettes | ✅ |
 | 101.5 | Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item | ✅ |
 | 101.6 | Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG) | ✅ |
-| 102.1 | Core: control property model with sidecar persistence and one command per edit, precise validation | ⬜ |
+| 102.1 | Core: control property model with sidecar persistence and one command per edit, precise validation | 🔄 |
 | 102.2 | Core/UI: resize handles through the shared geometry rules | ⬜ |
 | 102.3 | UI/core: z-order and tab-order surface in both designers | ⬜ |
 | 102.4 | UI: preview zoom control and drag-and-drop field binding | ⬜ |

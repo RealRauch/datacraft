@@ -138,6 +138,7 @@ pub fn toolbox_control(entry_id: &str, name: &str, rect: Rect) -> Option<Control
         name: name.to_owned(),
         kind,
         rect,
+        properties: crate::form::ControlProperties::default(),
     })
 }
 
@@ -227,6 +228,7 @@ fn bound_control(field: &FieldDef, existing: &[String], rect: Rect) -> ControlDe
         name: unique_control_name(&field.name, existing),
         kind,
         rect,
+        properties: crate::form::ControlProperties::default(),
     }
 }
 

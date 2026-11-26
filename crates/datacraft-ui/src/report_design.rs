@@ -59,6 +59,17 @@ pub fn report_design_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             );
             ui.separator();
             grouping_picker(app, &report, ui);
+            // The full property sheet (phase 102, item M133).
+            let selection = app.report_selection(tab.id);
+            crate::control_properties::control_properties_ui(
+                app,
+                tab.id,
+                ObjectKind::Report,
+                &report.name,
+                &report.controls,
+                selection,
+                ui,
+            );
         });
     });
 }
@@ -333,20 +344,18 @@ pub fn report_preview_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
             egui::StrokeKind::Inside,
         );
         // The text scales with the page (step 91.11, item L63): glyphs
-        // stay inside their scaled rects.
-        let font = preview_body_font(ui, scale);
+        // stay inside their scaled rects. Bold and alignment follow the
+        // control's phase-102 properties, which core carried into the
+        // item.
+        let body = egui::TextStyle::Body.resolve(ui.style());
         for item in &items {
             let rect = egui::Rect::from_min_size(
                 canvas_rect.min + egui::vec2(item.rect.x * scale, item.rect.y * scale),
                 egui::vec2(item.rect.width * scale, item.rect.height * scale),
             );
-            painter.text(
-                rect.left_top() + egui::vec2(2.0, 2.0),
-                egui::Align2::LEFT_TOP,
-                &item.text,
-                font.clone(),
-                ui.visuals().text_color(),
-            );
+            let font = preview_font(&body, scale, item.bold);
+            let (pos, anchor) = preview_anchor(rect, item.align);
+            painter.text(pos, anchor, &item.text, font, ui.visuals().text_color());
         }
     });
 }
@@ -357,17 +366,35 @@ fn preview_page_size(page: datacraft_core::report::PageSetup, scale: f32) -> egu
     egui::vec2(page.width * scale, page.height * scale)
 }
 
-/// The preview text font (step 91.11, item L63): the body rung scaled
-/// with the page, so glyphs stay inside their scaled rects.
-fn preview_body_font(ui: &egui::Ui, scale: f32) -> egui::FontId {
-    let body = egui::TextStyle::Body.resolve(ui.style());
-    preview_font(&body, scale)
+/// The preview text font: the body rung scaled with the page (step 91.11,
+/// item L63) in the requested weight (phase 102, M133).
+fn preview_font(body: &egui::FontId, scale: f32, bold: bool) -> egui::FontId {
+    let family = if bold {
+        egui::FontFamily::Name(crate::theme::fonts::FAMILY_SEMIBOLD.into())
+    } else {
+        body.family.clone()
+    };
+    egui::FontId::new(body.size * scale, family)
 }
 
-/// The pure scale step of [`preview_body_font`] (unit-testable without a
-/// Ui).
-fn preview_font(body: &egui::FontId, scale: f32) -> egui::FontId {
-    egui::FontId::new(body.size * scale, body.family.clone())
+/// The horizontal text anchor of one preview item (phase 102).
+fn preview_anchor(
+    rect: egui::Rect,
+    align: datacraft_core::form::TextAlign,
+) -> (egui::Pos2, egui::Align2) {
+    use datacraft_core::form::TextAlign;
+    let pad = egui::vec2(2.0, 2.0);
+    match align {
+        TextAlign::Left => (rect.left_top() + pad, egui::Align2::LEFT_TOP),
+        TextAlign::Center => (
+            rect.center_top() + egui::vec2(0.0, pad.y),
+            egui::Align2::CENTER_TOP,
+        ),
+        TextAlign::Right => (
+            rect.right_top() + egui::vec2(-pad.x, pad.y),
+            egui::Align2::RIGHT_TOP,
+        ),
+    }
 }
 
 #[cfg(test)]
@@ -396,8 +423,21 @@ mod tests {
     #[test]
     fn the_preview_font_scales_with_the_page() {
         let body = egui::FontId::new(14.0, egui::FontFamily::Proportional);
-        let scaled = preview_font(&body, 0.9);
+        let scaled = preview_font(&body, 0.9, false);
         assert!((scaled.size - 12.6).abs() < 0.01, "{scaled:?}");
         assert_eq!(scaled.family, body.family);
+    }
+
+    /// Bold preview text uses the SemiBold family at the same scaled size
+    /// (phase 102).
+    #[test]
+    fn bold_preview_text_uses_the_semibold_family() {
+        let body = egui::FontId::new(14.0, egui::FontFamily::Proportional);
+        let bold = preview_font(&body, 0.9, true);
+        assert!((bold.size - 12.6).abs() < 0.01, "{bold:?}");
+        assert_eq!(
+            bold.family,
+            egui::FontFamily::Name(crate::theme::fonts::FAMILY_SEMIBOLD.into())
+        );
     }
 }

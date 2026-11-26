@@ -7,10 +7,8 @@
 
 use crate::ObjectId;
 use crate::canvas::Rect;
-use crate::form::ControlDef;
 use crate::ids::TabId;
 use crate::qbe::{QbeRow, QbeValue, SortOrder};
-use crate::schema::TableDef;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -73,7 +71,7 @@ pub enum Command {
     /// Creates a table from a validated definition.
     CreateTable {
         /// Full field-level definition.
-        definition: TableDef,
+        definition: crate::schema::TableDef,
     },
     /// Imports an external CSV as a new table (58.1, M50); source untouched.
     ImportFile {
@@ -350,7 +348,7 @@ pub enum Command {
         /// Target form name (case-insensitive).
         form: String,
         /// The control definition.
-        control: ControlDef,
+        control: crate::form::ControlDef,
     },
     /// Moves/resizes a control (snapped and bounds-checked).
     SetFormControlRect {
@@ -375,6 +373,8 @@ pub enum Command {
     SetFormControlData(crate::form::SetControlData),
     /// Applies or clears the form's own WHERE filter (phase 64, M71; ADR-8).
     SetFormFilter(crate::form::FormFilter),
+    /// Placed-control design edits (phase 102, M133): one property per command.
+    Design(crate::form::DesignCommand),
     /// Removes a control.
     DeleteFormControl {
         /// Target form name (case-insensitive).
@@ -411,7 +411,7 @@ pub enum Command {
         /// Target report name (case-insensitive).
         report: String,
         /// The control definition.
-        control: ControlDef,
+        control: crate::form::ControlDef,
     },
     /// Moves/resizes a report control (snapped, page-bounds-checked).
     SetReportControlRect {

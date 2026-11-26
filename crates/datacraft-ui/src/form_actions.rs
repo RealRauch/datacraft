@@ -19,7 +19,17 @@ pub(crate) fn button_ui(app: &mut App, form: &str, control: &ControlDef, ui: &mu
     let ControlKind::Button { caption, action } = &control.kind else {
         return;
     };
-    if ui.button(caption).clicked() {
+    // The phase-102 Enabled property renders the button inert (one command
+    // per click stays unchanged).
+    let text = if control.properties.bold {
+        egui::RichText::new(caption).strong()
+    } else {
+        egui::RichText::new(caption)
+    };
+    if ui
+        .add_enabled(control.properties.enabled, egui::Button::new(text))
+        .clicked()
+    {
         dispatch(app, form, control, action.as_ref());
     }
 }
