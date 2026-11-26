@@ -588,10 +588,10 @@
 | 100.2 | Core: link inventory in the snapshot, capability honesty — no execution, no network, never written | ✅ |
 | 100.3 | UI: read-only linked-table surface with localized labels | ✅ |
 | 100.4 | Wire pins, documentation and phase gate (README, COMPATIBILITY, FORMAT-JET, CHANGELOG) | ✅ |
-| 101.1 | Core: filter-by-value model — bounded distinct values, deterministic order, applied through the existing criteria path | ⬜ |
-| 101.2 | UI: the filter-by-value dialog at the column header | ⬜ |
-| 101.3 | UI/core: find/replace over the visible rows, replacements staged through the edit buffer | ⬜ |
-| 101.4 | UI: column drag-reorder and the visual Null marker in both palettes | ⬜ |
+| 101.1 | Core: filter-by-value model — bounded distinct values, deterministic order, applied through the existing criteria path | ✅ |
+| 101.2 | UI: the filter-by-value dialog at the column header | ✅ |
+| 101.3 | UI/core: find/replace over the visible rows, replacements staged through the edit buffer | ✅ |
+| 101.4 | UI: column drag-reorder and the visual Null marker in both palettes | ✅ |
 | 101.5 | Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item | ⬜ |
 | 101.6 | Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
 | 102.1 | Core: control property model with sidecar persistence and one command per edit, precise validation | ⬜ |

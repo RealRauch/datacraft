@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-26T20:48)
+# BACKLOG.md — Open items (As of: 2026-11-26T22:02)
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -46,6 +46,12 @@
 - **Problem:** A fixed-point decimal is a scale-scaled integer (field kind `Number(Decimal { precision, scale })`), but `display_value` prints the raw scaled integer: a value of 25.50 at scale 2 shows as `2550` in the datasheet and in the CSV driver's cells. Phase 99's export module works around it with its own exact decimal text (`export::decimal_text`), so the workaround exists twice-ish and the datasheet still lies.
 - **Approach:** Make the decimal rendering scale-aware where the field kind is in reach — a kind-aware sibling of `display_value` (or an extra parameter) that divides by 10^scale and keeps the declared trailing zeros; scale 0 stays byte-identical to today. Then let the export module delegate instead of carrying its own copy. `row_edit` parses through `parse_scaled`, so the write path is unaffected.
 - **Acceptance:** A scale-2 decimal shows `25.50` in the datasheet, the CSV driver's rewrite and the CSV/JSON export; scale-0 decimals render unchanged; a test pins each path and the export's own helper either disappears or delegates.
+
+### [ ] M136 — Windowed datasheet reads need a row-count port contract — 🟡
+- **Location:** `crates/datacraft-core/src/port.rs` (`StoragePort`), the five backends (`jet`, `sqlite`, `csv`, `xlsx`, `mock`), `crates/datacraft-ui/src/app/grid_state.rs` (row cache), `crates/datacraft-ui/src/datasheet.rs`.
+- **Problem:** The datasheet caches the whole table on tab appearance (`app.rows`), so a large table reads every row before it paints — step 101.5's windowing needs a total row count to size the scrollbar, and the port has no such accessor (a `RowRange` beyond the end only surfaces through an `OutOfRange` error).
+- **Approach (Medium gate — a port-contract change):** add `fn row_count(&self, table: &str) -> Result<usize, PortError>` with a precise default (`Unsupported`) and a real implementation per backend; then a bounded window cache in the app (`BTreeMap<start, Vec<Row>>` with an LRU cap), window loads on scroll, and the filters/sorts either stay whole-table (documented bound) or move into the port. Find/replace, staging and selection keep addressing cache rows, so the windowed source must stay transparent to them.
+- **Acceptance:** a table far larger than the window opens without reading every row; scrolling stays responsive with a bounded cache; filters, sorts, find/replace and staged edits behave identically to the full cache; the wire surfaces stay unchanged (the snapshot never carried row data).
 
 
 

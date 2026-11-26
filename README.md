@@ -111,10 +111,12 @@ command bus.
 - **Workbench:** datasheet with in-cell editing (edits stage into a
   pending batch and apply as one atomic write on Ctrl+S on Jet4 and
   SQLite; read-only sources and drivers without atomic batches keep the
-  immediate per-cell writes), sort/filter/freeze and undo/redo; table
-  design with the property sheet; QBE builder; form and report
-  designers with a runtime; relationship mapper; SQL window (names its
-  dialect, query-plan view on SQLite).
+  immediate per-cell writes), sort/filter/freeze and undo/redo; filter by
+  value from the column's own list (bounded, ordered, with the blank
+  entry), find and replace over the visible rows, movable columns and a
+  visible `(NULL)` marker; table design with the property sheet; QBE
+  builder; form and report designers with a runtime; relationship mapper;
+  SQL window (names its dialect, query-plan view on SQLite).
 - **Programmability:** native saved queries (qualified dialect), macro
   inventory, VBA extraction, viewer and static analysis — no execution.
 - **Linked tables:** a Jet/ACE file's link records are listed read-only —
