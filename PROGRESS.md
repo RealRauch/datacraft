@@ -11,14 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 100 — Remote Stage 0: linked-table inventory (roadmap §9)
-
-**Scope (Steps):**
-
-- **100.1 Jet: linked-table record decode — MSysObjects types 4/6, CONNECT/DATABASE, foreign name and flags, read-only (roadmap §9 stage 0)**
-- **100.2 Core: link inventory in the snapshot, capability honesty — no execution, no network, never written**
-- **100.3 UI: read-only linked-table surface with localized labels**
-- **100.4 Wire pins, documentation and phase gate (README, COMPATIBILITY, FORMAT-JET, CHANGELOG)**
 ### Phase 101 — Datasheet completeness (roadmap §16 stage 1)
 
 **Scope (Steps):**
@@ -592,10 +584,10 @@
 | 99.2 | UI: export affordance at the datasheet/nav pane with format and path dialog | ✅ |
 | 99.3 | Wire: CLI and MCP parity with contract pins and precise refusals | ✅ |
 | 99.4 | Documentation and phase gate (README export row, COMPATIBILITY evidence, CHANGELOG) | ✅ |
-| 100.1 | Jet: linked-table record decode — MSysObjects types 4/6, CONNECT/DATABASE, foreign name and flags, read-only (roadmap §9 stage 0) | ⬜ |
-| 100.2 | Core: link inventory in the snapshot, capability honesty — no execution, no network, never written | ⬜ |
-| 100.3 | UI: read-only linked-table surface with localized labels | ⬜ |
-| 100.4 | Wire pins, documentation and phase gate (README, COMPATIBILITY, FORMAT-JET, CHANGELOG) | ⬜ |
+| 100.1 | Jet: linked-table record decode — MSysObjects types 4/6, CONNECT/DATABASE, foreign name and flags, read-only (roadmap §9 stage 0) | ✅ |
+| 100.2 | Core: link inventory in the snapshot, capability honesty — no execution, no network, never written | ✅ |
+| 100.3 | UI: read-only linked-table surface with localized labels | ✅ |
+| 100.4 | Wire pins, documentation and phase gate (README, COMPATIBILITY, FORMAT-JET, CHANGELOG) | ✅ |
 | 101.1 | Core: filter-by-value model — bounded distinct values, deterministic order, applied through the existing criteria path | ⬜ |
 | 101.2 | UI: the filter-by-value dialog at the column header | ⬜ |
 | 101.3 | UI/core: find/replace over the visible rows, replacements staged through the edit buffer | ⬜ |

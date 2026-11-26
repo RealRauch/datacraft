@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-26T20:06)
+# BACKLOG.md — Open items (As of: 2026-11-26T20:48)
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -22,12 +22,6 @@
 ---
 
 ## 🟡 MEDIUM
-
-### [ ] M131 — Remote Stage 0: read-only linked-table inventory (phase 100, roadmap §9) — 🟡
-- **Location:** `crates/datacraft-jet/src/jet/catalog.rs` + a link-record decoder, `crates/datacraft-core/src/snapshot.rs`, `crates/datacraft-ui/src/nav_*`.
-- **Problem:** Linked tables in Jet/ACE files are silently invisible — the catalog reads only Id/Name/Type/Flags and skips non-TDEF rows, so migration cannot see which objects point at external databases (roadmap §9 Stage 0).
-- **Approach:** Decode MSysObjects link records read-only (Type 4 ODBC-linked, Type 6 Access-file-linked; CONNECT, DATABASE, foreign name, flags), carry the inventory in the snapshot, surface it read-only in the UI with localized labels; never dial out, never execute, never write.
-- **Acceptance:** A linked-table fixture reports each link's kind, target database/connect string and foreign name; opening the file performs no network or external access; every client sees the inventory; a link-free file reports an empty list; all strings go through t().
 
 ### [ ] M132 — Datasheet completeness: filter-by-value, find/replace, column order, Null marker, windowed reads (phase 101, roadmap §16 stage 1) — 🟡
 - **Location:** `crates/datacraft-core/src/table_view.rs` + datasheet state, `crates/datacraft-ui/src/datasheet/*`, port row-window reads.
