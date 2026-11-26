@@ -208,6 +208,7 @@ fn the_status_line_names_the_ace_format() {
         triggers: Vec::new(),
         source_facts: Default::default(),
         native_objects: Vec::new(),
+        linked_tables: Vec::new(),
         native_queries: Vec::new(),
         native_queries_error: None,
         macros: Vec::new(),

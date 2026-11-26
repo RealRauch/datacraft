@@ -34,10 +34,7 @@ fn link() -> LinkedTable {
 
 fn ready_core(links: Vec<LinkedTable>) -> Core {
     let mut port = MockPort::with_tables(vec![customers()]);
-    port.with_row_data(
-        "Customers",
-        vec![vec![FieldValue::Text("Ada".into())]],
-    );
+    port.with_row_data("Customers", vec![vec![FieldValue::Text("Ada".into())]]);
     port.with_linked_tables(links);
     let mut core = Core::new(Box::new(port));
     core.dispatch(Command::OpenDatabase {
@@ -52,7 +49,7 @@ fn ready_core(links: Vec<LinkedTable>) -> Core {
 fn the_snapshot_carries_the_link_inventory() {
     let core = ready_core(vec![link()]);
     let snapshot = core.inspect();
-    let db = snapshot.database.expect("a database is open");
+    let db = snapshot.database.as_ref().expect("a database is open");
     assert_eq!(db.linked_tables.len(), 1, "{:?}", db.linked_tables);
     let entry = &db.linked_tables[0];
     assert_eq!(entry.name, "Orders_Remote");
@@ -72,7 +69,10 @@ fn the_snapshot_carries_the_link_inventory() {
     // The wire carries the same shape (kind as a snake_case token).
     let wire = serde_json::to_value(&snapshot).expect("the snapshot serialises");
     assert_eq!(wire["database"]["linked_tables"][0]["kind"], "odbc");
-    assert_eq!(wire["database"]["linked_tables"][0]["name"], "Orders_Remote");
+    assert_eq!(
+        wire["database"]["linked_tables"][0]["name"],
+        "Orders_Remote"
+    );
 }
 
 #[test]
@@ -88,7 +88,8 @@ fn a_file_link_reports_its_source_path() {
     assert_eq!(entry.source.as_deref(), Some("Z:\\data\\linkee.accdb"));
     assert_eq!(entry.connect, None);
     assert_eq!(
-        entry.ui_test_id, "navpane.expanded.linked.access_file.orders_remote"
+        entry.ui_test_id,
+        "navpane.expanded.linked.access_file.orders_remote"
     );
 }
 
@@ -122,7 +123,7 @@ fn opening_a_linked_table_is_refused_precisely() {
 }
 
 #[test]
-fn a_link_is_never_writable() {
+fn a_link_is_never_a_write_target() {
     let mut core = ready_core(vec![link()]);
     for command in [
         Command::InsertRow {
@@ -141,11 +142,14 @@ fn a_link_is_never_writable() {
     ] {
         let events = core.dispatch(command);
         match events.as_slice() {
-            [Event::Failed { code, .. }] => assert_eq!(
-                code,
-                &FailureCode::Port,
-                "the port owns the refusal: {events:?}"
-            ),
+            [Event::Failed { code, reason }] => {
+                // The link is not in the table catalog, so every
+                // table-addressed command answers the lookup refusal
+                // before the port is reached — nothing resolves, nothing
+                // dials, nothing is written.
+                assert_eq!(code, &FailureCode::NotFound, "{events:?}");
+                assert!(reason.contains("Orders_Remote"), "{reason}");
+            }
             other => panic!("expected a refusal, got {other:?}"),
         }
     }

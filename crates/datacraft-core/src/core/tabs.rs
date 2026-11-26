@@ -53,6 +53,28 @@ impl crate::core::Core {
                 "no database is open — open a database first",
             );
         };
+        // A linked table is a catalog record, not a readable table (phase
+        // 100, step 100.2; item M131): opening one answers a precise
+        // refusal instead of a lookup error — roadmap §9 stops at the
+        // inventory, nothing resolves or dials.
+        if object.kind == ObjectKind::Table
+            && db
+                .linked_tables
+                .iter()
+                .any(|link| link.name.eq_ignore_ascii_case(&object.name))
+            && !db
+                .tables
+                .iter()
+                .any(|table| table.name.eq_ignore_ascii_case(&object.name))
+        {
+            return failed(
+                FailureCode::Unsupported,
+                format!(
+                    "{:?} is a linked table — its target is not resolved (the link inventory is read-only)",
+                    object.name
+                ),
+            );
+        }
         let exists = match object.kind {
             ObjectKind::Table => db
                 .tables

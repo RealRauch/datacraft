@@ -95,6 +95,13 @@ impl MockPort {
         self
     }
 
+    /// Builder: attaches the linked-table inventory (phase 100, step
+    /// 100.2; M131).
+    pub fn with_linked_tables(&mut self, links: Vec<crate::port::LinkedTable>) -> &mut Self {
+        self.links = links;
+        self
+    }
+
     /// Builder: attaches file-owned views (phase 73, step 73.1; M90).
     pub fn with_native_views(&mut self, views: Vec<crate::port::NativeView>) -> &mut Self {
         self.view_defs = views

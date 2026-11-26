@@ -151,6 +151,9 @@ impl crate::core::Core {
                 // step 73.3; M91) ride the open.
                 let source_facts = self.port.source_facts();
                 let native_objects = self.port.native_objects().unwrap_or_default();
+                // Linked-table inventory (phase 100, step 100.2; M131):
+                // catalog records only — nothing is resolved or dialled.
+                let linked_tables = self.port.linked_tables().unwrap_or_default();
                 let sidecar_path = path.with_extension("datacraft");
                 self.state.sql_result = None;
                 self.state.expression_result = None;
@@ -186,6 +189,7 @@ impl crate::core::Core {
                     triggers,
                     source_facts: source_facts.clone(),
                     native_objects,
+                    linked_tables,
                     reports: sidecar
                         .as_ref()
                         .map(|document| document.reports.clone())

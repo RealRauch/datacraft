@@ -144,6 +144,10 @@ pub struct DatabaseState {
     /// 74.1; M87) — read-only inventory.
     #[serde(default)]
     pub native_objects: Vec<crate::port::NativeObject>,
+    /// Linked tables of the opened file (phase 100, step 100.2; M131) —
+    /// read-only inventory, never resolved.
+    #[serde(default)]
+    pub linked_tables: Vec<crate::port::LinkedTable>,
     /// Native saved queries read from the file (step 15.3, M3; read-only).
     pub native_queries: Vec<crate::port::NativeQuery>,
     /// Why the native-query decode failed, if it did — the open still

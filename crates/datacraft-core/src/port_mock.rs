@@ -35,6 +35,8 @@ pub struct MockPort {
     source_facts: crate::port::SourceFacts,
     /// Native Access form/report inventory (phase 74, step 74.1; M87).
     native_objects: Vec<crate::port::NativeObject>,
+    /// Linked-table inventory (phase 100, step 100.2; M131).
+    links: Vec<crate::port::LinkedTable>,
     /// Column definitions of the native views, for read windows.
     view_defs: Vec<TableDef>,
     opened: Option<OpenedDatabase>,
@@ -200,6 +202,10 @@ impl StoragePort for MockPort {
 
     fn native_objects(&self) -> Result<Vec<crate::port::NativeObject>, PortError> {
         Ok(self.native_objects.clone())
+    }
+
+    fn linked_tables(&self) -> Result<Vec<crate::port::LinkedTable>, PortError> {
+        Ok(self.links.clone())
     }
 
     fn create_table(&mut self, definition: &TableDef) -> Result<(), PortError> {

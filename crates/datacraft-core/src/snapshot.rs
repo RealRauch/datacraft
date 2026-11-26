@@ -150,6 +150,11 @@ pub struct DatabaseSnapshot {
     /// 74.1; M87) — read-only, definitions never decoded.
     #[serde(default)]
     pub native_objects: Vec<NativeObjectSnapshot>,
+    /// Linked tables of the opened file (phase 100, step 100.2; M131;
+    /// roadmap §9 stage 0) — read-only inventory: the record only, no
+    /// connection, no resolution, no write.
+    #[serde(default)]
+    pub linked_tables: Vec<LinkedTableSnapshot>,
     /// Why the native-query decode failed, if it did (step 23.3, M10).
     pub native_queries_error: Option<String>,
     /// Form design documents in creation order.
@@ -272,6 +277,28 @@ impl UiStateSnapshot {
                             },
                             object.kind.slug(),
                             object.name.to_lowercase()
+                        ),
+                    })
+                    .collect(),
+                linked_tables: db
+                    .linked_tables
+                    .iter()
+                    .map(|link| LinkedTableSnapshot {
+                        name: link.name.clone(),
+                        kind: link.kind,
+                        source: link.source.clone(),
+                        connect: link.connect.clone(),
+                        foreign_name: link.foreign_name.clone(),
+                        flags: link.flags,
+                        ui_test_id: format!(
+                            "navpane.{}.linked.{}.{}",
+                            if state.nav_pane_visible {
+                                "expanded"
+                            } else {
+                                "collapsed"
+                            },
+                            link.kind.slug(),
+                            link.name.to_lowercase()
                         ),
                     })
                     .collect(),

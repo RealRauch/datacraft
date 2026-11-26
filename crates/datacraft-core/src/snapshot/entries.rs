@@ -5,6 +5,28 @@ use serde::{Deserialize, Serialize};
 
 use crate::ids::TabId;
 
+/// One linked table in the snapshot (phase 100, step 100.2; item M131;
+/// roadmap §9 stage 0). Read-only: the record is catalog data, no
+/// connection is opened and the target is never resolved.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LinkedTableSnapshot {
+    /// Local table name as the catalog reports it.
+    pub name: String,
+    /// ODBC or Access-file link.
+    pub kind: crate::port::LinkKind,
+    /// External file of an Access-file link; `None` for an ODBC link.
+    pub source: Option<String>,
+    /// The ODBC connect string with its credentials redacted; `None` for
+    /// an Access-file link.
+    pub connect: Option<String>,
+    /// Name on the remote side.
+    pub foreign_name: Option<String>,
+    /// `MSysObjects.Flags` of the link record.
+    pub flags: i64,
+    /// `navpane.<expanded|collapsed>.linked.<kind>.<name>`.
+    pub ui_test_id: String,
+}
+
 /// One native Access form/report in the snapshot (phase 74, step 74.1;
 /// item M87). Read-only: no tab, no definition bytes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

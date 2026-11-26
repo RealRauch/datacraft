@@ -79,6 +79,16 @@ pub enum LinkKind {
     AccessFile,
 }
 
+impl LinkKind {
+    /// Lower-case identifier used in snapshot test ids.
+    pub fn slug(self) -> &'static str {
+        match self {
+            Self::Odbc => "odbc",
+            Self::AccessFile => "access_file",
+        }
+    }
+}
+
 /// One linked table of the opened file (read-only inventory, roadmap §9
 /// stage 0): the catalog's link record, never resolved, never executed
 /// and never written. Showing it must not dial out — nothing here is a
