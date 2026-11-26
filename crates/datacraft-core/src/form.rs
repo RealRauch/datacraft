@@ -105,6 +105,10 @@ pub struct ControlProperties {
     pub bold: bool,
     /// Horizontal text alignment.
     pub align: TextAlign,
+    /// Focus order ("Tab Index"): controls are visited in ascending order,
+    /// ties by declaration order. The editors renumber it densely; the
+    /// paint order stays the control vector order (phase 102, step 102.3).
+    pub tab_index: u32,
 }
 
 impl Default for ControlProperties {
@@ -114,6 +118,7 @@ impl Default for ControlProperties {
             enabled: true,
             bold: false,
             align: TextAlign::Left,
+            tab_index: 0,
         }
     }
 }
@@ -266,6 +271,16 @@ pub enum ControlProperty {
     Align(TextAlign),
 }
 
+/// The two designer orders of a placed control (phase 102, step 102.3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ControlOrder {
+    /// Paint order (back to front) — the control vector order.
+    Z,
+    /// Focus order — the persisted `tab_index` property.
+    Tab,
+}
+
 /// Placed-control design edits (phase 102, item M133): the vocabulary
 /// behind `Command::Design`. Nested like `Command::View` so the top-level
 /// command enum stays below the file-size gate as designer features grow.
@@ -274,4 +289,24 @@ pub enum ControlProperty {
 pub enum DesignCommand {
     /// Sets one property of a placed form or report control.
     SetControlProperties(SetControlProperties),
+    /// Moves a control within the paint order (z-order); `position` is
+    /// zero-based from the back and clamped to the last slot.
+    SetControlZOrder {
+        /// Owning design object (Form or Report).
+        object: ObjectId,
+        /// Control name (case-insensitive).
+        control: String,
+        /// Target position in the paint order (0 = back).
+        position: usize,
+    },
+    /// Moves a control within the tab order; the handler renumbers the
+    /// `tab_index` values densely (0 … n-1) afterwards.
+    SetControlTabOrder {
+        /// Owning design object (Form or Report).
+        object: ObjectId,
+        /// Control name (case-insensitive).
+        control: String,
+        /// Target position in the focus order (0 = first), clamped.
+        position: usize,
+    },
 }

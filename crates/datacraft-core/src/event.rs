@@ -296,6 +296,18 @@ pub enum Event {
         /// Canonical control name.
         control: String,
     },
+    /// A placed control moved within the paint or the tab order (phase
+    /// 102, step 102.3); `position` is the effective, clamped position.
+    ControlOrderSet {
+        /// Owning design object (Form or Report).
+        object: crate::ObjectId,
+        /// Canonical control name.
+        control: String,
+        /// Which order changed.
+        order: crate::form::ControlOrder,
+        /// Effective zero-based position after clamping.
+        position: usize,
+    },
     /// A control was removed.
     ControlDropped {
         /// Canonical form name.

@@ -140,9 +140,75 @@ pub fn control_properties_ui(
             ControlProperty::Align(align),
         );
     }
-    ui.weak(t(
-        "Name, visibility, enabled state, weight and alignment persist in the sidecar.",
+    // Order (step 102.3): the paint order (z) is the control vector order,
+    // the focus order is the persisted tab index — two independent
+    // surfaces, one command per button.
+    let z_position = controls
+        .iter()
+        .position(|candidate| candidate.name == control.name)
+        .unwrap_or(0);
+    let tab_position = tab_position(controls, &control.name);
+    ui.separator();
+    ui.label(egui::RichText::new(t("Order")).strong());
+    ui.weak(tr(
+        "Z-order: {position} of {count}",
+        &[
+            ("position", &(z_position + 1).to_string()),
+            ("count", &controls.len().to_string()),
+        ],
     ));
+    ui.horizontal(|ui| {
+        if ui.button(t("Send to Back")).clicked() {
+            app.dispatch(Command::Design(DesignCommand::SetControlZOrder {
+                object: ObjectId::new(object_kind, object.to_owned()),
+                control: control.name.clone(),
+                position: 0,
+            }));
+        }
+        if ui.button(t("Bring to Front")).clicked() {
+            app.dispatch(Command::Design(DesignCommand::SetControlZOrder {
+                object: ObjectId::new(object_kind, object.to_owned()),
+                control: control.name.clone(),
+                position: controls.len().saturating_sub(1),
+            }));
+        }
+    });
+    ui.weak(tr(
+        "Tab order: {position} of {count}",
+        &[
+            ("position", &(tab_position + 1).to_string()),
+            ("count", &controls.len().to_string()),
+        ],
+    ));
+    ui.horizontal(|ui| {
+        if ui.button(t("Move Up")).clicked() {
+            app.dispatch(Command::Design(DesignCommand::SetControlTabOrder {
+                object: ObjectId::new(object_kind, object.to_owned()),
+                control: control.name.clone(),
+                position: tab_position.saturating_sub(1),
+            }));
+        }
+        if ui.button(t("Move Down")).clicked() {
+            app.dispatch(Command::Design(DesignCommand::SetControlTabOrder {
+                object: ObjectId::new(object_kind, object.to_owned()),
+                control: control.name.clone(),
+                position: tab_position + 1,
+            }));
+        }
+    });
+    ui.weak(t(
+        "Name, visibility, enabled state, weight, alignment and both orders persist in the sidecar.",
+    ));
+}
+
+/// The control's zero-based position in the focus order.
+fn tab_position(controls: &[ControlDef], control: &str) -> usize {
+    let mut order: Vec<&ControlDef> = controls.iter().collect();
+    order.sort_by_key(|candidate| candidate.properties.tab_index);
+    order
+        .iter()
+        .position(|candidate| candidate.name == control)
+        .unwrap_or(0)
 }
 
 /// Localized label of one alignment choice.

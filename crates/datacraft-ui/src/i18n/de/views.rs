@@ -268,8 +268,8 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Left", "Links"),
     ("Name", "Name"),
     (
-        "Name, visibility, enabled state, weight and alignment persist in the sidecar.",
-        "Name, Sichtbarkeit, Aktivierung, Schriftstärke und Ausrichtung werden im Sidecar gespeichert.",
+        "Name, visibility, enabled state, weight, alignment and both orders persist in the sidecar.",
+        "Name, Sichtbarkeit, Aktivierung, Schriftstärke, Ausrichtung und beide Reihenfolgen werden im Sidecar gespeichert.",
     ),
     (
         "Position {x}, {y} — size {width} x {height}",
@@ -278,4 +278,18 @@ pub static TABLE: &[(&str, &str)] = &[
     ("Properties", "Eigenschaften"),
     ("Right", "Rechts"),
     ("Visible", "Sichtbar"),
+    // Order surfaces (phase 102, step 102.3).
+    ("Bring to Front", "In den Vordergrund"),
+    ("Move Down", "Nach unten"),
+    ("Move Up", "Nach oben"),
+    ("Order", "Reihenfolge"),
+    ("Send to Back", "In den Hintergrund"),
+    (
+        "Tab order: {position} of {count}",
+        "Tab-Reihenfolge: {position} von {count}",
+    ),
+    (
+        "Z-order: {position} of {count}",
+        "Z-Reihenfolge: {position} von {count}",
+    ),
 ];

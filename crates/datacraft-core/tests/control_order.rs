@@ -33,9 +33,7 @@ fn opened_with_form() -> Core {
 fn label(name: &str, x: f32) -> ControlDef {
     ControlDef {
         name: name.into(),
-        kind: ControlKind::Label {
-            text: name.into(),
-        },
+        kind: ControlKind::Label { text: name.into() },
         rect: Rect {
             x,
             y: 8.0,
@@ -190,7 +188,11 @@ fn the_tab_order_moves_a_control_and_renumbers_densely() {
             ("b".to_owned(), 2)
         ]
     );
-    assert_eq!(names(&core), ["a", "b", "c"], "the paint order is untouched");
+    assert_eq!(
+        names(&core),
+        ["a", "b", "c"],
+        "the paint order is untouched"
+    );
 }
 
 #[test]

@@ -322,6 +322,7 @@ fn properties_survive_the_sidecar_round_trip() {
         enabled: false,
         bold: true,
         align: TextAlign::Center,
+        tab_index: 4,
     };
     form.controls.push(control);
 

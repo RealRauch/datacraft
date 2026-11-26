@@ -18,9 +18,7 @@ use egui_kittest::kittest::{NodeT, Queryable};
 fn label(name: &str) -> ControlDef {
     ControlDef {
         name: name.into(),
-        kind: ControlKind::Label {
-            text: name.into(),
-        },
+        kind: ControlKind::Label { text: name.into() },
         rect: Rect {
             x: 40.0,
             y: 40.0,
@@ -87,12 +85,7 @@ fn paint_order(app: &App) -> Vec<String> {
 }
 
 fn tab_order(app: &App) -> Vec<String> {
-    let mut entries: Vec<(u32, String)> = app
-        .snapshot()
-        .database
-        .clone()
-        .expect("open")
-        .forms[0]
+    let mut entries: Vec<(u32, String)> = app.snapshot().database.clone().expect("open").forms[0]
         .controls
         .iter()
         .map(|control| (control.properties.tab_index, control.name.clone()))

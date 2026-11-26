@@ -58,6 +58,8 @@ impl Core {
                 ),
             );
         }
+        // A new control lands last in the tab order (phase 102, 102.3).
+        control.properties.tab_index = def.controls.len() as u32;
         let name = control.name.clone();
         def.controls.push(control);
         vec![Event::ControlAdded {
