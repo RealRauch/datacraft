@@ -11,16 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 101 — Datasheet completeness (roadmap §16 stage 1)
-
-**Scope (Steps):**
-
-- **101.1 Core: filter-by-value model — bounded distinct values, deterministic order, applied through the existing criteria path**
-- **101.2 UI: the filter-by-value dialog at the column header**
-- **101.3 UI/core: find/replace over the visible rows, replacements staged through the edit buffer**
-- **101.4 UI: column drag-reorder and the visual Null marker in both palettes**
-- **101.5 Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item**
-- **101.6 Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG)**
 ### Phase 102 — Designer parity (roadmap §16 stage 2)
 
 **Scope (Steps):**
@@ -592,8 +582,8 @@
 | 101.2 | UI: the filter-by-value dialog at the column header | ✅ |
 | 101.3 | UI/core: find/replace over the visible rows, replacements staged through the edit buffer | ✅ |
 | 101.4 | UI: column drag-reorder and the visual Null marker in both palettes | ✅ |
-| 101.5 | Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item | ⬜ |
-| 101.6 | Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG) | ⬜ |
+| 101.5 | Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item | ✅ |
+| 101.6 | Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG) | ✅ |
 | 102.1 | Core: control property model with sidecar persistence and one command per edit, precise validation | ⬜ |
 | 102.2 | Core/UI: resize handles through the shared geometry rules | ⬜ |
 | 102.3 | UI/core: z-order and tab-order surface in both designers | ⬜ |

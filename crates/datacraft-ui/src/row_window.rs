@@ -4,7 +4,7 @@
 //! virtual list, and only the windows around the visible rows are loaded
 //! (each `WINDOW_ROWS` long). Filters, sorts, find/replace and staged
 //! edits need the whole table, so they upgrade the tab through
-//! [`App::load_all_rows`] — a documented boundary, not a silent fallback.
+//! `App::load_all_rows` — a documented boundary, not a silent fallback.
 
 use std::collections::{BTreeMap, HashMap};
 
