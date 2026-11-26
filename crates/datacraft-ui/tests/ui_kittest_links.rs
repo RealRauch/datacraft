@@ -10,9 +10,8 @@ use datacraft_core::command::Command;
 use datacraft_core::port::{LinkKind, LinkedTable, MockPort};
 use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
 use datacraft_ui::app::App;
-use eframe::egui;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::Queryable;
 
 fn customers() -> TableDef {
     TableDef::new(
@@ -72,7 +71,9 @@ fn the_nav_pane_lists_both_links_with_their_targets() {
     let harness = nav_harness(links_app());
     // The group header counts the links.
     assert!(
-        harness.query_by_label_contains("Linked tables (2)").is_some(),
+        harness
+            .query_by_label_contains("Linked tables (2)")
+            .is_some(),
         "the group names its count"
     );
     // Both names are rows, each with its one-line target.

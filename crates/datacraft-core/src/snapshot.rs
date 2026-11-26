@@ -290,6 +290,7 @@ impl UiStateSnapshot {
                         connect: link.connect.clone(),
                         foreign_name: link.foreign_name.clone(),
                         flags: link.flags,
+                        target: crate::present::link_target(link),
                         ui_test_id: format!(
                             "navpane.{}.linked.{}.{}",
                             if state.nav_pane_visible {

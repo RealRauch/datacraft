@@ -11,6 +11,24 @@ use crate::snapshot::UiStateSnapshot;
 
 pub use datacraft_types::{display_value, field_kind_display};
 
+/// The one-line target a linked table names (phase 100, step 100.3; item
+/// M131): the external file of an Access-file link, or the first fragment
+/// of an ODBC connect string (`DSN=…`, `DRIVER=…`). The connect string
+/// arrives credential-free from the port, so nothing here can leak a
+/// secret; an empty fragment set answers `None`.
+pub fn link_target(link: &crate::port::LinkedTable) -> Option<String> {
+    match link.kind {
+        crate::port::LinkKind::AccessFile => link.source.clone(),
+        crate::port::LinkKind::Odbc => link.connect.as_deref().and_then(|connect| {
+            connect
+                .split(';')
+                .map(str::trim)
+                .find(|fragment| !fragment.is_empty())
+                .map(str::to_owned)
+        }),
+    }
+}
+
 /// Status bar line for the given snapshot (step 12.4): the database
 /// context, replaced by the active document's object when one is open —
 /// the Access status-bar convention. `active` carries the tab snapshot's

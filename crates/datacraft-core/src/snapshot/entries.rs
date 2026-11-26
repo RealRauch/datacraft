@@ -23,6 +23,9 @@ pub struct LinkedTableSnapshot {
     pub foreign_name: Option<String>,
     /// `MSysObjects.Flags` of the link record.
     pub flags: i64,
+    /// The one-line target the nav pane shows and the search matches
+    /// ([`crate::present::link_target`]).
+    pub target: Option<String>,
     /// `navpane.<expanded|collapsed>.linked.<kind>.<name>`.
     pub ui_test_id: String,
 }

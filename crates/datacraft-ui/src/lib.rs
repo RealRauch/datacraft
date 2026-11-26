@@ -42,6 +42,7 @@ pub mod labels;
 pub mod layout_probe;
 pub mod macro_viewer;
 pub mod nav_groups;
+pub mod nav_links;
 pub mod nav_menu;
 pub mod nav_pane;
 pub mod nav_row;

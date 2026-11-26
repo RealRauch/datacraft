@@ -67,6 +67,7 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
             && db.views.is_empty()
             && db.native_views.is_empty()
             && db.native_objects.is_empty()
+            && db.linked_tables.is_empty()
             && db.macros.is_empty()
             && db
                 .vba
@@ -367,6 +368,10 @@ pub fn nav_pane_ui(app: &mut App, ui: &mut egui::Ui) {
                 });
             });
         }
+
+        // Linked tables (phase 100, step 100.3; item M131): catalog
+        // records only — read-only, never resolved, no tab.
+        matched_any |= crate::nav_links::links_section(ui, &db.linked_tables, &query);
 
         // The empty state (step 92.3, item L48): a query that matches
         // nothing shows one localized line instead of a bare pane.

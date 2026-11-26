@@ -18,6 +18,13 @@ pub(super) const TABLE: &[(&str, &str)] = &[
         "Open {count} selected",
         "{count} ausgewählte Objekte öffnen",
     ),
+    // Nav-pane linked tables (phase 100, step 100.3; item M131).
+    ("Linked tables ({count})", "Verknüpfte Tabellen ({count})"),
+    ("Linked to {target}", "Verknüpft mit {target}"),
+    (
+        "Link records only — the targets are not resolved.",
+        "Nur Verknüpfungsdatensätze — die Ziele werden nicht aufgelöst.",
+    ),
     // Nav-pane groups and details view (step 92.5, item L48).
     ("Object Details", "Objektdetails"),
     ("Custom Groups", "Eigene Gruppen"),
