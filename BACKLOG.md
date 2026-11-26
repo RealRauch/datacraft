@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-24T21:36)
+# BACKLOG.md — Open items (As of: 2026-11-26T20:06)
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -22,12 +22,6 @@
 ---
 
 ## 🟡 MEDIUM
-
-### [ ] M130 — Export matrix: CSV and JSON table export (phase 99, roadmap §11) — 🟡
-- **Location:** `crates/datacraft-core/src/command.rs` + a core export module, `crates/datacraft-ui/src/datasheet.rs`/`nav_*`, CLI/MCP tests.
-- **Problem:** The export matrix (roadmap §11) names CSV and JSON as the first two targets, but no export command exists — a table can only leave the application by writing rows through a driver, never as a file.
-- **Approach:** One `ExportTable` command naming table, format (CSV, JSON with schema) and target path; deterministic new-file write (fixed key order, no timestamps, existing target refused), source database untouched; UI affordance at the datasheet/nav pane with the save dialog; CLI/MCP parity.
-- **Acceptance:** A populated table exports to CSV and to a JSON document carrying schema + rows; re-export is byte-identical; an existing target, an unknown table and an unwritable path answer precisely; the source database stays byte-identical; all four clients pin it.
 
 ### [ ] M131 — Remote Stage 0: read-only linked-table inventory (phase 100, roadmap §9) — 🟡
 - **Location:** `crates/datacraft-jet/src/jet/catalog.rs` + a link-record decoder, `crates/datacraft-core/src/snapshot.rs`, `crates/datacraft-ui/src/nav_*`.
@@ -53,6 +47,12 @@
 - **Approach:** One read-only `AnalyzeApp` command aggregating ring coverage per form/report/query, VBA module/transpilation estimate, the phase-100 link inventory, unsupported features and an effort summary; a UI/wire surface; a benchmark harness in `tools/dao-oracle` plus `docs/BENCHMARKS.md` (generator recipe, method controls, measured results, honest gaps).
 - **Acceptance:** The report lists every object with its ring status and unsupported reasons and is read-only by construction; all four clients can request it; the benchmark harness produces family-A numbers against DAO and the documented method, with results and the remaining gaps recorded in `docs/BENCHMARKS.md`; the phase-103 method retrospective (PLAYBOOK §8) rides the gate.
 
+### [ ] M135 — Decimal display ignores the declared scale — the datasheet shows the scaled integer — 🟡
+- **Location:** `crates/datacraft-types/src/display.rs` (`display_value`, the `Decimal` arm), `crates/datacraft-csv/src/lib.rs` (`to_cell`), every display consumer (datasheet cells, status line, form runtime).
+- **Problem:** A fixed-point decimal is a scale-scaled integer (field kind `Number(Decimal { precision, scale })`), but `display_value` prints the raw scaled integer: a value of 25.50 at scale 2 shows as `2550` in the datasheet and in the CSV driver's cells. Phase 99's export module works around it with its own exact decimal text (`export::decimal_text`), so the workaround exists twice-ish and the datasheet still lies.
+- **Approach:** Make the decimal rendering scale-aware where the field kind is in reach — a kind-aware sibling of `display_value` (or an extra parameter) that divides by 10^scale and keeps the declared trailing zeros; scale 0 stays byte-identical to today. Then let the export module delegate instead of carrying its own copy. `row_edit` parses through `parse_scaled`, so the write path is unaffected.
+- **Acceptance:** A scale-2 decimal shows `25.50` in the datasheet, the CSV driver's rewrite and the CSV/JSON export; scale-0 decimals render unchanged; a test pins each path and the export's own helper either disappears or delegates.
+
 
 
 
@@ -68,6 +68,12 @@
 - **Steps:** rides released steps that touch band files. Phases 65/68/69/71/72/73/75/80/91 carried the earlier splits recorded in the archive. Phases 95-98 carried: 95.1 `port_adapter.rs` (492 → 464) → `port_health.rs` + `port_lock.rs`; 95.2 `port_adapter.rs` → `port_adapter/caps.rs`; 96.4 `core.rs` (492 → 438) → `core/sql.rs` (making room for the import-reader registry); 97.2 `command.rs` doc trims back to 499; 98.1/98.4 `port.rs` (520 → 457) → `port/format.rs` and `snapshot.rs` (509 → 382) → `snapshot/entries.rs`; the new `datacraft-xlsx` crate ships as four modules (`lib`/`sheet`/`import`/`error`) from day one. The gate stayed green through every phase.
 - **Rule:** codified 2026-11-10 as binding method — PLAYBOOK §5 ("split below the gate, not at it") and LESSONS #15; this item stays open as the live band list only.
 - **Acceptance:** The file-size gate stays green in CI; band files are either split or comfortably below 500 after each touch.
+
+### [ ] L65 — Relationship canvas: interactive ER design window (external request, GitHub #1) — 🟢
+- **Location:** `crates/datacraft-ui/src/relationships.rs` (the computed box canvas), `crates/datacraft-core/src/core/relationships.rs` (relationship model), `ui.json` for a persisted layout if editing is in scope.
+- **Problem:** The relationship mapper paints the involved tables as boxes with connecting lines, but the layout is computed (deterministic, three per row) and read-only — no dragging, no saved positions, no field lists in the boxes, no cardinality notation, no zoom/pan. GitHub issue #1 (2026-11-23, "are you planing to add an er design window?") asks for exactly that; the packaged phases 99-103 contain no such surface and roadmap §16's stage ladder does not name it, so the request has no owning step. Answered 2026-11-26 with the honest status (not planned, not rejected) plus a question on what the author needs first.
+- **Approach:** Scope decision first, and it is a human roadmap call: a read-only schema diagram (boxes with fields, key markers, crow's-foot cardinalities) versus canvas editing (drag boxes, layout persisted per database in `ui.json`, zoom/pan, create/delete on the canvas). Geometry and hit-testing stay in core (layout math, T10); paint stays glue; every canvas create/delete is exactly one existing `CreateRelationship`/`DeleteRelationship` command, so GUI, CLI and MCP keep producing identical state.
+- **Acceptance:** Not frozen until the scope decision. Minimum bar either way: the diagram shows every user relationship with key and cardinality notation, a reopened database keeps an edited layout when editing is in scope, and every intent dispatches one existing bus command with no privileged UI path.
 
 ---
 
