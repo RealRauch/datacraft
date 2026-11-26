@@ -7,7 +7,7 @@
 //! resize never leaves the canvas/page bounds.
 
 use datacraft_core::canvas::{
-    HANDLE_SIZE, ResizeHandle, Rect, handle_at, handle_centers, resize_rect,
+    HANDLE_SIZE, Rect, ResizeHandle, handle_at, handle_centers, resize_rect,
 };
 
 fn rect() -> Rect {
@@ -59,14 +59,7 @@ fn the_body_and_the_area_outside_the_tolerance_are_not_handles() {
 
 #[test]
 fn a_corner_drag_moves_both_edges_and_snaps() {
-    let resized = resize_rect(
-        rect(),
-        ResizeHandle::SouthEast,
-        13.0,
-        13.0,
-        8.0,
-        BOUNDS,
-    );
+    let resized = resize_rect(rect(), ResizeHandle::SouthEast, 13.0, 13.0, 8.0, BOUNDS);
     assert_eq!(
         resized,
         Rect {
@@ -81,16 +74,16 @@ fn a_corner_drag_moves_both_edges_and_snaps() {
 
 #[test]
 fn a_north_west_drag_moves_the_origin_and_keeps_the_far_edges() {
-    let resized = resize_rect(rect(), ResizeHandle::NorthWest, -9.0, -5.0, 8.0, BOUNDS);
+    let resized = resize_rect(rect(), ResizeHandle::NorthWest, -9.0, -16.0, 8.0, BOUNDS);
     assert_eq!(
         resized,
         Rect {
             x: 32.0,
-            y: 40.0,
+            y: 24.0,
             width: 168.0,
-            height: 24.0,
+            height: 40.0,
         },
-        "left 31 -> 32, the right edge stays at 200; top 35 -> 40"
+        "left 31 -> 32, top 24; the right edge stays at 200, bottom at 64"
     );
 }
 
@@ -118,8 +111,12 @@ fn a_resize_never_shrinks_below_one_grid_step() {
     assert_eq!(resized.width, 8.0);
 
     let resized = resize_rect(rect(), ResizeHandle::North, 0.0, 500.0, 8.0, BOUNDS);
-    assert_eq!(resized.y, 40.0);
     assert_eq!(resized.height, 8.0);
+    assert_eq!(
+        resized.y + resized.height,
+        64.0,
+        "the anchored bottom edge stays"
+    );
 }
 
 #[test]
@@ -144,7 +141,14 @@ fn a_resize_stays_inside_the_bounds() {
     assert_eq!(resized.x, 40.0, "the anchored edges stay");
     assert_eq!(resized.y, 40.0);
 
-    let resized = resize_rect(rect(), ResizeHandle::NorthWest, -10_000.0, -10_000.0, 8.0, BOUNDS);
+    let resized = resize_rect(
+        rect(),
+        ResizeHandle::NorthWest,
+        -10_000.0,
+        -10_000.0,
+        8.0,
+        BOUNDS,
+    );
     assert_eq!(resized.x, 0.0);
     assert_eq!(resized.y, 0.0);
     assert_eq!(resized.x + resized.width, 200.0);

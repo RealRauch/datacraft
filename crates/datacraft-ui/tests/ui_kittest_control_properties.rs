@@ -86,14 +86,10 @@ fn tree_dump(harness: &Harness<'_, App>) -> String {
     lines.join("\n")
 }
 
-/// The sheet's own Apply is the last one (the content and kind-specific
-/// panels come first).
+/// The sheet's name edit commits through its own Rename button (the
+/// content panel's Apply stays unambiguous next to it).
 fn click_sheet_apply(harness: &mut Harness<'_, App>) {
-    {
-        let count = harness.get_all_by_label("Apply").count();
-        let mut applies = harness.get_all_by_label("Apply");
-        applies.nth(count - 1).expect("property Apply").click();
-    }
+    harness.get_by_label("Rename").click();
     harness.run();
 }
 

@@ -145,6 +145,9 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, report: &ReportDef, ui: &mut egui
 
     let page = egui::vec2(report.page.width, report.page.height);
     let (canvas_rect, _) = ui.allocate_exact_size(page, egui::Sense::hover());
+    // The canvas rect rides the layout probe (phase 102): the resize
+    // handles are hit-tested against it in the kittest.
+    crate::layout_probe::record("report.design.canvas", canvas_rect);
     let painter = ui.painter_at(canvas_rect);
 
     // Paper surface with margin guides (print-oriented design view).
@@ -229,6 +232,31 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, report: &ReportDef, ui: &mut egui
         app.set_report_selection(tab.id, name);
     }
     if let Some((name, rect)) = moved {
+        app.dispatch(Command::SetReportControlRect {
+            report: report.name.clone(),
+            control: name,
+            rect,
+        });
+    }
+    // The selected control's resize handles (phase 102, step 102.2): the
+    // gesture yields one snapped, page-clamped rect command.
+    let mut resized: Option<(String, Rect)> = None;
+    if let Some(name) = app.report_selection(tab.id)
+        && let Some(control) = report.controls.iter().find(|control| control.name == name)
+        && let Some(rect) = crate::design_handles::resize_handles_ui(
+            app,
+            tab.id,
+            control,
+            canvas_rect,
+            report.grid,
+            (report.page.width, report.page.height),
+            &painter,
+            ui,
+        )
+    {
+        resized = Some((control.name.clone(), rect));
+    }
+    if let Some((name, rect)) = resized {
         app.dispatch(Command::SetReportControlRect {
             report: report.name.clone(),
             control: name,

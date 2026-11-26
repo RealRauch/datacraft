@@ -60,7 +60,7 @@ pub fn control_properties_ui(
     if field.labelled_by(label.id).changed() {
         app.set_property_draft(tab_id, control, buffer.clone());
     }
-    if ui.button(t("Apply")).clicked() {
+    if ui.button(t("Rename")).clicked() {
         apply(
             app,
             tab_id,

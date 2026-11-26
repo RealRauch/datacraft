@@ -191,6 +191,31 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui
             rect,
         });
     }
+    // The selected control's resize handles (phase 102, step 102.2): the
+    // gesture yields one snapped, bounds-clamped rect command.
+    let mut resized: Option<(String, Rect)> = None;
+    if let Some(name) = app.form_selection(tab.id)
+        && let Some(control) = form.controls.iter().find(|control| control.name == name)
+        && let Some(rect) = crate::design_handles::resize_handles_ui(
+            app,
+            tab.id,
+            control,
+            canvas_rect,
+            form.grid,
+            (FORM_WIDTH, FORM_HEIGHT),
+            &painter,
+            ui,
+        )
+    {
+        resized = Some((control.name.clone(), rect));
+    }
+    if let Some((name, rect)) = resized {
+        app.dispatch(Command::SetFormControlRect {
+            form: form.name.clone(),
+            control: name,
+            rect,
+        });
+    }
 
     ui.horizontal(|ui| {
         ui.label(
