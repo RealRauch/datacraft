@@ -24,7 +24,8 @@ pub use family::{DatabaseFamily, sniff_database_family};
 pub use format::{DatabaseFormat, SqlDialect};
 pub use native_view::NativeView;
 pub use source_objects::{
-    NativeObject, NativeObjectKind, SourceFact, SourceFacts, SourceIndex, SourceTrigger,
+    LinkKind, LinkedTable, NativeObject, NativeObjectKind, SourceFact, SourceFacts, SourceIndex,
+    SourceTrigger,
 };
 
 /// Errors a storage backend reports through the port.
@@ -268,6 +269,13 @@ pub trait StoragePort {
     /// 74.1; item M87) — read-only inventory, definitions never decoded.
     /// The default is empty.
     fn native_objects(&self) -> Result<Vec<NativeObject>, PortError> {
+        Ok(Vec::new())
+    }
+    /// Linked tables of the opened file (phase 100, step 100.1; item
+    /// M131; roadmap §9 stage 0) — read-only inventory, never resolved
+    /// and never dialled. The default is empty: only a backend whose
+    /// catalog records links reports any.
+    fn linked_tables(&self) -> Result<Vec<LinkedTable>, PortError> {
         Ok(Vec::new())
     }
     /// Creates a table; errors on duplicate names.

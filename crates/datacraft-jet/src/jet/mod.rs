@@ -35,7 +35,8 @@ pub mod writer_tables;
 
 pub use access::{AccessStorage, AccessStorageEntry, OBJECT_TYPE_MACRO, StoredMacro};
 pub use catalog::{
-    CATALOG_TDEF_PAGE, CatalogEntry, OBJECT_TYPE_FORM, OBJECT_TYPE_REPORT, OBJECT_TYPE_TABLE,
+    CATALOG_TDEF_PAGE, CatalogEntry, OBJECT_TYPE_FORM, OBJECT_TYPE_LINK_ACCESS,
+    OBJECT_TYPE_LINK_ODBC, OBJECT_TYPE_REPORT, OBJECT_TYPE_TABLE,
 };
 pub use data_page::DataPage;
 pub use header::{

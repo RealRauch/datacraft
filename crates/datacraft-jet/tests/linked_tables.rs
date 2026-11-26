@@ -76,22 +76,49 @@ fn an_odbc_link_reports_its_connect_string_without_credentials() {
 #[test]
 fn a_link_never_becomes_a_table() {
     let port = opened("linkerTestV2007.accdb");
-    let tables: Vec<&str> = port.tables().iter().map(|def| def.name.as_str()).collect();
+    let catalog = port.tables();
+    let tables: Vec<&str> = catalog.iter().map(|def| def.name.as_str()).collect();
     assert!(
         !tables.contains(&"Table2"),
         "the link has no TDEF page and stays out of the table catalog: {tables:?}"
     );
     let links = port.linked_tables().expect("inventory");
-    assert!(
-        links.iter().any(|link| link.name == "Table2"),
-        "{links:?}"
-    );
+    assert!(links.iter().any(|link| link.name == "Table2"), "{links:?}");
 }
 
 #[test]
 fn a_link_free_file_reports_an_empty_inventory() {
     let port = opened("testV2000.mdb");
     assert_eq!(port.linked_tables().expect("inventory"), Vec::new());
+}
+
+/// The self-built fixture (`tools/fixture-build/links.ps1`) is a second,
+/// independent Access writer: same record shape, and its target path does
+/// not resolve — the inventory still reports it completely, which is the
+/// whole point of stage 0.
+#[test]
+fn the_self_built_fixture_reports_the_same_record_shape() {
+    let port = opened("linkedTablesV2007.accdb");
+    let links = port.linked_tables().expect("inventory");
+    assert_eq!(links.len(), 1, "{links:?}");
+    let link = &links[0];
+    assert_eq!(link.name, "Remote_Link");
+    assert_eq!(link.kind, LinkKind::AccessFile);
+    assert_eq!(link.foreign_name.as_deref(), Some("Remote"));
+    let source = link.source.as_deref().expect("a DATABASE path");
+    assert!(source.ends_with("linkee.accdb"), "{source}");
+    assert!(
+        !std::path::Path::new(source).exists(),
+        "the target is gone by construction: {source}"
+    );
+    assert_eq!(
+        link.flags, 2_097_152,
+        "two independent Access writers agree on the file-link flags"
+    );
+    let catalog = port.tables();
+    let names: Vec<&str> = catalog.iter().map(|def| def.name.as_str()).collect();
+    assert!(names.contains(&"Local"), "{names:?}");
+    assert!(!names.contains(&"Remote_Link"), "{names:?}");
 }
 
 #[test]

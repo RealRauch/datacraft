@@ -49,6 +49,9 @@ pub struct Jet4Port {
     /// Native form/report inventory read at open (phase 74, step 74.1;
     /// item M87; read-only).
     native_objects: Vec<datacraft_core::port::NativeObject>,
+    /// Linked-table inventory read at open (phase 100, step 100.1; item
+    /// M131; read-only, never resolved).
+    links: Vec<datacraft_core::port::LinkedTable>,
     /// Extracted VBA project (step 17.2, L5; read-only).
     vba: Option<datacraft_core::vba::VbaProject>,
     /// Why the VBA extraction failed, if it did (observable degradation).
@@ -118,8 +121,9 @@ impl StoragePort for Jet4Port {
         let complex = ComplexCatalog::read(&reader).map_err(map_open)?;
         let entries = collect_tables(&reader, &complex)?;
         let macros = crate::port_objects::macros_to_core(reader.macros().map_err(map_open)?);
-        let native_objects =
-            crate::port_objects::native_objects_to_core(reader.catalog().map_err(map_open)?);
+        let catalog = reader.catalog().map_err(map_open)?;
+        let native_objects = crate::port_objects::native_objects_to_core(catalog.clone());
+        let links = crate::port_objects::linked_tables_to_core(catalog);
         let (vba, vba_error) = match reader.vba_project() {
             Ok(project) => (project.map(crate::port_objects::vba_to_core), None),
             // Extraction failure is reported through the port, not by
@@ -138,6 +142,7 @@ impl StoragePort for Jet4Port {
         self.complex = complex;
         self.macros = macros;
         self.native_objects = native_objects;
+        self.links = links;
         self.vba = vba;
         self.vba_error = vba_error;
         self.reader = Some(reader);
@@ -163,6 +168,7 @@ impl StoragePort for Jet4Port {
         self.complex = ComplexCatalog::default();
         self.macros.clear();
         self.native_objects.clear();
+        self.links.clear();
         self.vba = None;
         self.vba_error = None;
         self.path = None;
@@ -303,6 +309,10 @@ impl StoragePort for Jet4Port {
 
     fn native_objects(&self) -> Result<Vec<datacraft_core::port::NativeObject>, PortError> {
         Ok(self.native_objects.clone())
+    }
+
+    fn linked_tables(&self) -> Result<Vec<datacraft_core::port::LinkedTable>, PortError> {
+        Ok(self.links.clone())
     }
 
     fn vba_project(&self) -> Result<Option<datacraft_core::vba::VbaProject>, PortError> {

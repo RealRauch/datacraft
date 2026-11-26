@@ -22,6 +22,14 @@ pub const OBJECT_TYPE_FORM: i64 = -32768;
 /// fixture.
 pub const OBJECT_TYPE_REPORT: i64 = -32764;
 
+/// ODBC-linked table (`MSysObjects.Type`, phase 100, step 100.1; item
+/// M131) — observed on `odbcLinkerTestV2007.accdb`.
+pub const OBJECT_TYPE_LINK_ODBC: i64 = 4;
+
+/// Access-file-linked table (`MSysObjects.Type`), observed on
+/// `linkerTestV2007.accdb`.
+pub const OBJECT_TYPE_LINK_ACCESS: i64 = 6;
+
 /// One catalog entry.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CatalogEntry {
@@ -36,6 +44,14 @@ pub struct CatalogEntry {
     /// TDEF page, `Some` only when the row's `Id` matches an independently
     /// scanned TDEF page; `None` marks a stale/reused Id.
     pub tdef_page: Option<u32>,
+    /// `MSysObjects.Database`: the external file of a linked table
+    /// (phase 100, step 100.1; item M131).
+    pub database: Option<String>,
+    /// `MSysObjects.Connect`: an ODBC link's connect string, verbatim
+    /// (credentials included — the mapping redacts them).
+    pub connect: Option<String>,
+    /// `MSysObjects.ForeignName`: the table name on the remote side.
+    pub foreign_name: Option<String>,
 }
 
 impl Jet4TableReader {
@@ -69,6 +85,13 @@ impl Jet4TableReader {
         let i_name = index_of("Name")?;
         let i_type = index_of("Type")?;
         let i_flags = index_of("Flags")?;
+        // The link columns are optional: a reduced or hand-built catalog
+        // without them is link-free, not corrupt (the pinned writer
+        // templates and the synthetic test catalogs both occur).
+        let index = |name: &str| def.columns.iter().position(|c| c.name == name);
+        let i_database = index("Database");
+        let i_connect = index("Connect");
+        let i_foreign = index("ForeignName");
 
         let table = self.read_table(CATALOG_TDEF_PAGE)?;
         let mut entries = Vec::with_capacity(table.rows.len());
@@ -94,6 +117,9 @@ impl Jet4TableReader {
                 object_type,
                 flags,
                 tdef_page,
+                database: link_text(row, i_database),
+                connect: link_text(row, i_connect),
+                foreign_name: link_text(row, i_foreign),
             });
         }
         Ok(entries)
@@ -130,12 +156,18 @@ fn as_opt_int(v: &StorageValue) -> Option<i64> {
     }
 }
 
-/// Text variant accessor; `None` for NULL/non-text values.
+/// Text variant accessor; `None` for NULL/non-integer values.
 fn as_opt_text(v: &StorageValue) -> Option<String> {
     match v {
         StorageValue::Text(s) => Some(s.clone()),
         _ => None,
     }
+}
+
+/// One optional link column of a row: `None` when the catalog does not
+/// carry the column or the cell is not text.
+fn link_text(row: &[StorageValue], index: Option<usize>) -> Option<String> {
+    index.and_then(|index| row.get(index)).and_then(as_opt_text)
 }
 
 /// The MSysObjects table definition page (format constant).

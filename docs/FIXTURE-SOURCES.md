@@ -367,3 +367,43 @@ in Excel or another writer-capable tool; experiment on a copy.
 | `excelFixture.xlsm` | `c3a61b19c15d4cfd08cd339951ee0528c23e996870eb362fd15783cdf9624aee` |
 | `excelFixture.xls` | `345639aabe7f12ec812fb4bb39f61e29fbdf726b674a057222ebe510f7cef219` |
 | `excelFixture.xlsb` | `976cf0949061647a4cefbbd6dda2355c3ebb2f729742dce7164c262ce4fbbe70` |
+
+## 9. Linked-table fixtures (phase 100, item M131)
+
+Three files carry the catalog's link records (roadmap §9 stage 0). Two are
+upstream, Access-written files from the primary source; the third is
+self-created so the record shape is pinned against two independent
+writers:
+
+| File | Origin | Link record |
+|---|---|---|
+| `linkerTestV2007.accdb` | `jahlborn/jackcess@be0a2139 src/test/data/V2007/linkerTestV2007.accdb` (pristine) | Type 6 (Access-file), name `Table2`, `DATABASE` = `Z:\jackcess_test\linkeeTest.accdb`, `ForeignName` = `Table1`, flags 2097152 |
+| `odbcLinkerTestV2007.accdb` | `jahlborn/jackcess@be0a2139 src/test/data/V2007/odbcLinkerTestV2007.accdb` (pristine) | Type 4 (ODBC), name `Ordrar`, `CONNECT` = `DSN=Magnapinna;…;PWD=DummyPassword;…;DATABASE=safexit`, `ForeignName` = `dbo.Ordrar`, flags 537919488 |
+| `linkedTablesV2007.accdb` | `tools/fixture-build/links.ps1` (Microsoft Access 16.0 COM, 2026-11-26) | Type 6, name `Remote_Link`, `DATABASE` = the build machine's scratch path to `linkee.accdb`, `ForeignName` = `Remote`, flags 2097152 |
+
+The upstream ODBC fixture's `CONNECT` names a DSN, a user and a **dummy
+password** — test data, no live service. The decoder's inventory redacts
+`PWD`/`PASSWORD` values, so no suite output, snapshot or log carries the
+secret; the fixture keeps it because it is Access's own record.
+
+**Recipe for the self-created fixture** (`tools/fixture-build/links.ps1`):
+the script creates two ACE 2007 databases in a scratch directory via
+Access COM — a target with table `Remote` (one row) and a linking file
+with a local table `Local` plus the link `Remote_Link` → `Remote`. The
+target is deleted before installation, so `DATABASE` names a path that
+does not resolve: the inventory decodes the catalog record and never
+dials, and that property is exactly what the fixture proves. Run:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/fixture-build/links.ps1 -Install
+```
+
+Regeneration writes new timestamps → a new hash; update `fixtures/manifest`
+and the table above together. Never open any of the three files in Access
+or another writer-capable tool — experiment on a copy.
+
+| File | sha256 |
+|---|---|
+| `linkerTestV2007.accdb` | `f3ec2467ed9d6620a97ff782eec55371e50290eeaa3d2e952d6480db2a7a458f` |
+| `odbcLinkerTestV2007.accdb` | `2cbdbc499963696926631a6dcb3e6e7a09c5f6731975205fc1d69a53ac43ff3b` |
+| `linkedTablesV2007.accdb` | `e423752f31211056d746b51a7f21c42441a7e009ceff92f93d0620286bb0e47c` |

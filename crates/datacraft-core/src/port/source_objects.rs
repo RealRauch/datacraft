@@ -66,6 +66,41 @@ pub struct NativeObject {
     pub kind: NativeObjectKind,
 }
 
+/// Kind of a linked table's source (phase 100, step 100.1; item M131;
+/// roadmap §9 stage 0).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LinkKind {
+    /// An ODBC-linked table (`MSysObjects.Type` 4): the connect string
+    /// names a DSN or driver, never a local file.
+    Odbc,
+    /// A table linked into another Access database
+    /// (`MSysObjects.Type` 6): `DATABASE` names the external file.
+    AccessFile,
+}
+
+/// One linked table of the opened file (read-only inventory, roadmap §9
+/// stage 0): the catalog's link record, never resolved, never executed
+/// and never written. Showing it must not dial out — nothing here is a
+/// connection.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LinkedTable {
+    /// Local table name as the catalog reports it.
+    pub name: String,
+    /// ODBC or Access-file link.
+    pub kind: LinkKind,
+    /// External file of an Access-file link (`MSysObjects.Database`);
+    /// `None` for an ODBC link.
+    pub source: Option<String>,
+    /// The ODBC connect string (`MSysObjects.Connect`) with its
+    /// credentials redacted; `None` for an Access-file link.
+    pub connect: Option<String>,
+    /// Name on the remote side (`MSysObjects.ForeignName`).
+    pub foreign_name: Option<String>,
+    /// `MSysObjects.Flags` of the link record (engine-maintained bits).
+    pub flags: i64,
+}
+
 /// One driver fact of the opened file (stable machine name + display
 /// value): engine version, page size, journal mode, encoding, …
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

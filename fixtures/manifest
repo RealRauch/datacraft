@@ -35,6 +35,15 @@ f3ec2467ed9d6620a97ff782eec55371e50290eeaa3d2e952d6480db2a7a458f  linkerTestV200
 # redacts the password; ForeignName "dbo.Ordrar")
 2cbdbc499963696926631a6dcb3e6e7a09c5f6731975205fc1d69a53ac43ff3b  odbcLinkerTestV2007.accdb
 
+# source: tools/fixture-build/links.ps1 (Microsoft Access 16.0 COM,
+# 2026-11-26, item M131): two ACE 2007 files — the link target with table
+# "Remote" (one row) and the linking file with "Local" plus the Access-file
+# link "Remote_Link" → "Remote". The target was removed after linking, so
+# DATABASE names the build machine's scratch path and does not resolve:
+# roadmap §9 stage 0 decodes the catalog record and never dials out.
+# Regeneration changes timestamps → new hash.
+e423752f31211056d746b51a7f21c42441a7e009ceff92f93d0620286bb0e47c  linkedTablesV2007.accdb
+
 # source: andipaetzold/mdb-reader@3dc637a test/password/data/V2000_with-password.mdb
 # (password "password"; test data, no real user content)
 24812a5fc1f30474e86ca9d5183ef7c17d82832219ef460bb298a30db9b4622b  passwordV2000.mdb
