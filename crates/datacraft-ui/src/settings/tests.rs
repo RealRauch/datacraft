@@ -471,3 +471,29 @@ fn the_low_power_setting_round_trips() {
     assert_eq!(Settings::load(&path), settings);
     assert_eq!(Settings::default().low_power, None);
 }
+
+#[test]
+fn the_preview_zoom_round_trips_and_rejects_implausible_values() {
+    let dir = temp_dir("preview-zoom");
+    let path = dir.join("ui.json");
+    let settings = Settings {
+        preview_zoom: 1.5,
+        ..Settings::default()
+    };
+    settings.save(&path).expect("save");
+    assert_eq!(Settings::load(&path).preview_zoom, 1.5);
+
+    // Implausible stored values fall back to the default zoom.
+    for stored in ["0.0", "-1.0", "99.0"] {
+        std::fs::write(&path, format!(r#"{{"preview_zoom":{stored}}}"#)).expect("write");
+        assert_eq!(
+            Settings::load(&path).preview_zoom,
+            sane_preview_zoom(None),
+            "stored {stored}"
+        );
+    }
+    // The default keeps a page inside typical window heights.
+    assert!((sane_preview_zoom(None) - 0.9).abs() < f32::EPSILON);
+    assert!((sane_preview_zoom(Some(1.25)) - 1.25).abs() < f32::EPSILON);
+    assert!((sane_preview_zoom(Some(f32::NAN)) - 0.9).abs() < f32::EPSILON);
+}
