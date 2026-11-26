@@ -94,6 +94,27 @@ fn a_file_link_reports_its_source_path() {
 }
 
 #[test]
+fn the_snapshot_names_a_one_line_target_per_link_kind() {
+    let mut file = link();
+    file.kind = LinkKind::AccessFile;
+    file.connect = None;
+    file.source = Some("Z:\\data\\linkee.accdb".into());
+    let odbc = link();
+    let core = ready_core(vec![file, odbc]);
+    let db = core.inspect().database.expect("a database is open");
+    assert_eq!(
+        db.linked_tables[0].target.as_deref(),
+        Some("Z:\\data\\linkee.accdb"),
+        "an Access-file link shows its external database"
+    );
+    assert_eq!(
+        db.linked_tables[1].target.as_deref(),
+        Some("DSN=billing"),
+        "an ODBC link shows its first connect fragment — credential-free"
+    );
+}
+
+#[test]
 fn a_link_free_database_reports_an_empty_inventory() {
     let core = ready_core(Vec::new());
     let db = core.inspect().database.expect("a database is open");
