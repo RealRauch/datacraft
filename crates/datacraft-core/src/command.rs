@@ -40,8 +40,7 @@ pub enum Command {
     },
     /// Closes the open database and all of its tabs.
     CloseDatabase,
-    /// Compacts the open database in place (phase 95, step 95.2; M126):
-    /// the verified fresh file replaces it atomically at the same path.
+    /// Compacts the open database in place (95.2, M126): atomic verified swap.
     CompactDatabase,
     /// Creates a brand-new, empty database file (H44); the file must not exist.
     CreateDatabase {
@@ -50,16 +49,14 @@ pub enum Command {
         /// Target format family (`Jet4` or `Sqlite`).
         format: crate::port::DatabaseFormat,
     },
-    /// Materializes a shipped template into a new file (phase 29, H44);
-    /// not opened. Names come from `templates`.
+    /// Materializes a shipped template into a new file (29, H44); not opened.
     CreateDatabaseFromTemplate {
         /// Filesystem path of the new file.
         path: PathBuf,
         /// Registry name of the template (case-insensitive).
         template: String,
     },
-    /// Writes a copy under `path` (step 27.2, M14), original untouched;
-    /// gated on `passwords`.
+    /// Writes a copy under `path` (step 27.2, M14), original untouched.
     SaveDatabaseAs {
         /// Filesystem path of the copy; it must not exist yet.
         path: PathBuf,
@@ -67,8 +64,7 @@ pub enum Command {
         #[serde(default)]
         password: Option<String>,
     },
-    /// Replaces the password in place (step 27.2, M14); the old password
-    /// is the one the session was opened with.
+    /// Replaces the password in place (27.2, M14); the open session's one.
     ChangePassword {
         /// New password, or `None` to remove the protection.
         #[serde(default)]
@@ -79,8 +75,7 @@ pub enum Command {
         /// Full field-level definition.
         definition: TableDef,
     },
-    /// Imports an external CSV as a new table (step 58.1, M50): inferred
-    /// kinds, the source never touched; all clients share the chain.
+    /// Imports an external CSV as a new table (58.1, M50); source untouched.
     ImportFile {
         /// The CSV file to read (header row + records).
         source: std::path::PathBuf,
@@ -92,8 +87,7 @@ pub enum Command {
         /// Table name as shown in the navigation pane.
         table: String,
     },
-    /// Appends a field (step 24.3, M9); existing rows get Null. The
-    /// field must be nullable (or carry no engine-evaluable default).
+    /// Appends a field (24.3, M9); existing rows get Null, nullable required.
     AddField {
         /// Target table (case-insensitive).
         table: String,
@@ -116,8 +110,7 @@ pub enum Command {
         /// New field name.
         new_name: String,
     },
-    /// Replaces a field's properties (step 24.3, M9); the storage shape
-    /// must not change.
+    /// Replaces a field's properties (24.3, M9); the storage shape stays.
     SetFieldProperties {
         /// Target table (case-insensitive).
         table: String,
@@ -126,16 +119,14 @@ pub enum Command {
         /// The new property set.
         properties: crate::schema::FieldProperties,
     },
-    /// Appends one row (step 13.2, H36); `Null` on an AutoNumber field
-    /// means "engine-assigned".
+    /// Appends one row (13.2, H36); `Null` on AutoNumber = engine-assigned.
     InsertRow {
         /// Target table name (case-insensitive).
         table: String,
         /// Full positional value list (arity must match the table).
         values: Vec<crate::schema::FieldValue>,
     },
-    /// Replaces one row by its zero-based live-row index (step 11.10,
-    /// H40); `Null` keeps an AutoNumber's engine-assigned value.
+    /// Replaces one row by index (11.10, H40); `Null` keeps the AutoNumber.
     UpdateRow {
         /// Target table name (case-insensitive).
         table: String,
@@ -151,16 +142,14 @@ pub enum Command {
         /// Zero-based index in the table's live-row order.
         row: usize,
     },
-    /// Replaces individual cells across rows (step 86.3, M101): one
-    /// history entry, every edit validated first (`Null` = clear, M24).
+    /// Replaces individual cells across rows (86.3, M101): one history entry.
     UpdateCells {
         /// Target table name (case-insensitive).
         table: String,
         /// The cell edits, grouped per row by the handler.
         edits: Vec<crate::command::CellEdit>,
     },
-    /// Previews a journaled write batch (step 11.11, M2); nothing is
-    /// written until `ApplyWrite`. Headless-only (L26).
+    /// Previews a journaled write batch (11.11, M2); headless-only (L26).
     PreviewWrite {
         /// Target table name (case-insensitive).
         table: String,
@@ -182,19 +171,16 @@ pub enum Command {
         /// Token from the preview.
         token: u64,
     },
-    /// Renames one table, query, form or report (step 72.1, M81);
-    /// tabs, sidecar references and relationships follow.
+    /// Renames one table, query, form or report (72.1, M81); references follow.
     RenameObject {
         /// The object to rename (kind + current name).
         object: ObjectId,
         /// The new name, validated against the kind's namespace.
         new_name: String,
     },
-    /// Opens the object in a tab (re-activates an existing tab instead of
-    /// opening a second one for the same object).
+    /// Opens the object in a tab (an already-open object re-activates).
     OpenObject(ObjectId),
-    /// Opens the object in the given view (step 21.5, U9): the nav
-    /// pane's Open/Design menu in one command.
+    /// Opens the object in the given view (21.5, U9) — the nav pane's menu.
     OpenObjectInMode {
         /// The object to open.
         object: ObjectId,
@@ -232,8 +218,7 @@ pub enum Command {
     Undo,
     /// Re-applies the last undone row write (step 28.1, U14).
     Redo,
-    /// Switches one tab between datasheet and design view (step 21.1,
-    /// U5): the Views split-button's single action.
+    /// Switches one tab between datasheet and design view (21.1, U5).
     SetTabMode {
         /// The tab whose view changes.
         tab_id: TabId,
@@ -258,16 +243,14 @@ pub enum Command {
     ToggleSqlWindow,
     /// Opens or closes the Import File window (step 58.1, item M50).
     ToggleImportWindow,
-    /// Parses an external CSV file for the Import File window (step
-    /// 58.1, M50); the source is only read.
+    /// Parses an external file for the Import File window (58.1, M50).
     PreviewImportFile {
         /// The CSV file to read.
         source: std::path::PathBuf,
     },
     /// Shows or hides the expression window (step 41.2, item M46).
     ToggleExpressionWindow,
-    /// Runs one SELECT/WITH over the loaded tables in throwaway SQLite
-    /// (step 13.3, H37).
+    /// Runs one SELECT/WITH in throwaway SQLite (13.3, H37).
     RunSql {
         /// The statement; anything but one SELECT/WITH is rejected.
         sql: String,
@@ -324,6 +307,23 @@ pub enum Command {
     ClearTableFilters {
         /// Target table name (case-insensitive).
         table: String,
+    },
+    /// Lists one column's distinct rendered values (phase 101, M132).
+    ListColumnValues {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// The column to list.
+        field: String,
+    },
+    /// Filters a column by a value from its list (phase 101, M132);
+    /// `None` picks the blank entry.
+    FilterByValue {
+        /// Target table name (case-insensitive).
+        table: String,
+        /// The filtered column.
+        field: String,
+        /// The rendered value, or `None` for blanks.
+        value: Option<String>,
     },
     /// Deletes a query (dependent tabs close first).
     DeleteQuery {

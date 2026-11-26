@@ -169,6 +169,7 @@ impl App {
                     &rows,
                     None,
                     &request.criteria,
+                    &std::collections::BTreeMap::new(),
                 )
                 .map(|order| order.len())
                 .unwrap_or(0);

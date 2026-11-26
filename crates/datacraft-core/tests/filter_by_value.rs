@@ -8,8 +8,6 @@
 //! filters — a column carries one of the two — and matching compares the
 //! cell's rendered text, which is what the user picked from the list.
 
-use std::collections::BTreeMap;
-
 use datacraft_core::command::Command;
 use datacraft_core::core::Core;
 use datacraft_core::event::Event;

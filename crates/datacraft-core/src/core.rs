@@ -276,6 +276,14 @@ impl Core {
                 criteria,
             } => self.set_table_filter(&table, &field, criteria.as_deref()),
             Command::ClearTableFilters { table } => self.clear_table_filters(&table),
+            Command::ListColumnValues { table, field } => {
+                self.list_column_values(&table, &field)
+            }
+            Command::FilterByValue {
+                table,
+                field,
+                value,
+            } => self.filter_by_value(&table, &field, value.as_deref()),
             Command::DeleteQuery { name } => self.delete_query(&name),
             Command::RunQuery { query } => self.run_query_command(&query),
             Command::CreateForm { name } => self.create_form(&name),

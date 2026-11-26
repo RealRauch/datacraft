@@ -103,7 +103,13 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 .sort_field
                 .as_deref()
                 .map(|field| (field, tab.sort_order.unwrap_or(SortOrder::Ascending)));
-            datacraft_core::table_view::view_order(table, rows, sort, &tab.filters)
+            datacraft_core::table_view::view_order(
+                table,
+                rows,
+                sort,
+                &tab.filters,
+                &tab.value_filters,
+            )
         })
         .map(|outcome| match outcome {
             Ok(order) => (Some(order), false),

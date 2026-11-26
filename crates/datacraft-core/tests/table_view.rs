@@ -197,19 +197,22 @@ fn view_order_filters_then_sorts_into_display_indices() {
         &rows,
         Some(("total", SortOrder::Ascending)),
         &filters,
+        &BTreeMap::new(),
     )
     .expect("runs");
     // Both "b" rows survive the filter, ordered by total ascending.
     assert_eq!(order, vec![1, 0], "brake(90) before bolt(250)");
 
     // Without a view model the identity order comes back.
-    let identity = view_order(&table, &rows, None, &BTreeMap::new()).expect("runs");
+    let identity =
+        view_order(&table, &rows, None, &BTreeMap::new(), &BTreeMap::new()).expect("runs");
     assert_eq!(identity, vec![0, 1, 2]);
 
     // Violations surface precisely.
     let mut filters = BTreeMap::new();
     filters.insert("ghost".to_owned(), "1".to_owned());
-    let err = view_order(&table, &rows, None, &filters).expect_err("unknown field");
+    let err = view_order(&table, &rows, None, &filters, &BTreeMap::new())
+        .expect_err("unknown field");
     assert!(
         matches!(
             err,
@@ -275,6 +278,7 @@ fn nulls_sort_first_ascending_and_last_descending() {
         &rows,
         Some(("total", SortOrder::Ascending)),
         &BTreeMap::new(),
+        &BTreeMap::new(),
     )
     .expect("the sort resolves");
     assert_eq!(asc, vec![1, 2, 0], "NULL first ascending: {asc:?}");
@@ -282,6 +286,7 @@ fn nulls_sort_first_ascending_and_last_descending() {
         &table,
         &rows,
         Some(("total", SortOrder::Descending)),
+        &BTreeMap::new(),
         &BTreeMap::new(),
     )
     .expect("the sort resolves");
@@ -305,6 +310,7 @@ fn mixed_families_follow_a_documented_rank() {
         &table,
         &rows,
         Some(("v", SortOrder::Ascending)),
+        &BTreeMap::new(),
         &BTreeMap::new(),
     )
     .expect("the sort resolves");
@@ -382,8 +388,14 @@ fn sorted_output_is_consistent_under_null_and_family_mixes() {
         for (direction, descending) in
             [(SortOrder::Ascending, false), (SortOrder::Descending, true)]
         {
-            let order = view_order(&table, &rows, Some(("v", direction)), &BTreeMap::new())
-                .expect("the sort resolves");
+            let order = view_order(
+                &table,
+                &rows,
+                Some(("v", direction)),
+                &BTreeMap::new(),
+                &BTreeMap::new(),
+            )
+            .expect("the sort resolves");
             let sorted: Vec<FieldValue> =
                 order.iter().map(|&index| rows[index][0].clone()).collect();
             // NULL placement: first ascending, last descending.

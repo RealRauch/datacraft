@@ -200,11 +200,36 @@ impl TabMode {
     }
 }
 
+/// One column's value filter (phase 101, step 101.1; item M132): a value
+/// picked from the column's distinct list. Matching compares the cell's
+/// rendered text, exactly the string the list showed.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ValueFilter {
+    /// The list's blank entry: keeps the `Null` cells.
+    Blank,
+    /// One rendered value from the list.
+    Text(String),
+}
+
+impl ValueFilter {
+    /// Whether a cell passes this filter: `Null` for the blank entry,
+    /// otherwise the rendered text must equal the picked one.
+    pub fn matches(&self, value: &crate::schema::FieldValue) -> bool {
+        match self {
+            Self::Blank => value == &crate::schema::FieldValue::Null,
+            Self::Text(text) => {
+                value != &crate::schema::FieldValue::Null
+                    && datacraft_types::display_value(value) == *text
+            }
+        }
+    }
+}
+
 /// Datasheet view state of one table (step 44.5, item M54): the sort
-/// (field + direction) and the column filters (field → criteria text).
-/// Presentation model — the row data itself stays untouched.
-/// (field + direction) and the column filters (field → criteria text).
-/// Presentation model — the row data itself stays untouched.
+/// (field + direction) and the column filters — typed criteria text or a
+/// picked value per column. Presentation model: the row data stays
+/// untouched.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TableViewState {
     /// Sort field name (whitelisted at set time), if any.
@@ -213,6 +238,10 @@ pub struct TableViewState {
     pub sort_order: Option<crate::qbe::SortOrder>,
     /// Column filters: field name → criteria text (engine dialect).
     pub filters: std::collections::BTreeMap<String, String>,
+    /// Value filters: field name → the value picked from the column's
+    /// distinct list (phase 101, step 101.1; item M132). A column
+    /// carries either a criteria or a value filter, never both.
+    pub value_filters: std::collections::BTreeMap<String, ValueFilter>,
 }
 
 /// State of one open document tab.

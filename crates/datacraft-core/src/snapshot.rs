@@ -369,6 +369,9 @@ impl UiStateSnapshot {
                         sort_field: view.and_then(|view| view.sort_field.clone()),
                         sort_order: view.and_then(|view| view.sort_order),
                         filters: view.map(|view| view.filters.clone()).unwrap_or_default(),
+                        value_filters: view
+                            .map(|view| view.value_filters.clone())
+                            .unwrap_or_default(),
                     }
                 })
                 .collect(),

@@ -64,6 +64,20 @@ pub enum Event {
         /// Number of exported rows (the header is not a row).
         rows: usize,
     },
+    /// One column's distinct values, for the filter-by-value dialog
+    /// (phase 101, step 101.1; item M132). Read-only and bounded.
+    ColumnValuesListed {
+        /// Table name as the catalog stores it.
+        table: String,
+        /// Column name as the catalog stores it.
+        field: String,
+        /// Distinct rendered texts in the datasheet's total order.
+        values: Vec<String>,
+        /// Whether the column carries a `Null` cell (its blank entry).
+        blank: bool,
+        /// Whether more distinct values exist than the list carries.
+        truncated: bool,
+    },
     /// The open database's password was replaced in place (step 27.2,
     /// item M14).
     PasswordChanged {

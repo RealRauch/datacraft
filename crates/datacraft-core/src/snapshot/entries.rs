@@ -158,4 +158,7 @@ pub struct TabSnapshot {
     /// Datasheet column filters of a table tab (step 44.5, item M54):
     /// field name → criteria text.
     pub filters: std::collections::BTreeMap<String, String>,
+    /// Picked value filters of a table tab (phase 101, step 101.1; item
+    /// M132): field name → the value from the column's list.
+    pub value_filters: std::collections::BTreeMap<String, crate::state::ValueFilter>,
 }
