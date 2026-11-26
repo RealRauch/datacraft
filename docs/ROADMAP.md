@@ -391,8 +391,8 @@ same capability-honesty style.
 
 | Target | Order | Basis / boundary |
 |--------|-------|------------------|
-| CSV | first | the `csv` crate already writes (the datacraft-csv driver uses it for its atomic rewrite); the export command is a new core command, distinct from the CSV *driver* (a directory of tables) |
-| JSON (tables + schema) | early | agent-first surface for MCP consumers; pure data, no styling |
+| CSV | ✅ delivered (phase 99, M130) | the `csv` crate already writes (the datacraft-csv driver uses it for its atomic rewrite); the export command is a new core command, distinct from the CSV *driver* (a directory of tables) |
+| JSON (tables + schema) | ✅ delivered (phase 99, M130) | agent-first surface for MCP consumers; pure data, no styling |
 | xlsx / .ods | after the §7/§8 read drivers | writer candidates are already named there (rust_xlsxwriter, spreadsheet-ods); same deterministic-write rule |
 | PDF from report preview | ✅ delivered (phase 97, M128; scope below) | the print preview already paginates in core; PDF is a renderer question, not a core one |
 | Print | later | OS print dialog is UI-owned; core stays headless |

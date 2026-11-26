@@ -4,6 +4,21 @@ All notable, user-visible changes of the DataCraft crate family. The family
 versions in lockstep (see `docs/PUBLISHING.md`); entries are
 crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Added
+- core/ui/cli/mcp: table export to CSV and JSON (99, M130) — one
+  `ExportTable` command writes a whole table to a new file: CSV with a
+  header row and the datasheet text (RFC 4180 quoting, LF terminators, a
+  decimal keeps its field's declared scale), JSON with the field-kind
+  schema plus typed rows (numbers, booleans, `null`, dates as text,
+  binary as hex, multi-value as an array). Bytes are deterministic, the
+  target is created exclusively (an existing file is refused and left
+  alone), a value JSON cannot carry answers precisely before anything is
+  written, and the source database stays byte-identical. The datasheet's
+  trailing row carries one entry per format with the save dialog and a
+  completion notice; CLI and MCP dispatch the same command.
+
 ## [0.2.2] — 2026-11-23
 
 > Release note: 0.2.1 was published incompletely — `datacraft-mcp` could not

@@ -119,7 +119,10 @@ command bus.
   inventory, VBA extraction, viewer and static analysis — no execution.
 - **Export:** a report's print preview exports to a new PDF file — the
   preview's page sequence, selectable text in the shipped Inter face,
-  byte-identical re-export, an existing target refused.
+  byte-identical re-export, an existing target refused. A table exports
+  to CSV (the datasheet text behind a header row) or to a JSON document
+  carrying the field-kind schema and typed rows, deterministic and
+  without touching the source.
 - **Automation:** the same commands through the GUI, `datacraft-cli` and
   the `datacraft-mcp` stdio endpoint; journaled writes and inspectable
   snapshots.
@@ -159,6 +162,7 @@ lanes and CI runs — is in
 | **SQL window** | ✅ read-only SQL over every source: on SQLite the statement runs natively (full dialect including window functions, real indexes, native views, `EXPLAIN QUERY PLAN`); Jet/ACE/CSV materialize into the shadow engine | ⬜ writes stay on the command bus — a write statement answers a precise capability refusal on every source | the dialect is named in the snapshot and the window; the shadow engine has no plan surface |
 | **Excel workbooks** | ✅ `.xlsx`/`.xlsm`/`.xls`/`.xlsb` — sheets as tables, typed cells, formula cells as their saved cached value | ⬜ read-only | macros are never read, executed or modified; ODF and password-protected workbooks answer a precise refusal; multi-sheet import uses the first data sheet |
 | **Report export (PDF)** | ✅ one command renders a report's print preview (page sequence, group bands and aggregates) to a new PDF; fixed metadata and stable order make re-export byte-identical; text stays selectable through an embedded Type0 font | ⬜ `pdf-export` core feature (enabled by the shipped clients); no interactive/scripted PDFs, PDF/A or PDF/UA claims, image embedding or printing | an existing target is refused; a build without the feature answers precisely; the source database and sidecar stay untouched |
+| **Table export (CSV / JSON)** | ✅ one command writes a whole table to a new file: CSV with a header row and the datasheet text (RFC 4180 quoting, declared decimal scale), or a JSON document carrying the field-kind schema and typed rows (numbers, booleans, `null`, dates as text, binary as hex, multi-value as an array); deterministic bytes | ⬜ no styling, formatting or filtered views — the export always carries the whole table in storage order | an existing target is refused; a value JSON cannot carry (a non-finite float) answers precisely with the row and field; the source database stays byte-identical |
 | **Maintenance** | ✅ Jet/ACE health facts and a bounded page sanity scan at open; SQLite facts + `quick_check` | ✅ Compact rewrites the open Jet4/ACE database into a fresh verified file and swaps it atomically at the same path | SQLite/CSV stay as-is (precise refusal); Jet3 is read-only; password-protected and Access-locked sessions refuse without touching the file |
 | **Form runtime (ADR-8)** | ✅ bound text/checkbox/combo editing with per-record commit, button actions, form-scoped filters | ✅ row writes through the driver (capability-gated) | no macro/VBA actions (ADR-2); design data lives in the sidecar; filters are session state, never written into Jet/ACE |
 | **Design layer (ADR-1)** | sidecar forms, queries, reports and views; native saved queries read-only; native Access forms/reports listed read-only | ✅ sidecar save/load; sibling auto-load; ⬜ native form/report writes | native form/report definitions are neither decoded nor written; the sidecar is versioned and database-name checked |
