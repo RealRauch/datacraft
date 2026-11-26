@@ -9,9 +9,9 @@
 use std::path::Path;
 
 use datacraft_core::port::{
-    DatabaseFormat, DriverCapabilities, DriverId, DriverInfo, NativeObject, NativeView,
-    OpenedDatabase, PortError, Relationship, RelationshipGroup, RowRange, RowWriteOp, SchemaChange,
-    SourceFacts, SourceIndex, SourceTrigger, StoragePort,
+    DatabaseFormat, DriverCapabilities, DriverId, DriverInfo, LinkedTable, NativeObject,
+    NativeView, OpenedDatabase, PortError, Relationship, RelationshipGroup, RowRange, RowWriteOp,
+    SchemaChange, SourceFacts, SourceIndex, SourceTrigger, StoragePort,
 };
 use datacraft_core::schema::{FieldValue, TableDef};
 
@@ -231,6 +231,13 @@ impl StoragePort for DetectingPort {
         self.session
             .as_ref()
             .map_or_else(|| Ok(Vec::new()), |session| session.native_objects())
+    }
+
+    /// Linked-table inventory of the session (phase 100, item M131).
+    fn linked_tables(&self) -> Result<Vec<LinkedTable>, PortError> {
+        self.session
+            .as_ref()
+            .map_or_else(|| Ok(Vec::new()), |session| session.linked_tables())
     }
 
     /// Composite relationship groupings of the session (F13).
