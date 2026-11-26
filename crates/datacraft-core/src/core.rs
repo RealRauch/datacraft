@@ -276,9 +276,7 @@ impl Core {
                 criteria,
             } => self.set_table_filter(&table, &field, criteria.as_deref()),
             Command::ClearTableFilters { table } => self.clear_table_filters(&table),
-            Command::ListColumnValues { table, field } => {
-                self.list_column_values(&table, &field)
-            }
+            Command::ListColumnValues { table, field } => self.list_column_values(&table, &field),
             Command::FilterByValue {
                 table,
                 field,

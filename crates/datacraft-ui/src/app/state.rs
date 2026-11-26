@@ -74,6 +74,9 @@ pub struct App {
     pub(super) design_new_field: HashMap<TabId, String>,
     pub(super) filter_drafts: HashMap<(TabId, usize), String>,
     pub(super) filter_dialog: HashMap<TabId, usize>,
+    /// The open value list of the column header (phase 101, step 101.2;
+    /// item M132) — filled by the `ColumnValuesListed` event.
+    pub(crate) value_filter: Option<crate::datasheet::filter_value::ValueList>,
     /// Buffered rename text per design tab (step 24.3, M9).
     pub(super) design_rename: HashMap<TabId, String>,
     /// Current record cursor per table/query tab (the status bar's

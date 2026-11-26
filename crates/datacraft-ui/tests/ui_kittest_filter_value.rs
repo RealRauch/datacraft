@@ -78,7 +78,10 @@ fn the_header_menu_lists_the_values_and_filters_on_a_click() {
     // The window lists both names; the grid cells carry the same text, so
     // the window entries are the later nodes.
     let entries = harness.get_all_by_label("Ada").count();
-    assert!(entries >= 2, "the list entry sits beside the cells: {entries}");
+    assert!(
+        entries >= 2,
+        "the list entry sits beside the cells: {entries}"
+    );
     harness
         .get_all_by_label("Ada")
         .last()

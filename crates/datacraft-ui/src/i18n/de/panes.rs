@@ -55,3 +55,14 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("On", "Ein"),
     ("Off", "Aus"),
 ];
+
+/// German catalog: the datasheet value list (phase 101, step 101.2; item M132).
+pub(super) const VALUE_LIST: &[(&str, &str)] = &[
+    ("Filter by Value…", "Nach Wert filtern…"),
+    ("Filter by Value: {column}", "Nach Wert filtern: {column}"),
+    ("(Blanks)", "(Leer)"),
+    (
+        "More values exist — narrow the column with a criteria.",
+        "Es gibt weitere Werte — schränken Sie die Spalte mit einem Kriterium ein.",
+    ),
+];

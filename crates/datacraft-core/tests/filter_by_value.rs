@@ -13,9 +13,7 @@ use datacraft_core::core::Core;
 use datacraft_core::event::Event;
 use datacraft_core::failure::FailureCode;
 use datacraft_core::port::MockPort;
-use datacraft_core::schema::{
-    FieldDef, FieldKind, FieldValue, NumericKind, TableDef,
-};
+use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_core::state::ValueFilter;
 use datacraft_core::table_view::{VALUE_LIST_LIMIT, view_order};
 
@@ -109,7 +107,10 @@ fn the_list_is_bounded_and_reports_truncation() {
             assert_eq!(values.len(), VALUE_LIST_LIMIT);
             assert!(truncated, "more values existed than the list carries");
             assert_eq!(values[0], "name0000");
-            assert_eq!(values[VALUE_LIST_LIMIT - 1], format!("name{:04}", VALUE_LIST_LIMIT - 1));
+            assert_eq!(
+                values[VALUE_LIST_LIMIT - 1],
+                format!("name{:04}", VALUE_LIST_LIMIT - 1)
+            );
         }
         other => panic!("expected the value list, got {other:?}"),
     }
@@ -159,10 +160,7 @@ fn filtering_by_the_blank_entry_keeps_the_null_rows() {
         .as_ref()
         .and_then(|db| db.table_views.get("Customers"))
         .expect("the view state");
-    assert_eq!(
-        view.value_filters.get("Name"),
-        Some(&ValueFilter::Blank)
-    );
+    assert_eq!(view.value_filters.get("Name"), Some(&ValueFilter::Blank));
     let order = view_order(
         &customers(),
         &sample_rows(),
@@ -223,11 +221,14 @@ fn a_value_outside_the_list_is_refused() {
         }
         other => panic!("expected a precise refusal, got {other:?}"),
     }
-    let view = core.state().database.as_ref().and_then(|db| {
-        db.table_views.get("Customers")
-    });
+    let view = core
+        .state()
+        .database
+        .as_ref()
+        .and_then(|db| db.table_views.get("Customers"));
     assert!(
-        view.map(|view| view.value_filters.is_empty()).unwrap_or(true),
+        view.map(|view| view.value_filters.is_empty())
+            .unwrap_or(true),
         "a refused filter leaves the view unchanged"
     );
 }
@@ -320,10 +321,7 @@ fn an_unknown_column_lists_and_filters_precisely() {
 
 #[test]
 fn a_blank_filter_is_refused_where_the_column_has_no_null() {
-    let rows = vec![vec![
-        FieldValue::Text("Ada".into()),
-        FieldValue::Integer(1),
-    ]];
+    let rows = vec![vec![FieldValue::Text("Ada".into()), FieldValue::Integer(1)]];
     let mut core = ready_core(rows);
     match core
         .dispatch(Command::FilterByValue {
@@ -362,8 +360,7 @@ fn the_value_filter_rides_the_tab_snapshot() {
     // The wire carries it as a tagged value.
     let wire = serde_json::to_value(&snapshot).expect("serialises");
     assert_eq!(
-        wire["tabs"][0]["value_filters"]["Name"]["text"],
-        "Ada",
+        wire["tabs"][0]["value_filters"]["Name"]["text"], "Ada",
         "{wire}"
     );
 }

@@ -54,6 +54,7 @@ impl App {
             dialogs: Box::new(crate::dialogs::NativeDialogs::default()),
             clipboard: Box::new(crate::clipboard::SystemClipboard),
             pending_dialog: None,
+            value_filter: None,
             open_path: String::new(),
             active_object_kind: None,
             active_ribbon_tab,
@@ -165,6 +166,9 @@ impl App {
         }
         // Password flow (step 16.2, M5) lives in `password_prompt.rs`.
         self.handle_password_events(&events);
+        // The column value list (phase 101, step 101.2; item M132): the
+        // event fills the window the header menu opened.
+        self.capture_value_list(&events);
         // Lifecycle follow-through (step 69.3, M80; step 75.1, L41) lives
         // in `app/lifecycle.rs` (L30).
         self.follow_database_lifecycle(&events);

@@ -21,6 +21,7 @@ static MODULES: &[&[(&str, &str)]] = &[
     dialogs::TABLE,
     tooltips::TABLE,
     panes::TABLE,
+    panes::VALUE_LIST,
     ui_chrome::TABLE,
     views::TABLE,
 ];

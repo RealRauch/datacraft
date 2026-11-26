@@ -38,6 +38,8 @@ pub(super) struct HeaderPass<'a> {
     /// criteria dialog (the in-menu editor died on click — egui menus
     /// do not host text editing).
     pub filter_dialog: Option<&'a mut dyn FnMut(usize)>,
+    /// Opens the column's value list (phase 101, step 101.2; item M132).
+    pub value_list: Option<&'a mut dyn FnMut(usize)>,
     /// The filter builder window (step 87.4, item M104): opens the
     /// tab-wide structured draft over the live criteria.
     pub filter_builder: Option<&'a mut dyn FnMut()>,
@@ -79,6 +81,7 @@ pub(super) fn header_ui(
     let mut pending_filter_builder = false;
     let mut pending_freeze: Option<usize> = None;
     let mut pending_filter_dialog: Option<usize> = None;
+    let mut pending_value_list: Option<usize> = None;
     let mut pending_select_column: Option<(usize, bool)> = None;
     // The band is viewport-bounded, never content-sized: a content-sized
     // band would widen the container ui and defeat the body's horizontal
@@ -183,6 +186,14 @@ pub(super) fn header_ui(
                     pending_filter_dialog = Some(col);
                     ui.close();
                 }
+                // The value list (phase 101, step 101.2; item M132): the
+                // column's distinct values, one click per pick.
+                if pass.value_list.is_some()
+                    && ui.selectable_label(false, t("Filter by Value…")).clicked()
+                {
+                    pending_value_list = Some(col);
+                    ui.close();
+                }
                 // The structured builder (step 87.4, item M104): the
                 // tab-wide draft over the live criteria.
                 if pass.filter_builder.is_some()
@@ -266,6 +277,11 @@ pub(super) fn header_ui(
     }
     if let Some(column) = pending_filter_dialog
         && let Some(callback) = pass.filter_dialog.as_mut()
+    {
+        callback(column);
+    }
+    if let Some(column) = pending_value_list
+        && let Some(callback) = pass.value_list.as_mut()
     {
         callback(column);
     }

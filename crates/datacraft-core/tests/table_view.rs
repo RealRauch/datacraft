@@ -211,8 +211,8 @@ fn view_order_filters_then_sorts_into_display_indices() {
     // Violations surface precisely.
     let mut filters = BTreeMap::new();
     filters.insert("ghost".to_owned(), "1".to_owned());
-    let err = view_order(&table, &rows, None, &filters, &BTreeMap::new())
-        .expect_err("unknown field");
+    let err =
+        view_order(&table, &rows, None, &filters, &BTreeMap::new()).expect_err("unknown field");
     assert!(
         matches!(
             err,

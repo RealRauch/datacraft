@@ -204,10 +204,7 @@ impl Core {
                 if !listed.blank {
                     return failed(
                         FailureCode::NotFound,
-                        format!(
-                            "column {:?} of {table:?} has no blank cells",
-                            column.name
-                        ),
+                        format!("column {:?} of {table:?} has no blank cells", column.name),
                     );
                 }
                 crate::state::ValueFilter::Blank

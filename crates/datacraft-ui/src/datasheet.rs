@@ -27,6 +27,7 @@ use crate::theme::tokens;
 
 mod filter_builder;
 pub(crate) mod filter_dialog;
+pub(crate) mod filter_value;
 pub(crate) mod follow;
 mod grid;
 mod grid_cells;
@@ -222,6 +223,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut pending_edit: Option<EditIntent> = None;
     let mut sort_intent: Option<(usize, SortOrder)> = None;
     let mut dialog_intent: Option<usize> = None;
+    let mut value_list_intent: Option<usize> = None;
     let mut follow_intent: Option<(usize, usize, usize)> = None;
     let mut follow_menu_intent: Option<(usize, usize)> = None;
     let mut builder_open_intent = false;
@@ -244,6 +246,10 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         };
         let mut on_filter_dialog = |column: usize| {
             dialog_intent = Some(column);
+        };
+        // The column's value list (phase 101, step 101.2; item M132).
+        let mut on_value_list = |column: usize| {
+            value_list_intent = Some(column);
         };
         // The grid's row viewport reserves the trailing panels' height
         // budget (step 48.2, item M61): without it the grid consumes the
@@ -289,6 +295,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut on_delete),
                     Some(&mut on_edit),
                     Some(&mut on_filter_dialog),
+                    Some(&mut on_value_list),
                     Some(&mut |row: usize, col: usize, index: usize| {
                         follow_intent = Some((row, col, index));
                     }),
@@ -361,6 +368,16 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     }
     if let Some(column) = dialog_intent {
         app.open_filter_dialog(tab.id, column);
+    }
+    // The column's value list (phase 101, step 101.2; item M132): one
+    // list request per frame, the event fills the window.
+    if let Some(column) = value_list_intent
+        && let Some(name) = columns.get(column)
+    {
+        app.dispatch(Command::ListColumnValues {
+            table: tab.object_name.clone(),
+            field: name.clone(),
+        });
     }
     // The menu is open (step 87.2, item M103): queue its count reads —
     // duplicates answer from the map, one bounded read runs per frame.
@@ -441,6 +458,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     app.set_cursor_slot(tab.id, cursor_slot);
     trailing::trailing_ui(app, tab, row_count, &columns, &widths, ui);
     filter_dialog::filter_dialog_ui(app, tab, &columns, ui);
+    filter_value::value_list_ui(app, ui.ctx());
     filter_builder::filter_builder_ui(app, tab, &columns, ui);
     submit::submission_ui(app, tab, &columns, ui);
     // The cell value viewer (step 86.4, item M102) rides the trailing
