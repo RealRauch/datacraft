@@ -38,6 +38,20 @@ pub static TABLE: &[(&str, &str)] = &[
         "Report exported to {path} ({pages} pages)",
         "Bericht exportiert nach {path} ({pages} Seiten)",
     ),
+    ("Export CSV…", "CSV exportieren…"),
+    ("Export JSON…", "JSON exportieren…"),
+    (
+        "Export the table to a CSV file.",
+        "Exportiert die Tabelle als CSV-Datei.",
+    ),
+    (
+        "Export the table to a JSON document (schema and rows).",
+        "Exportiert die Tabelle als JSON-Dokument (Schema und Datensätze).",
+    ),
+    (
+        "Table exported to {path} ({rows} rows)",
+        "Tabelle exportiert nach {path} ({rows} Datensätze)",
+    ),
     (
         "native SQLite · read-only",
         "natives SQLite · schreibgeschützt",

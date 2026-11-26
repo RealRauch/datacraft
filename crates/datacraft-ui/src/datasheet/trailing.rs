@@ -9,6 +9,7 @@
 
 use eframe::egui;
 
+use datacraft_core::export::ExportFormat;
 use datacraft_core::grid::DEFAULT_COLUMN_WIDTH;
 use datacraft_core::snapshot::TabSnapshot;
 
@@ -65,8 +66,41 @@ pub(super) fn trailing_ui(
         if forward.clicked() {
             app.fk_forward(tab.id);
         }
+        export_buttons(app, tab, ui);
     });
     new_row_ui(app, tab, columns, widths, ui);
+}
+
+/// The table export entries (phase 99, step 99.2; item M130): one button
+/// per format, each parking the save dialog with the table's suggested
+/// file name. The command runs on the answer, so the flow never blocks
+/// inside the frame that asked.
+fn export_buttons(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
+    let csv = ui
+        .button(t("Export CSV…"))
+        .on_hover_text(t("Export the table to a CSV file."));
+    if csv.clicked() {
+        request_table_export(app, tab, ExportFormat::Csv);
+    }
+    let json = ui
+        .button(t("Export JSON…"))
+        .on_hover_text(t("Export the table to a JSON document (schema and rows)."));
+    if json.clicked() {
+        request_table_export(app, tab, ExportFormat::Json);
+    }
+}
+
+/// Parks the save dialog for one table export.
+fn request_table_export(app: &mut App, tab: &TabSnapshot, format: ExportFormat) {
+    app.request_dialog(
+        crate::dialogs::DialogRequest::SaveFile {
+            suggested: format!("{}.{}", tab.object_name, format.extension()),
+        },
+        crate::app::dialog_flow::DialogIntent::ExportTable {
+            table: tab.object_name.clone(),
+            format,
+        },
+    );
 }
 
 /// The datasheet's new-record row (step 11.7): one text cell per column,

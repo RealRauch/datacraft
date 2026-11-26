@@ -166,10 +166,12 @@ pub(crate) const NOTICE_SOURCE_HEALTH: &str =
 pub(crate) const NOTICE_DATABASE_COMPACTED: &str = "Database compacted";
 /// A report's print preview was exported (phase 97, M128).
 pub(crate) const NOTICE_REPORT_EXPORTED: &str = "Report exported to {path} ({pages} pages)";
+/// A table was exported to a file (phase 99, M130).
+pub(crate) const NOTICE_TABLE_EXPORTED: &str = "Table exported to {path} ({rows} rows)";
 
 /// Every catalog key `notice_for` can store (i18n coverage test).
 #[cfg(test)]
-pub(crate) fn notice_keys() -> [&'static str; 9] {
+pub(crate) fn notice_keys() -> [&'static str; 10] {
     [
         NOTICE_COPY_SAVED,
         NOTICE_COPY_SAVED_ENCRYPTED,
@@ -180,6 +182,7 @@ pub(crate) fn notice_keys() -> [&'static str; 9] {
         NOTICE_SOURCE_HEALTH,
         NOTICE_DATABASE_COMPACTED,
         NOTICE_REPORT_EXPORTED,
+        NOTICE_TABLE_EXPORTED,
     ]
 }
 
@@ -213,6 +216,13 @@ pub(crate) fn notice_for(events: &[Event]) -> Option<NoticeMessage> {
             args: vec![
                 ("path".to_owned(), path.display().to_string()),
                 ("pages".to_owned(), pages.to_string()),
+            ],
+        }),
+        Event::TableExported { path, rows, .. } => Some(NoticeMessage::Key {
+            key: NOTICE_TABLE_EXPORTED,
+            args: vec![
+                ("path".to_owned(), path.display().to_string()),
+                ("rows".to_owned(), rows.to_string()),
             ],
         }),
         Event::DesignDocumentSaved { path } => Some(NoticeMessage::Key {

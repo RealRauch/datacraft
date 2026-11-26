@@ -37,6 +37,12 @@ pub(crate) enum DialogIntent {
     DeleteObject { command: Command },
     /// The picked path receives the report's PDF export (phase 97, M128).
     ExportReportPdf { report: String },
+    /// The picked path receives the table export (phase 99, step 99.2;
+    /// item M130).
+    ExportTable {
+        table: String,
+        format: datacraft_core::export::ExportFormat,
+    },
 }
 
 impl App {
@@ -106,6 +112,13 @@ impl App {
             }
             (DialogIntent::ExportReportPdf { report }, DialogAnswer::Path(Some(path))) => {
                 self.dispatch(Command::ExportReportPdf { report, path });
+            }
+            (DialogIntent::ExportTable { table, format }, DialogAnswer::Path(Some(path))) => {
+                self.dispatch(Command::ExportTable {
+                    table,
+                    format,
+                    path,
+                });
             }
             // A user's Cancel clears the park and keeps every buffer.
             _ => {}
