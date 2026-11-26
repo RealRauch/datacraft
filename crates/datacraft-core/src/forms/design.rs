@@ -29,6 +29,88 @@ impl Core {
                 control,
                 position,
             } => self.set_control_tab_order(&object, &control, position),
+            DesignCommand::PlaceFieldControl { object, field, at } => {
+                self.place_field_control_at(&object, &field, at)
+            }
+        }
+    }
+
+    /// Places a record-source field as a bound control at a drop point
+    /// (phase 102, step 102.4). The palette computes the snapped, clamped
+    /// rect and the unique name; the regular add path then validates the
+    /// binding, snaps again (idempotent) and appends the control.
+    pub(crate) fn place_field_control_at(
+        &mut self,
+        object: &ObjectId,
+        field: &str,
+        at: (f32, f32),
+    ) -> Vec<Event> {
+        let Some(db) = self.state.database.as_ref() else {
+            return no_database();
+        };
+        let (object_name, control, is_report) = match object.kind {
+            ObjectKind::Form => {
+                let Some(form) = db
+                    .forms
+                    .iter()
+                    .find(|form| form.name.eq_ignore_ascii_case(&object.name))
+                else {
+                    return failed(
+                        FailureCode::NotFound,
+                        format!("form {:?} not found", object.name),
+                    );
+                };
+                match crate::palette::place_field_control_at(
+                    &form.source,
+                    &db.tables,
+                    field,
+                    at,
+                    form.grid,
+                    (form.size.width, form.size.height),
+                    &form.controls,
+                ) {
+                    Ok(control) => (form.name.clone(), control, false),
+                    Err(reason) => return failed(FailureCode::InvalidInput, reason),
+                }
+            }
+            ObjectKind::Report => {
+                let Some(report) = db
+                    .reports
+                    .iter()
+                    .find(|report| report.name.eq_ignore_ascii_case(&object.name))
+                else {
+                    return failed(
+                        FailureCode::NotFound,
+                        format!("report {:?} not found", object.name),
+                    );
+                };
+                match crate::palette::place_field_control_at(
+                    &report.source,
+                    &db.tables,
+                    field,
+                    at,
+                    report.grid,
+                    (report.page.width, report.page.height),
+                    &report.controls,
+                ) {
+                    Ok(control) => (report.name.clone(), control, true),
+                    Err(reason) => return failed(FailureCode::InvalidInput, reason),
+                }
+            }
+            other => {
+                return failed(
+                    FailureCode::InvalidInput,
+                    format!(
+                        "control properties apply to forms and reports, not to a {}",
+                        other.slug()
+                    ),
+                );
+            }
+        };
+        if is_report {
+            self.add_report_control(&object_name, control)
+        } else {
+            self.add_control(&object_name, control)
         }
     }
 

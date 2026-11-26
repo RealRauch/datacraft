@@ -23,7 +23,10 @@ fn customers() -> TableDef {
         vec![
             FieldDef::new("name", FieldKind::Text { max_len: 50 }),
             FieldDef::new("active", FieldKind::Boolean { tri_state: false }),
-            FieldDef::new("photo", FieldKind::Binary(0)),
+            FieldDef::new(
+                "photo",
+                FieldKind::Binary(datacraft_core::schema::BinaryKind::OleObject),
+            ),
         ],
     )
 }
@@ -170,11 +173,12 @@ fn a_report_drops_on_its_page() {
     assert_eq!(
         rect,
         Rect {
-            x: 296.0,
+            x: 304.0,
             y: 504.0,
             width: 120.0,
             height: 24.0,
-        }
+        },
+        "300 snaps to 304, 500 to 504"
     );
 }
 
@@ -190,7 +194,7 @@ fn drop_errors_are_precise_and_leave_the_design_unchanged() {
     core.dispatch(Command::CreateForm {
         name: "Card".into(),
     });
-    let (code, reason) = failed(drop_field(&mut core, form_id(), "name", (8.0, 8.0)));
+    let (code, reason) = failed(&drop_field(&mut core, form_id(), "name", (8.0, 8.0)));
     assert_eq!(code, FailureCode::InvalidInput);
     assert!(reason.to_lowercase().contains("record source"), "{reason}");
 
@@ -199,17 +203,17 @@ fn drop_errors_are_precise_and_leave_the_design_unchanged() {
         form: "Card".into(),
         table: "Customers".into(),
     });
-    let (code, reason) = failed(drop_field(&mut core, form_id(), "ghost", (8.0, 8.0)));
+    let (code, reason) = failed(&drop_field(&mut core, form_id(), "ghost", (8.0, 8.0)));
     assert_eq!(code, FailureCode::InvalidInput);
     assert!(reason.to_lowercase().contains("ghost"), "{reason}");
 
     // A field with no designer control (binary).
-    let (code, reason) = failed(drop_field(&mut core, form_id(), "photo", (8.0, 8.0)));
+    let (code, reason) = failed(&drop_field(&mut core, form_id(), "photo", (8.0, 8.0)));
     assert_eq!(code, FailureCode::InvalidInput);
     assert!(reason.to_lowercase().contains("photo"), "{reason}");
 
     // A non-design object kind.
-    let (code, reason) = failed(drop_field(
+    let (code, reason) = failed(&drop_field(
         &mut core,
         ObjectId::new(ObjectKind::Table, "Customers"),
         "name",
@@ -222,7 +226,9 @@ fn drop_errors_are_precise_and_leave_the_design_unchanged() {
     );
 
     assert!(
-        core.inspect().database.unwrap().forms[0].controls.is_empty(),
+        core.inspect().database.unwrap().forms[0]
+            .controls
+            .is_empty(),
         "no refused drop changed the design"
     );
 }

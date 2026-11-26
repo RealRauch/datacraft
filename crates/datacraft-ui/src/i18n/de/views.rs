@@ -292,4 +292,5 @@ pub static TABLE: &[(&str, &str)] = &[
         "Z-order: {position} of {count}",
         "Z-Reihenfolge: {position} von {count}",
     ),
+    ("Zoom", "Zoom"),
 ];

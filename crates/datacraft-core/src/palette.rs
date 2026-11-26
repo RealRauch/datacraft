@@ -183,6 +183,56 @@ pub fn place_field_control(
     bounds: (f32, f32),
     controls: &[ControlDef],
 ) -> Result<ControlDef, String> {
+    let (field_def, size) = resolve_field(source, tables, field)?;
+    let occupied: Vec<Rect> = controls.iter().map(|control| control.rect).collect();
+    let Some(rect) = free_slot(grid, size, &occupied, bounds) else {
+        return Err(format!("no free space left on the {source:?} canvas"));
+    };
+    Ok(bound_control(field_def, &names_of(controls), rect))
+}
+
+/// Prepares the bound control for a record-source field at a drop point
+/// (phase 102, step 102.4): the point is the control's top-left origin,
+/// snapped to the grid and clamped so the control stays inside `bounds`.
+pub fn place_field_control_at(
+    source: &str,
+    tables: &[TableDef],
+    field: &str,
+    at: (f32, f32),
+    grid: f32,
+    bounds: (f32, f32),
+    controls: &[ControlDef],
+) -> Result<ControlDef, String> {
+    let (field_def, (width, height)) = resolve_field(source, tables, field)?;
+    let rect = crate::canvas::snap_rect(
+        Rect {
+            x: at.0,
+            y: at.1,
+            width,
+            height,
+        },
+        grid,
+    );
+    let rect = Rect {
+        width: rect.width.min(bounds.0),
+        height: rect.height.min(bounds.1),
+        ..rect
+    };
+    let rect = Rect {
+        x: rect.x.min((bounds.0 - rect.width).max(0.0)),
+        y: rect.y.min((bounds.1 - rect.height).max(0.0)),
+        ..rect
+    };
+    Ok(bound_control(field_def, &names_of(controls), rect))
+}
+
+/// Resolves the whitelisted field and its control size (precise errors:
+/// the source must exist, the field must exist and must be bindable).
+fn resolve_field<'a>(
+    source: &str,
+    tables: &'a [TableDef],
+    field: &str,
+) -> Result<(&'a FieldDef, (f32, f32)), String> {
     if source.is_empty() {
         return Err("set the record source before adding fields".to_owned());
     }
@@ -199,22 +249,21 @@ pub fn place_field_control(
     else {
         return Err(format!("field {field:?} not found in {:?}", table.name));
     };
-    let Some((width, height)) = field_control_size(&field_def.kind) else {
+    let Some(size) = field_control_size(&field_def.kind) else {
         return Err(format!(
             "field {:?} ({}) has no designer control — the toolbox has no bound object frame",
             field_def.name,
             crate::present::field_kind_display(&field_def.kind)
         ));
     };
-    let occupied: Vec<Rect> = controls.iter().map(|control| control.rect).collect();
-    let Some(rect) = free_slot(grid, (width, height), &occupied, bounds) else {
-        return Err(format!("no free space left on the {:?} canvas", table.name));
-    };
-    let names: Vec<String> = controls
+    Ok((field_def, size))
+}
+
+fn names_of(controls: &[ControlDef]) -> Vec<String> {
+    controls
         .iter()
         .map(|control| control.name.clone())
-        .collect();
-    Ok(bound_control(field_def, &names, rect))
+        .collect()
 }
 
 /// The bound control for a field, named uniquely against `existing`.

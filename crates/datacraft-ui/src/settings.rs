@@ -13,15 +13,32 @@ use crate::appearance::Appearance;
 use crate::i18n::Lang;
 use crate::window::WindowGeometry;
 
+mod app;
 mod platform;
 mod recent;
 
 pub use recent::{MAX_RECENT_DATABASES, RecentDatabase, prune_notice};
 use recent::{RecentFile, file_modified};
 
+/// Default print-preview zoom: 0.9 keeps a page inside typical window
+/// heights (phase 102, step 102.4).
+pub const DEFAULT_PREVIEW_ZOOM: f32 = 0.9;
+
+/// Accepted print-preview zoom range; anything else falls back.
+const PREVIEW_ZOOM_RANGE: std::ops::RangeInclusive<f32> = 0.25..=4.0;
+
+/// A stored zoom, or the default when it is missing, non-finite or out of
+/// range (the settings file's tolerance rule).
+pub(crate) fn sane_preview_zoom(value: Option<f32>) -> f32 {
+    match value {
+        Some(zoom) if zoom.is_finite() && PREVIEW_ZOOM_RANGE.contains(&zoom) => zoom,
+        _ => DEFAULT_PREVIEW_ZOOM,
+    }
+}
+
 /// Persisted UI preferences: language, appearance, window geometry and the
 /// bounded recent-database list (item U15).
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     /// Language choice; `Auto` follows environment and system detection.
     pub language: LanguageSetting,
@@ -42,9 +59,28 @@ pub struct Settings {
     /// The low-power rendering choice (step 92.6, item L51): `None`
     /// follows the detection, `Some(true)`/`Some(false)` override it.
     pub low_power: Option<bool>,
+    /// Print-preview zoom (phase 102, step 102.4) — a per-surface setting
+    /// of the report preview, sanitized on load.
+    pub preview_zoom: f32,
     /// Paths dropped on load because they no longer exist (not persisted;
     /// surfaced as a startup notice).
     pub pruned_recent: Vec<PathBuf>,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            language: LanguageSetting::default(),
+            appearance: Appearance::default(),
+            window: None,
+            recent: Vec::new(),
+            panes: std::collections::BTreeMap::new(),
+            nav: std::collections::BTreeMap::new(),
+            low_power: None,
+            preview_zoom: DEFAULT_PREVIEW_ZOOM,
+            pruned_recent: Vec::new(),
+        }
+    }
 }
 
 /// Language choice stored in `ui.json`.
@@ -166,6 +202,7 @@ impl Settings {
                 })
                 .collect(),
             low_power: self.low_power,
+            preview_zoom: Some(self.preview_zoom),
         };
         let json = serde_json::to_string_pretty(&file).map_err(std::io::Error::other)?;
         if let Some(parent) = path.parent() {
@@ -238,6 +275,7 @@ impl Settings {
                 })
                 .collect(),
             low_power: file.low_power,
+            preview_zoom: sane_preview_zoom(file.preview_zoom),
             pruned_recent: Vec::new(),
         }
     }
@@ -266,6 +304,8 @@ struct SettingsFile {
     nav: std::collections::BTreeMap<String, serde_json::Value>,
     #[serde(default)]
     low_power: Option<bool>,
+    #[serde(default)]
+    preview_zoom: Option<f32>,
 }
 
 /// Tolerant on-disk shape of one database's nav preferences (step 92.5,
@@ -317,141 +357,6 @@ struct NavGroupFile {
 struct PaneFile {
     mode: Option<String>,
     size: Option<f32>,
-}
-
-impl crate::app::App {
-    /// Attaches the UI settings file (the composition root sets this).
-    pub fn set_settings_path(&mut self, path: Option<PathBuf>) {
-        self.settings_path = path;
-    }
-
-    /// Attaches the dialog host: the binary uses the native dialogs, the
-    /// headless suite injects scripted answers (step 38.3, item M43).
-    pub fn set_dialogs(&mut self, host: Box<dyn crate::dialogs::DialogQueue>) {
-        self.dialogs = host;
-    }
-
-    /// Applies persisted settings at startup: the stored language choice
-    /// beats the environment and system detection (ADR-5).
-    pub fn apply_settings(&mut self, settings: Settings) {
-        if !settings.pruned_recent.is_empty() {
-            self.record_notice(prune_notice(&settings.pruned_recent));
-        }
-        self.settings = settings;
-        crate::i18n::init_language(self.language_setting().lang());
-    }
-
-    /// Recent database entries, newest first (item U15).
-    pub fn recent_databases(&self) -> &[RecentDatabase] {
-        self.settings.recent()
-    }
-
-    /// Current language choice.
-    pub fn language_setting(&self) -> LanguageSetting {
-        self.settings.language
-    }
-
-    /// Current appearance choice.
-    pub fn appearance_setting(&self) -> Appearance {
-        self.settings.appearance
-    }
-
-    /// Switches the appearance and persists the choice (ADR-6). The next
-    /// frame applies it as egui's theme preference.
-    pub fn set_appearance_setting(&mut self, setting: Appearance) {
-        self.settings.appearance = setting;
-        if let Err(reason) = self.persist_settings() {
-            self.record_error(crate::i18n::tr(
-                "Settings could not be saved: {reason}",
-                &[("reason", &reason.to_string())],
-            ));
-        }
-    }
-
-    /// Current low-power rendering choice (`None` = auto-detection).
-    pub fn low_power_setting(&self) -> Option<bool> {
-        self.settings.low_power
-    }
-
-    /// Switches the low-power rendering choice and persists it (step
-    /// 92.6, item L51). The mode itself resolves once at startup.
-    pub fn set_low_power_setting(&mut self, choice: Option<bool>) {
-        self.settings.low_power = choice;
-        if let Err(reason) = self.persist_settings() {
-            self.record_error(crate::i18n::tr(
-                "Settings could not be saved: {reason}",
-                &[("reason", &reason.to_string())],
-            ));
-        }
-    }
-
-    /// Switches the UI language live and persists the choice (ADR-5).
-    pub fn set_language_setting(&mut self, setting: LanguageSetting) {
-        self.settings.language = setting;
-        crate::i18n::init_language(setting.lang());
-        if let Err(reason) = self.persist_settings() {
-            self.record_error(crate::i18n::tr(
-                "Settings could not be saved: {reason}",
-                &[("reason", &reason.to_string())],
-            ));
-        }
-    }
-
-    /// Records a successful open in the recent list and persists it
-    /// (step 28.2, item U15).
-    pub(crate) fn record_recent_database(&mut self, path: &Path) {
-        self.settings.record_recent(path);
-        if let Err(reason) = self.persist_settings() {
-            self.record_error(crate::i18n::tr(
-                "Settings could not be saved: {reason}",
-                &[("reason", &reason.to_string())],
-            ));
-        }
-    }
-
-    /// Writes the settings file; `Ok(())` when none is attached.
-    pub fn persist_settings(&self) -> std::io::Result<()> {
-        match &self.settings_path {
-            Some(path) => self.settings.save(path),
-            None => Ok(()),
-        }
-    }
-
-    /// Records the current viewport geometry for the next save.
-    pub(crate) fn capture_window_geometry(&mut self, ctx: &eframe::egui::Context) {
-        let viewport = ctx.input(|input| input.viewport().clone());
-        let Some(size) = viewport.inner_rect.map(|rect| rect.size()) else {
-            return;
-        };
-        let position = viewport.outer_rect.map(|rect| (rect.min.x, rect.min.y));
-        let maximized = viewport.maximized.unwrap_or(false);
-        self.settings
-            .set_window(size.x, size.y, position, maximized);
-    }
-
-    /// Moves a window restored off-screen back onto the visible monitor,
-    /// once per session (step 22.2, U13).
-    pub(crate) fn rescue_window_position(&mut self, ctx: &eframe::egui::Context) {
-        if self.position_rescued {
-            return;
-        }
-        let Some(monitor) = ctx.input(|input| input.viewport().monitor_size) else {
-            return;
-        };
-        self.position_rescued = true;
-        let Some(geometry) = self.settings.window else {
-            return;
-        };
-        let (Some(x), Some(y)) = (geometry.x, geometry.y) else {
-            return;
-        };
-        let saved = eframe::egui::pos2(x, y);
-        let size = eframe::egui::vec2(geometry.width, geometry.height);
-        let target = crate::window::rescued_position(saved, size, monitor);
-        if target != saved {
-            ctx.send_viewport_cmd(eframe::egui::ViewportCommand::OuterPosition(target));
-        }
-    }
 }
 
 pub use platform::default_path;

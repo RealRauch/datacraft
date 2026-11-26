@@ -309,4 +309,15 @@ pub enum DesignCommand {
         /// Target position in the focus order (0 = first), clamped.
         position: usize,
     },
+    /// Places a record-source field as a bound control at a drop point
+    /// (phase 102, step 102.4): snapped, clamped inside the canvas/page
+    /// and named uniquely; the binding is whitelisted against the source.
+    PlaceFieldControl {
+        /// Owning design object (Form or Report).
+        object: ObjectId,
+        /// Source field name (case-insensitive).
+        field: String,
+        /// Drop point in canvas/page points (the control's top-left).
+        at: (f32, f32),
+    },
 }

@@ -216,6 +216,23 @@ fn canvas_ui(app: &mut App, tab: &TabSnapshot, form: &FormDef, ui: &mut egui::Ui
             rect,
         });
     }
+    // A field dragged from the palette and released over the canvas
+    // (phase 102, step 102.4): one PlaceFieldControl at the drop point.
+    if let Some(drag) = app.pending_field_drag().cloned()
+        && drag.object.eq_ignore_ascii_case(&form.name)
+        && ui.input(|input| input.pointer.any_released())
+        && let Some(pos) = ui.input(|input| input.pointer.interact_pos())
+        && canvas_rect.contains(pos)
+    {
+        app.dispatch(Command::Design(
+            datacraft_core::form::DesignCommand::PlaceFieldControl {
+                object: datacraft_core::ObjectId::new(drag.kind, drag.object.clone()),
+                field: drag.field.clone(),
+                at: (pos.x - canvas_rect.min.x, pos.y - canvas_rect.min.y),
+            },
+        ));
+        app.clear_field_drag();
+    }
 
     ui.horizontal(|ui| {
         ui.label(

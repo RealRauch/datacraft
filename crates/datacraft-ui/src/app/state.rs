@@ -68,6 +68,9 @@ pub struct App {
     /// Buffered control name of the property sheet per design tab
     /// (phase 102, item M133); re-seeds when the selection changes.
     pub(crate) property_drafts: HashMap<TabId, crate::control_properties::PropertyDraft>,
+    /// The palette field being dragged over a designer canvas (phase 102,
+    /// step 102.4): the canvas places it on release inside its bounds.
+    pub(crate) field_drag: Option<crate::designer_palette::FieldDrag>,
     /// Drag accumulation per (tab, control): (dx, dy), present while dragging.
     pub(super) drags: HashMap<(TabId, String), (f32, f32)>,
     /// Current runtime record index per form tab.

@@ -20,6 +20,19 @@ struct PaletteField {
     bindable: bool,
 }
 
+/// A palette field being dragged over a designer canvas (phase 102, step
+/// 102.4): the target object and the field. The canvas places it on
+/// release inside its bounds and clears the drag.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FieldDrag {
+    /// Target design object kind (Form or Report).
+    pub kind: ObjectKind,
+    /// Target object name.
+    pub object: String,
+    /// The dragged source field.
+    pub field: String,
+}
+
 /// Renders the palette of one design tab.
 pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &mut egui::Ui) {
     ui.set_min_width(200.0);
@@ -73,16 +86,31 @@ pub fn designer_palette_ui(app: &mut App, kind: ObjectKind, object: &str, ui: &m
             .show(ui, |ui| {
                 for entry in &fields {
                     let label = format!("{}  ({})", entry.name, field_kind_label(&entry.kind));
-                    let clicked = ui
+                    // A click adds at the next free slot; a drag carries the
+                    // field to the canvas, which places it at the drop
+                    // point (phase 102, step 102.4).
+                    let response = ui
                         .push_id(
                             format!("designer.field.{}", entry.name.to_lowercase()),
                             |ui| {
-                                ui.add_enabled(entry.bindable, egui::Button::new(label).small())
-                                    .clicked()
+                                ui.add_enabled(
+                                    entry.bindable,
+                                    egui::Button::new(label)
+                                        .small()
+                                        .sense(egui::Sense::click_and_drag()),
+                                )
                             },
                         )
                         .inner;
-                    if clicked {
+                    if response.drag_started() {
+                        app.begin_field_drag(kind, object, &entry.name);
+                    }
+                    if response.drag_stopped() {
+                        // A drag that ends outside the canvas places
+                        // nothing; the state never outlives the gesture.
+                        app.clear_field_drag();
+                    }
+                    if response.clicked() {
                         added = Some(entry.name.clone());
                     }
                 }

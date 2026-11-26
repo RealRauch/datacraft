@@ -80,6 +80,7 @@ impl App {
             form_selection: HashMap::new(),
             control_content_drafts: HashMap::new(),
             property_drafts: HashMap::new(),
+            field_drag: None,
             preview_page: HashMap::new(),
             previews: HashMap::new(),
             record_cursor: HashMap::new(),
@@ -384,6 +385,31 @@ impl App {
     /// Clears the property sheet's name draft (after an apply).
     pub(crate) fn clear_property_draft(&mut self, tab_id: TabId) {
         self.property_drafts.remove(&tab_id);
+    }
+
+    /// Starts a palette field drag toward a designer canvas (phase 102,
+    /// step 102.4).
+    pub(crate) fn begin_field_drag(
+        &mut self,
+        kind: datacraft_core::ObjectKind,
+        object: &str,
+        field: &str,
+    ) {
+        self.field_drag = Some(crate::designer_palette::FieldDrag {
+            kind,
+            object: object.to_owned(),
+            field: field.to_owned(),
+        });
+    }
+
+    /// The palette field drag in flight, if any.
+    pub(crate) fn pending_field_drag(&self) -> Option<&crate::designer_palette::FieldDrag> {
+        self.field_drag.as_ref()
+    }
+
+    /// Ends the palette field drag.
+    pub(crate) fn clear_field_drag(&mut self) {
+        self.field_drag = None;
     }
 
     /// Accumulates drag motion for a control (starting a gesture lazily).
