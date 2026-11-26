@@ -405,6 +405,21 @@ impl StoragePort for Jet4Port {
         rows::read_rows(self, table, range)
     }
 
+    /// The TDEF's own row counter (phase 101, step 101.5; item M132) — the
+    /// engine maintains it, so a count never reads a row. A stale counter
+    /// only overstates the scrollbar; a window past the end reads empty.
+    fn row_count(&self, table: &str) -> Result<usize, PortError> {
+        let page = self
+            .pages
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(table))
+            .map(|(_, page)| *page)
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?;
+        let reader = self.reader.as_ref().ok_or_else(no_database)?;
+        let def = crate::jet::tdef::JetTableDef::decode(&reader.file, page).map_err(map_open)?;
+        Ok(def.num_rows as usize)
+    }
+
     fn update_row(
         &mut self,
         table: &str,

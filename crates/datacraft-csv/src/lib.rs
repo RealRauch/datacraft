@@ -199,6 +199,10 @@ impl StoragePort for CsvPort {
             .collect())
     }
 
+    fn row_count(&self, table: &str) -> Result<usize, PortError> {
+        Ok(self.rows_of(table)?.len())
+    }
+
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
         let arity = self.definition_of(table)?.fields.len();
         let canonical = self.definition_of(table)?.name.clone();

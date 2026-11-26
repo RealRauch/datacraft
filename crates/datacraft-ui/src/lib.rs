@@ -59,6 +59,7 @@ pub mod rename_dialog;
 pub mod render_mode;
 pub mod report_design;
 pub mod ribbon;
+pub mod row_window;
 pub mod settings;
 pub mod shell;
 pub mod shortcuts_help;

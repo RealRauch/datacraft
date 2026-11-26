@@ -59,6 +59,48 @@ impl Core {
         UiStateSnapshot::of(&self.state)
     }
 
+    /// Rows the named table holds, without reading one (phase 101, step
+    /// 101.5; item M132). A backend without a cheap count answers the
+    /// port's precise refusal, and the client reads the whole table.
+    pub fn row_count(&self, table: &str) -> Result<usize, String> {
+        let Some(db) = self.state.database.as_ref() else {
+            return Err("no database is open".to_owned());
+        };
+        let Some(definition) = db
+            .tables
+            .iter()
+            .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
+        else {
+            return Err(format!("unknown table {table:?}"));
+        };
+        self.port
+            .row_count(&definition.name)
+            .map_err(|error| error.to_string())
+    }
+
+    /// One window of rows for the datasheet's bounded cache (phase 101,
+    /// step 101.5; item M132).
+    pub fn read_row_window(
+        &self,
+        table: &str,
+        start: usize,
+        len: usize,
+    ) -> Result<Vec<Vec<crate::schema::FieldValue>>, String> {
+        let Some(db) = self.state.database.as_ref() else {
+            return Err("no database is open".to_owned());
+        };
+        let Some(definition) = db
+            .tables
+            .iter()
+            .find(|candidate| candidate.name.eq_ignore_ascii_case(table))
+        else {
+            return Err(format!("unknown table {table:?}"));
+        };
+        self.port
+            .read_rows(&definition.name, crate::port::RowRange { start, len })
+            .map_err(|error| error.to_string())
+    }
+
     /// Executes a query (in-memory predicates over port rows, decision
     /// default 7); errors are precise strings for headless rendering.
     pub fn run_query(&self, name: &str) -> Result<crate::query_engine::QueryResult, String> {

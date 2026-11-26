@@ -134,8 +134,11 @@ impl App {
             self.rows.clear();
             return;
         };
+        // Candidates are gathered first: the windowed start needs
+        // `&mut self`, which the snapshot borrow above forbids.
+        let mut candidates: Vec<(TabId, String, bool)> = Vec::new();
         for tab in &self.snapshot.tabs {
-            if self.rows.contains_key(&tab.id) {
+            if self.rows.contains_key(&tab.id) || self.row_windows.contains_key(&tab.id) {
                 continue;
             }
             // Table tabs read their own rows; form tabs read their source.
@@ -157,22 +160,33 @@ impl App {
             else {
                 continue;
             };
+            candidates.push((tab.id, definition.name.clone(), tab.object_kind == "table"));
+        }
+        for (tab_id, definition_name, is_table) in candidates {
+            // A large table opens windowed (phase 101, step 101.5; M132):
+            // the port's count sizes the list and only the top window
+            // loads. A backend without a cheap count falls through to the
+            // full read.
+            if is_table && self.start_row_windowing(tab_id, &definition_name) {
+                self.load_errors.remove(&tab_id);
+                continue;
+            }
             match self.core.read_rows(
-                &definition.name,
+                &definition_name,
                 RowRange {
                     start: 0,
                     len: usize::MAX,
                 },
             ) {
                 Ok(rows) => {
-                    self.rows.insert(tab.id, rows);
-                    self.load_errors.remove(&tab.id);
+                    self.rows.insert(tab_id, rows);
+                    self.load_errors.remove(&tab_id);
                 }
                 Err(error) => {
                     // Surfaced in place of the endless loading state
                     // (step 39.4, item M31); the next pass retries.
                     self.load_errors.insert(
-                        tab.id,
+                        tab_id,
                         crate::i18n::tr(
                             "Rows could not be loaded: {reason}",
                             &[("reason", &error.to_string())],

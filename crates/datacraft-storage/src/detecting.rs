@@ -356,6 +356,15 @@ impl StoragePort for DetectingPort {
             .read_rows(table, range)
     }
 
+    /// Row count of the session (phase 101, step 101.5; M132) — forwarded
+    /// like every other session surface (F17).
+    fn row_count(&self, table: &str) -> Result<usize, PortError> {
+        self.session
+            .as_ref()
+            .ok_or_else(no_database)?
+            .row_count(table)
+    }
+
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
         self.session
             .as_ref()

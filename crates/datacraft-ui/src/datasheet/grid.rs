@@ -45,6 +45,7 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         on_filter_dialog,
         on_value_list,
         on_move_column,
+        mut on_visible_rows,
         mut on_follow,
         mut on_follow_menu,
         filter_builder,
@@ -71,9 +72,8 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     } = grid;
     let mut edit = edit;
     let frozen = frozen.min(widths.len());
-    // A submission in flight locks the grid (step 85.2, item H61): no
-    // editor arms, no deletion reports, the cells keep rendering their
-    // staged image.
+    // A submission in flight locks the grid (85.2, H61): no editor arms,
+    // no deletion reports, the cells keep their staged image.
     let edit_restricted = edit_restricted || locked;
     // Navigation gate and the frame's key intents (step 87.1, item M103
     // moved the pass into `grid_keys` — the L30 split below the gate).
@@ -102,9 +102,8 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         .as_ref()
         .map(|(intent, _)| nav_target(*intent, cursor, body.len(), viewport_height, &metrics));
 
-    // The header trails the body's live horizontal offset by one frame:
-    // the body scroll area is the single scroll source, the header only
-    // mirrors it (the key is shared by the store after the body pass).
+    // The header trails the body.s live offset by one frame: the body
+    // scroll area is the single source, the header only mirrors it.
     let h_key = anchor_id.with("h-offset");
     let header_scroll_x = ui
         .ctx()
@@ -137,20 +136,16 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
     let mut clicked_row = None;
     let mut delete_row: Option<usize> = delete_intent.then(|| cursor.min(body.len() - 1));
     let mut edit_intent: Option<EditIntent> = None;
-    // Deterministic id of the body scroll area (`id_salt` below) — the row
-    // painting reads the live horizontal offset from its state. The area
-    // hashes its `IdSalt` through `make_persistent_id`, so the same
-    // double-hash must be reproduced here.
+    // Deterministic id of the body scroll area: it hashes the `IdSalt`
+    // through `make_persistent_id`, so the row pass reproduces it.
     let body_id = ui.make_persistent_id(egui::IdSalt::new(&id_salt));
 
     // The moving corner's column for keyboard selection (step 86.1, item
     // M101); `selection_after_nav` applies the intent to it.
     let focus_col = selection.focus_cell().col;
     let extend_nav = nav.map(|(_, extend)| extend).unwrap_or(false);
-    // Height policy (step 91.2, item M110): the datasheet host fills the
-    // available height; a window embedder's bound shrinks the body to its
-    // content and caps it — the window's auto-size loop is no longer fed
-    // by the grid's all-available-space claim.
+    // Height policy (91.2, M110): the host fills the height; an embedder.s
+    // bound shrinks the body to its content and caps it.
     let mut scroll_area = match max_height {
         Some(bound) => egui::ScrollArea::both()
             .auto_shrink([false, true])
@@ -174,8 +169,13 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
         ));
     }
     let out = scroll_area.show_rows(ui, metrics.row_height, body.len(), |ui, range| {
-        // Live horizontal offset of this frame's pass (clamped, as egui
-        // applies it): frozen elements ride it so they stay pinned.
+        // The visible row range, reported for a windowed row source
+        // (phase 101, step 101.5; M132).
+        if let Some(callback) = on_visible_rows.as_mut() {
+            callback(range.start, range.end);
+        }
+        // Live horizontal offset of this frame (clamped, as egui applies
+        // it): frozen elements ride it so they stay pinned.
         let scroll_x = egui::scroll_area::State::load(ui.ctx(), body_id)
             .map(|state| clamp_scroll_x(state.clamped_offset().x, total_width, body_viewport))
             .unwrap_or(0.0);
@@ -198,10 +198,8 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                 );
                 let origin = row_rect.left_top();
                 let row_h = metrics.row_height;
-                // Pending-change markers (step 85.2, item H61): staged
-                // updates and inserts carry the amber bar on the row,
-                // staged deletes wash the whole record — the database is
-                // untouched until the batch applies.
+                // Pending-change markers (85.2, H61): staged updates and inserts
+                // carry the amber bar, staged deletes wash the record.
                 let pending_row = pending.get(row_idx);
                 if let Some(pending_row) = pending_row {
                     match pending_row.state {
@@ -223,9 +221,8 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                         _ => {}
                     }
                 }
-                // The selector rides the scroll compensation: pinned at
-                // the viewport's left edge whatever the offset is. The
-                // paint lives in `selector.rs` (the size-gate split).
+                // The selector stays pinned at the viewport.s left edge;
+                // its paint lives in `selector.rs`.
                 super::selector::record_selector(
                     ui,
                     super::selector::selector_rect(origin, scroll_x, row_h),
@@ -238,12 +235,9 @@ pub(crate) fn grid_ui<'a>(ui: &mut egui::Ui, grid: Grid<'a>, callbacks: GridCall
                     &mut clicked_row,
                     &mut delete_row,
                 );
-                // Painted cell: AccessKit label for the headless suite
-                // (step 23.2, T5) plus the ink hairline separator. On an
-                // editable source the cell also senses clicks: clicking a
-                // cell selects its record, and clicking one of the
-                // selected record arms the in-place editor (step 40.4,
-                // L23). The edited cell renders a real TextEdit instead.
+                // Painted cell: the AccessKit label for the headless suite (T5)
+                // plus the ink separator. An editable source senses clicks:
+                // select the record, then arm the editor (40.4, L23).
                 let mut cell_ui = |ui: &mut egui::Ui, x: f32, col: usize, text: &str| {
                     let cell = egui::Rect::from_min_size(
                         origin + egui::vec2(x, 0.0),

@@ -286,6 +286,17 @@ pub trait StoragePort {
     /// `row_count` is empty; anything beyond fails with
     /// [`PortError::OutOfRange`].
     fn read_rows(&self, table: &str, range: RowRange) -> Result<Vec<Vec<FieldValue>>, PortError>;
+    /// Number of rows the table currently holds (phase 101, step 101.5;
+    /// item M132): the datasheet sizes its window cache from this without
+    /// reading a row. Backends without a cheap count answer
+    /// [`PortError::Unsupported`] — the client then reads the whole table
+    /// like before.
+    fn row_count(&self, table: &str) -> Result<usize, PortError> {
+        let _ = table;
+        Err(PortError::Unsupported {
+            reason: "this backend cannot count rows without reading them".to_owned(),
+        })
+    }
     /// Appends one row (positional values, arity must match the table).
     /// `Null` on an AutoNumber field means "engine-assigned".
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError>;

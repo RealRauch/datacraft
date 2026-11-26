@@ -371,6 +371,12 @@ COMMIT;",
         self.read_window(table, range)
     }
 
+    fn row_count(&self, table: &str) -> Result<usize, PortError> {
+        let conn = self.conn.as_ref().ok_or_else(no_database)?;
+        let def = self.readable(table)?;
+        crate::mapping::count_rows(conn, &def.name)
+    }
+
     fn update_row(
         &mut self,
         table: &str,

@@ -96,3 +96,18 @@ pub(super) const COLUMN_ORDER: &[(&str, &str)] = &[
     ("Move Column Left", "Spalte nach links"),
     ("Move Column Right", "Spalte nach rechts"),
 ];
+
+/// German catalog: the windowed datasheet of a large table (phase 101,
+/// step 101.5; item M132).
+pub(super) const ROW_WINDOWS: &[(&str, &str)] = &[
+    ("Loading all rows…", "Alle Zeilen werden geladen…"),
+    (
+        "Large table — {loaded} of {total} rows are loaded in windows.",
+        "Große Tabelle — {loaded} von {total} Zeilen sind in Fenstern geladen.",
+    ),
+    ("Load all rows", "Alle Zeilen laden"),
+    (
+        "Reads every row: filters, sorts and edits need the whole table.",
+        "Liest jede Zeile: Filter, Sortierungen und Bearbeitungen brauchen die ganze Tabelle.",
+    ),
+];

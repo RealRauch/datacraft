@@ -144,6 +144,16 @@ impl StoragePort for ExcelPort {
         Ok(sheet.rows[start..end].to_vec())
     }
 
+    fn row_count(&self, table: &str) -> Result<usize, PortError> {
+        Ok(self
+            .sheets
+            .iter()
+            .find(|sheet| sheet.definition.name.eq_ignore_ascii_case(table))
+            .ok_or_else(|| PortError::TableNotFound(table.to_owned()))?
+            .rows
+            .len())
+    }
+
     fn relationships(&self) -> Result<Vec<Relationship>, PortError> {
         Ok(Vec::new())
     }

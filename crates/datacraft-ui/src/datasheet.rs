@@ -22,9 +22,9 @@ use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
 use crate::i18n::t;
-use crate::labels::value_label;
 use crate::theme::tokens;
 
+mod body;
 mod filter_builder;
 pub(crate) mod filter_dialog;
 pub(crate) mod filter_value;
@@ -40,6 +40,7 @@ mod selector;
 mod submit;
 mod trailing;
 mod value_viewer;
+pub(crate) mod windowed;
 
 pub(crate) use grid::grid_ui;
 pub(crate) use grid_model::{CellEditSlot, EditIntent, Grid, grid_ui_callbacks};
@@ -61,6 +62,11 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         ui.label(t("Table no longer exists"));
         return;
     };
+    // Windowed browsing of a large table (phase 101, step 101.5; M132).
+    if app.row_window(tab.id).is_some() {
+        windowed::windowed_ui(app, tab, ui);
+        return;
+    }
     let Some(rows) = app.rows_for(tab.id) else {
         // A failed load surfaces its reason (step 39.4, item M31); without
         // one the cache is still on its first pass.
@@ -141,39 +147,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .iter()
         .map(|&storage| columns[storage].clone())
         .collect();
-    let cells = |values: &[datacraft_core::schema::FieldValue]| -> Vec<String> {
-        order
-            .iter()
-            .map(|&storage| {
-                let value = values.get(storage);
-                match value {
-                    // The visible Null marker (phase 101, step 101.4;
-                    // M132): an empty cell cannot be told from a blank
-                    // string, so the grid paints the localized marker.
-                    Some(datacraft_core::schema::FieldValue::Null) | None => t("(NULL)").to_owned(),
-                    Some(value) => value_label(value),
-                }
-            })
-            .collect()
-    };
-    let body: Vec<Vec<String>> = staged
-        .map(|buffer| {
-            slots
-                .iter()
-                .map(|&slot| {
-                    let values = buffer
-                        .row_image(slot)
-                        .unwrap_or_else(|| rows.get(slot).map(Vec::as_slice).unwrap_or(&[]));
-                    cells(values)
-                })
-                .collect()
-        })
-        .unwrap_or_else(|| {
-            display
-                .iter()
-                .map(|&cache_row| cells(&rows[cache_row]))
-                .collect()
-        });
+    let body = body::build_body(&order, rows, &display, &slots, staged);
     // Amber-marker positions per displayed row (step 85.2, item H61).
     let pending_rows: Vec<grid_model::PendingRow> = staged
         .map(|buffer| {
@@ -253,6 +227,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     let mut dialog_intent: Option<usize> = None;
     let mut value_list_intent: Option<usize> = None;
     let mut move_intent: Option<(usize, bool)> = None;
+    let mut visible_rows_intent: Option<(usize, usize)> = None;
     let mut follow_intent: Option<(usize, usize, usize)> = None;
     let mut follow_menu_intent: Option<(usize, usize)> = None;
     let mut builder_open_intent = false;
@@ -330,6 +305,9 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     Some(&mut on_filter_dialog),
                     Some(&mut on_value_list),
                     Some(&mut on_move_column),
+                    Some(&mut |first: usize, last: usize| {
+                        visible_rows_intent = Some((first, last));
+                    }),
                     Some(&mut |row: usize, col: usize, index: usize| {
                         follow_intent = Some((row, col, index));
                     }),

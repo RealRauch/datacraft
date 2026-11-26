@@ -270,6 +270,16 @@ impl StoragePort for MockPort {
         Ok(rows[start..end].to_vec())
     }
 
+    fn row_count(&self, table: &str) -> Result<usize, PortError> {
+        let def = self.table_def(table)?;
+        Ok(self
+            .rows
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(&def.name))
+            .map(|(_, rows)| rows.len())
+            .unwrap_or(0))
+    }
+
     fn insert_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
         if let Some(detail) = &self.write_fail {
             return Err(PortError::WriteFailed {

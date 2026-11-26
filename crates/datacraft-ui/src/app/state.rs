@@ -13,7 +13,7 @@ use datacraft_core::snapshot::UiStateSnapshot;
 
 /// Root application state.
 pub struct App {
-    pub(super) core: Core,
+    pub(crate) core: Core,
     pub(super) snapshot: UiStateSnapshot,
     /// Path input buffer of the File > Open Database ribbon action.
     pub open_path: String,
@@ -48,7 +48,10 @@ pub struct App {
     /// Alt state of the previous frame (edge detection for key tips).
     pub(crate) alt_down: bool,
     /// Row data per table tab, loaded once on tab appearance.
-    pub(super) rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
+    pub(crate) rows: HashMap<TabId, Vec<Vec<FieldValue>>>,
+    /// Bounded row windows of the large table tabs (phase 101, step
+    /// 101.5; M132): a tab in this map is windowed and has no full cache.
+    pub(crate) row_windows: crate::row_window::RowWindows,
     /// Query results per query tab, refreshed when the QBE model changes.
     pub(super) results: HashMap<TabId, QueryResult>,
     /// Cached SQL results of open view tabs (step 71.2, item M93).

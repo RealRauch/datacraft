@@ -24,6 +24,7 @@ static MODULES: &[&[(&str, &str)]] = &[
     panes::VALUE_LIST,
     panes::FIND_REPLACE,
     panes::COLUMN_ORDER,
+    panes::ROW_WINDOWS,
     ui_chrome::TABLE,
     views::TABLE,
 ];
