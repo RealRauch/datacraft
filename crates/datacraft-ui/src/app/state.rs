@@ -77,6 +77,9 @@ pub struct App {
     /// The open value list of the column header (phase 101, step 101.2;
     /// item M132) — filled by the `ColumnValuesListed` event.
     pub(crate) value_filter: Option<crate::datasheet::filter_value::ValueList>,
+    /// The find/replace window's draft (phase 101, step 101.3; M132) —
+    /// an open window when `Some`.
+    pub find_replace: Option<crate::find_replace::FindReplaceDraft>,
     /// Buffered rename text per design tab (step 24.3, M9).
     pub(super) design_rename: HashMap<TabId, String>,
     /// Current record cursor per table/query tab (the status bar's

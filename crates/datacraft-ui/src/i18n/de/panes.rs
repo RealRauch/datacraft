@@ -66,3 +66,25 @@ pub(super) const VALUE_LIST: &[(&str, &str)] = &[
         "Es gibt weitere Werte — schränken Sie die Spalte mit einem Kriterium ein.",
     ),
 ];
+
+/// German catalog: the datasheet find/replace window (phase 101, step
+/// 101.3; item M132).
+pub(super) const FIND_REPLACE: &[(&str, &str)] = &[
+    ("Find and Replace…", "Suchen und Ersetzen…"),
+    ("Find and Replace", "Suchen und Ersetzen"),
+    ("Find", "Suchen"),
+    ("Replace with", "Ersetzen durch"),
+    ("Match case", "Groß-/Kleinschreibung beachten"),
+    ("Whole field", "Ganzes Feld"),
+    ("All text columns", "Alle Textspalten"),
+    ("Column", "Spalte"),
+    ("Replace All", "Alle ersetzen"),
+    (
+        "Replacements staged: {count}",
+        "Ersetzungen vorgemerkt: {count}",
+    ),
+    (
+        "Search the visible rows and stage replacements.",
+        "Durchsucht die sichtbaren Zeilen und merkt Ersetzungen vor.",
+    ),
+];

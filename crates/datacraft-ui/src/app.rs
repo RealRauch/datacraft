@@ -55,6 +55,7 @@ impl App {
             clipboard: Box::new(crate::clipboard::SystemClipboard),
             pending_dialog: None,
             value_filter: None,
+            find_replace: None,
             open_path: String::new(),
             active_object_kind: None,
             active_ribbon_tab,

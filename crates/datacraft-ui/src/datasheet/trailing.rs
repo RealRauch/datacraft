@@ -88,6 +88,15 @@ fn export_buttons(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     if json.clicked() {
         request_table_export(app, tab, ExportFormat::Json);
     }
+    // Find and replace over the visible rows (phase 101, step 101.3;
+    // item M132): the window stages its replacements into the batch.
+    if ui
+        .button(t("Find and Replace…"))
+        .on_hover_text(t("Search the visible rows and stage replacements."))
+        .clicked()
+    {
+        app.open_find_replace();
+    }
 }
 
 /// Parks the save dialog for one table export.

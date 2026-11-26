@@ -27,6 +27,7 @@ pub mod designer_palette;
 pub mod dialogs;
 pub mod expression_window;
 pub mod failure_text;
+pub mod find_replace;
 pub mod flows;
 pub mod flows_cells;
 pub mod flows_datasheet;

@@ -459,6 +459,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     trailing::trailing_ui(app, tab, row_count, &columns, &widths, ui);
     filter_dialog::filter_dialog_ui(app, tab, &columns, ui);
     filter_value::value_list_ui(app, ui.ctx());
+    crate::find_replace::find_replace_ui(app, ui.ctx());
     filter_builder::filter_builder_ui(app, tab, &columns, ui);
     submit::submission_ui(app, tab, &columns, ui);
     // The cell value viewer (step 86.4, item M102) rides the trailing

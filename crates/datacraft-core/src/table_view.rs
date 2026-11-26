@@ -127,3 +127,156 @@ pub fn distinct_values(
         truncated,
     })
 }
+
+/// One find/replace query over the visible rows (phase 101, step 101.3;
+/// item M132).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FindRequest {
+    /// The needle; a blank needle matches nothing.
+    pub text: String,
+    /// The text every match becomes.
+    pub replace_with: String,
+    /// One column to search (case-insensitive); `None` searches every
+    /// text-like column.
+    pub column: Option<String>,
+    /// Whether the comparison is case-sensitive (default: insensitive).
+    pub match_case: bool,
+    /// Whether the whole cell must equal the needle.
+    pub whole_field: bool,
+}
+
+/// One match: the cache row, the column index, the cell's text and the
+/// text a replacement produces.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FindMatch {
+    /// Cache row the cell belongs to.
+    pub row: usize,
+    /// Column index in the table's field order.
+    pub column: usize,
+    /// The cell's text as it stands.
+    pub cell: String,
+    /// The text after replacing every occurrence.
+    pub replaced: String,
+}
+
+/// Finds the cells of the display order that match (phase 101, step
+/// 101.3; item M132). Only short-text and memo columns take part — a
+/// replacement is a text edit, and coercing a rendered string back into
+/// a number or a date would guess. `Null` cells never match, and an
+/// empty needle matches nothing.
+pub fn find_matches(
+    table: &TableDef,
+    rows: &[Vec<FieldValue>],
+    order: &[usize],
+    request: &FindRequest,
+) -> Result<Vec<FindMatch>, String> {
+    let needle = request.text.trim();
+    if needle.is_empty() {
+        return Ok(Vec::new());
+    }
+    let text_columns: Vec<usize> = match &request.column {
+        Some(name) => {
+            let index = table
+                .fields
+                .iter()
+                .position(|field| field.name.eq_ignore_ascii_case(name))
+                .ok_or_else(|| format!("unknown column {name:?}"))?;
+            if !is_text_kind(&table.fields[index].kind) {
+                return Err(format!(
+                    "column {:?} is not a text column — find/replace works on Short Text and Long Text",
+                    table.fields[index].name
+                ));
+            }
+            vec![index]
+        }
+        None => (0..table.fields.len())
+            .filter(|index| is_text_kind(&table.fields[*index].kind))
+            .collect(),
+    };
+    let mut found = Vec::new();
+    for &row in order {
+        for &column in &text_columns {
+            let Some(FieldValue::Text(cell)) = rows.get(row).and_then(|cells| cells.get(column))
+            else {
+                continue;
+            };
+            let replaced = if request.whole_field {
+                if equal(cell, needle, request.match_case) {
+                    request.replace_with.clone()
+                } else {
+                    continue;
+                }
+            } else if find_span(cell, needle, request.match_case).is_some() {
+                replace_all(cell, needle, &request.replace_with, request.match_case)
+            } else {
+                continue;
+            };
+            found.push(FindMatch {
+                row,
+                column,
+                cell: cell.clone(),
+                replaced,
+            });
+        }
+    }
+    Ok(found)
+}
+
+/// Whether a column carries free text (the families find/replace edits).
+fn is_text_kind(kind: &datacraft_types::FieldKind) -> bool {
+    matches!(
+        kind,
+        datacraft_types::FieldKind::Text { .. } | datacraft_types::FieldKind::Memo
+    )
+}
+
+/// Case-folded (or exact) string equality.
+fn equal(left: &str, right: &str, match_case: bool) -> bool {
+    if match_case {
+        left == right
+    } else {
+        left.to_lowercase() == right.to_lowercase()
+    }
+}
+
+/// Byte range of the first occurrence, case-folded unless `match_case`.
+fn find_span(haystack: &str, needle: &str, match_case: bool) -> Option<(usize, usize)> {
+    let hay: Vec<(usize, char)> = haystack.char_indices().collect();
+    let wanted: Vec<char> = needle.chars().collect();
+    if wanted.is_empty() || wanted.len() > hay.len() {
+        return None;
+    }
+    let same = |left: char, right: char| {
+        if match_case {
+            left == right
+        } else {
+            left.to_lowercase().eq(right.to_lowercase())
+        }
+    };
+    (0..=hay.len() - wanted.len()).find_map(|start| {
+        let matched = wanted
+            .iter()
+            .enumerate()
+            .all(|(offset, wanted)| same(hay[start + offset].1, *wanted));
+        matched.then(|| {
+            let begin = hay[start].0;
+            let end = hay
+                .get(start + wanted.len())
+                .map_or(haystack.len(), |(offset, _)| *offset);
+            (begin, end)
+        })
+    })
+}
+
+/// Replaces every occurrence in one cell.
+fn replace_all(cell: &str, needle: &str, replacement: &str, match_case: bool) -> String {
+    let mut out = String::with_capacity(cell.len());
+    let mut rest = cell;
+    while let Some((start, end)) = find_span(rest, needle, match_case) {
+        out.push_str(&rest[..start]);
+        out.push_str(replacement);
+        rest = &rest[end..];
+    }
+    out.push_str(rest);
+    out
+}
