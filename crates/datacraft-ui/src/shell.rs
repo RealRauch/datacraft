@@ -221,6 +221,7 @@ impl eframe::App for App {
         crate::sql_window::sql_window(self, ui);
         crate::import_window::import_window_ui(self, ui);
         crate::expression_window::expression_window(self, ui);
+        crate::readiness_window::readiness_window(self, ui);
         crate::password_prompt::password_prompt(self, ui);
         // The low-power overlay paints above every surface (step 92.6,
         // item L51).

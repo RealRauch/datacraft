@@ -464,8 +464,7 @@ pub enum Command {
         /// Module name (case-insensitive).
         module: String,
     },
-    /// Runs the static VBA analysis (step 17.3, L5): call graph, SQL,
-    /// table/query references and unused modules.
+    /// Runs the static VBA analysis (17.3, L5).
     AnalyzeVba,
     /// Writes the design layer (forms + queries + reports) to a `.datacraft` sidecar (ADR-1).
     SaveDesignDocument {
@@ -477,7 +476,7 @@ pub enum Command {
         /// Source file path.
         path: std::path::PathBuf,
     },
-    /// Exports one report's print preview to a new PDF file (phase 97, M128).
+    /// Exports one report's print preview to a new PDF (97, M128).
     ExportReportPdf {
         /// Report name (case-insensitive).
         report: String,
@@ -493,7 +492,8 @@ pub enum Command {
         /// Target file; it must not exist yet.
         path: PathBuf,
     },
-    /// Aggregates the migration readiness of the open database (phase
-    /// 103, step 103.1; M134; roadmap §14); read-only by construction.
+    /// Aggregates the open database's migration readiness (103.1, M134).
     AnalyzeApp,
+    /// Shows or hides the migration-readiness window (103.2, M134).
+    ToggleReadinessWindow,
 }

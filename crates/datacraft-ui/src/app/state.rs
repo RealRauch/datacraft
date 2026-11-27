@@ -188,6 +188,11 @@ pub struct App {
     pub(crate) vba_analysis: Option<datacraft_core::vba_analysis::VbaAnalysis>,
     /// Reason of the last failed analysis run (the viewer renders it).
     pub(crate) vba_analysis_error: Option<String>,
+    /// Cached readiness report (the readiness window renders it, phase
+    /// 103, step 103.2; item M134).
+    pub(crate) readiness_report: Option<datacraft_core::readiness::AppReadiness>,
+    /// Reason of the last failed readiness run (the window renders it).
+    pub(crate) readiness_error: Option<String>,
     /// UI-owned settings (ADR-5); persisted only when a path is attached.
     pub(crate) settings: crate::settings::Settings,
     /// Path of `ui.json`; `None` keeps settings session-only (tests).

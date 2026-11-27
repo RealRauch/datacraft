@@ -105,6 +105,7 @@ fn toggle_active(snapshot: &datacraft_core::snapshot::UiStateSnapshot, action_id
         "relationships" => snapshot.relationship_mapper_open,
         "query_sql" => snapshot.sql_window_open,
         "query_expression" => snapshot.expression_window_open,
+        "readiness" => snapshot.readiness_window_open,
         _ => false,
     }
 }

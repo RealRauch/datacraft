@@ -106,6 +106,31 @@ pub(super) fn expression(painter: &egui::Painter, rect: Rect, ink: Color32, acce
     line(painter, rect, (0.88, 0.32), (0.56, 0.70), accent);
 }
 
+/// Migration readiness: a checklist card (ink) with an accent check mark
+/// over its lower right (phase 103, step 103.2).
+pub(super) fn readiness(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {
+    let stroke = Stroke::new(1.2, ink);
+    rect_stroke(
+        painter,
+        Rect::from_min_max(pt(rect, 0.10, 0.16), pt(rect, 0.74, 0.88)),
+        stroke,
+    );
+    rect_stroke(
+        painter,
+        Rect::from_min_max(pt(rect, 0.32, 0.08), pt(rect, 0.52, 0.24)),
+        stroke,
+    );
+    line(painter, rect, (0.20, 0.40), (0.64, 0.40), stroke);
+    line(painter, rect, (0.20, 0.54), (0.64, 0.54), stroke);
+    polyline(
+        painter,
+        rect,
+        &[(0.50, 0.68), (0.66, 0.82), (0.94, 0.42)],
+        Stroke::new(1.8, accent),
+        false,
+    );
+}
+
 /// View switch: a datasheet grid beside a design frame, joined by an
 /// accent rule (the Views split-button, step 21.1).
 pub(super) fn view_mode(painter: &egui::Painter, rect: Rect, ink: Color32, accent: Color32) {

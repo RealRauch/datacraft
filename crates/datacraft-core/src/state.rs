@@ -38,6 +38,9 @@ pub struct AppState {
     pub import_preview: Option<crate::import::ImportPreview>,
     /// Whether the expression window is open (step 41.2, item M46).
     pub expression_window_open: bool,
+    /// Whether the migration-readiness window is open (phase 103, step
+    /// 103.2; item M134).
+    pub readiness_window_open: bool,
     /// Result of the last successful SQL run (not projected into the
     /// snapshot; the UI renders it from the core's state).
     pub sql_result: Option<crate::sql_types::SqlResult>,

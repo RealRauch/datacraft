@@ -39,6 +39,9 @@ pub struct UiStateSnapshot {
     pub import_preview: Option<crate::import::ImportPreview>,
     /// Whether the expression window is open (step 41.2, item M46).
     pub expression_window_open: bool,
+    /// Whether the migration-readiness window is open (phase 103, step
+    /// 103.2; item M134).
+    pub readiness_window_open: bool,
     /// The shipped database templates (phase 29, item H44) — the registry
     /// behind `CreateDatabaseFromTemplate`, visible to every client.
     pub templates: Vec<crate::templates::TemplateSummary>,
@@ -381,6 +384,7 @@ impl UiStateSnapshot {
             import_window_open: state.import_window_open,
             import_preview: state.import_preview.clone(),
             expression_window_open: state.expression_window_open,
+            readiness_window_open: state.readiness_window_open,
             undo_depth: state.database.as_ref().map_or(0, |db| db.undo.len()),
             redo_depth: state.database.as_ref().map_or(0, |db| db.redo.len()),
             pdf_export: cfg!(feature = "pdf-export"),

@@ -293,6 +293,12 @@ impl Core {
                     open: self.state.expression_window_open,
                 }]
             }
+            Command::ToggleReadinessWindow => {
+                self.state.readiness_window_open = !self.state.readiness_window_open;
+                vec![Event::ReadinessWindowToggled {
+                    open: self.state.readiness_window_open,
+                }]
+            }
             Command::RunSql { sql } => self.run_sql_command(&sql),
             Command::RunExpression {
                 context,

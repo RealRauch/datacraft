@@ -8,7 +8,7 @@
 
 use datacraft_core::ribbon::{ActionState, rendered_tabs, ribbon_spec};
 
-const DISPATCHABLE_ACTIONS: [&str; 11] = [
+const DISPATCHABLE_ACTIONS: [&str; 12] = [
     "ribbon.home.view.toggle_nav_pane",
     "ribbon.home.views.view_mode",
     "ribbon.create.queries.query_design",
@@ -19,6 +19,7 @@ const DISPATCHABLE_ACTIONS: [&str; 11] = [
     "ribbon.database_tools.relationships.relationships",
     "ribbon.database_tools.queries.query_sql",
     "ribbon.database_tools.queries.query_expression",
+    "ribbon.database_tools.analyze.readiness",
     "ribbon.external_data.import.import_file",
 ];
 

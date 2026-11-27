@@ -26,6 +26,34 @@ pub enum Ring {
     Runtime,
 }
 
+impl Ring {
+    /// The roadmap ring number (§2) — the display vocabulary beside each
+    /// assessed object.
+    pub fn number(self) -> u8 {
+        match self {
+            Self::Storage => 0,
+            Self::Query => 2,
+            Self::Macro => 3,
+            Self::Runtime => 4,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The ring number is the roadmap vocabulary (§2) — rendered beside
+    /// every assessed object.
+    #[test]
+    fn ring_numbers_follow_the_roadmap() {
+        assert_eq!(Ring::Storage.number(), 0);
+        assert_eq!(Ring::Query.number(), 2);
+        assert_eq!(Ring::Macro.number(), 3);
+        assert_eq!(Ring::Runtime.number(), 4);
+    }
+}
+
 /// The kind of an assessed object.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

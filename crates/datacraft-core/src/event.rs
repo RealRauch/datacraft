@@ -441,6 +441,12 @@ pub enum Event {
         /// Openness after the toggle.
         open: bool,
     },
+    /// The migration-readiness window opened or closed (phase 103, step
+    /// 103.2; M134).
+    ReadinessWindowToggled {
+        /// Openness after the toggle.
+        open: bool,
+    },
     /// A SQL statement ran successfully (step 13.3, H37); the result data
     /// is fetched via `Core::run_sql`/the cached result.
     SqlRan {

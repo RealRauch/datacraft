@@ -126,6 +126,8 @@ impl App {
             relationship_draft: None,
             vba_analysis: None,
             vba_analysis_error: None,
+            readiness_report: None,
+            readiness_error: None,
             settings: crate::settings::Settings::default(),
             settings_path: None,
             position_rescued: false,
@@ -289,6 +291,33 @@ impl App {
     /// answer a failure for a stale snapshot).
     pub fn vba_analysis_error(&self) -> Option<&str> {
         self.vba_analysis_error.as_deref()
+    }
+
+    /// Runs the readiness aggregation through the bus (`AnalyzeApp`) and
+    /// caches the outcome (phase 103, step 103.2; item M134).
+    pub fn run_readiness_analysis(&mut self) {
+        let events = self.dispatch(Command::AnalyzeApp);
+        self.readiness_report = None;
+        self.readiness_error = None;
+        for event in events {
+            match event {
+                Event::AppAnalyzed { report } => self.readiness_report = Some(report),
+                Event::Failed { code, reason } => {
+                    self.readiness_error = Some(crate::failure_text::failure_text(code, &reason))
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Cached readiness report of the open database.
+    pub fn readiness_report(&self) -> Option<&datacraft_core::readiness::AppReadiness> {
+        self.readiness_report.as_ref()
+    }
+
+    /// Reason of the last failed readiness run (the window renders it).
+    pub fn readiness_error(&self) -> Option<&str> {
+        self.readiness_error.as_deref()
     }
 
     /// Current runtime record of a form tab (defaults to the first).

@@ -12,6 +12,7 @@
 
 mod dialogs;
 mod panes;
+mod readiness;
 mod tooltips;
 mod ui_chrome;
 mod views;
@@ -26,6 +27,7 @@ static MODULES: &[&[(&str, &str)]] = &[
     panes::COLUMN_ORDER,
     panes::ROW_WINDOWS,
     ui_chrome::TABLE,
+    readiness::TABLE,
     views::TABLE,
 ];
 

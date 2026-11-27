@@ -357,6 +357,7 @@ pub fn command_for(action_id: &str, app: &App) -> Option<Command> {
         "import_file" => Some(Command::ToggleImportWindow),
         "query_sql" => Some(Command::ToggleSqlWindow),
         "query_expression" => Some(Command::ToggleExpressionWindow),
+        "readiness" => Some(Command::ToggleReadinessWindow),
         "query_design" => Some(Command::CreateQuery {
             name: next_query_name(app),
         }),

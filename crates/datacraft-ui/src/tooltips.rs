@@ -81,6 +81,12 @@ const RIBBON_TOOLTIPS: &[(&str, &str, &str, &str)] = &[
         "Open the expression window.",
     ),
     (
+        "database_tools",
+        "analyze",
+        "readiness",
+        "Aggregate the migration readiness of the open database.",
+    ),
+    (
         "table_tools",
         "views",
         "view_mode",

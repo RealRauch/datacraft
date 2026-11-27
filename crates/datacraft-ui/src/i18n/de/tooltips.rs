@@ -45,6 +45,10 @@ pub static TABLE: &[(&str, &str)] = &[
         "Öffnen Sie das Ausdrucksfenster.",
     ),
     (
+        "Aggregate the migration readiness of the open database.",
+        "Fassen Sie die Migrationsbereitschaft der geöffneten Datenbank zusammen.",
+    ),
+    (
         "Submit the staged datasheet batch or save the design sidecar (.datacraft).",
         "Reichen Sie den wartenden Datenblatt-Stapel ein oder speichern Sie die Entwurfs-Begleitdatei (.datacraft).",
     ),

@@ -74,6 +74,8 @@ impl App {
         if events.iter().any(|e| matches!(e, Event::DatabaseClosed)) {
             self.vba_analysis = None;
             self.vba_analysis_error = None;
+            self.readiness_report = None;
+            self.readiness_error = None;
             self.fk_histories.clear();
             self.count_pending.clear();
             self.count_results.clear();
