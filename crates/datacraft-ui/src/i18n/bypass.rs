@@ -76,7 +76,7 @@ const ALLOWED: &[(&str, &str)] = &[
     ("shell.rs", "\"\\u{25c0}\""),
     ("shell.rs", "\"\\u{25b6}\""),
     // Report preview page navigation (steps 10.4/91.11; `preview.rs` is
-    // the phase-102 split of `report_design.rs` — F13).
+    // the phase-102 split of `report_design.rs` — F19).
     ("report_design/preview.rs", "\"\\u{25c0}\""),
     ("report_design/preview.rs", "\"\\u{25b6}\""),
     // U5: the Views split-button's overflow ellipsis.
