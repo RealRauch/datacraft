@@ -480,6 +480,13 @@ M15/M16 deferred index work is a prerequisite; (c) cascade options in the
 relationships editor ship with (b). SQLite semantics stay as they are; the
 acceptance bar is "same input → same visible outcome on both backends".
 
+**Status (phase 104, item M137):** ladder (a) delivered — the shared
+rule (`datacraft_core::referential`) gives the Jet writer the same
+orphan refusal SQLite's engine applies: inserts, updates, restores and
+every batch operation refuse before a byte is written, and the write
+journal's preview refuses an orphan batch. The cross-driver port
+contract pins both refusals. Ladder (b) (cascades) stays open.
+
 ## 14. Migration assessment — decision record
 
 **Decision (2026-11-06, human-approved):** generalize `AnalyzeVba` into an

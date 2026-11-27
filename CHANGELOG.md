@@ -7,6 +7,18 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 ## [Unreleased]
 
 ### Added
+- jet/core: referential write parity (phase 104, M137; roadmap §13a) —
+  an orphan insert, update, restore or batch operation against a
+  declared relationship refuses on Jet exactly where SQLite's engine
+  refuses it (precise, locatable reason; `NULL` child values pass), and
+  a journal batch containing an orphan is refused in preview. Deletes
+  stay allowed — cascades are §13b.
+- types/core/ui/csv: scale-aware decimal display (phase 104, M135) — a
+  fixed-point decimal renders with its declared scale (`25.50`, not the
+  raw scaled integer) in the datasheet, the windowed tabs, the form
+  runtime, the value viewer, the batch preview, the CSV driver's
+  rewrite and the CSV/JSON exports; scale 0 stays byte-identical and
+  the phase-99 export workaround delegates to the shared helper.
 - core/ui/cli/mcp/tools: migration readiness and the benchmark
   instrument (phase 103, M134; roadmap §14/§18) — one read-only
   `AnalyzeApp` command aggregates per-object ring coverage with precise

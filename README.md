@@ -104,7 +104,9 @@ analysis, SQL over every source, MCP/JSON-RPC and a CLI — all over one
 command bus.
 
 - **Formats:** Jet3/Jet4 read; Jet4 and ACE write (tables, rows, schema,
-  indexes, relationships); SQLite read/write; CSV directories
+  indexes, relationships — declared relationships refuse orphan
+  writes, the same outcome as SQLite's enforced keys); SQLite
+  read/write; CSV directories
   read/write; Excel workbooks read-only (`.xlsx`/`.xlsm`/`.xls`/`.xlsb`,
   sheets as tables, values only); ACE complex values; RC4 passwords;
   Access lock-file co-existence.
