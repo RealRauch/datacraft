@@ -227,3 +227,60 @@ fn wrong_arity_inserts_are_rejected_on_both_drivers() {
         );
     }
 }
+
+/// Referential write parity (phase 104, step 104.2; item M137; roadmap
+/// §13(a)): an orphan child insert refuses on **both** shipped drivers —
+/// SQLite through its enforced foreign key, Jet through the writer's
+/// declared-relationship check — and a referenced value writes on both.
+/// The visible outcome is identical; the reason text stays driver-shaped
+/// (both name the refused constraint class).
+#[test]
+fn an_orphan_child_insert_is_refused_on_both_drivers() {
+    for mut driver in contract_drivers() {
+        driver
+            .port
+            .create_table(&TableDef::new(
+                "Orders",
+                vec![
+                    FieldDef::new(
+                        "CustomerId",
+                        FieldKind::Number(NumericKind::LongInteger),
+                    ),
+                ],
+            ))
+            .expect("create the child table");
+        driver
+            .port
+            .create_relationship(&datacraft_core::port::Relationship {
+                table: "Orders".to_owned(),
+                column: "CustomerId".to_owned(),
+                related_table: "Customers".to_owned(),
+                related_column: "Id".to_owned(),
+            })
+            .expect("declare the relationship");
+
+        let orphan = driver
+            .port
+            .insert_row("Orders", &[FieldValue::Integer(99)])
+            .expect_err("an orphan insert must fail on every driver");
+        assert!(
+            !orphan.to_string().is_empty(),
+            "{}: the refusal carries a reason",
+            driver.name
+        );
+        let rows = driver
+            .port
+            .read_rows("Orders", RowRange { start: 0, len: 10 })
+            .expect("read the child table");
+        assert!(
+            rows.is_empty(),
+            "{}: the orphan never wrote: {rows:?}",
+            driver.name
+        );
+
+        driver
+            .port
+            .insert_row("Orders", &[FieldValue::Integer(1)])
+            .expect("a referenced value writes on every driver");
+    }
+}
