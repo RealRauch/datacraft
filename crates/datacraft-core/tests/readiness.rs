@@ -429,6 +429,24 @@ fn analyze_app_is_read_only_by_construction() {
 }
 
 #[test]
+fn the_readiness_window_toggle_flips_a_state_the_snapshot_carries() {
+    let mut core = plain();
+    assert!(!core.inspect().readiness_window_open);
+    let events = core.dispatch(Command::ToggleReadinessWindow);
+    assert!(
+        matches!(&events[0], Event::ReadinessWindowToggled { open: true }),
+        "{events:?}"
+    );
+    assert!(core.inspect().readiness_window_open);
+    let events = core.dispatch(Command::ToggleReadinessWindow);
+    assert!(
+        matches!(&events[0], Event::ReadinessWindowToggled { open: false }),
+        "{events:?}"
+    );
+    assert!(!core.inspect().readiness_window_open);
+}
+
+#[test]
 fn the_accessor_and_the_event_carry_the_same_report() {
     let mut core = plain();
     core.dispatch(Command::CreateForm {
