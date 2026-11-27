@@ -11,15 +11,6 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 102 — Designer parity (roadmap §16 stage 2)
-
-**Scope (Steps):**
-
-- **102.1 Core: control property model with sidecar persistence and one command per edit, precise validation**
-- **102.2 Core/UI: resize handles through the shared geometry rules**
-- **102.3 UI/core: z-order and tab-order surface in both designers**
-- **102.4 UI: preview zoom control and drag-and-drop field binding**
-- **102.5 Documentation and phase gate (README designer row, COMPATIBILITY evidence, CHANGELOG)**
 ### Phase 103 — Migration readiness and benchmark instrument (roadmap §14/§18)
 
 **Scope (Steps):**
@@ -585,7 +576,7 @@
 | 101.5 | Core/port: windowed row reads with bounded caches and scroll-follow — the invasive stage-1 item | ✅ |
 | 101.6 | Documentation and phase gate (README datasheet row, COMPATIBILITY evidence, CHANGELOG) | ✅ |
 | 102.1 | Core: control property model with sidecar persistence and one command per edit, precise validation | ✅ |
-| 102.2 | Core/UI: resize handles through the shared geometry rules | 🔄 |
+| 102.2 | Core/UI: resize handles through the shared geometry rules | ✅ |
 | 102.3 | UI/core: z-order and tab-order surface in both designers | ✅ |
 | 102.4 | UI: preview zoom control and drag-and-drop field binding | ✅ |
 | 102.5 | Documentation and phase gate (README designer row, COMPATIBILITY evidence, CHANGELOG) | ✅ |
