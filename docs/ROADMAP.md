@@ -492,6 +492,12 @@ unsupported-feature list, and an effort summary. Headless and MCP-friendly
 like `AnalyzeVba`; read-only by construction. Work items are created when
 the owning phase starts.
 
+**Status (phase 103, item M134):** delivered — `AnalyzeApp` aggregates
+per-object ring evidence, the VBA estimate, the link inventory, the
+unsupported list and an effort summary over one read-only command; the
+Database Tools surface renders it in the GUI and CLI/MCP carry the same
+report.
+
 ## 15. Small boundaries & record hygiene
 
 - **Format floor:** Jet 1.x/2.0 (`.mdb` below Jet 3) are out of scope; the
@@ -751,6 +757,16 @@ those items have to deliver, without re-ordering them.
 **Gates:** work items are created only when the owning phase starts
 (`BACKLOG.md`, L-series) and implementation starts only after the human
 release; this docs-level decision itself is Low.
+
+**Status (phase 103, item M134):** delivered — the harness
+(`tools/dao-oracle/bench.ps1`) and the record (`docs/BENCHMARKS.md`)
+carry the family-A methodology and the first measured matrix
+(10k/100k/1M, narrow/wide): the full scan decodes ~2× faster than the
+DAO COM loop, the indexed filter/join points lose as predicted (they are
+the stage-1/M15 target metrics), inserts land on the index-free table
+(the M15 multi-page boundary refuses indexed batches — itself a
+recorded gap), and compact pays the verified re-encode at 1M (~6.7×).
+Family B stays open with its methodology.
 
 ## 19. SQLite depth — decision record
 

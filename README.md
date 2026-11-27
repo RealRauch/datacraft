@@ -125,6 +125,12 @@ command bus.
   ODBC and Access-file links with their target, foreign name and flags,
   connect strings with credentials redacted; nothing is resolved, dialled
   or written.
+- **Migration readiness:** one read-only `AnalyzeApp` command (Database
+  Tools > Migration readiness, CLI `exec`, MCP `dispatch`) aggregates the
+  migration effort of the open database — per-object ring coverage with
+  precise unsupported reasons, a VBA transpilation estimate, the
+  linked-table inventory and an effort summary. Nothing is resolved,
+  dialled or written.
 - **Export:** a report's print preview exports to a new PDF file — the
   preview's page sequence, selectable text in the shipped Inter face,
   byte-identical re-export, an existing target refused. A table exports

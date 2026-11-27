@@ -7,6 +7,17 @@ crate-attributed. Format based on [Keep a Changelog](https://keepachangelog.com)
 ## [Unreleased]
 
 ### Added
+- core/ui/cli/mcp/tools: migration readiness and the benchmark
+  instrument (phase 103, M134; roadmap §14/§18) — one read-only
+  `AnalyzeApp` command aggregates per-object ring coverage with precise
+  unsupported reasons, a VBA transpilation estimate, the linked-table
+  inventory and an effort summary; the Database Tools > Migration
+  readiness window renders every section read-only, and CLI `exec` and
+  MCP `dispatch` carry the same report over the additive wire. The
+  family-A benchmark harness (`tools/dao-oracle/bench.ps1`) and
+  `docs/BENCHMARKS.md` record the roadmap §18 methodology and the first
+  measured matrix against DAO (10k/100k/1M, narrow/wide) with the honest
+  gaps.
 - core/ui: designer parity (phase 102, M133; roadmap §16 stage 2) — both
   designers gain the missing interaction vocabulary. A placed control's
   property sheet edits its name, visibility, enabled state, weight and

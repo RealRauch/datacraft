@@ -270,3 +270,19 @@ Hard rules (CI-enforced):
   green), and the stepwell/archive discipline (no drift; docs_validate
   clean at every step). No rule was demoted or dropped; no new rule is
   proposed. Next checkpoint: phase 103.
+
+- **Phase 103 checkpoint (2026-11-27) — outcome: all rules stay.**
+  Reviewed: release gates (no Medium/High event fired in phases 99–103 —
+  the stretch added no dependency, crate or fixture; the per-occurrence
+  pauses stay cheap insurance), test-first (both phase-103 RED commits
+  carried compile-fail evidence; the benchmark harness used the
+  documented test-first exception — no Rust test seam outside the
+  workspace, reason recorded in the commit), the <500-line gate (forced
+  the readiness module split into mod/estimate/vocabulary and the
+  command.rs doc trims — the cost stayed local and the gate stayed
+  green), and the stepwell/archive discipline (docs_validate clean at
+  every step). The gates caught one real drift: the T12 allowlist kept
+  the pre-split `report_design.rs` keys after phase 102's preview split
+  (F19) — the canonical set failed on main and the inline-fix lane
+  carried the fix with its retrospective item. No rule was demoted or
+  dropped; no new rule is proposed. Next checkpoint: phase 108.
