@@ -20,6 +20,9 @@ pub struct MockPort {
     /// `None` — tests without groupings exercise the pair fallback.
     relationship_groups: Option<Vec<RelationshipGroup>>,
     macros: Vec<crate::macro_def::MacroDef>,
+    /// When set, `macros` fails with this reason (M10-analog; the
+    /// readiness suite constructs the degraded-open shape).
+    macros_error: Option<String>,
     vba: Option<crate::vba::VbaProject>,
     vba_error: Option<String>,
     /// When set, `native_queries` fails with this reason (M10 tests).
@@ -413,6 +416,11 @@ impl StoragePort for MockPort {
     }
 
     fn macros(&self) -> Result<Vec<crate::macro_def::MacroDef>, PortError> {
+        if let Some(reason) = &self.macros_error {
+            return Err(PortError::Unsupported {
+                reason: reason.clone(),
+            });
+        }
         Ok(self.macros.clone())
     }
 

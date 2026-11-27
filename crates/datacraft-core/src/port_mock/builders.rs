@@ -46,6 +46,13 @@ impl MockPort {
         self
     }
 
+    /// Builder: makes the macro-inventory decode fail with `reason`
+    /// (the database still opens).
+    pub fn with_macros_error(&mut self, reason: impl Into<String>) -> &mut Self {
+        self.macros_error = Some(reason.into());
+        self
+    }
+
     /// Builder: attaches an extracted VBA project (step 17.2, L5).
     pub fn with_vba(&mut self, project: crate::vba::VbaProject) -> &mut Self {
         self.vba = Some(project);
