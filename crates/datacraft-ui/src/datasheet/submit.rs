@@ -9,17 +9,19 @@
 use eframe::egui;
 
 use datacraft_core::journal::ChangeKind;
+use datacraft_core::schema::{FieldKind, FieldValue};
 use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
 use crate::i18n::t;
-use crate::labels::value_label;
+use crate::labels::value_label_for;
 
 /// Renders the open submission of this tab, if any.
 pub(super) fn submission_ui(
     app: &mut App,
     tab: &TabSnapshot,
     columns: &[String],
+    kinds: &[FieldKind],
     ui: &mut egui::Ui,
 ) {
     let Some(submission) = app.submission() else {
@@ -51,7 +53,7 @@ pub(super) fn submission_ui(
                 .max_height(220.0)
                 .show(ui, |ui| {
                     for change in &changes {
-                        ui.label(change_label(columns, change));
+                        ui.label(change_label(columns, kinds, change));
                     }
                 });
             ui.horizontal(|ui| {
@@ -75,14 +77,20 @@ pub(super) fn submission_ui(
 }
 
 /// One rendered journal change: the kind, the row and the differing
-/// columns with their before → after values.
-fn change_label(columns: &[String], change: &datacraft_core::journal::RowChange) -> String {
+/// columns with their before → after values. The column kinds feed the
+/// rendering — a decimal keeps its declared scale (phase 104, M135).
+fn change_label(
+    columns: &[String],
+    kinds: &[FieldKind],
+    change: &datacraft_core::journal::RowChange,
+) -> String {
     let name = |index: usize| {
         columns
             .get(index)
             .cloned()
             .unwrap_or_else(|| format!("col {}", index + 1))
     };
+    let label = |index: usize, value: &FieldValue| value_label_for(value, kinds.get(index));
     let kind = match change.kind {
         ChangeKind::Insert => t("Insert"),
         ChangeKind::Update => t("Update"),
@@ -102,8 +110,8 @@ fn change_label(columns: &[String], change: &datacraft_core::journal::RowChange)
                 format!(
                     "{}: {} → {}",
                     name(index),
-                    value_label(old),
-                    value_label(new)
+                    label(index, old),
+                    label(index, new)
                 )
             })
             .collect::<Vec<_>>()
@@ -111,12 +119,13 @@ fn change_label(columns: &[String], change: &datacraft_core::journal::RowChange)
         (None, Some(after)) => after
             .iter()
             .enumerate()
-            .map(|(index, value)| format!("{}: {}", name(index), value_label(value)))
+            .map(|(index, value)| format!("{}: {}", name(index), label(index, value)))
             .collect::<Vec<_>>()
             .join(", "),
         (Some(before), None) => before
             .iter()
-            .map(value_label)
+            .enumerate()
+            .map(|(index, value)| label(index, value))
             .collect::<Vec<_>>()
             .join(", "),
         (None, None) => String::new(),

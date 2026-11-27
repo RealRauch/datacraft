@@ -68,6 +68,42 @@ pub fn display_value(value: &FieldValue) -> String {
     }
 }
 
+/// The kind-aware sibling of [`display_value`] (phase 104, step 104.1;
+/// item M135): where the column's [`FieldKind`] is in reach, a decimal
+/// renders with its declared scale (trailing zeros kept); scale 0 stays
+/// byte-identical to the raw form. Every other family — and a kind-less
+/// context such as a computed value without a column — renders exactly
+/// like [`display_value`].
+pub fn display_value_for(value: &FieldValue, kind: Option<&FieldKind>) -> String {
+    match (value, kind) {
+        (
+            FieldValue::Decimal(scaled),
+            Some(FieldKind::Number(crate::NumericKind::Decimal { scale, .. })),
+        ) => decimal_text(*scaled, *scale),
+        _ => display_value(value),
+    }
+}
+
+/// A scale-scaled integer as decimal text with its trailing zeros kept
+/// (the phase-99 export rule, generalized in M135).
+fn decimal_text(scaled: i128, scale: u8) -> String {
+    let negative = scaled < 0;
+    let digits = scaled.unsigned_abs().to_string();
+    let scale = usize::from(scale);
+    let mut text = if scale == 0 {
+        digits
+    } else {
+        // Pad so there is at least one digit before the point.
+        let padded = format!("{:0>width$}", digits, width = scale + 1);
+        let split = padded.len() - scale;
+        format!("{}.{}", &padded[..split], &padded[split..])
+    };
+    if negative {
+        text.insert(0, '-');
+    }
+    text
+}
+
 /// Currency is a scaled 64-bit integer (factor 10^-4); trailing zeros trim.
 fn display_currency(scaled: i64) -> String {
     let sign = if scaled < 0 { "-" } else { "" };

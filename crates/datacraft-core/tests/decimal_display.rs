@@ -70,6 +70,10 @@ fn the_value_list_renders_the_declared_scale() {
 #[test]
 fn filtering_by_the_rendered_text_matches_the_cells() {
     let mut core = opened();
+    core.dispatch(Command::OpenObject(datacraft_core::ObjectId::new(
+        datacraft_core::ObjectKind::Table,
+        "Rates",
+    )));
     core.dispatch(Command::FilterByValue {
         table: "Rates".into(),
         field: "rate".into(),

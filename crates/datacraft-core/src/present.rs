@@ -9,7 +9,7 @@
 use crate::port::DatabaseFormat;
 use crate::snapshot::UiStateSnapshot;
 
-pub use datacraft_types::{display_value, field_kind_display};
+pub use datacraft_types::{display_value, display_value_for, field_kind_display};
 
 /// The one-line target a linked table names (phase 100, step 100.3; item
 /// M131): the external file of an Access-file link, or the first fragment

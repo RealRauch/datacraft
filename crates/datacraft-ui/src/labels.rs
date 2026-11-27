@@ -108,7 +108,10 @@ pub fn field_kind_label(kind: &FieldKind) -> String {
 /// User-renderable text for one cell. Core's locale-neutral formatting
 /// carries numbers and dates; the UI adds the language for booleans, binary
 /// markers and complex joins.
-pub fn value_label(value: &FieldValue) -> String {
+/// The kind-aware cell text (phase 104, step 104.1; item M135): where
+/// the column kind is in reach, a decimal renders with its declared
+/// scale; every other family is kind-agnostic.
+pub fn value_label_for(value: &FieldValue, kind: Option<&FieldKind>) -> String {
     match value {
         FieldValue::Boolean(true) => t("Yes").to_owned(),
         FieldValue::Boolean(false) => t("No").to_owned(),
@@ -119,11 +122,16 @@ pub fn value_label(value: &FieldValue) -> String {
         FieldValue::Complex(records) => records
             .iter()
             .filter_map(|record| record.scalar())
-            .map(value_label)
+            .map(|scalar| value_label_for(scalar, None))
             .collect::<Vec<_>>()
             .join(", "),
-        other => datacraft_core::present::display_value(other),
+        other => datacraft_core::present::display_value_for(other, kind),
     }
+}
+
+/// The kind-less wrapper — computed values without a column.
+pub fn value_label(value: &FieldValue) -> String {
+    value_label_for(value, None)
 }
 
 #[cfg(test)]

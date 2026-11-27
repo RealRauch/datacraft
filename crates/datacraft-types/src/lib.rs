@@ -28,7 +28,7 @@ mod value;
 pub use compare::{compare, sort_compare};
 pub use date::{civil_from_days, days_from_civil, parse_date};
 pub use def::{FieldDef, TableDef, validate_object_name};
-pub use display::{display_ole_datetime, display_value, field_kind_display};
+pub use display::{display_ole_datetime, display_value, display_value_for, field_kind_display};
 pub use error::SchemaError;
 pub use field::{AutoKind, BinaryKind, FieldKind, MultiValueKind, NumericKind};
 pub use properties::{FieldProperties, IndexMode};

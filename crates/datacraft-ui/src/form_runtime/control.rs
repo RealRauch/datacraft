@@ -11,7 +11,7 @@ use datacraft_core::schema::{FieldDef, FieldValue};
 
 use crate::app::App;
 use crate::i18n::{t, tr};
-use crate::labels::value_label;
+use crate::labels::{value_label, value_label_for};
 
 use super::commit_text;
 
@@ -57,7 +57,12 @@ pub(super) fn render_control(
         ControlKind::TextBox { bound_field } => {
             let col = bound_field.as_deref().and_then(index_of);
             let value = col
-                .map(|i| value_label(app.form_pending_value(tab_id, i).unwrap_or(&row[i])))
+                .map(|i| {
+                    value_label_for(
+                        app.form_pending_value(tab_id, i).unwrap_or(&row[i]),
+                        Some(&fields[i].kind),
+                    )
+                })
                 .unwrap_or_default();
             if let (Some(col), Some(field)) = (col, col.map(|i| &fields[i])) {
                 text_box_ui(
@@ -105,7 +110,12 @@ pub(super) fn render_control(
         ControlKind::ComboBox { bound_field, .. } => {
             let col = bound_field.as_deref().and_then(index_of);
             let value = col
-                .map(|i| value_label(app.form_pending_value(tab_id, i).unwrap_or(&row[i])))
+                .map(|i| {
+                    value_label_for(
+                        app.form_pending_value(tab_id, i).unwrap_or(&row[i]),
+                        Some(&fields[i].kind),
+                    )
+                })
                 .unwrap_or_default();
             if let (Some(col), Some(field)) = (col, col.map(|i| &fields[i])) {
                 combo_box_ui(

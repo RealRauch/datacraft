@@ -24,8 +24,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::present::display_value;
-use crate::schema::{FieldKind, FieldValue, NumericKind, TableDef};
+use crate::present::{display_value, display_value_for};
+use crate::schema::{FieldKind, FieldValue, TableDef};
 
 /// The output format of [`export_table`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -137,43 +137,9 @@ fn csv_document(table: &TableDef, rows: &[Vec<FieldValue>]) -> Result<Vec<u8>, E
 }
 
 /// One CSV cell: the datasheet's text, with a decimal under its declared
-/// scale (the one place the flattened display form would lose data).
+/// scale (phase 104, M135: the shared kind-aware helper).
 fn csv_cell(kind: Option<&FieldKind>, value: &FieldValue) -> String {
-    match value {
-        FieldValue::Text(text) => text.clone(),
-        FieldValue::Decimal(scaled) => match decimal_scale(kind) {
-            Some(scale) => decimal_text(*scaled, scale),
-            None => display_value(value),
-        },
-        other => display_value(other),
-    }
-}
-
-/// The declared scale of a decimal field kind.
-fn decimal_scale(kind: Option<&FieldKind>) -> Option<u8> {
-    match kind? {
-        FieldKind::Number(NumericKind::Decimal { scale, .. }) => Some(*scale),
-        _ => None,
-    }
-}
-
-/// A scale-scaled integer as decimal text with its trailing zeros kept.
-fn decimal_text(scaled: i128, scale: u8) -> String {
-    let negative = scaled < 0;
-    let digits = scaled.unsigned_abs().to_string();
-    let scale = usize::from(scale);
-    let mut text = if scale == 0 {
-        digits
-    } else {
-        // Pad so there is at least one digit before the point.
-        let padded = format!("{:0>width$}", digits, width = scale + 1);
-        let split = padded.len() - scale;
-        format!("{}.{}", &padded[..split], &padded[split..])
-    };
-    if negative {
-        text.insert(0, '-');
-    }
-    text
+    display_value_for(value, kind)
 }
 
 /// The JSON document: table name, field-kind schema and typed rows.
@@ -248,10 +214,7 @@ fn json_value(kind: &FieldKind, value: &FieldValue) -> Result<serde_json::Value,
             .map(Value::Number)
             .ok_or_else(|| format!("{float} is not a JSON number"))?,
         FieldValue::Currency(_) => number_from_text(&display_value(value))?,
-        FieldValue::Decimal(scaled) => {
-            let scale = decimal_scale(Some(kind)).unwrap_or(0);
-            number_from_text(&decimal_text(*scaled, scale))?
-        }
+        FieldValue::Decimal(_) => number_from_text(&display_value_for(value, Some(kind)))?,
         FieldValue::DateTime(_) => Value::String(display_value(value)),
         FieldValue::Text(text) => Value::String(text.clone()),
         FieldValue::Binary(bytes) => binary_object(bytes),
@@ -305,15 +268,6 @@ mod tests {
     //! through the command bus in `tests/table_export.rs`).
 
     use super::*;
-
-    #[test]
-    fn decimal_text_keeps_the_declared_scale() {
-        assert_eq!(decimal_text(2_550, 2), "25.50");
-        assert_eq!(decimal_text(-5, 2), "-0.05");
-        assert_eq!(decimal_text(7, 0), "7");
-        assert_eq!(decimal_text(0, 3), "0.000");
-        assert_eq!(decimal_text(-123_456, 4), "-12.3456");
-    }
 
     #[test]
     fn the_format_names_are_the_canonical_extensions() {

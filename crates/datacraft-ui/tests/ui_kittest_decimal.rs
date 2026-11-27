@@ -7,7 +7,7 @@ use datacraft_core::port::MockPort;
 use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, TableDef};
 use datacraft_ui::app::App;
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 
 fn rates_port() -> MockPort {
     let mut port = MockPort::with_tables(vec![TableDef::new(
@@ -93,7 +93,9 @@ fn the_datasheet_renders_the_declared_scale() {
 #[test]
 fn the_form_runtime_renders_the_declared_scale() {
     let mut app = datasheet_app();
-    app.dispatch(Command::CreateForm { name: "Card".into() });
+    app.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     app.dispatch(Command::SetFormSource {
         form: "Card".into(),
         table: "Rates".into(),

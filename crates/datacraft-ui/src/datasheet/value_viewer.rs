@@ -15,7 +15,7 @@ use datacraft_core::snapshot::TabSnapshot;
 
 use crate::app::App;
 use crate::i18n::{t, tr};
-use crate::labels::value_label;
+use crate::labels::value_label_for;
 
 /// Hex-view bound: at most this many bytes render; the window names the
 /// truncation instead of silently clipping.
@@ -61,6 +61,12 @@ pub(super) fn value_viewer_ui(
             .and_then(|definition| definition.fields.get(col))
             .is_some_and(|field| matches!(field.kind, FieldKind::Text { .. } | FieldKind::Memo));
     let title = tr("Value — {field}", &[("field", &field_name)]);
+    // The column's kind feeds the rendering: a decimal shows its declared
+    // scale (phase 104, step 104.1; M135).
+    let kind = app
+        .table_definition(&tab.object_name)
+        .and_then(|definition| definition.fields.get(col))
+        .map(|field| field.kind);
     // `Window::open` expects the flag to read `true` while the window is
     // visible; its close box flips it (the notices-dialog pattern).
     let mut open = true;
@@ -68,7 +74,7 @@ pub(super) fn value_viewer_ui(
     let mut apply = false;
     let mut draft = app
         .value_editor_draft(tab.id)
-        .unwrap_or_else(|| value_label(&value));
+        .unwrap_or_else(|| value_label_for(&value, kind.as_ref()));
     let window_id = format!("datacraft.zoom.{}", tab.ui_test_id);
     egui::Window::new(title)
         .open(&mut open)
@@ -118,7 +124,7 @@ pub(super) fn value_viewer_ui(
                     });
                 }
                 _ => {
-                    let text = display_text(&value);
+                    let text = display_text(&value, kind.as_ref());
                     egui::ScrollArea::vertical()
                         .max_height(260.0)
                         .show(ui, |ui| {
@@ -155,8 +161,8 @@ pub(super) fn value_viewer_ui(
 
 /// The read-only display text: JSON pretty-printed when it parses,
 /// otherwise the display label verbatim.
-fn display_text(value: &FieldValue) -> String {
-    let text = value_label(value);
+fn display_text(value: &FieldValue, kind: Option<&FieldKind>) -> String {
+    let text = value_label_for(value, kind);
     if is_json(&text) {
         serde_json::from_str::<serde_json::Value>(&text)
             .ok()

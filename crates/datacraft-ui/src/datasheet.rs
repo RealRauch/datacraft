@@ -1,5 +1,4 @@
-//! Datasheet view (step 6.2, item H23; Access fidelity 12.5; datasheet UX in
-//! step 21.4, item U8).
+//! Datasheet view (step 6.2 H23; Access fidelity 12.5; UX 21.4/U8).
 //!
 //! Virtualized rendering over the per-tab row cache: egui's `show_rows`
 //! paints only the visible window (the grid-core math of step 6.1 governs
@@ -8,9 +7,8 @@
 //! ink hairlines between columns, alternating row shading, a row-selector
 //! column and an accent edit marker on the selected row. Column widths are
 //! per-session presentation state on `App`; a header click sorts through
-//! the QBE sort model — one `SetQbeCell` command per action. Cell widgets
-//! derive their ids from the `datasheet.<table>.cell.<row>.<col>`
-//! convention.
+//! the QBE sort model — one `SetQbeCell` command per action. Cell ids
+//! follow the `datasheet.<table>.cell.<row>.<col>` convention.
 
 use eframe::egui;
 
@@ -48,7 +46,7 @@ pub(crate) use query_results::query_results_ui;
 
 /// Renders the datasheet of one table tab.
 pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
-    let Some(columns) = app
+    let Some((columns, kinds)) = app
         .snapshot()
         .database
         .as_ref()
@@ -57,7 +55,12 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                 .iter()
                 .find(|table| table.name.eq_ignore_ascii_case(&tab.object_name))
         })
-        .map(|t| t.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>())
+        .map(|t| {
+            (
+                t.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>(),
+                t.fields.iter().map(|f| f.kind).collect::<Vec<_>>(),
+            )
+        })
     else {
         ui.label(t("Table no longer exists"));
         return;
@@ -147,7 +150,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
         .iter()
         .map(|&storage| columns[storage].clone())
         .collect();
-    let body = body::build_body(&order, rows, &display, &slots, staged);
+    let body = body::build_body(&order, rows, &display, &slots, staged, &kinds);
     // Amber-marker positions per displayed row (step 85.2, item H61).
     let pending_rows: Vec<grid_model::PendingRow> = staged
         .map(|buffer| {
@@ -488,7 +491,7 @@ pub fn datasheet_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
     filter_value::value_list_ui(app, ui.ctx());
     crate::find_replace::find_replace_ui(app, ui.ctx());
     filter_builder::filter_builder_ui(app, tab, &columns, ui);
-    submit::submission_ui(app, tab, &columns, ui);
+    submit::submission_ui(app, tab, &columns, &kinds, ui);
     // The cell value viewer (step 86.4, item M102) rides the trailing
     // windows — after the in-place editor's commit, so a viewer Apply is
     // the newer intent and stages over it.

@@ -19,7 +19,7 @@ use datacraft_core::snapshot::TabSnapshot;
 use crate::app::App;
 use crate::datasheet::grid_model::{Grid, GridCallbacks};
 use crate::i18n::{t, tr};
-use crate::labels::value_label;
+use crate::labels::value_label_for;
 
 /// Placeholder of a row whose window is not loaded.
 const PENDING_ROW: &str = "…";
@@ -69,7 +69,10 @@ pub(crate) fn windowed_ui(app: &mut App, tab: &TabSnapshot, ui: &mut egui::Ui) {
                     .iter()
                     .map(|&storage| match values.get(storage) {
                         Some(FieldValue::Null) | None => t("(NULL)").to_owned(),
-                        Some(value) => value_label(value),
+                        Some(value) => value_label_for(
+                            value,
+                            entry.fields.get(storage).map(|field| &field.kind),
+                        ),
                     })
                     .collect(),
                 None => vec![PENDING_ROW.to_owned()],

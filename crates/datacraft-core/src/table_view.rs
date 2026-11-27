@@ -49,10 +49,11 @@ pub fn view_order(
             .iter()
             .all(|(index, predicate)| predicate.matches(&rows[row][*index]))
     });
-    // Picked values (phase 101, step 101.1; M132) match the rendered text.
+    // Picked values (phase 101, step 101.1; M132) match the rendered text
+    // — the kind-aware rendering keeps a decimal's declared scale (M135).
     for (field, filter) in values {
         let index = column_of(field)?;
-        order.retain(|&row| filter.matches(&rows[row][index]));
+        order.retain(|&row| filter.matches(&rows[row][index], Some(&table.fields[index].kind)));
     }
     if let Some((field, direction)) = sort {
         let index = column_of(field)?;
@@ -114,8 +115,11 @@ pub fn distinct_values(
             blank = true;
             continue;
         }
-        seen.entry(datacraft_types::display_value(value))
-            .or_insert_with(|| value.clone());
+        seen.entry(datacraft_types::display_value_for(
+            value,
+            Some(&table.fields[index].kind),
+        ))
+        .or_insert_with(|| value.clone());
     }
     let mut rendered: Vec<(String, FieldValue)> = seen.into_iter().collect();
     rendered.sort_by(|(_, a), (_, b)| sort_compare(a, b));

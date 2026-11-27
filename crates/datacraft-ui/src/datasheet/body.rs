@@ -6,18 +6,19 @@
 //! empty value is distinguishable from an empty string.
 
 use datacraft_core::edit_buffer::EditBuffer;
-use datacraft_core::schema::FieldValue;
+use datacraft_core::schema::{FieldKind, FieldValue};
 
 use crate::i18n::t;
-use crate::labels::value_label;
+use crate::labels::value_label_for;
 
-/// One row's cells in display order.
-fn cells(order: &[usize], values: &[FieldValue]) -> Vec<String> {
+/// One row's cells in display order. The column kinds (storage order)
+/// feed the rendering: a decimal keeps its declared scale (M135).
+fn cells(order: &[usize], values: &[FieldValue], kinds: &[FieldKind]) -> Vec<String> {
     order
         .iter()
         .map(|&storage| match values.get(storage) {
             Some(FieldValue::Null) | None => t("(NULL)").to_owned(),
-            Some(value) => value_label(value),
+            Some(value) => value_label_for(value, kinds.get(storage)),
         })
         .collect()
 }
@@ -30,6 +31,7 @@ pub(crate) fn build_body(
     display: &[usize],
     slots: &[usize],
     staged: Option<&EditBuffer>,
+    kinds: &[FieldKind],
 ) -> Vec<Vec<String>> {
     match staged {
         Some(buffer) => slots
@@ -38,12 +40,12 @@ pub(crate) fn build_body(
                 let values = buffer
                     .row_image(slot)
                     .unwrap_or_else(|| rows.get(slot).map(Vec::as_slice).unwrap_or(&[]));
-                cells(order, values)
+                cells(order, values, kinds)
             })
             .collect(),
         None => display
             .iter()
-            .map(|&cache_row| cells(order, &rows[cache_row]))
+            .map(|&cache_row| cells(order, &rows[cache_row], kinds))
             .collect(),
     }
 }

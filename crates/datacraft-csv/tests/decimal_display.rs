@@ -96,7 +96,10 @@ fn a_read_back_row_rerenders_through_the_same_rule() {
     port.update_row(
         "Rates",
         0,
-        &[FieldValue::Decimal(2550), FieldValue::Text("Grace".to_owned())],
+        &[
+            FieldValue::Decimal(2550),
+            FieldValue::Text("Grace".to_owned()),
+        ],
     )
     .expect("update the row");
     let text = std::fs::read_to_string(scratch.0.join("Rates.csv")).expect("read the rewrite");

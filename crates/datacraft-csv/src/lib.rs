@@ -32,7 +32,7 @@ use datacraft_core::port::{
     DatabaseFormat, DriverCapabilities, DriverId, OpenedDatabase, PortError, Relationship,
     RowRange, StoragePort, Support, window_slice,
 };
-use datacraft_core::schema::{FieldValue, TableDef};
+use datacraft_core::schema::{FieldKind, FieldValue, TableDef};
 
 mod table_io;
 
@@ -217,7 +217,8 @@ impl StoragePort for CsvPort {
             });
         }
         let mut rows = self.rows_of(&canonical)?;
-        rows.push(values.iter().map(to_cell).collect::<Vec<String>>());
+        let cells = render_row(self.definition_of(table)?, values);
+        rows.push(cells);
         self.write_table(&canonical, rows)
     }
 
@@ -244,7 +245,7 @@ impl StoragePort for CsvPort {
             return Err(out_of_range(&canonical, row, rows.len()));
         }
         let target = &mut rows[row];
-        *target = values.iter().map(to_cell).collect::<Vec<String>>();
+        *target = render_row(self.definition_of(table)?, values);
         self.write_table(&canonical, rows)
     }
 
@@ -282,7 +283,7 @@ impl StoragePort for CsvPort {
                             ),
                         });
                     }
-                    rows.push(values.iter().map(to_cell).collect::<Vec<String>>());
+                    rows.push(render_row(self.definition_of(table)?, values));
                 }
                 datacraft_core::port::RowWriteOp::Update { row, values } => {
                     if values.len() != arity {
@@ -299,7 +300,7 @@ impl StoragePort for CsvPort {
                         return Err(out_of_range(&canonical, *row, rows.len()));
                     }
                     let target = &mut rows[*row];
-                    *target = values.iter().map(to_cell).collect::<Vec<String>>();
+                    *target = render_row(self.definition_of(table)?, values);
                 }
                 datacraft_core::port::RowWriteOp::Delete { row } => {
                     if *row >= rows.len() {
@@ -350,12 +351,25 @@ impl CsvPort {
     }
 }
 
+/// One row's cells in storage order: the kind-aware rendering keeps a
+/// decimal's declared scale (phase 104, step 104.1; item M135).
+fn render_row(definition: &TableDef, values: &[FieldValue]) -> Vec<String> {
+    values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            let kind = definition.fields.get(index).map(|field| &field.kind);
+            to_cell(value, kind)
+        })
+        .collect()
+}
+
 /// Maps a domain value onto a CSV cell deterministically.
-fn to_cell(value: &FieldValue) -> String {
+fn to_cell(value: &FieldValue, kind: Option<&FieldKind>) -> String {
     match value {
         FieldValue::Null => String::new(),
         FieldValue::Text(text) => text.clone(),
-        other => datacraft_core::present::display_value(other),
+        other => datacraft_core::present::display_value_for(other, kind),
     }
 }
 

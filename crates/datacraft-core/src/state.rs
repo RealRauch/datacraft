@@ -217,13 +217,19 @@ pub enum ValueFilter {
 
 impl ValueFilter {
     /// Whether a cell passes this filter: `Null` for the blank entry,
-    /// otherwise the rendered text must equal the picked one.
-    pub fn matches(&self, value: &crate::schema::FieldValue) -> bool {
+    /// otherwise the rendered text must equal the picked one. The
+    /// column's kind feeds the rendering (phase 104, step 104.1; M135 —
+    /// the list and the match share one rendering).
+    pub fn matches(
+        &self,
+        value: &crate::schema::FieldValue,
+        kind: Option<&datacraft_types::FieldKind>,
+    ) -> bool {
         match self {
             Self::Blank => value == &crate::schema::FieldValue::Null,
             Self::Text(text) => {
                 value != &crate::schema::FieldValue::Null
-                    && datacraft_types::display_value(value) == *text
+                    && datacraft_types::display_value_for(value, kind) == *text
             }
         }
     }

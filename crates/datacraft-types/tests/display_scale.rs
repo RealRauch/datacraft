@@ -6,9 +6,7 @@
 //! scale 0 stays byte-identical, and a kind-less context keeps the raw
 //! form (nothing is known about the column there).
 
-use datacraft_types::{
-    display_value, display_value_for, FieldKind, FieldValue, NumericKind,
-};
+use datacraft_types::{FieldKind, FieldValue, NumericKind, display_value, display_value_for};
 
 fn decimal(precision: u8, scale: u8) -> Option<FieldKind> {
     Some(FieldKind::Number(NumericKind::Decimal { precision, scale }))
@@ -17,19 +15,19 @@ fn decimal(precision: u8, scale: u8) -> Option<FieldKind> {
 #[test]
 fn a_scale_two_decimal_renders_its_declared_scale() {
     assert_eq!(
-        display_value_for(&FieldValue::Decimal(2550), decimal(18, 2)),
+        display_value_for(&FieldValue::Decimal(2550), decimal(18, 2).as_ref()),
         "25.50"
     );
     assert_eq!(
-        display_value_for(&FieldValue::Decimal(255), decimal(10, 2)),
+        display_value_for(&FieldValue::Decimal(255), decimal(10, 2).as_ref()),
         "2.55"
     );
     assert_eq!(
-        display_value_for(&FieldValue::Decimal(-5), decimal(10, 2)),
+        display_value_for(&FieldValue::Decimal(-5), decimal(10, 2).as_ref()),
         "-0.05"
     );
     assert_eq!(
-        display_value_for(&FieldValue::Decimal(-12_345_678), decimal(18, 4)),
+        display_value_for(&FieldValue::Decimal(-12_345_678), decimal(18, 4).as_ref()),
         "-1234.5678"
     );
 }
@@ -37,11 +35,11 @@ fn a_scale_two_decimal_renders_its_declared_scale() {
 #[test]
 fn scale_zero_stays_byte_identical_to_the_raw_form() {
     assert_eq!(
-        display_value_for(&FieldValue::Decimal(7), decimal(10, 0)),
+        display_value_for(&FieldValue::Decimal(7), decimal(10, 0).as_ref()),
         "7"
     );
     assert_eq!(
-        display_value_for(&FieldValue::Decimal(2550), decimal(18, 0)),
+        display_value_for(&FieldValue::Decimal(2550), decimal(18, 0).as_ref()),
         "2550"
     );
 }
@@ -57,7 +55,7 @@ fn a_kind_less_context_keeps_the_raw_scaled_integer() {
 #[test]
 fn every_other_family_is_kind_agnostic() {
     for (value, kind) in [
-        (FieldValue::Integer(42), decimal(10, 2)),
+        (FieldValue::Integer(42), decimal(10, 2).as_ref()),
         (FieldValue::Text("Ada".into()), None),
         (FieldValue::Currency(12_500), None),
         (FieldValue::Boolean(true), None),
