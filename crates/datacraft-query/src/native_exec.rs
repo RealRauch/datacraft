@@ -261,6 +261,14 @@ fn run_with_limit(
     Ok(project::project(&rows, &projections))
 }
 
+/// Structural executability check without data: the same rules `run`
+/// applies before touching rows (kind, grouping, parameters, select
+/// modifiers, FROM presence). The readiness report (phase 103, step
+/// 103.1) classifies through this so both sides share one rule source.
+pub fn check(query: &NativeQuery) -> Result<(), NativeExecError> {
+    validate_query(query)
+}
+
 fn validate_query(query: &NativeQuery) -> Result<(), NativeExecError> {
     if query.kind != NativeQueryKind::Select {
         return unsupported(format!(

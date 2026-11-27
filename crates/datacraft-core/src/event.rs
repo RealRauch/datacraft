@@ -457,6 +457,13 @@ pub enum Event {
         /// Call graph, SQL literals, references and unused modules.
         analysis: crate::vba_analysis::VbaAnalysis,
     },
+    /// The app-readiness aggregation completed (phase 103, step 103.1;
+    /// M134; roadmap §14).
+    AppAnalyzed {
+        /// Per-object rings, the VBA estimate, links, the unsupported
+        /// list and the effort summary.
+        report: crate::readiness::AppReadiness,
+    },
     /// A command could not be executed; the reason is precise and
     /// user-renderable (LESSONS #4 — no silent swallowing).
     Failed {

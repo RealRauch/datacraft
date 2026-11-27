@@ -370,6 +370,7 @@ impl Core {
             }
             Command::LoadVbaModule { module } => self.load_vba_module(&module),
             Command::AnalyzeVba => self.analyze_vba_command(),
+            Command::AnalyzeApp => self.analyze_app_command(),
             Command::SaveDesignDocument { path } => self.save_design_document(&path),
             Command::LoadDesignDocument { path } => self.load_design_document(&path),
             Command::ExportReportPdf { report, path } => self.export_report_pdf(&report, &path),

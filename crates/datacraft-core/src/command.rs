@@ -422,8 +422,7 @@ pub enum Command {
         /// New page rect.
         rect: Rect,
     },
-    /// Sets the content property a placed report control carries (step
-    /// 63.1, H56): label, caption, bound field or `=expression`; empty clears.
+    /// Sets a placed report control's content property (63.1, H56).
     SetReportControlContent {
         /// Target report name (case-insensitive).
         report: String,
@@ -439,8 +438,7 @@ pub enum Command {
         /// Control name (case-insensitive).
         control: String,
     },
-    /// Adds a record-source field from the designer's field list as a
-    /// bound control at the next free page slot (step 11.6).
+    /// Adds a record-source field as a bound report control (11.6).
     AddReportField {
         /// Target report name (case-insensitive).
         report: String,
@@ -454,8 +452,7 @@ pub enum Command {
         /// Source table name.
         table: String,
     },
-    /// Sets or clears a report's grouping field (step 15.2, H41); it must
-    /// exist in the source.
+    /// Sets or clears a report's grouping field (15.2, H41).
     SetReportGrouping {
         /// Target report name (case-insensitive).
         report: String,
@@ -496,4 +493,7 @@ pub enum Command {
         /// Target file; it must not exist yet.
         path: PathBuf,
     },
+    /// Aggregates the migration readiness of the open database (phase
+    /// 103, step 103.1; M134; roadmap §14); read-only by construction.
+    AnalyzeApp,
 }

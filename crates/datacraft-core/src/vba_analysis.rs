@@ -286,7 +286,7 @@ fn module_name<'a>(modules: &'a [(String, &VbaModule)], name: &str) -> Option<&'
 }
 
 /// Double-quoted string literals in source order (`""` escapes a quote).
-fn string_literals(source: &str) -> Vec<String> {
+pub(crate) fn string_literals(source: &str) -> Vec<String> {
     let chars: Vec<char> = source.chars().collect();
     let mut out = Vec::new();
     let mut index = 0usize;
@@ -323,7 +323,7 @@ fn string_literals(source: &str) -> Vec<String> {
 }
 
 /// Whether a string literal starts like a SQL statement.
-fn looks_like_sql(literal: &str) -> bool {
+pub(crate) fn looks_like_sql(literal: &str) -> bool {
     let lower = literal.trim_start().to_ascii_lowercase();
     if ["select ", "select*", "transform ", "parameters "]
         .iter()

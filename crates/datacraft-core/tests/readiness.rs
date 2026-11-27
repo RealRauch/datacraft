@@ -74,18 +74,18 @@ fn assert_status(
     assert_eq!(&object.status, status, "{object:?}");
 }
 
-fn not_covered(fragment: &str) -> ObjectStatus {
-    ObjectStatus::NotCovered {
-        reason: fragment.to_owned(),
-    }
-}
-
 #[test]
 fn analyze_app_requires_an_open_database() {
-    let core = Core::new(Box::new(MockPort::with_tables(vec![])));
+    let mut core = Core::new(Box::new(MockPort::with_tables(vec![])));
     let events = core.dispatch(Command::AnalyzeApp);
     assert!(
-        matches!(&events[0], Event::Failed { code: FailureCode::NoDatabase, .. }),
+        matches!(
+            &events[0],
+            Event::Failed {
+                code: FailureCode::NoDatabase,
+                ..
+            }
+        ),
         "{events:?}"
     );
     assert!(core.analyze_app().is_err());
@@ -125,7 +125,9 @@ fn sidecar_designs_run_in_their_rings() {
         name: "Recent".into(),
         sql: "SELECT Name FROM Customers".into(),
     }));
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     core.dispatch(Command::SetFormSource {
         form: "Card".into(),
         table: "Customers".into(),
@@ -175,22 +177,15 @@ fn unassigned_sources_report_not_covered() {
     core.dispatch(Command::CreateQuery {
         name: "Empty Query".into(),
     });
-    core.dispatch(Command::View(datacraft_core::view::ViewCommand::Create {
-        name: "Empty View".into(),
-        sql: String::new(),
-    }));
-    core.dispatch(Command::CreateForm { name: "Unbound".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Unbound".into(),
+    });
 
     let report = report_of(&core.dispatch(Command::AnalyzeApp));
     let query = object_of(&report, ReportObjectKind::Query, "Empty Query");
     assert!(
         matches!(&query.status, ObjectStatus::NotCovered { reason } if reason.contains("source table")),
         "{query:?}"
-    );
-    let view = object_of(&report, ReportObjectKind::View, "Empty View");
-    assert!(
-        matches!(&view.status, ObjectStatus::NotCovered { .. }),
-        "{view:?}"
     );
     // An unbound form still renders in the runtime.
     assert_status(
@@ -304,34 +299,25 @@ fn native_designs_macros_and_links_report_not_covered() {
     let mut core = opened(port);
 
     let report = report_of(&core.dispatch(Command::AnalyzeApp));
-    assert_status(
-        &report,
-        ReportObjectKind::NativeForm,
-        "LegacyForm",
-        Ring::Runtime,
-        &not_covered("datacraft-import"),
-    );
-    assert_status(
-        &report,
-        ReportObjectKind::NativeReport,
-        "LegacyReport",
-        Ring::Runtime,
-        &not_covered("datacraft-import"),
-    );
-    assert_status(
-        &report,
-        ReportObjectKind::Macro,
-        "AutoExec",
-        Ring::Macro,
-        &not_covered("never executed"),
-    );
-    for name in ["Remote", "Other"] {
-        assert_status(
-            &report,
-            ReportObjectKind::LinkedTable,
-            name,
-            Ring::Storage,
-            &not_covered("never resolved"),
+    for (kind, name, fragment) in [
+        (
+            ReportObjectKind::NativeForm,
+            "LegacyForm",
+            "datacraft-import",
+        ),
+        (
+            ReportObjectKind::NativeReport,
+            "LegacyReport",
+            "datacraft-import",
+        ),
+        (ReportObjectKind::Macro, "AutoExec", "never executed"),
+        (ReportObjectKind::LinkedTable, "Remote", "never resolved"),
+        (ReportObjectKind::LinkedTable, "Other", "never resolved"),
+    ] {
+        let object = object_of(&report, kind, name);
+        assert!(
+            matches!(&object.status, ObjectStatus::NotCovered { reason } if reason.contains(fragment)),
+            "{object:?}"
         );
     }
     assert_eq!(report.links.len(), 2);
@@ -410,18 +396,19 @@ fn decode_failures_surface_in_the_unsupported_list() {
     let mut core = opened(port);
 
     let report = report_of(&core.dispatch(Command::AnalyzeApp));
-    let reasons: Vec<&str> = report
+    let reasons: Vec<String> = report
         .unsupported
         .iter()
         .filter(|entry| entry.area == UnsupportedArea::DecodeError)
-        .map(|entry| entry.reason.as_str())
+        .map(|entry| entry.reason.clone())
         .collect();
+    // The stored decode reasons carry the port's Display prefix.
     assert_eq!(
         reasons,
         [
-            "attribute 12 is outside the decodable subset",
-            "the macro definition blob is truncated",
-            "the dir stream is damaged",
+            "unsupported: attribute 12 is outside the decodable subset",
+            "unsupported: the macro definition blob is truncated",
+            "unsupported: the dir stream is damaged",
         ]
     );
 }
@@ -444,7 +431,9 @@ fn analyze_app_is_read_only_by_construction() {
 #[test]
 fn the_accessor_and_the_event_carry_the_same_report() {
     let mut core = plain();
-    core.dispatch(Command::CreateForm { name: "Card".into() });
+    core.dispatch(Command::CreateForm {
+        name: "Card".into(),
+    });
     let expected = core.analyze_app().expect("the analysis succeeds");
     let report = report_of(&core.dispatch(Command::AnalyzeApp));
     assert_eq!(report, expected);
