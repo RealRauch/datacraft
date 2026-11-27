@@ -81,3 +81,33 @@ maintenance".
 - `open-test` opens the database shared and closes it immediately — it does
   not modify the file's pages. Do not treat an opened file as pristine
   evidence without re-verifying its hash.
+
+## Family-A benchmark harness (phase 103, step 103.3; item M134)
+
+`bench.ps1` extends this directory with the roadmap §18 measurement
+instrument: the same engine (DAO.DBEngine.120) and the shipped release
+CLI against the same generated Jet4 `.mdb`, median + p25/p75 over
+N >= 10 runs. The method, controls, measured results and honest gaps
+live in `docs/BENCHMARKS.md` — that document is the record, this
+harness is the instrument. Benchmarks never run in CI.
+
+```bash
+cargo build --release -p datacraft-cli
+
+# Environment capture (versions, CPU, RAM, power plan)
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/dao-oracle/bench.ps1 env
+
+# Deterministic generator (never committed — only the recipe is tracked)
+powershell ... bench.ps1 gen -Path C:\temp\bench\n100k.mdb -Count 100000
+powershell ... bench.ps1 gen -Path C:\temp\bench\w100k.mdb -Count 100000 -Wide
+
+# One point per call: median_ms=p25/p75/runs on stdout
+powershell ... bench.ps1 dao-scan -Runs 10 -Path C:\temp\bench\n100k.mdb
+powershell ... bench.ps1 cli-scan -Runs 10 -Path C:\temp\bench\n100k.mdb
+```
+
+Subcommands: `gen` · `env` · DAO side `dao-open|scan|filter|join|insert|compact`
+· CLI side `cli-open|startup|scan|filter|join|insert|compact|ram`. The
+insert points run on the index-free table `c` (the M15 multi-page index
+boundary refuses batch writes into indexed tables — recorded in
+`docs/BENCHMARKS.md` as a gap).
