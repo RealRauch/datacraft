@@ -11,6 +11,14 @@
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
+### Phase 104 — Write-parity and display correctness
+
+**Scope (Steps):**
+
+- **104.1 Core: scale-aware decimal display across datasheet, CSV driver and exports (m135)**
+- **104.2 Core: Jet orphan inserts/updates refuse against declared relationships (m137, roadmap §13a)**
+- **104.3 Documentation and phase gate**
+
 
 
 
@@ -576,3 +584,6 @@
 | 103.2 | UI and wire: read-only report surface with CLI/MCP parity | ✅ |
 | 103.3 | Benchmarks: harness in tools/dao-oracle plus docs/BENCHMARKS.md (method, measurements, honest gaps) | ✅ |
 | 103.4 | Documentation and phase gate; the phase-103 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ✅ |
+| 104.1 | Core: scale-aware decimal display across datasheet, CSV driver and exports (m135) | ⬜ |
+| 104.2 | Core: Jet orphan inserts/updates refuse against declared relationships (m137, roadmap §13a) | ⬜ |
+| 104.3 | Documentation and phase gate | ⬜ |
