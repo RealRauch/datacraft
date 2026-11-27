@@ -75,9 +75,10 @@ const ALLOWED: &[(&str, &str)] = &[
     // navigation row (prev left of next).
     ("shell.rs", "\"\\u{25c0}\""),
     ("shell.rs", "\"\\u{25b6}\""),
-    // Report preview page navigation (steps 10.4/91.11).
-    ("report_design.rs", "\"\\u{25c0}\""),
-    ("report_design.rs", "\"\\u{25b6}\""),
+    // Report preview page navigation (steps 10.4/91.11; `preview.rs` is
+    // the phase-102 split of `report_design.rs` — F13).
+    ("report_design/preview.rs", "\"\\u{25c0}\""),
+    ("report_design/preview.rs", "\"\\u{25b6}\""),
     // U5: the Views split-button's overflow ellipsis.
     ("ribbon/views.rs", "\"…\""),
     // M82: the help glyph opens the shortcuts page.
