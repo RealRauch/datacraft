@@ -17,7 +17,10 @@ use datacraft_core::schema::{FieldDef, FieldKind, FieldValue, NumericKind, Table
 fn customers_table() -> TableDef {
     TableDef::new(
         "Customers",
-        vec![FieldDef::new("Id", FieldKind::Number(NumericKind::LongInteger))],
+        vec![FieldDef::new(
+            "Id",
+            FieldKind::Number(NumericKind::LongInteger),
+        )],
     )
 }
 
@@ -25,10 +28,7 @@ fn orders_table() -> TableDef {
     TableDef::new(
         "Orders",
         vec![
-            FieldDef::new(
-                "CustomerId",
-                FieldKind::Number(NumericKind::LongInteger),
-            ),
+            FieldDef::new("CustomerId", FieldKind::Number(NumericKind::LongInteger)),
             FieldDef::new("Note", FieldKind::Text { max_len: 50 }),
         ],
     )
@@ -44,10 +44,7 @@ fn relationship() -> Relationship {
 }
 
 fn parents() -> BTreeMap<String, Vec<Vec<FieldValue>>> {
-    BTreeMap::from([(
-        "customers".to_owned(),
-        vec![vec![FieldValue::Integer(1)]],
-    )])
+    BTreeMap::from([("customers".to_owned(), vec![vec![FieldValue::Integer(1)]])])
 }
 
 #[test]

@@ -304,6 +304,11 @@ impl crate::core::Core {
             Ok(rows) => rows,
             Err(e) => return failed(FailureCode::Port, e.to_string()),
         };
+        // Referential parity (104.2, M137; §13(a)): an orphan batch
+        // refuses in preview — the writer enforces the same rule.
+        if let Some(reason) = self.orphan_batch_reason(&def, &ops) {
+            return failed(FailureCode::InvalidInput, reason);
+        }
         let (prepared, changes) = match preview(&def, &rows, &ops) {
             Ok(result) => result,
             Err(reason) => return failed(FailureCode::InvalidInput, reason),

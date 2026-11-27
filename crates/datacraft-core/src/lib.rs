@@ -46,6 +46,7 @@ mod qbe_dispatch;
 pub use datacraft_query::query_criteria;
 pub use datacraft_query::query_engine;
 pub mod readiness;
+pub mod referential;
 pub mod report;
 pub mod report_aggregates;
 pub mod report_bands;

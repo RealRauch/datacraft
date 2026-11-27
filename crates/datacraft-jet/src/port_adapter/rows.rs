@@ -51,6 +51,7 @@ pub(super) fn insert_row(
         return Err(PortError::TableNotFound(table.to_owned()));
     };
     check_unique(port, table, def, values, None)?;
+    check_orphans(port, table, def, values)?;
     let stored = port_write::to_storage_values(&def.fields, values)?;
     port.with_writer(|writer| writer.insert_row(page, &stored))?;
     Ok(())
@@ -109,6 +110,7 @@ pub(super) fn update_row(
     let stored = {
         let definition = port.definition_of(table)?.clone();
         check_unique(port, table, &definition, values, Some(row))?;
+        check_orphans(port, table, &definition, values)?;
         port_write::to_storage_values_for_update(&definition.fields, values)?
     };
     port.with_writer(|writer| writer.update_row(page, row, &stored))?;
@@ -140,12 +142,16 @@ pub(super) fn write_row_ops(
     for op in ops {
         prepared.push(match op {
             datacraft_core::port::RowWriteOp::Insert(values) => {
+                check_orphans(port, table, &definition, values)?;
                 PreparedOp::Insert(port_write::to_storage_values(&definition.fields, values)?)
             }
-            datacraft_core::port::RowWriteOp::Update { row, values } => PreparedOp::Update {
-                row: *row,
-                values: port_write::to_storage_values_for_update(&definition.fields, values)?,
-            },
+            datacraft_core::port::RowWriteOp::Update { row, values } => {
+                check_orphans(port, table, &definition, values)?;
+                PreparedOp::Update {
+                    row: *row,
+                    values: port_write::to_storage_values_for_update(&definition.fields, values)?,
+                }
+            }
             datacraft_core::port::RowWriteOp::Delete { row } => PreparedOp::Delete { row: *row },
         });
     }
@@ -162,6 +168,71 @@ pub(super) fn write_row_ops(
         Ok(())
     })?;
     Ok(())
+}
+
+/// Referential write parity (phase 104, step 104.2; item M137; roadmap
+/// §13(a)): a child row must reference an existing parent row for every
+/// declared relationship. SQLite's engine enforces its own foreign keys;
+/// this check gives the Jet writer the same visible outcome, from the
+/// one shared rule (`datacraft_core::referential`). A `NULL` child value
+/// passes (SQL FK semantics); a table without relationships never reads
+/// a parent row.
+pub(super) fn check_orphans(
+    port: &Jet4Port,
+    table: &str,
+    definition: &datacraft_core::schema::TableDef,
+    values: &[FieldValue],
+) -> Result<(), PortError> {
+    use datacraft_core::port::StoragePort as _;
+    let relationships = port.relationships()?;
+    if relationships.is_empty() {
+        return Ok(());
+    }
+    let mut parents = std::collections::BTreeMap::new();
+    for parent in datacraft_core::referential::parent_rows_needed(&relationships, table) {
+        let Some(parent_def) = port
+            .tables
+            .iter()
+            .find(|candidate| candidate.name.eq_ignore_ascii_case(&parent))
+            .cloned()
+        else {
+            continue;
+        };
+        let rows = read_rows(
+            port,
+            &parent_def.name,
+            RowRange {
+                start: 0,
+                len: usize::MAX,
+            },
+        )?;
+        // Project the referenced column: the shared rule compares one
+        // value per parent row.
+        let referenced = relationships
+            .iter()
+            .find(|r| r.related_table.eq_ignore_ascii_case(&parent_def.name))
+            .map(|r| r.related_column.clone());
+        let position = referenced.as_deref().and_then(|column| {
+            parent_def
+                .fields
+                .iter()
+                .position(|field| field.name.eq_ignore_ascii_case(column))
+        });
+        let projected = rows
+            .iter()
+            .map(|row| {
+                row.get(position.unwrap_or(0))
+                    .cloned()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        parents.insert(parent.to_lowercase(), projected);
+    }
+    match datacraft_core::referential::orphan_reason(&relationships, definition, values, &parents) {
+        Some(reason) => Err(PortError::WriteFailed { detail: reason }),
+        None => Ok(()),
+    }
 }
 
 /// Fields carrying a `NoDuplicates` index.

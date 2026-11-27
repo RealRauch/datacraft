@@ -396,6 +396,9 @@ impl StoragePort for Jet4Port {
     fn restore_row(&mut self, table: &str, values: &[FieldValue]) -> Result<(), PortError> {
         let page = self.page_of(table)?;
         let definition = self.definition_of(table)?.clone();
+        // The restore path is an insert (an undo re-adding a row) — the
+        // referential check applies (phase 104, step 104.2; M137).
+        rows::check_orphans(self, table, &definition, values)?;
         let values = port_write::to_storage_values_for_restore(&definition.fields, values)?;
         self.with_writer(|writer| writer.insert_row(page, &values))?;
         Ok(())

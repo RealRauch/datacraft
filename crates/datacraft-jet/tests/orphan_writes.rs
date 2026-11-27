@@ -44,10 +44,7 @@ fn child_table() -> TableDef {
     TableDef::new(
         "Orders",
         vec![
-            FieldDef::new(
-                "CustomerId",
-                FieldKind::Number(NumericKind::LongInteger),
-            ),
+            FieldDef::new("CustomerId", FieldKind::Number(NumericKind::LongInteger)),
             FieldDef::new("Note", FieldKind::Text { max_len: 50 }),
         ],
     )

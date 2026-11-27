@@ -241,12 +241,10 @@ fn an_orphan_child_insert_is_refused_on_both_drivers() {
             .port
             .create_table(&TableDef::new(
                 "Orders",
-                vec![
-                    FieldDef::new(
-                        "CustomerId",
-                        FieldKind::Number(NumericKind::LongInteger),
-                    ),
-                ],
+                vec![FieldDef::new(
+                    "CustomerId",
+                    FieldKind::Number(NumericKind::LongInteger),
+                )],
             ))
             .expect("create the child table");
         driver
