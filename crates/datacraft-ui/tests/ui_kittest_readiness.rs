@@ -8,9 +8,7 @@
 //! crate in the UI).
 
 use datacraft_core::command::Command;
-use datacraft_core::port::{
-    LinkKind, LinkedTable, MockPort, NativeObject, NativeObjectKind,
-};
+use datacraft_core::port::{LinkKind, LinkedTable, MockPort, NativeObject, NativeObjectKind};
 use datacraft_core::schema::{FieldDef, FieldKind, TableDef};
 use datacraft_core::vba::{VbaModule, VbaModuleKind, VbaProject};
 use datacraft_ui::app::App;
@@ -105,14 +103,17 @@ fn the_open_window_runs_the_analysis_and_renders_every_section() {
         "Linked tables",
         "Objects",
     ] {
-        assert!(dump.contains(section), "section {section:?} missing:\n{dump}");
+        assert!(
+            dump.contains(section),
+            "section {section:?} missing:\n{dump}"
+        );
     }
     assert!(
         dump.contains("1 of 4 objects run"),
         "the effort summary counts the objects:\n{dump}"
     );
     assert!(
-        dump.contains("3 not covered"),
+        dump.contains("not covered: 3"),
         "the effort summary counts the gaps:\n{dump}"
     );
     assert!(
@@ -135,7 +136,10 @@ fn the_open_window_runs_the_analysis_and_renders_every_section() {
         dump.contains("Clean: 4 of 4"),
         "the per-module estimate lists the candidates:\n{dump}"
     );
-    assert!(dump.contains("Remote"), "the link inventory lists the link:\n{dump}");
+    assert!(
+        dump.contains("Remote"),
+        "the link inventory lists the link:\n{dump}"
+    );
     assert!(
         dump.contains("LegacyForm") && dump.contains("not covered"),
         "the object list carries ring and status per object:\n{dump}"
