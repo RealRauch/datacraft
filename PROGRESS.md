@@ -4,21 +4,13 @@
 > Progress file — updated after every step.
 > Legend: ⬜ open · 🔄 in progress · ✅ done · ⛔ blocked
 > Method retrospective (PLAYBOOK §8): every 5 phases — checkpointed at
-> phase 98 (AGENTS §11), next at phase 103.
+> phase 103 (AGENTS §11), next at phase 108.
 
 > **Structure (archive pattern):** This file contains the **full progress table**
 > and detail blocks **only for active/open phases**. Detail blocks of completed phases
 > are moved to `docs/archive/PROGRESS_ARCHIVE.md` unchanged after completion.
 
 ## Active Phases
-### Phase 103 — Migration readiness and benchmark instrument (roadmap §14/§18)
-
-**Scope (Steps):**
-
-- **103.1 Core: AnalyzeApp readiness report — ring coverage per object, VBA estimate, link inventory, unsupported list, effort summary**
-- **103.2 UI and wire: read-only report surface with CLI/MCP parity**
-- **103.3 Benchmarks: harness in tools/dao-oracle plus docs/BENCHMARKS.md (method, measurements, honest gaps)**
-- **103.4 Documentation and phase gate; the phase-103 method retrospective checkpoint (PLAYBOOK §8) rides the gate**
 
 
 
@@ -580,7 +572,7 @@
 | 102.3 | UI/core: z-order and tab-order surface in both designers | ✅ |
 | 102.4 | UI: preview zoom control and drag-and-drop field binding | ✅ |
 | 102.5 | Documentation and phase gate (README designer row, COMPATIBILITY evidence, CHANGELOG) | ✅ |
-| 103.1 | Core: AnalyzeApp readiness report — ring coverage per object, VBA estimate, link inventory, unsupported list, effort summary | ⬜ |
-| 103.2 | UI and wire: read-only report surface with CLI/MCP parity | ⬜ |
-| 103.3 | Benchmarks: harness in tools/dao-oracle plus docs/BENCHMARKS.md (method, measurements, honest gaps) | ⬜ |
-| 103.4 | Documentation and phase gate; the phase-103 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ⬜ |
+| 103.1 | Core: AnalyzeApp readiness report — ring coverage per object, VBA estimate, link inventory, unsupported list, effort summary | ✅ |
+| 103.2 | UI and wire: read-only report surface with CLI/MCP parity | ✅ |
+| 103.3 | Benchmarks: harness in tools/dao-oracle plus docs/BENCHMARKS.md (method, measurements, honest gaps) | ✅ |
+| 103.4 | Documentation and phase gate; the phase-103 method retrospective checkpoint (PLAYBOOK §8) rides the gate | ✅ |

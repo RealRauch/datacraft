@@ -1,4 +1,4 @@
-# BACKLOG.md — Open items (As of: 2026-11-27T00:52)
+# BACKLOG.md — Open items (As of: 2026-11-27T16:18)
 
 > **This file contains only OPEN items.** Completed items are moved to `docs/archive/BACKLOG_ARCHIVE.md` unchanged after completion; this file keeps only a one-liner per item in the Done Index (below). Findings/fix-ideas/decisions are not deleted — moved to the archive.
 > Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 test gap
@@ -22,12 +22,6 @@
 ---
 
 ## 🟡 MEDIUM
-
-### [ ] M134 — Migration readiness report and benchmark instrument (phase 103, roadmap §14/§18) — 🟡
-- **Location:** `crates/datacraft-core/src/vba_analysis.rs` (precedent), a new readiness module, UI report surface, `tools/dao-oracle/`, `docs/BENCHMARKS.md`.
-- **Problem:** Roadmap §14 freezes an app-level migration readiness report that aggregates per-object evidence, and §18 freezes a benchmark methodology/harness — neither exists, so migration effort and performance claims have no instrument.
-- **Approach:** One read-only `AnalyzeApp` command aggregating ring coverage per form/report/query, VBA module/transpilation estimate, the phase-100 link inventory, unsupported features and an effort summary; a UI/wire surface; a benchmark harness in `tools/dao-oracle` plus `docs/BENCHMARKS.md` (generator recipe, method controls, measured results, honest gaps).
-- **Acceptance:** The report lists every object with its ring status and unsupported reasons and is read-only by construction; all four clients can request it; the benchmark harness produces family-A numbers against DAO and the documented method, with results and the remaining gaps recorded in `docs/BENCHMARKS.md`; the phase-103 method retrospective (PLAYBOOK §8) rides the gate.
 
 ### [ ] M135 — Decimal display ignores the declared scale — the datasheet shows the scaled integer — 🟡
 - **Location:** `crates/datacraft-types/src/display.rs` (`display_value`, the `Decimal` arm), `crates/datacraft-csv/src/lib.rs` (`to_cell`), every display consumer (datasheet cells, status line, form runtime).
